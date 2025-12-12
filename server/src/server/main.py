@@ -1,11 +1,14 @@
 import logging
 from pathlib import Path
-from flask import Flask
-from flask_restx import Api
-from .instance import env_config
+
+from .instance import env_config, app, api
 from .db.mysql_connector import mysql_setup
 from .db.redis_connector import get_redis_connection
 from .log import *
+
+# setup the routes
+from .routes.v1.hello_resource import *
+
 
 logger = logging.getLogger("server")
 
@@ -13,6 +16,4 @@ logger = logging.getLogger("server")
 mysql_setup()
 get_redis_connection()
 
-# Flask App Setup
-app = Flask(__name__)
-api = Api(app)
+app.run(host="0.0.0.0", port=45045, debug=False)
