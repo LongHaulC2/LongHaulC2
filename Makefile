@@ -63,6 +63,10 @@ install:
 	@echo "\tDB: 127.0.0.1:3306"
 	@echo ""
 
+	@echo "C2"
+	@echo "\tManagement: X:X"
+	@echo ""
+
 	@echo "Activate the venv with 'source $(VENV_PATH)/bin/activate'"
 	@echo "Start the application with ..."
 
