@@ -7,6 +7,7 @@ VENV_PATH ?= ./venv
 # creds
 MYSQL_ROOT_PASSWORD ?= P@ssw0rd1!
 MYSQL_ROOT_USER ?= root
+REDIS_PASSWORD ?= P@ssw0rd1!
 # can specify creds manually with:
 #make install MYSQL_ROOT_PASSWORD=SuperSecure123
 
@@ -25,10 +26,12 @@ install:
 	# docker start
 
 	# https://hub.docker.com/_/mysql
-	sudo docker run --name C2_mysql -e MYSQL_ROOT_PASSWORD=$(MYSQL_ROOT_PASSWORD) -d mysql:latest
+	sudo docker run --name C2_mysql -p 127.0.0.1:3306:3306 -p 127.0.0.1:33060:33060 -e MYSQL_ROOT_PASSWORD=$(MYSQL_ROOT_PASSWORD) -d mysql:latest
 
 	# https://hub.docker.com/_/redis
-	sudo docker run --name C2_redis -d redis:latest
+	@echo "Redis insights is on, Access at <IP>:8001"
+	#8001: Redis Insight. Enabled for dev, can disable/put on localhost for prod.
+	sudo docker run -d --name C2_redis-stack -p 127.0.0.1:6379:6379 -p 0.0.0.0:8001:8001 -e REDIS_ARGS="--requirepass $(REDIS_PASSWORD)" redis/redis-stack:latest
 
 
 	# create venv
@@ -39,6 +42,7 @@ install:
 	# create .env
 	echo MYSQL_ROOT_USER=$(MYSQL_ROOT_USER) >> .env
 	echo MYSQL_ROOT_PASSWORD=$(MYSQL_ROOT_PASSWORD) >> .env
+	echo REDIS_PASSWORD=$(REDIS_PASSWORD) >> .env
 
 uninstall:
 	@echo "=================================================="
@@ -55,12 +59,12 @@ uninstall:
 	@echo "Stopping and removing Docker containers"
 	-sudo docker stop C2_mysql
 	-sudo docker rm C2_mysql
-	-sudo docker stop C2_redis
-	-sudo docker rm C2_redis
+	-sudo docker stop C2_redis-stack
+	-sudo docker rm C2_redis-stack
 
 	@echo "Removing Docker images"
 	-sudo docker rmi mysql:latest
-	-sudo docker rmi redis:latest
+	-sudo docker rmi redis-stack:latest
 
 	@echo "Removing .env"
 	-rm .env
