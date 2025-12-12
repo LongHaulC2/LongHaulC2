@@ -30,7 +30,11 @@ def get_redis_connection() -> object | None:
         try:
             # Send a PING command to Redis to verify the connection
             response = r.ping()
-            logger.info(f"REDIS connection is alive: {response}")
+            if response:
+                logger.info(f"REDIS connection is alive")
+            else:
+                logger.info(f"REDIS connection is not alive")
+
         except redis.ConnectionError as e:
             logger.warning(f"Failed to connect to REDIS: {e}")
 

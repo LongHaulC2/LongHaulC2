@@ -20,6 +20,14 @@ def get_mysql_connection() -> object | None:
 
         logger.info(f"Connecting to MYSQL server with {user}@{host}")
         mydb = mysql.connector.connect(host=host, user=user, password=password)
+
+        try:
+            response = mydb.ping()
+            logger.info(f"MYSQL connection is alive")
+        except mysql.connector.Error as e:
+            logger.warning(f"Failed to connect to MYSQL: {e}")
+            return None
+
         return mydb
 
     except Exception as e:
