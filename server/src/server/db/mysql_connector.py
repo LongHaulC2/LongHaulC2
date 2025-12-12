@@ -1,35 +1,114 @@
-import mysql.connector
-from ..instance import env_config
 import logging
 import traceback
+from sqlalchemy import create_engine, Column, Integer, String, Text, Time, text
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
+import urllib.parse
+from ..db.mysql_models import Implant
+from ..instance import env_config
 
+# Logger setup
 logger = logging.getLogger("server")
+
+Base = declarative_base()
+
+
+def _create_db_if_not_exist():
+    """
+    Docstring for _create_db_if_not_exist
+
+    Creates the c2_db in MYSQL if it does not already exist. This is the DB used for
+    all the C2 operations, and it NEEDS to exist
+    """
+
+    host = env_config.get("MYSQL_HOST")
+    user = env_config.get("MYSQL_ROOT_USER")
+    password = env_config.get("MYSQL_ROOT_PASSWORD")
+    database = env_config.get("MYSQL_DATABASE")
+
+    # Check for missing configurations
+    if None in (host, user, password, database):
+        logger.critical(
+            "Host, User, or Password for MySQL is None. Check .env file, Cannot Continue"
+        )
+        exit()
+
+    # SQLAlchemy connection string - using ecnoded user/pass for special character handling
+    encoded_user = urllib.parse.quote_plus(user)
+    encoded_password = urllib.parse.quote_plus(password)
+
+    connection_string = f"mysql+pymysql://{encoded_user}:{encoded_password}@{host}"
+    engine = create_engine(connection_string, echo=False)
+
+    with engine.connect() as conn:
+        # Dynamically insert the database name into the SQL query
+        create_db_sql = f"CREATE DATABASE IF NOT EXISTS {database};"
+
+        # Execute the query
+        conn.execute(text(create_db_sql))
+        logger.debug(f"Database '{database}' created successfully.")
 
 
 def get_mysql_connection() -> object | None:
     try:
+        # _create_db_if_not_exist()
+
         host = env_config.get("MYSQL_HOST")
         user = env_config.get("MYSQL_ROOT_USER")
         password = env_config.get("MYSQL_ROOT_PASSWORD")
+        database = env_config.get("MYSQL_DATABASE")
 
-        if None in (host, user, password):
+        # Check for missing configurations
+        if None in (host, user, password, database):
             logger.critical(
-                "Host, User, or Password for MYSQL is None. Check .env file, Cannot Continue"
+                "Host, User, Password, or Database for MySQL is None. Check .env file, Cannot Continue"
             )
             exit()
 
-        logger.info(f"Connecting to MYSQL server with {user}@{host}")
-        mydb = mysql.connector.connect(host=host, user=user, password=password)
+        # SQLAlchemy connection string - using ecnoded user/pass for special character handling
+        encoded_user = urllib.parse.quote_plus(user)
+        encoded_password = urllib.parse.quote_plus(password)
+        connection_string = (
+            f"mysql+pymysql://{encoded_user}:{encoded_password}@{host}/{database}"
+        )
 
-        try:
-            response = mydb.ping()
-            logger.info(f"MYSQL connection is alive")
-        except mysql.connector.Error as e:
-            logger.warning(f"Failed to connect to MYSQL: {e}")
-            return None
+        # Create SQLAlchemy engine
+        engine = create_engine(
+            connection_string, echo=False
+        )  # echo=True for debug output
 
-        return mydb
+        # Test the connection
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))  # Simple query to test the connection
+            logger.info(f"Connected to MySQL server as {user}@{host}.")
 
-    except Exception as e:
+        return engine
+
+    except SQLAlchemyError as e:
         logger.error(f"Error connecting to MySQL: {e}\n{traceback.format_exc()}")
         return None
+
+
+def create_implants_table():
+    try:
+        # Retrieve the SQLAlchemy engine
+        engine = get_mysql_connection()
+        if engine is None:
+            logger.critical("Unable to connect to MySQL. Exiting...")
+            exit()
+
+        # Create all tables in the database (if they don't exist)
+        Base.metadata.create_all(engine)
+        logger.debug("Table 'implants' created successfully.")
+
+    except SQLAlchemyError as e:
+        logger.error(f"Error creating table: {e}\n{traceback.format_exc()}")
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}\n{traceback.format_exc()}")
+
+
+def mysql_setup():
+    _create_db_if_not_exist()
+    get_mysql_connection()
+    create_implants_table()

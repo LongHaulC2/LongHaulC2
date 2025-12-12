@@ -49,6 +49,7 @@ install:
 	echo MYSQL_HOST=localhost >> .env
 	echo MYSQL_ROOT_USER=$(MYSQL_ROOT_USER) >> .env
 	echo MYSQL_ROOT_PASSWORD=$(MYSQL_ROOT_PASSWORD) >> .env
+	echo MYSQL_DATABASE=c2_db >> .env
 
 	echo REDIS_HOST=localhost >> .env
 	echo REDIS_USER=$(REDIS_USER) >> .env

@@ -22,7 +22,7 @@ I can't beat CS as a day-to-day red team operations tool. I can
     - Beacon: Do you have job for me (minimal proof this thing exists/is still up)
     - Checkin: Data going back and forth. Only happens if a job is available
 
-#### Agent:
+#### Implant:
  - C++
 
  Primary platform: Windows first, but linux would be useful for long  term. Make the beacon source  as 
@@ -44,10 +44,10 @@ I can't beat CS as a day-to-day red team operations tool. I can
  - [container] Redis: For caching/message/pub sub DB work. 
     This would hold:
         - Queued Commands
-        - Responses to agents
+        - Responses to Implants
 
  - [container] MySql: For long term data storage/stricter data types
-        - Agent metadata (ID [primary key], External IP, Internal IP, Listener, User, System Hostname, Notes, Process, PID, arch, last Checkin, Sleep Value)
+        - [X]Implant metadata (ID [primary key], External IP, Internal IP, Listener, User, System Hostname, Notes, Process, PID, arch, last Checkin, Sleep Value)
         - Job Logs
             (Job ID [primary key], Job contents, User who Queued Job, Job Response)
 

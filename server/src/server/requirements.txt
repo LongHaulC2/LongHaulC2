@@ -1,4 +1,6 @@
 flask-restx
-mysql-connector-python
+sqlalchemy
 dotenv
 redis
+pymysql
+cryptography
