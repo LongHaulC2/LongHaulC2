@@ -1,4 +1,11 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, Time, text
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Text,
+    Time,
+    BigInteger,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
@@ -9,8 +16,8 @@ Base = declarative_base()
 # Define the Implant model
 class Implant(Base):
     __tablename__ = "implants"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    # using bigint for 9 quadrillion potential agents. Int was "only" 2.4 billion.
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     external_ip = Column(String(45))  # IP (IPv4/IPv6)
     internal_ip = Column(String(45))
     listener = Column(Text)  # Can be IP or DNS
