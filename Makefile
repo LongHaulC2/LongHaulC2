@@ -7,6 +7,7 @@ VENV_PATH ?= ./venv
 # creds
 MYSQL_ROOT_PASSWORD ?= P@ssw0rd1!
 MYSQL_ROOT_USER ?= root
+REDIS_USER ?= default
 REDIS_PASSWORD ?= P@ssw0rd1!
 # can specify creds manually with:
 #make install MYSQL_ROOT_PASSWORD=SuperSecure123
