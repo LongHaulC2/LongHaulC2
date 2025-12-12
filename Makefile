@@ -29,7 +29,7 @@ install:
 	@echo "=================================================="
 
 	# https://hub.docker.com/_/mysql
-	sudo docker run --name C2_mysql -p 127.0.0.1:3306:3306 -p 127.0.0.1:33060:33060 -e MYSQL_ROOT_PASSWORD=$(MYSQL_ROOT_PASSWORD) -d mysql:latest
+	sudo docker run --name C2_mysql -p 0.0.0.0:3306:3306 -p 127.0.0.1:33060:33060 -e MYSQL_ROOT_PASSWORD=$(MYSQL_ROOT_PASSWORD) -d mysql:latest
 
 	# https://hub.docker.com/_/redis
 	@echo "Redis insights is on, Access at <IP>:8001"
