@@ -8,7 +8,7 @@ install:
 	@echo "=================================================="
 
 	sudo apt-get update
-	sudo apt-get install python3 python3-pip virtualenv docker.io -y
+	sudo apt-get install python3 python3-pip virtualenv docker.io redis-tools postgresql-client -y
 
 	# docker install
 	sudo docker pull mysql:latest
