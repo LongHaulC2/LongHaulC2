@@ -4,7 +4,7 @@
 
  - Structure:
     - [ ] Determine a folder structure
-    - [ ] Logging
+    - [ ] Logging <
     - [X] SQL Connection & checks
     - [ ] Redis Connection & checks
     - 
