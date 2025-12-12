@@ -46,8 +46,11 @@ install:
 	@echo "=================================================="
 	@echo "Creating .env..."
 	@echo "=================================================="
+	echo MYSQL_HOST=localhost >> .env
 	echo MYSQL_ROOT_USER=$(MYSQL_ROOT_USER) >> .env
 	echo MYSQL_ROOT_PASSWORD=$(MYSQL_ROOT_PASSWORD) >> .env
+
+	echo REDIS_HOST=localhost >> .env
 	echo REDIS_USER=$(REDIS_USER) >> .env
 	echo REDIS_PASSWORD=$(REDIS_PASSWORD) >> .env
 

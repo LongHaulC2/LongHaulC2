@@ -5,6 +5,6 @@
  - Structure:
     - [ ] Determine a folder structure
     - [ ] Logging
-    - [ ] SQL Connection & checks
+    - [X] SQL Connection & checks
     - [ ] Redis Connection & checks
     - 
