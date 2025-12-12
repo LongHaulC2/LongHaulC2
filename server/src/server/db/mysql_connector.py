@@ -12,6 +12,12 @@ def get_mysql_connection() -> object | None:
         user = env_config.get("MYSQL_ROOT_USER")
         password = env_config.get("MYSQL_ROOT_PASSWORD")
 
+        if None in (host, user, password):
+            logger.critical(
+                "Host, User, or Password for MYSQL is None. Check .env file, Cannot Continue"
+            )
+            exit()
+
         logger.info(f"Connecting to MYSQL server with {user}@{host}")
         mydb = mysql.connector.connect(host=host, user=user, password=password)
         return mydb
