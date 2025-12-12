@@ -40,7 +40,8 @@ install:
 	@echo "Creating virtualenv @ $(VENV_PATH)"
 	@echo "=================================================="
 	virtualenv $(VENV_PATH)
-	
+	$(VENV_PATH)/bin/pip install -r ./server/src/server/requirements.txt
+	#$(VENV_PATH)/bin/pip install -r ./client/src/client/requirements.txt
 
 	@echo "=================================================="
 	@echo "Creating .env..."
@@ -69,6 +70,7 @@ install:
 
 	@echo "Activate the venv with 'source $(VENV_PATH)/bin/activate'"
 	@echo "Start the application with ..."
+
 
 uninstall:
 	@echo "=================================================="
