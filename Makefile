@@ -54,6 +54,15 @@ install:
 	@echo "Final Steps:"
 	@echo "=================================================="
 
+	@echo "REDIS:"
+	@echo "\tServer: 127.0.0.1:6379"
+	@echo "\tInsights: 0.0.0.0:8001"
+	@echo ""
+
+	@echo "MYSQL:"
+	@echo "\tDB: 127.0.0.1:3306"
+	@echo ""
+
 	@echo "Activate the venv with 'source $(VENV_PATH)/bin/activate'"
 	@echo "Start the application with ..."
 
