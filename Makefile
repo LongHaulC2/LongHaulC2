@@ -14,7 +14,7 @@ REDIS_PASSWORD ?= P@ssw0rd1!
 
 install:
 	@echo "=================================================="
-	@echo "Installing..."
+	@echo "Installing required dependencies"
 	@echo "=================================================="
 
 	sudo apt-get update
@@ -24,7 +24,9 @@ install:
 	sudo docker pull mysql:latest
 	sudo docker pull redis:latest
 
-	# docker start
+	@echo "=================================================="
+	@echo "Starting docker images..."
+	@echo "=================================================="
 
 	# https://hub.docker.com/_/mysql
 	sudo docker run --name C2_mysql -p 127.0.0.1:3306:3306 -p 127.0.0.1:33060:33060 -e MYSQL_ROOT_PASSWORD=$(MYSQL_ROOT_PASSWORD) -d mysql:latest
@@ -34,28 +36,35 @@ install:
 	#8001: Redis Insight. Enabled for dev, can disable/put on localhost for prod.
 	sudo docker run -d --name C2_redis-stack -p 127.0.0.1:6379:6379 -p 0.0.0.0:8001:8001 -e REDIS_ARGS="--requirepass $(REDIS_PASSWORD)" redis/redis-stack:latest
 
-
-	# create venv
+	@echo "=================================================="
+	@echo "Creating virtualenv @ $(VENV_PATH)"
+	@echo "=================================================="
 	virtualenv $(VENV_PATH)
 	
-	@echo "Activate the venv with 'source $(VENV_PATH)/bin/activate'"
 
-	# create .env
+	@echo "=================================================="
+	@echo "Creating .env..."
+	@echo "=================================================="
 	echo MYSQL_ROOT_USER=$(MYSQL_ROOT_USER) >> .env
 	echo MYSQL_ROOT_PASSWORD=$(MYSQL_ROOT_PASSWORD) >> .env
+	echo REDIS_USER=$(REDIS_USER) >> .env
 	echo REDIS_PASSWORD=$(REDIS_PASSWORD) >> .env
+
+	@echo "=================================================="
+	@echo "Final Steps:"
+	@echo "=================================================="
+
+	@echo "Activate the venv with 'source $(VENV_PATH)/bin/activate'"
+	@echo "Start the application with ..."
 
 uninstall:
 	@echo "=================================================="
 	@echo "Uninstalling..."
 	@echo "=================================================="
 
-	#rm -f /usr/local/bin/myapp
-
-	@echo "Removing virtualenv"
-	rm -rf ./venv
-
-	@echo "Removing docker containers"
+	@echo "=================================================="
+	@echo "Stopping & removing docker containers"
+	@echo "=================================================="
 
 	@echo "Stopping and removing Docker containers"
 	-sudo docker stop C2_mysql
@@ -63,9 +72,17 @@ uninstall:
 	-sudo docker stop C2_redis-stack
 	-sudo docker rm C2_redis-stack
 
-	@echo "Removing Docker images"
 	-sudo docker rmi mysql:latest
 	-sudo docker rmi redis-stack:latest
+
+	@echo "=================================================="
+	@echo "Removing virtualenv"
+	@echo "=================================================="
+	rm -rf ./venv
+
+	@echo "=================================================="
+	@echo "Removing .env"
+	@echo "=================================================="
 
 	@echo "Removing .env"
 	-rm .env
