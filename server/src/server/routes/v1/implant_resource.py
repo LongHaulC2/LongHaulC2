@@ -1,6 +1,6 @@
 from ...instance import env_config, app, api
 from flask_restx import Resource, Namespace
-
+from ...utils.response import response_generator
 
 implants_ns = Namespace("implants", description="Implants related operations")
 
@@ -9,7 +9,8 @@ implants_ns = Namespace("implants", description="Implants related operations")
 class Implants(Resource):
     # gets all  implants
     def get(self):
-        return {"message": "Hello, World!"}
+        response = response_generator(status=200, message="Success")
+        return response
 
     # create an implant in DB
     def post(self): ...
