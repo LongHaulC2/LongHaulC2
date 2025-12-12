@@ -5,13 +5,13 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 import urllib.parse
-from ..db.mysql_models import Implant
 from ..instance import env_config
+
+#!! Importing base, as re-declaring it makes it so there are 2 different bases, and create_all does not work (tables do  not get created)
+from ..db.mysql_models import Implant, Base
 
 # Logger setup
 logger = logging.getLogger("server")
-
-Base = declarative_base()
 
 
 def _create_db_if_not_exist():
@@ -97,6 +97,12 @@ def create_implants_table():
         if engine is None:
             logger.critical("Unable to connect to MySQL. Exiting...")
             exit()
+
+        # Debugging: Verify current schema/connection
+        with engine.connect() as connection:
+            result = connection.execute(text("SELECT DATABASE();"))
+            db_name = result.fetchone()
+            logger.debug(f"Connected to database: {db_name[0]}")
 
         # Create all tables in the database (if they don't exist)
         Base.metadata.create_all(engine)
