@@ -1,18 +1,61 @@
 import logging
 import traceback
-from sqlalchemy import create_engine, Column, Integer, String, Text, Time, text
+from sqlalchemy import create_engine, Column, Integer, String, Text, Time, text, exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 import urllib.parse
-from ..instance import env_config
+from contextlib import contextmanager
 
+from ..instance import env_config
 #!! Importing base, as re-declaring it makes it so there are 2 different bases, and create_all does not work (tables do  not get created)
 from ..db.mysql_models import Implant, Base
 
 # Logger setup
 logger = logging.getLogger("server")
 
+# defined ABOVE engine and SessionLocal module vars, so it is in scope
+def get_mysql_engine() -> object | None:
+    try:
+        # _create_db_if_not_exist()
+
+        host = env_config.get("MYSQL_HOST")
+        user = env_config.get("MYSQL_ROOT_USER")
+        password = env_config.get("MYSQL_ROOT_PASSWORD")
+        database = env_config.get("MYSQL_DATABASE")
+
+        # Check for missing configurations
+        if None in (host, user, password, database):
+            logger.critical(
+                "Host, User, Password, or Database for MySQL is None. Check .env file, Cannot Continue"
+            )
+            exit()
+
+        # SQLAlchemy connection string - using ecnoded user/pass for special character handling
+        encoded_user = urllib.parse.quote_plus(user)
+        encoded_password = urllib.parse.quote_plus(password)
+        connection_string = (
+            f"mysql+pymysql://{encoded_user}:{encoded_password}@{host}/{database}"
+        )
+
+        # Create SQLAlchemy engine
+        engine = create_engine(
+            connection_string, echo=False
+        )  # echo=True for debug output
+
+        # Test the connection
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))  # Simple query to test the connection
+            logger.info(f"Connected to MySQL server as {user}@{host}.")
+
+        return engine
+
+    except exc.SQLAlchemyError as e:
+        logger.error(f"Error connecting to MySQL: {e}\n{traceback.format_exc()}")
+        return None
+
+engine = get_mysql_engine()  # returns a single Engine instance
+SessionLocal = sessionmaker(bind=engine)
 
 def _create_db_if_not_exist():
     """
@@ -49,51 +92,29 @@ def _create_db_if_not_exist():
         conn.execute(text(create_db_sql))
         logger.debug(f"Database '{database}' created successfully.")
 
+# used to get a mysql session, in context:
+'''
+with get_mysql_session() as session:
+    ... use session
+'''
+@contextmanager
+def get_mysql_session():
+    SessionLocal = sessionmaker(bind=engine)
 
-def get_mysql_connection() -> object | None:
+    session = SessionLocal()
     try:
-        # _create_db_if_not_exist()
-
-        host = env_config.get("MYSQL_HOST")
-        user = env_config.get("MYSQL_ROOT_USER")
-        password = env_config.get("MYSQL_ROOT_PASSWORD")
-        database = env_config.get("MYSQL_DATABASE")
-
-        # Check for missing configurations
-        if None in (host, user, password, database):
-            logger.critical(
-                "Host, User, Password, or Database for MySQL is None. Check .env file, Cannot Continue"
-            )
-            exit()
-
-        # SQLAlchemy connection string - using ecnoded user/pass for special character handling
-        encoded_user = urllib.parse.quote_plus(user)
-        encoded_password = urllib.parse.quote_plus(password)
-        connection_string = (
-            f"mysql+pymysql://{encoded_user}:{encoded_password}@{host}/{database}"
-        )
-
-        # Create SQLAlchemy engine
-        engine = create_engine(
-            connection_string, echo=False
-        )  # echo=True for debug output
-
-        # Test the connection
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))  # Simple query to test the connection
-            logger.info(f"Connected to MySQL server as {user}@{host}.")
-
-        return engine
-
-    except SQLAlchemyError as e:
-        logger.error(f"Error connecting to MySQL: {e}\n{traceback.format_exc()}")
-        return None
-
+        yield session
+        session.commit()
+    except Exception as e:
+        logger.error(f"An error occured with the MYSQL session:  {e}")
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 def create_implants_table():
     try:
-        # Retrieve the SQLAlchemy engine
-        engine = get_mysql_connection()
+        # engine defined globally
         if engine is None:
             logger.critical("Unable to connect to MySQL. Exiting...")
             exit()
@@ -113,8 +134,7 @@ def create_implants_table():
     except Exception as e:
         logger.error(f"Unexpected error: {e}\n{traceback.format_exc()}")
 
-
 def mysql_setup():
     _create_db_if_not_exist()
-    get_mysql_connection()
+    get_mysql_engine()
     create_implants_table()
