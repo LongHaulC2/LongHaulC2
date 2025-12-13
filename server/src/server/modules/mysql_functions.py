@@ -4,6 +4,9 @@ from datetime import time
 from sqlalchemy import exc
 from ..db.mysql_models import Implant
 
+import logging
+
+server_logger = logging.getLogger("server")
 
 '''
 Using dataclasses here for easier creation of correct data input to these functions below,
@@ -46,6 +49,7 @@ class ImplantService:
         """
         Create a new implant entry.
         """
+        server_logger.debug("Creating new implant entry")
         try:
             implant = Implant(**vars(data))
             self.session.add(implant)
@@ -53,20 +57,53 @@ class ImplantService:
             self.session.refresh(implant)
             return implant
 
-        except exc.SQLAlchemyError:
+        except SQLAlchemyError as sqle:
+            server_logger.error(f"SQLAlchemy Error: {sqle}")
             self.session.rollback()
+            raise
+
+        except Exception as e:
+            server_logger.error(f"Error: {e}")
             raise
 
     def get_by_id(self, implant_id: int) -> Implant | None:
         """
         Retrieve an implant by primary key.
         """
-        return self.session.query(Implant).get(implant_id)
+        try:
+            server_logger.debug(f"Retrieving implant {implant_id} from MYSQL Database")
+            return self.session.query(Implant).get(implant_id)
+
+        except SQLAlchemyError as sqle:
+            server_logger.error(f"SQLAlchemy Error: {sqle}")
+            self.session.rollback()
+            raise
+        except Exception as e:
+            server_logger.error(f"Error: {e}")
+            raise
+
+    def get_all(self):
+        '''
+        Gets all implants in the table.
+        '''
+        try:
+            server_logger.debug(f"Retrieving all implants from MYSQL Database")
+
+            return self.session.query(Implant).all()
+
+        except SQLAlchemyError as sqle:
+            server_logger.error(f"SQLAlchemy Error: {sqle}")
+            self.session.rollback()
+            raise
+        except Exception as e:
+            server_logger.error(f"Error: {e}")
+            raise
 
     def update(self, implant_id: int, data: ImplantUpdate) -> Implant | None:
         """
         Update an implant by primary key.
         """
+        server_logger.debug(f"Updating implant {implant_id} in MYSQL Database with {data}")
         try:
             implant = self.get_by_id(implant_id)
             if not implant:
@@ -80,14 +117,20 @@ class ImplantService:
 
             self.session.commit()
             return implant
-        except SQLAlchemyError:
+        except SQLAlchemyError as sqle:
+            server_logger.error(f"SQLAlchemy Error: {sqle}")
             self.session.rollback()
+            raise
+        except Exception as e:
+            server_logger.error(f"Error: {e}")
             raise
 
     def delete(self, implant_id: int) -> bool:
         """
         Delete an implant by primary key.
         """
+        server_logger.debug(f"Deleting implant {implant_id} in MYSQL Database")
+
         try:
             implant = self.get_by_id(implant_id)
             if not implant:
@@ -96,6 +139,10 @@ class ImplantService:
             self.session.delete(implant)
             self.session.commit()
             return True
-        except SQLAlchemyError:
+        except SQLAlchemyError as sqle:
+            server_logger.error(f"SQLAlchemy Error: {sqle}")
             self.session.rollback()
+            raise
+        except Exception as e:
+            server_logger.error(f"Error: {e}")
             raise

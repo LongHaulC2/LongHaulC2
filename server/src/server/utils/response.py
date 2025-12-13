@@ -11,9 +11,7 @@ class APIResponse:
     message: str
     data: Optional[Any] = None
     errors: Optional[Any] = None
-    pagination: Optional[Dict[str, Any]] = None
     code: Optional[str] = None
-    documentation_url: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Return dict without None values, like your previous cleanup."""

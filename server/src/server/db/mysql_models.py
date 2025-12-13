@@ -9,6 +9,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.inspection import inspect
 
 Base = declarative_base()
 
@@ -29,3 +30,17 @@ class Implant(Base):
     arch = Column(String(50))
     last_checkin = Column(Time)  # Time field to store last check-in time (HH:MM:SS)
     sleep_value = Column(Integer)  # Sleep value (seconds)
+
+    def to_dict(self):
+        '''
+        Turns each field into a dict.
+
+        Can then use as such, after querying:
+
+        ```
+            implants = session.query(Implant).all()
+            data = [i.to_dict() for i in implants]
+        ```
+
+        '''
+        return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
