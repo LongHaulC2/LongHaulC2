@@ -17,6 +17,18 @@ class Implants(Resource):
         description="Retrieve all implants the server knows about."
     )
     def get(self):
+        '''
+        Gets all implants
+
+        1. Gets a MYSQL Session
+
+        2. Retrieves all records in 'implant' table
+
+        3. Returns said data in JSON  format. 
+
+        Note: There is no pagination on this. If there's a lot of entries, this request may take a while.
+
+        '''
         with get_mysql_session() as session:
             implant_service = ImplantService(session)
             implants = implant_service.get_all()
@@ -36,6 +48,8 @@ class Implants(Resource):
     )
     def post(self): 
         '''
+        Create a new implant entry
+
         1. Gets a MYSQL Session
 
         2. Creates a new record in the 'implants' table
@@ -67,10 +81,32 @@ class Implants(Resource):
 class Implant(Resource):
     @implants_ns.doc(
         summary="Get implant",
-        description="[Not Implemented] Retrieve a single implant by its unique ID.",
+        description="Retrieve a single implant by its unique ID.",
         params={'id': {'description': 'Agent ID (64-bit integer)','in': 'path'}}
     )
-    def get(self, id): ...  # get one implant
+    def get(self, id):  # get one implant
+        '''
+        Gets one implant based on user supplied ID
+
+        1. Gets a MYSQL Session
+
+        2. Retrieves 1 record in 'implant' table based on ID
+
+        3. Returns said data in JSON format. 
+
+        '''
+        with get_mysql_session() as session:
+            implant_service = ImplantService(session)
+            implants = implant_service.get_by_id(id)
+            data = implants.to_dict()
+            
+        api_response = APIResponse(            
+            status=200,
+            message="Success",
+            data=data,
+        )
+        return api_response.jsonify()
+        
 
     @implants_ns.doc(
         summary="Update implant",
@@ -81,11 +117,32 @@ class Implant(Resource):
 
     @implants_ns.doc(
         summary="Delete implant",
-        description="[Not Implemented] Delete a single implant by its unique ID.",
+        description="Delete a single implant by its unique ID.",
         params={'id': {'description': 'Agent ID (64-bit integer)','in': 'path'}}
     )
-    def delete(self, id): ...  # delete one implant based on ID
+    def delete(self, id): # delete one implant based on ID
+        '''
+        Deletes one implant based on user supplied ID
 
+        1. Gets a MYSQL Session
+
+        2. Deletes 1 record in 'implant' table based on ID
+
+        3. Returns said data in JSON format. 
+
+        Note: Operationally, it might be best to not delete old records unless the user wants to. 
+            ID's are NOT reused after deleting, so if you delete record 1, said ID will NOT be reused upon calling `POST /v1/api/implants/`
+
+        '''
+        with get_mysql_session() as session:
+            implant_service = ImplantService(session)
+            implants = implant_service.delete(id)
+            
+        api_response = APIResponse(            
+            status=200,
+            message="Implant deleted successfully",
+        )
+        return api_response.jsonify()
 
 # Add the HelloWorld resource to the API
 implants_ns.add_resource(Implants, "/")
