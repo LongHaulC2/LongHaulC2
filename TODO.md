@@ -14,3 +14,11 @@
   - [X] GET /implants/{id}
   - [X] POST /implants/
   - [X] GET /implants/
+
+
+
+## Client:
+ - [ ] Figure out structure
+ - [ ] Logging
+ - [ ] API Call strucutre/setup
+ - [ ] Implement GET IMPLANTS (and updates every so often)
