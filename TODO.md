@@ -7,7 +7,7 @@
     - [X] Logging <
     - [X] SQL Connection & checks
     - [X] Redis Connection & checks
-    - 
+
  - API:
   - [ ] PUT /implants/{id} (updating records)
   - [X] DELETE /implants/{id}
