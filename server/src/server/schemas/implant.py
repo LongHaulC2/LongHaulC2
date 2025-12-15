@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-
+import time
 '''
 Using dataclasses here for easier creation of correct data input to these functions below,
 and it's easier to update for future fields. 

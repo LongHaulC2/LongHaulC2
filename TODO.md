@@ -18,7 +18,12 @@
 
 
 ## Client:
- - [ ] Figure out structure
+ - [X] Figure out structure
+      - I don't like it, but no class based widgets, just one file per "page"
+ - [ ] Make various widgets, decide how to arrange later
+      - [] Operations widget
+         - [ ] List of clients 
+         - [ ] CLI interative widget
  - [ ] Logging
  - [ ] API Call strucutre/setup
  - [ ] Implement GET IMPLANTS (and updates every so often)
