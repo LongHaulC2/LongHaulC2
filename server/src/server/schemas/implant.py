@@ -20,7 +20,7 @@ class ImplantCreate:
     process: Optional[str] = None
     pid: Optional[int] = None
     arch: Optional[str] = None
-    last_checkin: Optional[time] = None
+    last_checkin: Optional[int] = None
     sleep_value: Optional[int] = None
 
 @dataclass
@@ -34,5 +34,5 @@ class ImplantUpdate:
     process: Optional[str] = None
     pid: Optional[int] = None
     arch: Optional[str] = None
-    last_checkin: Optional[time] = None
+    last_checkin: Optional[int] = None
     sleep_value: Optional[int] = None

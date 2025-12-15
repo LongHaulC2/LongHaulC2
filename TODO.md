@@ -20,10 +20,11 @@
 ## Client:
  - [X] Figure out structure
       - I don't like it, but no class based widgets, just one file per "page"
- - [ ] Make various widgets, decide how to arrange later
-      - [] Operations widget
-         - [ ] List of clients 
-         - [ ] CLI interative widget
- - [ ] Logging
- - [ ] API Call strucutre/setup
+ - [X] Logging
+ - [X] API Call strucutre/setup
+      - needs a way to access user supplied address for where to make the requests
  - [ ] Implement GET IMPLANTS (and updates every so often)
+
+ - [ ] PAGES:
+   - [ ] Login
+   - [ ] Operations

@@ -28,7 +28,7 @@ class Implant(Base):
     process = Column(String(255))
     pid = Column(Integer)
     arch = Column(String(50))
-    last_checkin = Column(Time)  # Time field to store last check-in time (HH:MM:SS)
+    last_checkin = Column(BigInteger)  # Time field to store last check-in time - moved to epoch instead of old HH:DD:SS
     sleep_value = Column(Integer)  # Sleep value (seconds)
 
     def to_dict(self):

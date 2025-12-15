@@ -1,4 +1,4 @@
-from nicegui import ui
+from nicegui import app, ui
 import logging
 import client.src.client.log 
 
@@ -8,6 +8,7 @@ import client.src.client.pages.operations
 
 
 server_log = logging.getLogger("server")
+
 
 #ui.run(native=True, dark=True)
 ui.run(native=False, dark=True, show=False)
