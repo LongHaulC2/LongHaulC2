@@ -1,45 +1,11 @@
-from dataclasses import dataclass
-from typing import Optional
 from datetime import time
 from sqlalchemy import exc
-from ..db.mysql_models import Implant
-
 import logging
 
+from ..db.mysql_models import Implant
+from ..schemas.implant import ImplantUpdate, ImplantCreate
+
 server_logger = logging.getLogger("server")
-
-'''
-Using dataclasses here for easier creation of correct data input to these functions below,
-and it's easier to update for future fields. 
-
-'''
-@dataclass
-class ImplantCreate:
-    external_ip: Optional[str] = None
-    internal_ip: Optional[str] = None
-    listener: Optional[str] = None
-    user: Optional[str] = None
-    system_hostname: Optional[str] = None
-    notes: Optional[str] = None
-    process: Optional[str] = None
-    pid: Optional[int] = None
-    arch: Optional[str] = None
-    last_checkin: Optional[time] = None
-    sleep_value: Optional[int] = None
-
-@dataclass
-class ImplantUpdate:
-    external_ip: Optional[str] = None
-    internal_ip: Optional[str] = None
-    listener: Optional[str] = None
-    user: Optional[str] = None
-    system_hostname: Optional[str] = None
-    notes: Optional[str] = None
-    process: Optional[str] = None
-    pid: Optional[int] = None
-    arch: Optional[str] = None
-    last_checkin: Optional[time] = None
-    sleep_value: Optional[int] = None
 
 class ImplantService:
     def __init__(self, session):

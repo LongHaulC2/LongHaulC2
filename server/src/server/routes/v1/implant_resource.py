@@ -1,7 +1,8 @@
 from ...instance import env_config, app, api
 from flask_restx import Resource, Namespace, fields
 from ...utils.response import APIResponse
-from ...modules.mysql_functions import ImplantService, ImplantCreate, ImplantUpdate
+from ...modules.mysql_functions import ImplantService
+from ...schemas.implant import ImplantCreate, ImplantUpdate
 from ...db.mysql_connector import get_mysql_engine, get_mysql_session
 import logging 
 implants_ns = Namespace("implants", description="Implant related operations")
