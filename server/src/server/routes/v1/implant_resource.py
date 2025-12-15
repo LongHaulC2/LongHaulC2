@@ -163,7 +163,7 @@ class Implant(Resource):
 
     @implants_ns.doc(
         summary="Update implant",
-        description="[Not Implemented] Update a single implant by its unique ID.",
+        description="Update a single implant by its unique ID. Data is supplied in the body of the request.",
         params={'id': {'description': 'Agent ID (64-bit integer)','in': 'path'}}
     )
     @implants_ns.expect(implant_update_model)
