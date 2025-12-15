@@ -1,13 +1,65 @@
 from ...instance import env_config, app, api
 from flask_restx import Resource, Namespace, fields
 from ...utils.response import APIResponse
-from ...modules.mysql_functions import ImplantService, ImplantCreate
+from ...modules.mysql_functions import ImplantService, ImplantCreate, ImplantUpdate
 from ...db.mysql_connector import get_mysql_engine, get_mysql_session
 import logging 
 implants_ns = Namespace("implants", description="Implant related operations")
 
 api_logger = logging.getLogger("api")
 server_logger = logging.getLogger("server")
+
+from flask_restx import fields
+
+implant_update_model = api.model(
+    "ImplantCreate",
+    {
+        "external_ip": fields.String(
+            description="External IP address (IPv4/IPv6)",
+            example="203.0.113.10"
+        ),
+        "internal_ip": fields.String(
+            description="Internal IP address",
+            example="10.0.0.15"
+        ),
+        "listener": fields.String(
+            description="Listener address (IP or DNS)",
+            example="c2.example.com:443"
+        ),
+        "user": fields.String(
+            description="User account name",
+            example="SYSTEM"
+        ),
+        "system_hostname": fields.String(
+            description="Hostname of the system",
+            example="WIN-ABC123"
+        ),
+        "notes": fields.String(
+            description="Operator notes",
+            example="Initial check-in"
+        ),
+        "process": fields.String(
+            description="Process name",
+            example="svchost.exe"
+        ),
+        "pid": fields.Integer(
+            description="Process ID",
+            example=1234
+        ),
+        "arch": fields.String(
+            description="CPU architecture",
+            example="x64"
+        ),
+        "last_checkin": fields.String(
+            description="Last check-in time (HH:MM:SS)",
+            example="22:31:05"
+        ),
+        "sleep_value": fields.Integer(
+            description="Sleep interval in seconds",
+            example=60
+        ),
+    }
+)
 
 # Implant list
 class Implants(Resource):
@@ -35,7 +87,7 @@ class Implants(Resource):
             data = [i.to_dict() for i in implants]
             
         api_response = APIResponse(            
-            status=200,
+            status="200",
             message="Success",
             data=data,
         )
@@ -70,7 +122,7 @@ class Implants(Resource):
         data = {"id":implant_id}
 
         api_response = APIResponse(            
-            status=200,
+            status="200",
             message="Implant created",
             data=data,
         )
@@ -101,7 +153,7 @@ class Implant(Resource):
             data = implants.to_dict()
             
         api_response = APIResponse(            
-            status=200,
+            status="200",
             message="Success",
             data=data,
         )
@@ -113,7 +165,21 @@ class Implant(Resource):
         description="[Not Implemented] Update a single implant by its unique ID.",
         params={'id': {'description': 'Agent ID (64-bit integer)','in': 'path'}}
     )
-    def put(self, id): ...  # update one implant based on ID
+    @implants_ns.expect(implant_update_model)
+    def put(self, id): # update one implant based on ID
+        # create dataclass from passed in data. 
+        implant_data = ImplantUpdate(**api.payload)
+        implant_id = id
+
+        with get_mysql_session() as session:
+            implant_service = ImplantService(session)
+            implant_service.update(implant_id, implant_data)
+
+        api_response = APIResponse(            
+            status="200",
+            message="Success",
+        )
+        return api_response.jsonify()
 
     @implants_ns.doc(
         summary="Delete implant",

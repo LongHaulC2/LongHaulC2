@@ -57,7 +57,7 @@ class ImplantService:
             self.session.refresh(implant)
             return implant
 
-        except SQLAlchemyError as sqle:
+        except exc.SQLAlchemyError as sqle:
             server_logger.error(f"SQLAlchemy Error: {sqle}")
             self.session.rollback()
             raise
@@ -74,7 +74,7 @@ class ImplantService:
             server_logger.debug(f"Retrieving implant {implant_id} from MYSQL Database")
             return self.session.query(Implant).get(implant_id)
 
-        except SQLAlchemyError as sqle:
+        except exc.SQLAlchemyError as sqle:
             server_logger.error(f"SQLAlchemy Error: {sqle}")
             self.session.rollback()
             raise
@@ -91,7 +91,7 @@ class ImplantService:
 
             return self.session.query(Implant).all()
 
-        except SQLAlchemyError as sqle:
+        except exc.SQLAlchemyError as sqle:
             server_logger.error(f"SQLAlchemy Error: {sqle}")
             self.session.rollback()
             raise
@@ -110,14 +110,16 @@ class ImplantService:
                 return None
 
             # if value is not supplied, DO NOT update it in DB. 
-            # or, only apply supplied values
+            # AKA, only apply supplied values.
+            #NOTE: If you get an "vars() argument must have __dict__ attribute", that means you passed in a dict, NOT a ImplantUpdate dataclass as the 
+            # function requires. 
             for field, value in vars(data).items():
                 if value is not None:
                     setattr(implant, field, value)
 
             self.session.commit()
             return implant
-        except SQLAlchemyError as sqle:
+        except exc.SQLAlchemyError as sqle:
             server_logger.error(f"SQLAlchemy Error: {sqle}")
             self.session.rollback()
             raise
@@ -139,7 +141,7 @@ class ImplantService:
             self.session.delete(implant)
             self.session.commit()
             return True
-        except SQLAlchemyError as sqle:
+        except exc.SQLAlchemyError as sqle:
             server_logger.error(f"SQLAlchemy Error: {sqle}")
             self.session.rollback()
             raise
