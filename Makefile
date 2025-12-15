@@ -41,7 +41,7 @@ install:
 	@echo "=================================================="
 	virtualenv $(VENV_PATH)
 	$(VENV_PATH)/bin/pip install -r ./server/src/server/requirements.txt
-	#$(VENV_PATH)/bin/pip install -r ./client/src/client/requirements.txt
+	$(VENV_PATH)/bin/pip install -r ./client/src/client/requirements.txt
 
 	@echo "=================================================="
 	@echo "Creating .env..."
