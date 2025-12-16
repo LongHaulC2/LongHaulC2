@@ -86,14 +86,30 @@ async def implant_view():
     """
     # Setup header
     with ui.row().classes("w-full items-center justify-between"):
+
+        # LEFT: title / context
         ui.label("Implants").classes("text-h6")
 
-        with ui.row().classes("items-center"):
+        # RIGHT: action buttons
+        with ui.row().classes("items-center q-gutter-xs"):
+            with ui.button(
+                icon="terminal",
+            ).props("dense flat round"):
+                ui.tooltip("Open shell")
+
+            with ui.button(
+                icon="refresh",
+                on_click=lambda: refresh(),
+            ).props("dense flat round"):
+                ui.tooltip("Refresh")
+
             with ui.button(
                 icon="delete",
                 on_click=lambda: action_delete_rows(),
-            ).props("dense"):
+            ).props("dense flat round color=negative"):
                 ui.tooltip("Delete selected implants")
+
+    ui.separator()
 
     table = (
         ui.table(
