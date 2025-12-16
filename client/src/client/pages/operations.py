@@ -34,6 +34,13 @@ async def get_implant_data() -> dict:
         return data
 
 
+async def delete_implant(id=int) -> None:
+    # get implants
+    async with httpx.AsyncClient() as client:
+        url = generate_url(f"/api/v1/implants/{id}")
+        response = await client.delete(url)
+
+
 # old way of doing it, this nukes the table of ALL data, and re-created it. Adds flashing & state loss for the user. Not acceptable.
 # @ui.refreshable
 # async def implant_view():
@@ -77,8 +84,16 @@ async def implant_view():
 
     Then, every 1 seconds, gets the new API data, and udpates the table based on it.
     """
+    # Setup header
+    with ui.row().classes("w-full items-center justify-between"):
+        ui.label("Implants").classes("text-h6")
 
-    ui.label("SOME HEADER")
+        with ui.row().classes("items-center"):
+            with ui.button(
+                icon="delete",
+                on_click=lambda: action_delete_rows(),
+            ).props("dense"):
+                ui.tooltip("Delete selected implants")
 
     table = (
         ui.table(
@@ -86,20 +101,28 @@ async def implant_view():
             rows=[],
             row_key="id",
             selection="multiple",
+            on_select=lambda e: ui.notify(f"selected: {e.selection}"),
         )
         .classes("w-full no-shadow")
         .props("dense")
     )
 
+    # add button to table
+    # https://nicegui.io/documentation/table#table_with_buttons
     table.add_slot(
-        "body-cell-shell",
+        "body-cell-interact",
         """
         <q-td :props="props">
-            <q-btn label="shell" @click="() => $parent.$emit('shell', props.row)" flat />
+            <q-btn
+                label="Interact"
+                flat
+                @click="() => $parent.$emit('interact', props.row)"
+                class="text-caption" //caption matches the rest of the text in the table
+            />
         </q-td>
-    """,
+        """,
     )
-    table.on("shell", lambda e: ui.notify(f'Implant {e.args["id"]} cllicked!'))
+    table.on("Interact", lambda e: ui.notify(f'Implant {e.args["id"]} cllicked!'))
 
     async def refresh():
         data = await get_implant_data()
@@ -123,14 +146,25 @@ async def implant_view():
             # manually add in column for shell
             table.columns.append(
                 {
-                    "name": "shell",
-                    "label": "Shell",
-                    "field": "shell",
+                    "name": "interact",
+                    "label": "Interact",
+                    "field": "interact",
                     "align": "center",
                 }
             )
 
         table.rows = data
         table.update()
+
+    async def action_delete_rows():
+        ids = [row["id"] for row in table.selected]
+
+        if not ids:
+            ui.notify("No rows selected", color="warning")
+            return
+
+        for implant_id in ids:
+            # do request
+            await delete_implant(id=implant_id)
 
     ui.timer(1, refresh)
