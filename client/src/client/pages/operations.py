@@ -8,6 +8,7 @@ server_log = logging.getLogger("server")
 server_log.info("Loading /operations page")
 
 
+@ui.page("/")
 @ui.page("/operations")
 async def operations():
     # HEY- readme: This is a hack to get the page full screen (and make h-full work). It should also allow for things like headers to fit without adjusting it manually
