@@ -24,9 +24,6 @@ async def operations():
         with splitter.after:
             await implant_view()
 
-    # works, but screen gets cleared/current state wiped out
-    # ui.timer(5.0, lambda: implant_view.refresh())
-
 
 async def get_implant_data() -> dict:
     # get implants
@@ -94,6 +91,16 @@ async def implant_view():
         .props("dense")
     )
 
+    table.add_slot(
+        "body-cell-shell",
+        """
+        <q-td :props="props">
+            <q-btn label="shell" @click="() => $parent.$emit('shell', props.row)" flat />
+        </q-td>
+    """,
+    )
+    table.on("shell", lambda e: ui.notify(f'Implant {e.args["id"]} cllicked!'))
+
     async def refresh():
         data = await get_implant_data()
         if not data:
@@ -112,6 +119,16 @@ async def implant_view():
                 }
                 for key in first_row.keys()
             ]
+
+            # manually add in column for shell
+            table.columns.append(
+                {
+                    "name": "shell",
+                    "label": "Shell",
+                    "field": "shell",
+                    "align": "center",
+                }
+            )
 
         table.rows = data
         table.update()
