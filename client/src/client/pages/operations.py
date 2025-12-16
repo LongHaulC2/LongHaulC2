@@ -100,8 +100,13 @@ async def implant_view():
         with ui.row().classes("items-center q-gutter-xs"):
             with ui.button(
                 icon="terminal",
-            ).props("dense flat round"):
+            ).props("dense flat round disabled"):
                 ui.tooltip("Open shell")
+
+            with ui.button(
+                icon="notes",
+            ).props("dense flat round disabled"):
+                ui.tooltip("Open notes")
 
             with ui.button(
                 icon="refresh",
@@ -131,20 +136,20 @@ async def implant_view():
 
     # add button to table
     # https://nicegui.io/documentation/table#table_with_buttons
-    table.add_slot(
-        "body-cell-interact",
-        """
-        <q-td :props="props">
-            <q-btn
-                label="Interact"
-                flat
-                @click="() => $parent.$emit('interact', props.row)"
-                class="text-caption" //caption matches the rest of the text in the table
-            />
-        </q-td>
-        """,
-    )
-    table.on("Interact", lambda e: ui.notify(f'Implant {e.args["id"]} cllicked!'))
+    # table.add_slot(
+    #     "body-cell-interact",
+    #     """
+    #     <q-td :props="props">
+    #         <q-btn
+    #             label="Interact"
+    #             flat
+    #             @click="() => $parent.$emit('interact', props.row)"
+    #             class="text-caption" //caption matches the rest of the text in the table
+    #         />
+    #     </q-td>
+    #     """,
+    # )
+    # table.on("Interact", lambda e: ui.notify(f'Implant {e.args["id"]} cllicked!'))
 
     async def refresh():
         nonlocal previous_ids  # use the variable above that's in the implant_view scope, to track id's between calls
@@ -181,15 +186,15 @@ async def implant_view():
                 for key in first_row.keys()
             ]
 
-            # manually add column for interact
-            table.columns.append(
-                {
-                    "name": "interact",
-                    "label": "Interact",
-                    "field": "interact",
-                    "align": "center",
-                }
-            )
+            # # manually add column for interact
+            # table.columns.append(
+            #     {
+            #         "name": "interact",
+            #         "label": "Interact",
+            #         "field": "interact",
+            #         "align": "center",
+            #     }
+            # )
 
             table_initialized = True  # mark table as initialized, meaning the first time setup is done & basic data is loaded in.
 
