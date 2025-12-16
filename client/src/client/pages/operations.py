@@ -85,6 +85,11 @@ async def implant_view():
 
     Then, every 1 seconds, gets the new API data, and udpates the table based on it.
     """
+
+    # Keep track of previous implant IDs
+    previous_ids = set()
+    table_initialized = False  # track if table columns are already built. Solves the bug of saying that every implant in the table is a new connection
+
     # Setup header
     with ui.row().classes("w-full items-center justify-between"):
 
@@ -142,12 +147,28 @@ async def implant_view():
     table.on("Interact", lambda e: ui.notify(f'Implant {e.args["id"]} cllicked!'))
 
     async def refresh():
+        nonlocal previous_ids  # use the variable above that's in the implant_view scope, to track id's between calls
+        nonlocal table_initialized  # track if table columns are already built. Solves the bug of saying that every implant in the table is a new connection
+
         data = await get_implant_data()
         if not data:
             return
 
+        # Detect new implants
+        current_ids = {row["id"] for row in data if "id" in row}
+
+        if table_initialized:
+            new_ids = current_ids - previous_ids
+            for new_id in new_ids:
+                ui.notify(
+                    f"New implant with ID {new_id} has connected", color="positive"
+                )
+
+        previous_ids = current_ids
+
         # Build columns only once
-        if not table.columns:
+        if not table_initialized:
+            # if not table.columns:
             first_row = data[0]
             table.columns = [
                 {
@@ -160,7 +181,7 @@ async def implant_view():
                 for key in first_row.keys()
             ]
 
-            # manually add in column for shell
+            # manually add column for interact
             table.columns.append(
                 {
                     "name": "interact",
@@ -170,6 +191,9 @@ async def implant_view():
                 }
             )
 
+            table_initialized = True  # mark table as initialized, meaning the first time setup is done & basic data is loaded in.
+
+        # Update table rows
         table.rows = data
         table.update()
 
