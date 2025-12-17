@@ -7,9 +7,21 @@ server_log = logging.getLogger("server")
 
 server_log.info("Loading /operations page")
 
-# global tabs for being able to access tab functions & vars without doing some weirder stuff
+
+"""
+Notes:
+
+
+The terminal is very "open", by having a few  module specific variables that allow for access to terminal functions. See:
+
 tabs = None
 panels = None
+open_tabs = {}
+
+
+These allow for `terminal_add_tab`, `terminal_close_tab`, and tracking of current open terminal tabs.
+
+"""
 
 
 @ui.page("/")
@@ -45,41 +57,6 @@ async def delete_implant(id=int) -> None:
     async with httpx.AsyncClient() as client:
         url = generate_url(f"/api/v1/implants/{id}")
         response = await client.delete(url)
-
-
-# old way of doing it, this nukes the table of ALL data, and re-created it. Adds flashing & state loss for the user. Not acceptable.
-# @ui.refreshable
-# async def implant_view():
-#     # setup default widgets
-#     a = ui.label("SOME HEADER")  # create the label first
-#     data = await get_implant_data()
-#     # Update the label after async I/O
-#     # a.set_text(str(data))
-#     with ui.card().classes("w-full h-full no-shadow"):
-#         # derive the keys/column data based on the first entry in the data
-#         first_row = data[0]
-#         columns = [
-#             {
-#                 "name": key,
-#                 # title turns "ur mom"  into "Ur Mom"
-#                 "label": key.replace("_", " ").title(),
-#                 "field": key,
-#                 "sortable": True,
-#                 "align": "left",
-#             }
-#             for key in first_row.keys()
-#         ]
-
-#         # Use 'id' as row_key if available
-#         row_key = "id" if "id" in first_row else None
-
-#         ui.table(
-#             columns=columns,
-#             rows=data,
-#             row_key=row_key,
-#             selection="multiple",
-#             # on_select=lambda x: ui.notify("SELECTED"),
-#         ).classes("w-full no-shadow").props("dense")
 
 
 async def implant_view():
@@ -133,7 +110,7 @@ async def implant_view():
             rows=[],
             row_key="id",
             selection="multiple",
-            on_select=lambda e: ui.notify(f"selected: {e.selection}"),
+            # on_select=lambda e: ui.notify(f"selected: {e.selection}"),
         )
         .classes("w-full no-shadow")
         .props("dense")
@@ -228,46 +205,88 @@ async def implant_view():
         for implant_id in ids:
             # do request
             # await delete_implant(id=implant_id)
-            add_tab(implant_id, implant_id)
+            terminal_add_tab(implant_id, implant_id)
 
     ui.timer(1, refresh)
+
+
+# -------------------------------
+# Terminal
+# -------------------------------
+# global tabs for being able to access tab functions & vars without doing some weirder stuff
+tabs = None
+panels = None
+open_tabs = {}
 
 
 # redfined to be accessible anywhere, maek the vars gllobal to this module
 async def terminal_view():
     global tabs, panels
 
-    with ui.tabs() as tabs:
-        ui.tab("First")
-        ui.tab("Second")
-
-    with ui.tab_panels(tabs) as panels:
-        with ui.tab_panel("First"):
-            ui.label("First panel")
-        with ui.tab_panel("Second"):
-            ui.label("Second panel")
-
-    ui.button("Add tab", on_click=lambda: add_tab("Dynamic Tab", 1))
-    ui.button("Remove first tab", on_click=remove_tab)
+    # init tabs and panel view (basically just a container that exists)
+    # width/height full set here
+    tabs = ui.tabs().props("dense indicator-color=primary")
+    panels = (
+        ui.tab_panels(tabs).classes("w-full h-full")
+        # transition is set to 0, this disables the nauseating "panel slide"
+        .props("dense transition-duration=0")
+    )
 
 
 # Global function to add a tab from anywhere
-def add_tab(tab_name, tab_label):
-    global tabs, panels
-    if tabs and panels:
-        with tabs:
-            ui.tab(tab_name, label=tab_label)
-        with panels:
-            with ui.tab_panel(tab_name):
-                ui.label(f"{tab_name}:{tab_label} panel")
+def terminal_add_tab(tab_name, implant_id):
+    global tabs, panels, open_tabs
 
-            # auto switch to tab as well if possible
-            panels.set_value(tab_name)
+    # already open → switch
+    if implant_id in open_tabs:
+        panels.set_value(open_tabs.get("implant_id"))
+        return
+
+    # create tab
+    with tabs:
+        # create tab with implant_id metadata  for identifying it later
+        with ui.tab(tab_name, label="").classes("p-0 rounded-none") as tab:
+            tab.meta = {"implant_id": implant_id}
+
+            with ui.row().classes("items-center gap-0"):
+                # implant id (could make into ip as well)
+                ui.label(implant_id).classes("px-3 py-1 text-sm border-l")
+                # close button
+                ui.button("✕", on_click=lambda e=tab_name: terminal_close_tab(e)).props(
+                    "flat dense"
+                ).classes("w-6 h-full px-0 text-xs rounded-none  border-r")
+
+    # create panel
+    with panels:
+        with ui.tab_panel(tab_name):
+            terminal(implant_id)
+
+    # register specific tab object in tab dict
+    open_tabs[implant_id] = {"tab_object": tab}
+
+    # and switch to it
+    panels.set_value(tab_name)
 
 
-# Global function to remove the first tab
-def remove_tab():
-    global tabs, panels
-    # if tabs and panels and len(tabs.children) > 0:
-    tabs.remove(0)
-    panels.remove(0)
+def terminal_close_tab(implant_id):
+    global tabs, open_tabs
+
+    tab_object = open_tabs[implant_id]["tab_object"]
+    # remove the tab from the tab object
+    tabs.remove(tab_object)
+    # remove from dict
+    open_tabs.pop(implant_id)
+
+
+def terminal(implant_id):
+    log = ui.log().classes("w-full h-full")
+
+    with ui.row().classes("w-full items-center"):
+        # this splits 90% of the line into the ui input, and 10 into the send
+        # placeholder logic for user input here as well.
+        user_input = ui.input().classes("flex-grow").props("dense")
+        ui.button(
+            "Send", on_click=lambda user_input=user_input: log.push(user_input)
+        ).classes("w-[10%]").props("dense")
+
+        # find a way to auto focus on the cli?
