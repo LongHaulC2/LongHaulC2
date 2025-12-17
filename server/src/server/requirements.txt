@@ -4,3 +4,4 @@ dotenv
 redis
 pymysql
 cryptography
+flask-compress
