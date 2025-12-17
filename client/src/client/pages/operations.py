@@ -86,6 +86,10 @@ async def implant_view():
             ).props("dense flat round"):
                 ui.tooltip("Open shell")
 
+            # note, can do this 2 ways:
+            # 1. loop over all  clients and send a req per client (gets really slow on a large number of clients)
+            # OR
+            # 2. Send one request to a dedicated godshell endpoint, and then let it distribute to all (this is more efficent, but takes more setup)
             with ui.button(
                 icon="present_to_all", on_click=lambda: action_open_terminal()
             ).props("dense flat round disabled color=amber"):
