@@ -199,7 +199,7 @@ async def implant_view():
         ids = [row["id"] for row in table.selected]
 
         if not ids:
-            ui.notify("No rows selected", color="warning")
+            ui.notify("No implants selected", color="warning")
             return
 
         for implant_id in ids:

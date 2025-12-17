@@ -23,7 +23,10 @@
  - [X] Logging
  - [X] API Call strucutre/setup
       - needs a way to access user supplied address for where to make the requests
- - [ ] Implement GET IMPLANTS (and updates every so often)
+ - [X] Implement GET IMPLANTS (and updates every so often)
+
+ - [ ] Styling: Clean up spacing/layout in terminal of operations
+      - tighter, better fitting, and auto focus
 
  - [ ] PAGES:
    - [ ] Login
