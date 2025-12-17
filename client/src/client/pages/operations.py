@@ -80,10 +80,16 @@ async def implant_view():
 
         # RIGHT: action buttons
         with ui.row().classes("items-center q-gutter-xs"):
+
             with ui.button(
                 icon="terminal", on_click=lambda: action_open_terminal()
             ).props("dense flat round"):
                 ui.tooltip("Open shell")
+
+            with ui.button(
+                icon="present_to_all", on_click=lambda: action_open_terminal()
+            ).props("dense flat round disabled color=amber"):
+                ui.tooltip("God Shell")
 
             with ui.button(
                 icon="notes",
