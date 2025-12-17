@@ -5,3 +5,4 @@ redis
 pymysql
 cryptography
 flask-compress
+flask-limiter

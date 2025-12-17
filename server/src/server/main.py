@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 from flask import Flask
-from flask_compress import Compress
 import argparse
 from .instance import env_config, app, api
 from .db.mysql_connector import mysql_setup
@@ -36,6 +35,14 @@ def parse_args():
         default=True,
     )
 
+    parser.add_argument(
+        "--no-ratelimit",
+        dest="ratelimit",
+        action="store_false",
+        help="DISABLE rate limiting",
+        default=True,
+    )
+
     # parser.add_argument(
     #     "--debug",
     #     action="store_true",
@@ -60,6 +67,8 @@ get_redis_connection()
 if __name__ == "__main__":
     args = parse_args()
     if args.compression:
+        from flask_compress import Compress
+
         api_logger.info("Response compression enabled")
         # GZIP/BR, etc compression on some flask responses
         Compress(app)
@@ -67,6 +76,21 @@ if __name__ == "__main__":
         app.config["COMPRESS_MIMETYPES"] = ["application/json"]
         app.config["COMPRESS_MIN_SIZE"] = (
             1024  # 1kb or bigger we should compress. Subject to change
+        )
+
+    if args.ratelimit:
+        from flask_limiter import Limiter
+        from flask_limiter.util import get_remote_address
+
+        api_logger.info("Rate limiting enabled")
+        limiter = Limiter(
+            get_remote_address,
+            app=app,
+            # per ip rate limiting.
+            # every second for implants: 3600 requests a minute. Extra 1400 for anything else. Can adjust as needed, or
+            # disable with --no-ratelimit. Returns a 429 upon an ip exceeding the below threshold.
+            # can oververide per func with `@limiter.limit("10/second")`
+            default_limits=["5000/minute"],
         )
 
     app.run(host="0.0.0.0", port=45045, debug=False)
