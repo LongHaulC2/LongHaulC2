@@ -7,6 +7,10 @@ server_log = logging.getLogger("server")
 
 server_log.info("Loading /operations page")
 
+# global tabs for being able to access tab functions & vars without doing some weirder stuff
+tabs = None
+panels = None
+
 
 @ui.page("/")
 @ui.page("/operations")
@@ -23,7 +27,8 @@ async def operations():
         with splitter.before:
             await implant_view()
         with splitter.after:
-            await implant_view()
+            # await implant_view()
+            await terminal_view()
 
 
 async def get_implant_data() -> dict:
@@ -99,8 +104,8 @@ async def implant_view():
         # RIGHT: action buttons
         with ui.row().classes("items-center q-gutter-xs"):
             with ui.button(
-                icon="terminal",
-            ).props("dense flat round disabled"):
+                icon="terminal", on_click=lambda: action_open_terminal()
+            ).props("dense flat round"):
                 ui.tooltip("Open shell")
 
             with ui.button(
@@ -213,4 +218,56 @@ async def implant_view():
             # do request
             await delete_implant(id=implant_id)
 
+    async def action_open_terminal():
+        ids = [row["id"] for row in table.selected]
+
+        if not ids:
+            ui.notify("No rows selected", color="warning")
+            return
+
+        for implant_id in ids:
+            # do request
+            # await delete_implant(id=implant_id)
+            add_tab(implant_id, implant_id)
+
     ui.timer(1, refresh)
+
+
+# redfined to be accessible anywhere, maek the vars gllobal to this module
+async def terminal_view():
+    global tabs, panels
+
+    with ui.tabs() as tabs:
+        ui.tab("First")
+        ui.tab("Second")
+
+    with ui.tab_panels(tabs) as panels:
+        with ui.tab_panel("First"):
+            ui.label("First panel")
+        with ui.tab_panel("Second"):
+            ui.label("Second panel")
+
+    ui.button("Add tab", on_click=lambda: add_tab("Dynamic Tab", 1))
+    ui.button("Remove first tab", on_click=remove_tab)
+
+
+# Global function to add a tab from anywhere
+def add_tab(tab_name, tab_label):
+    global tabs, panels
+    if tabs and panels:
+        with tabs:
+            ui.tab(tab_name, label=tab_label)
+        with panels:
+            with ui.tab_panel(tab_name):
+                ui.label(f"{tab_name}:{tab_label} panel")
+
+            # auto switch to tab as well if possible
+            panels.set_value(tab_name)
+
+
+# Global function to remove the first tab
+def remove_tab():
+    global tabs, panels
+    # if tabs and panels and len(tabs.children) > 0:
+    tabs.remove(0)
+    panels.remove(0)
