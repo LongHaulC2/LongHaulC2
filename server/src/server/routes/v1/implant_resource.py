@@ -209,12 +209,14 @@ class ImplantTask(Resource):
     )
     def get(self, id):  # get one implant
         """
-        [Needs marshalling & testing] Gets next task of implant. Task is returned as a base64 encoded, MSGPACK object
+        [Needs marshalling & testing] Gets next task of implant. Task is returned as a base64 encoded, MSGPACK blob
 
         Meant to be called by listeners, to get the next task to forward to the implant.
 
         1. Spins up a new ImplantTaskService instance
         2. Dequeus next task
+        3. Converts each task into base64 (From MSGPACK blob)
+        4. Return response with task in data field: `{"task":"AABB=="}`
         """
         its = ImplantTaskService(id)
         task = its.dequeue_task()
@@ -269,13 +271,15 @@ class ImplantTasks(Resource):
     )
     def get(self, id):  # get one implant
         """
-        [needs marshalling & testing] Gets all tasks of implant. Tasks are returned as a list, with the task being a base64 encoded MSGPACK object
+        [needs marshalling & testing] Gets all tasks of implant. Tasks are returned as a list of tasks,
+        with the task being a base64 encoded MSGPACK blob
 
 
-        1. ...
-        2. ...
+        1. Gets how many tasks are queued
+        2. Peeks that many tasks and returns them (as MSGPACK blob)
+        3. Converts each task into base64
+        4. Returns list of tasks `[{"task":"AABB=="},{"task":"AABB=="}]`
 
-        Returns tasks in data field as a list
         """
         # get length of queue
         its = ImplantTaskService(id)
