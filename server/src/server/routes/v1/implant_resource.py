@@ -2,9 +2,11 @@ from ...instance import env_config, app, api
 from flask_restx import Resource, Namespace, fields
 from ...utils.response import APIResponse
 from ...modules.mysql_functions import ImplantService
+from ...modules.redis_functions import ImplantTaskService
 from ...schemas.implant import ImplantCreate, ImplantUpdate
 from ...db.mysql_connector import get_mysql_engine, get_mysql_session
 import logging
+import base64
 
 implants_ns = Namespace("implants", description="Implant related operations")
 
@@ -207,13 +209,42 @@ class ImplantTask(Resource):
     )
     def get(self, id):  # get one implant
         """
-        [not implemented] Gets next task of implant
+        [Needs marshalling & testing] Gets next task of implant. Task is returned as a base64 encoded, MSGPACK object
 
+        Meant to be called by listeners, to get the next task to forward to the implant.
 
-        1. ...
-        2. ...
+        1. Spins up a new ImplantTaskService instance
+        2. Dequeus next task
         """
-        ...
+        its = ImplantTaskService(id)
+        task = its.dequeue_task()
+
+        if task == None:
+            api_response = APIResponse(
+                status="200",
+                message="Success",
+                data=None,  # on no tasks, return a none
+            )
+            api_logger.debug(f"API Response: {api_response}")
+            return api_response.jsonify()
+        # placeholder, not sure response structure yet
+        # if task is serialized, may need to base64.
+        # data = {"task_id": "1234-1234-1234-1234", "task": task}
+
+        # no task_id right now for simplicity, can be added later with adjustments if needed.
+        # could account for sub tasks for nested implants by adding more fields, HOWEVER, this is not the place to do it
+        task_b64_bytes = base64.b64encode(task)
+        task_b64_str = task_b64_bytes.decode("ascii")
+
+        data = {"task": task_b64_str}
+
+        api_response = APIResponse(
+            status="200",
+            message="Success",
+            data=data,
+        )
+        api_logger.debug(f"API Response: {api_response}")
+        return api_response.jsonify()
 
     @implants_ns.doc(
         summary="Add a task",
@@ -238,13 +269,45 @@ class ImplantTasks(Resource):
     )
     def get(self, id):  # get one implant
         """
-        [not implemented] Gets all tasks of implant
+        [needs marshalling & testing] Gets all tasks of implant. Tasks are returned as a list, with the task being a base64 encoded MSGPACK object
 
 
         1. ...
         2. ...
+
+        Returns tasks in data field as a list
         """
-        ...
+        # get length of queue
+        its = ImplantTaskService(id)
+        task_queue_length = its.queue_length()
+
+        tasks = its.peek_queue(task_queue_length)
+
+        if tasks == None:
+            api_response = APIResponse(
+                status="200",
+                message="Success",
+                data=[],  # on no tasks, return an empty list
+            )
+            api_logger.debug(f"API Response: {api_response}")
+            return api_response.jsonify()
+
+        # Add tasks to task lists and base64 encode
+        data = []
+        for task_bytes in tasks:
+            # Base64 encode
+            task_b64 = base64.b64encode(task_bytes).decode("ascii")
+
+            # Wrap in dict
+            data.append({"task": task_b64})
+
+        api_response = APIResponse(
+            status="200",
+            message="Success",
+            data=data,
+        )
+        api_logger.debug(f"API Response: {api_response}")
+        return api_response.jsonify()
 
     @implants_ns.doc(
         summary="Delete all the tasks of an implant",

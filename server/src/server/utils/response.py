@@ -5,17 +5,20 @@ import logging
 
 api_logger = logging.getLogger("api")
 
+
 @dataclass
 class APIResponse:
     status: str
     message: str
     data: Optional[Any] = None
-    errors: Optional[Any] = None
-    code: Optional[str] = None
+    # errors: Optional[Any] = None
+    # code: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Return dict without None values, like your previous cleanup."""
-        return {k: v for k, v in asdict(self).items() if v is not None}
+        # return {k: v for k, v in asdict(self).items() if v is not None}
+        # not removing null/none values, as null is a valid response for some API responses
+        return {k: v for k, v in asdict(self).items()}
 
     def jsonify(self):
         """Return a Flask JSON response."""

