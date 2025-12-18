@@ -46,6 +46,7 @@ I can't beat CS as a day-to-day red team operations tool. I can
         - Queued Commands
         - Responses to Implants
 
+
  - [container] MySql: For long term data storage/stricter data types
         - [X]Implant metadata (ID [primary key], External IP, Internal IP, Listener, User, System Hostname, Notes, Process, PID, arch, last Checkin, Sleep Value)
         - Job Logs

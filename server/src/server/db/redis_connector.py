@@ -25,6 +25,8 @@ def get_redis_connection() -> object | None:
             decode_responses=True,
             username=user,
             password=password,
+            # socket_connect_timeout=5, #timeouts are 10 seconds by default
+            # socket_timeout=5,
         )
 
         try:

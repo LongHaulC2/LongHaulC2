@@ -9,12 +9,25 @@
     - [X] Redis Connection & checks
 
  - API:
-  - [ ] PUT /implants/{id} (updating records)
+  - [X] PUT /implants/{id} (updating records)
   - [X] DELETE /implants/{id}
   - [X] GET /implants/{id}
   - [X] POST /implants/
   - [X] GET /implants/
 
+ - Redis:
+   - [ ] Figure out a redis structure for client queues.
+      Idea: Basic fifo list. Jobs can fail here, and retry is not built in. This is fine, as jobs are seen by humans. if it fails, 
+         human sees that, and can choose next steps,instead of accidenlty sending the same command 2 times, etc and causing problems.
+         # producer
+         redis.rpush("jobs", job_data)
+
+         # consumer
+         job = redis.lpop("jobs")
+
+
+
+   - [ ] Add API Endpoints for these 
 
 
 ## Client:
