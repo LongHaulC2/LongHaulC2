@@ -46,6 +46,16 @@ implant_update_model = api.model(
     },
 )
 
+implant_task_model = api.model(
+    "TaskModel",
+    {
+        "task": fields.String(
+            required=True, description="Name of the task to be performed"
+        ),
+        "data": fields.Raw(required=True, description="Dynamic key/value pairs"),
+    },
+)
+
 
 # Implant list
 class Implants(Resource):
@@ -200,8 +210,49 @@ class Implant(Resource):
         return api_response.jsonify()
 
 
+"""
+Quick notes: 
+
+Task struct:
+
+{
+  "taskname": "example_task",
+  "data": {
+    "some_var_1": "",
+    "user": "bob",
+    "hash": "..."
+  }
+}
+
+or a list version (later):
+
+{
+  [
+    {
+    "taskname": "example_task",
+    "data": {
+        "some_var_1": "",
+        "user": "bob",
+        "hash": "..."
+        }
+    }
+  ]
+}
+
+
+Need an input model to match this, maybe a dataclass too.
+
+One request = one task submitted. This is then encoded into msgpack,
+and stored into redis to the correct implant's queue. 
+
+Once that is hahed out, can complete thee POST task, and DELETE tasks endpoints. 
+
+"""
+
+
 # individual implaant
 class ImplantTask(Resource):
+
     @implants_ns.doc(
         summary="Get next task implant",
         description="Retrieve the next task for the implant",
@@ -254,13 +305,22 @@ class ImplantTask(Resource):
         params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
     )
     # @implants_ns.expect(implant_update_model) # add expected field here
+    @implants_ns.expect(implant_task_model)
     def post(self, id):  # Create a new  command
         """
         [not implemented] Add a new task to an agent
 
         """
+        task_data = api.payload  # Dataclass this for ease of handling?
+        api_logger.info(task_data)
 
-        ...
+        api_response = APIResponse(
+            status="200",
+            message="Success",
+            data=None,  #
+        )
+
+        return api_response.jsonify()
 
 
 class ImplantTasks(Resource):
