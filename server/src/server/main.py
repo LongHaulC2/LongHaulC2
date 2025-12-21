@@ -69,7 +69,7 @@ if __name__ == "__main__":
     if args.compression:
         from flask_compress import Compress
 
-        api_logger.info("Response compression enabled")
+        server_logger.info("Response compression enabled")
         # GZIP/BR, etc compression on some flask responses
         Compress(app)
         # Some tuning
@@ -82,7 +82,7 @@ if __name__ == "__main__":
         from flask_limiter import Limiter
         from flask_limiter.util import get_remote_address
 
-        api_logger.info("Rate limiting enabled")
+        server_logger.info("Rate limiting enabled")
         limiter = Limiter(
             get_remote_address,
             app=app,

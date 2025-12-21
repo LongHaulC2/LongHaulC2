@@ -23,5 +23,5 @@ class APIResponse:
     def jsonify(self):
         """Return a Flask JSON response."""
         response_dict = self.to_dict()
-        api_logger.debug(f"Generating Response: {response_dict}")
+        # api_logger.debug(f"Generating Response: {response_dict}")
         return jsonify(response_dict)

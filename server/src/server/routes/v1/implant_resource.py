@@ -1,5 +1,6 @@
 from ...instance import env_config, app, api
 from flask_restx import Resource, Namespace, fields, abort
+from flask import request
 from ...utils.response import APIResponse
 from ...modules.mysql_functions import ImplantService
 from ...modules.redis_functions import ImplantTaskService
@@ -77,6 +78,16 @@ class Implants(Resource):
         Note: There is no pagination on this. If there's a lot of entries, this request may take a while.
 
         """
+        ip = request.remote_addr
+        # api_logger.info(f"{ip} requested all implants")
+
+        api_logger.info(
+            "Getting all implants",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
         with get_mysql_session() as session:
             implant_service = ImplantService(session)
             implants = implant_service.get_all()
@@ -106,6 +117,16 @@ class Implants(Resource):
 
         Note: This will create "ghost" sessions with no metadata. Metadata gets updated when 'PUT /v1/api/implants/{id}/' is called.
         """
+        ip = request.remote_addr
+        # api_logger.info(f"{ip} created an implant")
+
+        api_logger.info(
+            "Creating an implant",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
         # get a seession
         with get_mysql_session() as session:
             implant_service = ImplantService(session)
@@ -119,8 +140,15 @@ class Implants(Resource):
 
         api_response = APIResponse(
             status="200",
-            message="Implant created",
+            message=f"Implant {implant_id} created",
             data=data,
+        )
+
+        api_logger.info(
+            f"Implant {implant_id} created",
+            extra={
+                "caller_ip": ip,
+            },
         )
 
         return api_response.jsonify()
@@ -144,6 +172,16 @@ class Implant(Resource):
         3. Returns said data in JSON format.
 
         """
+        ip = request.remote_addr
+        # api_logger.info(f"{ip} is retrieving implant {id}")
+
+        api_logger.info(
+            f"Getting implant {id} data",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
         with get_mysql_session() as session:
             implant_service = ImplantService(session)
             implants = implant_service.get_by_id(id)
@@ -166,6 +204,16 @@ class Implant(Resource):
         """
         Update a single implant by its unique ID.
         """
+        ip = request.remote_addr
+        # api_logger.info(f"{ip} is updating implant {id}")
+
+        api_logger.info(
+            f"Updating implant {id}'s data",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
         # create dataclass from passed in data.
         implant_data = ImplantUpdate(**api.payload)
         implant_id = id
@@ -173,6 +221,13 @@ class Implant(Resource):
         with get_mysql_session() as session:
             implant_service = ImplantService(session)
             implant_service.update(implant_id, implant_data)
+
+        api_logger.info(
+            f"Updated implant {id}'s data successfully",
+            extra={
+                "caller_ip": ip,
+            },
+        )
 
         api_response = APIResponse(
             status="200",
@@ -199,9 +254,28 @@ class Implant(Resource):
             ID's are NOT reused after deleting, so if you delete record 1, said ID will NOT be reused upon calling `POST /v1/api/implants/`
 
         """
+        ip = request.remote_addr
+        # api_logger.info(f"{ip} is deleting implant {id}")
+
+        api_logger.info(
+            f"Deleting implant {id}",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
         with get_mysql_session() as session:
             implant_service = ImplantService(session)
             implants = implant_service.delete(id)
+
+        # api_logger.info(f"Implant {id} deleted successfully")
+
+        api_logger.info(
+            f"Implant {id} deleted successfully",
+            extra={
+                "caller_ip": ip,
+            },
+        )
 
         api_response = APIResponse(
             status=200,
@@ -269,6 +343,15 @@ class ImplantTask(Resource):
         3. Converts each task into base64 (From MSGPACK blob)
         4. Return response with task in data field: `{"task":"AABB=="}`
         """
+        ip = request.remote_addr
+        # api_logger.info(f"{ip} requested a task for {id}")
+        api_logger.info(
+            f"Requesting a task for {id}",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
         its = ImplantTaskService(id)
         task = its.dequeue_task()
 
@@ -278,16 +361,13 @@ class ImplantTask(Resource):
                 message="No task available",
                 data=None,  # on no tasks, return a none
             )
-            api_logger.debug(f"API Response: {api_response}")
+            # api_logger.debug(f"API Response: {api_response}")
             return api_response.jsonify()
-        # placeholder, not sure response structure yet
-        # if task is serialized, may need to base64.
-        # data = {"task_id": "1234-1234-1234-1234", "task": task}
 
         # no task_id right now for simplicity, can be added later with adjustments if needed.
         # could account for sub tasks for nested implants by adding more fields, HOWEVER, this is not the place to do it
         task_b64_bytes = base64.b64encode(task)
-        task_b64_str = task_b64_bytes.decode("ascii")
+        task_b64_str = task_b64_bytes.decode()
 
         data = {"task": task_b64_str}
 
@@ -296,7 +376,7 @@ class ImplantTask(Resource):
             message="Success",
             data=data,
         )
-        api_logger.debug(f"API Response: {api_response}")
+        # api_logger.debug(f"API Response: {api_response}")
         return api_response.jsonify()
 
     @implants_ns.doc(
@@ -308,9 +388,19 @@ class ImplantTask(Resource):
     @implants_ns.expect(implant_task_model)
     def post(self, id):  # Create a new  command
         """
-        [not implemented] Add a new task to an agent
+        Add a task to a single implant by its unique ID. Data is supplied in the body of the request.
 
         """
+        ip = request.remote_addr
+        # api_logger.info(f"{ip} enqueued a task for {id}")
+
+        api_logger.info(
+            f"Enqueued a task for {id}",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
         try:
             task = Task(
                 # unwrap data into a dataclass
@@ -325,10 +415,8 @@ class ImplantTask(Resource):
             )
             return api_response.jsonify()
 
-        api_logger.info(task)
+        # api_logger.info(task)
 
-        # do stuff with task now...
-        # enqueue_task # modify to take the dataclass
         task_service = ImplantTaskService(id)
         task_service.enqueue_task(task)
 
@@ -348,8 +436,8 @@ class ImplantTasks(Resource):
     )
     def get(self, id):  # get one implant
         """
-        [needs marshalling & testing] Gets all tasks of implant. Tasks are returned as a list of tasks,
-        with the task being a base64 encoded MSGPACK blob
+        [needs marshalling & testing] Peek all tasks of implant. Tasks are returned as a list of tasks,
+        with the task being a base64 encoded MSGPACK blob.
 
 
         1. Gets how many tasks are queued
@@ -358,6 +446,16 @@ class ImplantTasks(Resource):
         4. Returns list of tasks `[{"task":"AABB=="},{"task":"AABB=="}]`
 
         """
+        ip = request.remote_addr
+        # api_logger.info(f"{ip} requested all tasks for implant {id}")
+
+        api_logger.info(
+            f"Getting all tasks for implant {id}",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
         # get length of queue
         its = ImplantTaskService(id)
         task_queue_length = its.queue_length()
@@ -370,7 +468,7 @@ class ImplantTasks(Resource):
                 message="Success",
                 data=[],  # on no tasks, return an empty list
             )
-            api_logger.debug(f"API Response: {api_response}")
+            # api_logger.debug(f"API Response: {api_response}")
             return api_response.jsonify()
 
         # Add tasks to task lists and base64 encode
@@ -387,7 +485,7 @@ class ImplantTasks(Resource):
             message="Success",
             data=data,
         )
-        api_logger.debug(f"API Response: {api_response}")
+        # api_logger.debug(f"API Response: {api_response}")
         return api_response.jsonify()
 
     @implants_ns.doc(
@@ -397,9 +495,35 @@ class ImplantTasks(Resource):
     )
     def delete(self, id):  #  Delete all tasks of agent
         """
-        [not implemented] Delete all the tasks of an agent.
+        Delete all the tasks of an agent.
 
         """
+        ip = request.remote_addr
+        # api_logger.info(f"{ip} is clearing task queue for implant {id}")
+        api_logger.info(
+            f"Deleting all tasks for implant {id}",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
+        its = ImplantTaskService(id)
+        its.clear_queue()
+
+        api_response = APIResponse(
+            status="200",
+            message=f"Cleared all pending tasks from implant {id}",
+        )
+
+        api_logger.info(
+            f"All tasks for implant {id} successfully deleted",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
+        # api_logger.debug(f"API Response: {api_response}")
+        return api_response.jsonify()
 
 
 # Add the HelloWorld resource to the API

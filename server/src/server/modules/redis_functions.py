@@ -27,18 +27,32 @@ class ImplantTaskService:
         self.queue_key = f"c2:implant:{self.agent_id}:tasks"
         self.redis = get_redis_connection()
 
-    def enqueue_task(self, task: Task) -> str:
+    def enqueue_task(self, task: Task):
         """Push a task to the agent's queue.
 
         Takes a dataclass of Task
         """
-        # get datatclass, convert to dict
-        # using as dict as we have a nested dataclass (TaskData), rather than vars(task)
-        payload = asdict(task)
-        server_logger.debug(f"Adding task to queue: {payload}")
-        packed = msgpack.packb(payload, use_bin_type=True)
-        self.redis.rpush(self.queue_key, packed)
-        return payload["id"]
+        try:
+            # get datatclass, convert to dict
+            # using as dict as we have a nested dataclass (TaskData), rather than vars(task)
+            payload = asdict(task)
+            server_logger.debug(f"Adding task to queue: {payload}")
+            packed = msgpack.packb(payload, use_bin_type=True)
+            self.redis.rpush(self.queue_key, packed)
+
+        except Exception as e:
+            server_logger.error(e)
+            raise e
+
+    def clear_queue(self) -> int:
+        """Clear all tasks but keep the key. Returns the number of tasks removed (approx)."""
+        # Get current length (optional)
+        queue_length = self.redis.llen(self.queue_key)
+
+        # Trim to empty
+        self.redis.ltrim(self.queue_key, 1, 0)
+
+        return queue_length
 
     # ---------- RAW (bytes) ----------
 

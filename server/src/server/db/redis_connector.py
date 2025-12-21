@@ -22,7 +22,7 @@ def get_redis_connection() -> object | None:
         r = redis.Redis(
             host=host,
             port=6379,
-            decode_responses=True,
+            decode_responses=False,  # needs to be OFF, otherwise redis tries to decode stored msgpack as utf-8, which errors out.
             username=user,
             password=password,
             # socket_connect_timeout=5, #timeouts are 10 seconds by default
