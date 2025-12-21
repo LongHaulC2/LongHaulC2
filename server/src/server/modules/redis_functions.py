@@ -1,9 +1,10 @@
 from datetime import time
 from sqlalchemy import exc
 import logging
+from dataclasses import asdict
 
 from ..db.mysql_models import Implant
-from ..schemas.implant import ImplantUpdate, ImplantCreate
+from ..schemas.implant import ImplantUpdate, ImplantCreate, Task
 
 server_logger = logging.getLogger("server")
 
@@ -14,8 +15,6 @@ from datetime import datetime
 from ..instance import env_config
 from ..db.redis_connector import get_redis_connection
 import logging
-
-logger = logging.getLogger("server")
 
 
 class ImplantTaskService:
@@ -28,16 +27,15 @@ class ImplantTaskService:
         self.queue_key = f"c2:implant:{self.agent_id}:tasks"
         self.redis = get_redis_connection()
 
-    def enqueue_task(self, task: str, extra_data: dict | None = None) -> str:
-        """Push a task to the agent's queue."""
-        payload = {
-            "id": str(uuid.uuid4()),
-            "agent_id": self.agent_id,
-            "task": task,
-            "issued_at": datetime.utcnow().isoformat() + "Z",
-            "extra_data": extra_data or {},
-        }
+    def enqueue_task(self, task: Task) -> str:
+        """Push a task to the agent's queue.
 
+        Takes a dataclass of Task
+        """
+        # get datatclass, convert to dict
+        # using as dict as we have a nested dataclass (TaskData), rather than vars(task)
+        payload = asdict(task)
+        server_logger.debug(f"Adding task to queue: {payload}")
         packed = msgpack.packb(payload, use_bin_type=True)
         self.redis.rpush(self.queue_key, packed)
         return payload["id"]

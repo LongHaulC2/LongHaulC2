@@ -1,9 +1,9 @@
 from ...instance import env_config, app, api
-from flask_restx import Resource, Namespace, fields
+from flask_restx import Resource, Namespace, fields, abort
 from ...utils.response import APIResponse
 from ...modules.mysql_functions import ImplantService
 from ...modules.redis_functions import ImplantTaskService
-from ...schemas.implant import ImplantCreate, ImplantUpdate
+from ...schemas.implant import ImplantCreate, ImplantUpdate, Task, TaskData
 from ...db.mysql_connector import get_mysql_engine, get_mysql_session
 import logging
 import base64
@@ -216,7 +216,7 @@ Quick notes:
 Task struct:
 
 {
-  "taskname": "example_task",
+  "task": "example_task",
   "data": {
     "some_var_1": "",
     "user": "bob",
@@ -229,7 +229,7 @@ or a list version (later):
 {
   [
     {
-    "taskname": "example_task",
+    "task": "example_task",
     "data": {
         "some_var_1": "",
         "user": "bob",
@@ -275,7 +275,7 @@ class ImplantTask(Resource):
         if task == None:
             api_response = APIResponse(
                 status="200",
-                message="Success",
+                message="No task available",
                 data=None,  # on no tasks, return a none
             )
             api_logger.debug(f"API Response: {api_response}")
@@ -311,13 +311,30 @@ class ImplantTask(Resource):
         [not implemented] Add a new task to an agent
 
         """
-        task_data = api.payload  # Dataclass this for ease of handling?
-        api_logger.info(task_data)
+        try:
+            task = Task(
+                # unwrap data into a dataclass
+                **api.payload
+            )
+
+        except TypeError as exc:
+            api_response = APIResponse(
+                status="400",
+                message="Data failed validation",
+                data=None,
+            )
+            return api_response.jsonify()
+
+        api_logger.info(task)
+
+        # do stuff with task now...
+        # enqueue_task # modify to take the dataclass
+        task_service = ImplantTaskService(id)
+        task_service.enqueue_task(task)
 
         api_response = APIResponse(
             status="200",
-            message="Success",
-            data=None,  #
+            message="Queued task successfully",
         )
 
         return api_response.jsonify()

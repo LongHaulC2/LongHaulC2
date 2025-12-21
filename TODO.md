@@ -16,7 +16,7 @@
   - [X] GET /implants/
 
  - Redis:
-   - [ ] Figure out a redis structure for client queues.
+   - [X] Figure out a redis structure for client queues.
       Idea: Basic fifo list. Jobs can fail here, and retry is not built in. This is fine, as jobs are seen by humans. if it fails, 
          human sees that, and can choose next steps,instead of accidenlty sending the same command 2 times, etc and causing problems.
          # producer
@@ -28,6 +28,9 @@
 
 
    - [ ] Add API Endpoints for these 
+      Left off: `{{baseUrl}}/implants/:id/task` - return payload["id"] bug.
+
+      Note: [ ] Once done with logic, error handle ALL of these. Want try/except everywhere. Raise on except. Proper HTTP error handling too
 
 
 ## Client:
