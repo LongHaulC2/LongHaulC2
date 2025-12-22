@@ -136,7 +136,7 @@ class MySQLImplantTaskService:
         returns task id
 
         """
-
+        server_logger.info(f"Adding task to MySQL for implant {task_uuid}")
         task = ImplantTask(
             implant_id=self.implant_id,
             task_uuid=task_uuid,
@@ -155,6 +155,8 @@ class MySQLImplantTaskService:
         task_uuid: The UUID of the task
         request: A dataclass instance of Task.
         """
+        server_logger.info(f"Updating MySQL task request for implant {task_uuid}")
+
         # convert the request Task object to a dict, recursively.
         data = asdict(request)
 
@@ -178,9 +180,14 @@ class MySQLImplantTaskService:
 
     def update_response(self, task_uuid, response: dict):
         """
-        [not implemented]
+        [Works, but undefined response structure.]
         Update the task response for the given task ID (key).
+
+        task_uuid: UUID of the task to update
+        response: The response of the implant. Currently, there is no defined structure/dataclass for responses.
         """
+        server_logger.info(f"Updating MySQL task response for implant {task_uuid}")
+
         # Fetch the task by key
         task = (
             self.session.query(ImplantTask)

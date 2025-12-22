@@ -393,7 +393,6 @@ class ImplantTask(Resource):
 
         """
         ip = request.remote_addr
-        # api_logger.info(f"{ip} enqueued a task for {id}")
 
         api_logger.info(
             f"Enqueued a task for {id}",
@@ -409,6 +408,7 @@ class ImplantTask(Resource):
             task = Task(
                 # unwrap data into a dataclass
                 **api.payload,
+                # add on a task id
                 uuid=task_uuid,
             )
 
@@ -427,13 +427,22 @@ class ImplantTask(Resource):
         # Log task into mysql
         # create blank row in mysql, get taskID (which mysql generates, sequentially), append to task.
         with get_mysql_session() as session:
-            a = MySQLImplantTaskService(implant_id=id, session=session)
-            a.create_entry(task_uuid=task_uuid)
-            a.update_request(task_uuid=task_uuid, request=task)
+            mysql_implant_service = MySQLImplantTaskService(
+                implant_id=id, session=session
+            )
+            mysql_implant_service.create_entry(task_uuid=task_uuid)
+            mysql_implant_service.update_request(task_uuid=task_uuid, request=task)
 
         api_response = APIResponse(
             status="200",
             message="Queued task successfully",
+        )
+
+        api_logger.info(
+            f"Task {task_uuid} for {id} enqueued successfully",
+            extra={
+                "caller_ip": ip,
+            },
         )
 
         return api_response.jsonify()
