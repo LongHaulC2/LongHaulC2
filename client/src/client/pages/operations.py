@@ -330,14 +330,21 @@ async def terminal(implant_id):
             await queue_task(implant_id=implant_id, task=result_data.to_task())
 
         # on data, push to screen
-        elif result_type == ResultType.DATA:
+        elif result_type == ResultType.TEXT:
             await push_text_to_terminal(result_data)
+
+        elif result_type == ResultType.LIST:
+            await push_list_to_terminal(result_data)
 
         elif result_type == ResultType.ERROR:
             await push_error_to_terminal(result_data)
 
     async def push_text_to_terminal(data):
         ui_log.push(f"{terminal_prepend}{data}")
+
+    async def push_list_to_terminal(list_data):
+        for line in list_data:
+            ui_log.push(line)
 
     async def push_error_to_terminal(data):
         ui_log.push(f"[!] {data}", classes="text-orange")

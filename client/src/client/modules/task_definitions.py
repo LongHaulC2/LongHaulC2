@@ -37,32 +37,64 @@ class ParseError(Exception):
 
 
 class ResultType(Enum):
-    TASK = "task"
-    DATA = "data"
-    ERROR = "error"
+    TASK = "task"  # tasks are sent to server
+    TEXT = "text"  # text is just dumped on screen
+    ERROR = "error"  # errors are dumped on screen, without prepend, in orange/yellow
+    LIST = "list"  # Lists, are parsed over and send one entry at a time on screen, with no terminal prepend
     # maybe add a PARSE_ERROR if needed later.
+
+
+def get_description_of_dataclasses(dataclasses):
+    """
+    Dynamic help menu generation. Takes class name, and docstring, and ties them together as the help menu
+    This works, as the class name is the comand (just lower case).
+
+    If needed, can forgo this process, and instead just take the docstring, if class names ever do not match
+    their commands
+
+    Ex new docstring:
+        powershell: blah blah
+    """
+
+    descriptions = []
+    for cls in dataclasses:
+        # Format the string as "classname_lower: docstring"
+        description = f"{cls.__name__.lower()}: {cls.__doc__.strip()}"
+        descriptions.append(description)
+    return descriptions
 
 
 def task_tree(command, args):
     match command:
+        # special command
+        case "help":
+            # uses this list to pull the docstrings from, and turn into a help menu
+            dataclasses = [Cmd, Powershell]
+            descriptions = get_description_of_dataclasses(dataclasses)
+            return (ResultType.LIST, descriptions)
+
         case "cmd":
             try:
                 task = Cmd(cli=args)
-                return ResultType.TASK, task
+                return (ResultType.TASK, task)
             # if not all args are present, or there's a bug, this will bubble up and be put on screen
             except ParseError as e:
-                return ResultType.ERROR, str(e)
+                return (ResultType.ERROR, str(e))
 
         case "data_command":
             data = "somedata"
-            return ResultType.DATA, data  # Use Enum for clarity
+            return (ResultType.TEXT, data)  # Use Enum for clarity
 
         case _:
-            return ResultType.DATA, "Invalid command"  # Or some other response
+            return (ResultType.TEXT, "Invalid command")  # Or some other response
 
 
 @dataclass
 class Cmd:
+    """
+    [placeholder command for dev] Run a command on the host via cmd.exe
+    """
+
     cli: str
 
     def __post_init__(self):
@@ -77,6 +109,32 @@ class Cmd:
         """Convert the dataclass to a task style dictionary structure."""
         return {
             "task": "cmd",
+            "data": {
+                "cli": self.cli,
+            },
+        }
+
+
+@dataclass
+class Powershell:
+    """
+    [placeholder command for dev] Run a command on the host via powershell.exe. Ex: `powershell -c "<your_command>"`
+    """
+
+    cli: str
+
+    def __post_init__(self):
+        """Automatically run something when the dataclass is created."""
+        if not self.cli:
+            # Raise a ParseError exception if cli is None or empty
+            raise ParseError(
+                "The 'cli' argument cannot be None or empty. Ex: `cmd <cli arg>`: `cmd whoami`"
+            )
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+        return {
+            "task": "powershell",
             "data": {
                 "cli": self.cli,
             },
