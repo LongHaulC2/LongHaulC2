@@ -3,6 +3,7 @@ from nicegui import ui
 import logging
 from client.src.client.utils.url import generate_url
 from client.src.client.modules.task_definitions import task_tree, ResultType
+from client.src.client.modules.api_calls import queue_task
 
 server_log = logging.getLogger("server")
 
@@ -309,19 +310,24 @@ async def terminal(implant_id):
     async def handle_command():
         # get user input from ui input
         user_input = ui_user_input.value
+
+        # push to terminal for visibilty
+        await push_to_terminal(user_input)
+        await clear_input()
+
         # split input and args
         parts = user_input.split()
         command = parts[0]
-        args = parts[1:]  # list of everything after the cmd, may need to join? unsure.
+        args = parts[1:]  # list of everything after the cmd
+        args = " ".join(
+            args
+        )  # Keeping args joined for now. This lets the task_definitions handle them.
 
-        print("Command:", command)
-        print("Arguments:", args)
+        result_type, result_data = task_tree(command=command, args=args)
 
-        result_type, result_data = task_tree(command, args)
-
+        # on task, queue task
         if result_type == ResultType.TASK:
-            # Forward to agent or task handler
-            print(f"Task: {result_data.to_task()}")
+            await queue_task(implant_id=implant_id, task=result_data.to_task())
 
         # on data, push to screen
         elif result_type == ResultType.DATA:
@@ -329,6 +335,9 @@ async def terminal(implant_id):
 
     async def push_to_terminal(data):
         ui_log.push(f"{terminal_prepend}{data}")
+
+    async def clear_input():
+        ui_user_input.value = ""
 
     # Run setup
     await setup_terminal()
