@@ -1,11 +1,4 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Text,
-    Time,
-    BigInteger,
-)
+from sqlalchemy import Column, Integer, String, Text, Time, BigInteger, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
@@ -28,11 +21,13 @@ class Implant(Base):
     process = Column(String(255))
     pid = Column(Integer)
     arch = Column(String(50))
-    last_checkin = Column(BigInteger)  # Time field to store last check-in time - moved to epoch instead of old HH:DD:SS
+    last_checkin = Column(
+        BigInteger
+    )  # Time field to store last check-in time - moved to epoch instead of old HH:DD:SS
     sleep_value = Column(Integer)  # Sleep value (seconds)
 
     def to_dict(self):
-        '''
+        """
         Turns each field into a dict.
 
         Can then use as such, after querying:
@@ -42,5 +37,49 @@ class Implant(Base):
             data = [i.to_dict() for i in implants]
         ```
 
-        '''
+        """
         return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
+
+
+class ImplantTask(Base):
+    __tablename__ = "implant_tasks"
+
+    # Primary key for the table
+    implant_id = Column(BigInteger, nullable=False)  # Links task to an agent
+    task_uuid = Column(String(36), primary_key=True)
+
+    # Columns for task request and response stored as JSON
+    task_request = Column(JSON, nullable=True)  # Task request data (dynamic JSON)
+    task_response = Column(JSON, nullable=True)  # Task response data (dynamic JSON)
+
+    # Task type (e.g., 'scan', 'update') and task status (e.g., 'pending', 'completed')
+    # task_type = Column(String(255), nullable=True)
+    # status = Column(String(100), nullable=True)
+    # due_date = Column(DateTime, nullable=True)  # Task due date, if relevant
+
+    def __repr__(self):
+        return f"<AgentTask(id={self.id}, agent_id={self.agent_id}, task_type={self.task_type}, status={self.status})>"
+
+
+"""
+Usage:
+Session = sessionmaker(bind=engine)
+session = Session()
+
+# Create a new task for a specific agent (agent_id = 1)
+task1 = AgentTask(
+    agent_id=1,
+    task_type="scan",
+    status="pending",
+    task_request={"scan_details": "scan details here"},
+    task_response=None
+)
+
+# Add and commit the task
+session.add(task1)
+session.commit()
+
+# Close the session
+session.close()
+
+"""

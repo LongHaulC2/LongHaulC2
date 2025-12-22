@@ -28,10 +28,23 @@
 
 
    - [ ] Add API Endpoints for these 
-      Left off: `{{baseUrl}}/implants/:id/task` - return payload["id"] bug.
+      X Left off: `{{baseUrl}}/implants/:id/task` - return payload["id"] bug.
 
-      Note: [ ] Once done with logic, error handle ALL of these. Want try/except everywhere. Raise on except. Proper HTTP error handling too
+      - Marshalling on output of GET /implants/id/task, and /implants/id/tasks. 
+         - maybe consider marhsalling on every output... don't go too far into the rabbit hole
 
+
+      - Configure/rename keys, have an "inbox" and "outbox" for each agent.
+         [ ] Inbox: Data from implants (unknown format - some json/msgpack format. Undecided)
+            - Batch write to mysql every 1 second to prevent thrashing, and have a command log
+         [X] Outbox: Tasks for clients (the usual task queue, just rename it.)
+            - [ ] Write command to mysql (plaintext for searchability), and redis (msgpack). 
+               (if scaling is an issue here, can cache commands in redis and batch write to mysql on intervals - more complicated)
+               Define mysql schema
+
+      Post this, close branch, move to gui, and implenet terminal properly. Use redis stream to constantly get output. Do research, probably a tomorrow problem. 
+
+      
 
 ## Client:
  - [X] Figure out structure

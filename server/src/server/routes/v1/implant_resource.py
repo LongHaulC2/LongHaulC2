@@ -2,12 +2,13 @@ from ...instance import env_config, app, api
 from flask_restx import Resource, Namespace, fields, abort
 from flask import request
 from ...utils.response import APIResponse
-from ...modules.mysql_functions import ImplantService
-from ...modules.redis_functions import ImplantTaskService
+from ...modules.mysql_functions import ImplantService, MySQLImplantTaskService
+from ...modules.redis_functions import RedisImplantTaskService
 from ...schemas.implant import ImplantCreate, ImplantUpdate, Task, TaskData
 from ...db.mysql_connector import get_mysql_engine, get_mysql_session
 import logging
 import base64
+from edwh_uuid7 import uuid7
 
 implants_ns = Namespace("implants", description="Implant related operations")
 
@@ -338,7 +339,7 @@ class ImplantTask(Resource):
 
         Meant to be called by listeners, to get the next task to forward to the implant.
 
-        1. Spins up a new ImplantTaskService instance
+        1. Spins up a new RedisImplantTaskService instance
         2. Dequeus next task
         3. Converts each task into base64 (From MSGPACK blob)
         4. Return response with task in data field: `{"task":"AABB=="}`
@@ -352,7 +353,7 @@ class ImplantTask(Resource):
             },
         )
 
-        its = ImplantTaskService(id)
+        its = RedisImplantTaskService(id)
         task = its.dequeue_task()
 
         if task == None:
@@ -402,9 +403,13 @@ class ImplantTask(Resource):
         )
 
         try:
+            # create task ID here
+            # Need to stringify as msgpack needs it as a str, and it's stored as a str in mysql db
+            task_uuid = str(uuid7())
             task = Task(
                 # unwrap data into a dataclass
-                **api.payload
+                **api.payload,
+                uuid=task_uuid,
             )
 
         except TypeError as exc:
@@ -415,10 +420,16 @@ class ImplantTask(Resource):
             )
             return api_response.jsonify()
 
-        # api_logger.info(task)
-
-        task_service = ImplantTaskService(id)
+        # queue into redis
+        task_service = RedisImplantTaskService(id)
         task_service.enqueue_task(task)
+
+        # Log task into mysql
+        # create blank row in mysql, get taskID (which mysql generates, sequentially), append to task.
+        with get_mysql_session() as session:
+            a = MySQLImplantTaskService(implant_id=id, session=session)
+            a.create_entry(task_uuid=task_uuid)
+            a.update_request(task_uuid=task_uuid, request=task)
 
         api_response = APIResponse(
             status="200",
@@ -457,7 +468,7 @@ class ImplantTasks(Resource):
         )
 
         # get length of queue
-        its = ImplantTaskService(id)
+        its = RedisImplantTaskService(id)
         task_queue_length = its.queue_length()
 
         tasks = its.peek_queue(task_queue_length)
@@ -507,7 +518,7 @@ class ImplantTasks(Resource):
             },
         )
 
-        its = ImplantTaskService(id)
+        its = RedisImplantTaskService(id)
         its.clear_queue()
 
         api_response = APIResponse(

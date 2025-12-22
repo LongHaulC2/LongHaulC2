@@ -68,3 +68,4 @@ class TaskData:
 class Task:
     task: str
     data: TaskData
+    uuid: str

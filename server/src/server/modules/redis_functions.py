@@ -17,14 +17,14 @@ from ..db.redis_connector import get_redis_connection
 import logging
 
 
-class ImplantTaskService:
+class RedisImplantTaskService:
     """
     An interface for task queueing/dequeueing in redis.
     """
 
     def __init__(self, agent_id: str):
         self.agent_id = agent_id
-        self.queue_key = f"c2:implant:{self.agent_id}:tasks"
+        self.outbox_key = f"c2:implant:{self.agent_id}:tasks:outbox"
         self.redis = get_redis_connection()
 
     def enqueue_task(self, task: Task):
@@ -38,7 +38,7 @@ class ImplantTaskService:
             payload = asdict(task)
             server_logger.debug(f"Adding task to queue: {payload}")
             packed = msgpack.packb(payload, use_bin_type=True)
-            self.redis.rpush(self.queue_key, packed)
+            self.redis.rpush(self.outbox_key, packed)
 
         except Exception as e:
             server_logger.error(e)
@@ -47,10 +47,10 @@ class ImplantTaskService:
     def clear_queue(self) -> int:
         """Clear all tasks but keep the key. Returns the number of tasks removed (approx)."""
         # Get current length (optional)
-        queue_length = self.redis.llen(self.queue_key)
+        queue_length = self.redis.llen(self.outbox_key)
 
         # Trim to empty
-        self.redis.ltrim(self.queue_key, 1, 0)
+        self.redis.ltrim(self.outbox_key, 1, 0)
 
         return queue_length
 
@@ -58,17 +58,17 @@ class ImplantTaskService:
 
     def dequeue_task(self) -> bytes | None:
         """Pop the next task (MessagePack bytes)."""
-        return self.redis.lpop(self.queue_key)
+        return self.redis.lpop(self.outbox_key)
 
     def peek_queue(self, n: int = 10) -> list[bytes]:
         """Peek at the next n tasks (MessagePack bytes)."""
-        return self.redis.lrange(self.queue_key, 0, n - 1)
+        return self.redis.lrange(self.outbox_key, 0, n - 1)
 
     def queue_length(self) -> int:
-        return self.redis.llen(self.queue_key)
+        return self.redis.llen(self.outbox_key)
 
     def set_ttl(self, seconds: int):
-        self.redis.expire(self.queue_key, seconds)
+        self.redis.expire(self.outbox_key, seconds)
 
     # ---------- DECODED (dict) ----------
     # Some extra function to  return tasks as a dict, for various reasons/compatability
