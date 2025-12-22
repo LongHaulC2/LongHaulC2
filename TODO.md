@@ -59,6 +59,4 @@
  - [ ] Styling: Clean up spacing/layout in terminal of operations
       - tighter, better fitting, and auto focus
 
- - [ ] PAGES:
-   - [ ] Login
-   - [ ] Operations
+ - [ ] Terminal

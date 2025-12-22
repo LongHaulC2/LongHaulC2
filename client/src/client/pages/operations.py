@@ -2,6 +2,7 @@ import httpx
 from nicegui import ui
 import logging
 from client.src.client.utils.url import generate_url
+from client.src.client.modules.task_definitions import task_tree, ResultType
 
 server_log = logging.getLogger("server")
 
@@ -205,6 +206,8 @@ async def implant_view():
             # do request
             await delete_implant(id=implant_id)
 
+            # bug, rows are still "checked" after deleting
+
     async def action_open_terminal():
         ids = [row["id"] for row in table.selected]
 
@@ -213,9 +216,7 @@ async def implant_view():
             return
 
         for implant_id in ids:
-            # do request
-            # await delete_implant(id=implant_id)
-            terminal_add_tab(implant_id, implant_id)
+            await terminal_add_tab(implant_id, implant_id)
 
     ui.timer(1, refresh)
 
@@ -244,7 +245,7 @@ async def terminal_view():
 
 
 # Global function to add a tab from anywhere
-def terminal_add_tab(tab_name, implant_id):
+async def terminal_add_tab(tab_name, implant_id):
     global tabs, panels, open_tabs
 
     # already open → switch
@@ -269,7 +270,7 @@ def terminal_add_tab(tab_name, implant_id):
     # create panel
     with panels:
         with ui.tab_panel(tab_name):
-            terminal(implant_id)
+            await terminal(implant_id)
 
     # register specific tab object in tab dict
     open_tabs[implant_id] = {"tab_object": tab}
@@ -278,7 +279,7 @@ def terminal_add_tab(tab_name, implant_id):
     panels.set_value(tab_name)
 
 
-def terminal_close_tab(implant_id):
+async def terminal_close_tab(implant_id):
     global tabs, open_tabs
 
     tab_object = open_tabs[implant_id]["tab_object"]
@@ -288,15 +289,46 @@ def terminal_close_tab(implant_id):
     open_tabs.pop(implant_id)
 
 
-def terminal(implant_id):
-    log = ui.log().classes("w-full h-full")
+async def terminal(implant_id):
+    terminal_prepend = f"{implant_id} > "
+    ui_log = ui.log().classes("w-full h-full")
 
     with ui.row().classes("w-full items-center"):
-        # this splits 90% of the line into the ui input, and 10 into the send
-        # placeholder logic for user input here as well.
-        user_input = ui.input().classes("flex-grow").props("dense")
-        ui.button(
-            "Send", on_click=lambda user_input=user_input: log.push(user_input)
-        ).classes("w-[10%]").props("dense")
+        # This splits 90% of the line into the UI input, and 10% into the send button
+        ui_user_input = ui.input().classes("flex-grow").props("dense")
 
-        # find a way to auto focus on the cli?
+        # Button logic: On click, push the value of the user input to the log
+        ui.button("Send", on_click=lambda: handle_command()).classes("w-[10%]").props(
+            "dense"
+        )
+
+    # Setup message to indicate the terminal is connected
+    async def setup_terminal():
+        await push_to_terminal(f"Connected to {implant_id}")
+
+    async def handle_command():
+        # get user input from ui input
+        user_input = ui_user_input.value
+        # split input and args
+        parts = user_input.split()
+        command = parts[0]
+        args = parts[1:]  # list of everything after the cmd, may need to join? unsure.
+
+        print("Command:", command)
+        print("Arguments:", args)
+
+        result_type, result_data = task_tree(command, args)
+
+        if result_type == ResultType.TASK:
+            # Forward to agent or task handler
+            print(f"Task: {result_data.to_task()}")
+
+        # on data, push to screen
+        elif result_type == ResultType.DATA:
+            await push_to_terminal(result_data)
+
+    async def push_to_terminal(data):
+        ui_log.push(f"{terminal_prepend}{data}")
+
+    # Run setup
+    await setup_terminal()
