@@ -42,6 +42,7 @@
                (if scaling is an issue here, can cache commands in redis and batch write to mysql on intervals - more complicated)
                [X] Define mysql schema
                NOTE: task_uuid will be used for request and response for correlation.
+            - [ ] Clean up and add logging. 
 
       Post this, close branch, move to gui, and implenet terminal properly. Use redis stream to constantly get output. Do research, probably a tomorrow problem. 
 
