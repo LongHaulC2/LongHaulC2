@@ -57,6 +57,13 @@
  - [X] Implement GET IMPLANTS (and updates every so often)
 
  - [ ] Styling: Clean up spacing/layout in terminal of operations
-      - tighter, better fitting, and auto focus
+      - [x] tighter, better fitting, and [x] auto focus
 
  - [ ] Terminal
+      - [X] Task types & output formatting
+      - [X] Task sending to server
+      - [ ] Task retrieval from server to display 
+            Use UUID for timestamp sorting or something... might be a challenge. To prevent duplicate fetch, maybe do all events since last event. (time based)
+
+      - [ ] Cleanup & document methods/structures. 
+      - [ ] Enter key bind to send

@@ -344,7 +344,7 @@ async def terminal(implant_id):
 
     async def push_list_to_terminal(list_data):
         for line in list_data:
-            ui_log.push(line)
+            ui_log.push(line, classes="text-blue")
 
     async def push_error_to_terminal(data):
         ui_log.push(f"[!] {data}", classes="text-orange")
