@@ -30,17 +30,28 @@ How this bubbles down:
 """
 
 
+class ParseError(Exception):
+    """Custom exception for Parse validation errors."""
+
+    pass
+
+
 class ResultType(Enum):
     TASK = "task"
     DATA = "data"
+    ERROR = "error"
     # maybe add a PARSE_ERROR if needed later.
 
 
 def task_tree(command, args):
     match command:
         case "cmd":
-            task = Cmd(cli=args)
-            return ResultType.TASK, task  # Use Enum for clarity
+            try:
+                task = Cmd(cli=args)
+                return ResultType.TASK, task
+            # if not all args are present, or there's a bug, this will bubble up and be put on screen
+            except ParseError as e:
+                return ResultType.ERROR, str(e)
 
         case "data_command":
             data = "somedata"
@@ -53,6 +64,14 @@ def task_tree(command, args):
 @dataclass
 class Cmd:
     cli: str
+
+    def __post_init__(self):
+        """Automatically run something when the dataclass is created."""
+        if not self.cli:
+            # Raise a ParseError exception if cli is None or empty
+            raise ParseError(
+                "The 'cli' argument cannot be None or empty. Ex: `cmd <cli arg>`: `cmd whoami`"
+            )
 
     def to_task(self) -> dict:
         """Convert the dataclass to a task style dictionary structure."""

@@ -296,7 +296,7 @@ async def terminal(implant_id):
 
     with ui.row().classes("w-full items-center"):
         # This splits 90% of the line into the UI input, and 10% into the send button
-        ui_user_input = ui.input().classes("flex-grow").props("dense")
+        ui_user_input = ui.input().classes("flex-grow").props("dense autofocus")
 
         # Button logic: On click, push the value of the user input to the log
         ui.button("Send", on_click=lambda: handle_command()).classes("w-[10%]").props(
@@ -305,14 +305,14 @@ async def terminal(implant_id):
 
     # Setup message to indicate the terminal is connected
     async def setup_terminal():
-        await push_to_terminal(f"Connected to {implant_id}")
+        await push_text_to_terminal(f"Connected to {implant_id}")
 
     async def handle_command():
         # get user input from ui input
         user_input = ui_user_input.value
 
         # push to terminal for visibilty
-        await push_to_terminal(user_input)
+        await push_text_to_terminal(user_input)
         await clear_input()
 
         # split input and args
@@ -331,10 +331,16 @@ async def terminal(implant_id):
 
         # on data, push to screen
         elif result_type == ResultType.DATA:
-            await push_to_terminal(result_data)
+            await push_text_to_terminal(result_data)
 
-    async def push_to_terminal(data):
+        elif result_type == ResultType.ERROR:
+            await push_error_to_terminal(result_data)
+
+    async def push_text_to_terminal(data):
         ui_log.push(f"{terminal_prepend}{data}")
+
+    async def push_error_to_terminal(data):
+        ui_log.push(f"[!] {data}", classes="text-orange")
 
     async def clear_input():
         ui_user_input.value = ""
