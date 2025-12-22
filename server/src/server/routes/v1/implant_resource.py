@@ -450,13 +450,13 @@ class ImplantTask(Resource):
 
 class ImplantTasks(Resource):
     @implants_ns.doc(
-        summary="Gets all tasks of implant",
-        description="Retrieve all tasks for the implant",
+        summary="Peeks all currently queued tasks of implant",
+        description="Peeks all currently queued tasks of implant",
         params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
     )
     def get(self, id):  # get one implant
         """
-        [needs marshalling & testing] Peek all tasks of implant. Tasks are returned as a list of tasks,
+        [needs marshalling & testing] Peek all currently queued tasks of implant. Tasks are returned as a list of tasks,
         with the task being a base64 encoded MSGPACK blob.
 
 
@@ -470,7 +470,7 @@ class ImplantTasks(Resource):
         # api_logger.info(f"{ip} requested all tasks for implant {id}")
 
         api_logger.info(
-            f"Getting all tasks for implant {id}",
+            f"Getting all currently queued tasks for implant {id}",
             extra={
                 "caller_ip": ip,
             },
@@ -509,13 +509,13 @@ class ImplantTasks(Resource):
         return api_response.jsonify()
 
     @implants_ns.doc(
-        summary="Delete all the tasks of an implant",
+        summary="Delete all the currently queued tasks of an implant",
         description="Delete all the tasks of an implant",
         params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
     )
     def delete(self, id):  #  Delete all tasks of agent
         """
-        Delete all the tasks of an agent.
+        Delete all the currently queued tasks of an agent.
 
         """
         ip = request.remote_addr
@@ -536,7 +536,7 @@ class ImplantTasks(Resource):
         )
 
         api_logger.info(
-            f"All tasks for implant {id} successfully deleted",
+            f"All pending tasks for implant {id} successfully deleted",
             extra={
                 "caller_ip": ip,
             },
@@ -546,10 +546,81 @@ class ImplantTasks(Resource):
         return api_response.jsonify()
 
 
+"""
+ImplantHistory, for getting task info.
+
+GET /api/v1/{id}/tasks/history - Get a list of stored/historical tasks for the implant (id).
+
+GET /api/v1/{id}/tasks/history/{task_id} - Get ONE stored/historical task for the implant (id).
+
+"""
+
+
+class ImplantHistory(Resource):
+    @implants_ns.doc(
+        summary="Gets ALL history of an implant from the DB.",
+        description="Retrieve all tasks for the implant",
+        params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+    )
+    # GET /api/v1/{id}/tasks/history
+    def get(self, id):  # Get history of an implant
+        """
+        [Needs marshalling] Gets ALL history of an implant from the DB.
+
+        1. Queries MySQL DB
+        2. Returns results as a list of tasks
+
+        Ex:
+        ```
+        {
+            "data": [
+                {
+                    "implant_id": 1,
+                    "task_request": {
+                        "data": {
+                            "somevar": "1234"
+                        },
+                        "task": "cmd",
+                        "uuid": "019b46f8-e066-76ff-bb2f-0a1f0daa318c"
+                    },
+                    "task_response": null,
+                    "task_uuid": "019b46f8-e066-76ff-bb2f-0a1f0daa318c"
+                },
+            ]
+        }
+        ```
+
+        """
+        ip = request.remote_addr
+
+        api_logger.info(
+            f"Requesting task history for {id}",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
+        # get data from db
+        with get_mysql_session() as session:
+            mysql_implant_service = MySQLImplantTaskService(
+                implant_id=id, session=session
+            )
+            tasks = mysql_implant_service.get_all_tasks()
+
+        api_response = APIResponse(
+            status="200",
+            message="Success",
+            data=tasks,
+        )
+        return api_response.jsonify()
+
+
 # Add the HelloWorld resource to the API
 implants_ns.add_resource(Implants, "/")
 implants_ns.add_resource(Implant, "/<int:id>")
 implants_ns.add_resource(ImplantTask, "/<int:id>/task")
 implants_ns.add_resource(ImplantTasks, "/<int:id>/tasks")
+implants_ns.add_resource(ImplantHistory, "/<int:id>/tasks/history")
+
 
 api.add_namespace(implants_ns)

@@ -205,3 +205,27 @@ class MySQLImplantTaskService:
             raise ValueError(
                 f"Task with ID {task_uuid} not found for agent {self.implant_id}."
             )
+
+    def get_all_tasks(self) -> list:
+        """
+        Retrieve all tasks for the given implant_id from MySQL and return them as a list of dictionaries.
+        Returns:
+            List of task dictionaries.
+        """
+        server_logger.info(f"Retrieving all tasks for implant {self.implant_id}")
+
+        tasks = (
+            self.session.query(ImplantTask).filter_by(implant_id=self.implant_id).all()
+        )
+
+        task_list = [
+            {
+                "task_uuid": task.task_uuid,
+                "implant_id": task.implant_id,
+                "task_request": task.task_request,
+                "task_response": task.task_response,
+            }
+            for task in tasks
+        ]
+
+        return task_list
