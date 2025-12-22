@@ -38,9 +38,10 @@
          [ ] Inbox: Data from implants (unknown format - some json/msgpack format. Undecided)
             - Batch write to mysql every 1 second to prevent thrashing, and have a command log
          [X] Outbox: Tasks for clients (the usual task queue, just rename it.)
-            - [ ] Write command to mysql (plaintext for searchability), and redis (msgpack). 
+            - [X] Write command to mysql (plaintext for searchability), and redis (msgpack). 
                (if scaling is an issue here, can cache commands in redis and batch write to mysql on intervals - more complicated)
-               Define mysql schema
+               [X] Define mysql schema
+               NOTE: task_uuid will be used for request and response for correlation.
 
       Post this, close branch, move to gui, and implenet terminal properly. Use redis stream to constantly get output. Do research, probably a tomorrow problem. 
 
