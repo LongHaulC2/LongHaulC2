@@ -4,6 +4,7 @@ import logging
 from client.src.client.utils.url import generate_url
 from client.src.client.modules.task_definitions import task_tree, ResultType
 from client.src.client.modules.api_calls import queue_task
+from nicegui.events import KeyEventArguments
 
 server_log = logging.getLogger("server")
 
@@ -296,7 +297,13 @@ async def terminal(implant_id):
 
     with ui.row().classes("w-full items-center"):
         # This splits 90% of the line into the UI input, and 10% into the send button
-        ui_user_input = ui.input().classes("flex-grow").props("dense autofocus")
+        ui_user_input = (
+            ui.input()
+            .classes("flex-grow")
+            .props("dense autofocus")
+            # use the .on to  trigger the send action if a user presses enter
+            .on("keydown.enter", lambda e: handle_command())
+        )
 
         # Button logic: On click, push the value of the user input to the log
         ui.button("Send", on_click=lambda: handle_command()).classes("w-[10%]").props(
@@ -314,6 +321,11 @@ async def terminal(implant_id):
         # push to terminal for visibilty
         await push_text_to_terminal(user_input)
         await clear_input()
+
+        # error check for no command input
+        if user_input == None or user_input == "":
+            await push_error_to_terminal("No input provided")
+            return
 
         # split input and args
         parts = user_input.split()
