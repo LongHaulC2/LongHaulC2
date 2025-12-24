@@ -72,6 +72,7 @@
       ORRR just create the navbar manually in each one, which is more explicit but harder to maintain.
 
       See current setup for  an example (buttons on right though)
+      That's gonna take more thinking on how to do....
 
  - [ ] Terminal
       - [X] Task types & output formatting

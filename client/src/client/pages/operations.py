@@ -4,9 +4,17 @@ import logging
 from client.src.client.utils.url import generate_url
 from client.src.client.modules.task_definitions import task_tree, ResultType
 from client.src.client.modules.api_calls import queue_task
-from nicegui.events import KeyEventArguments
 from client.src.client.pages.menu import setup_menu
-from client.src.client.style import BUTTON_COLOR, TEXT_COLOR, HIGHLIGHT_COLOR
+from nicegui.events import KeyEventArguments
+
+# from client.src.client.pages.menu import setup_menu
+from client.src.client.style import (
+    BUTTON_COLOR,
+    TEXT_COLOR,
+    HIGHLIGHT_COLOR,
+    NAVBAR_COLOR,
+    ICON_COLOR,
+)
 
 server_log = logging.getLogger("server")
 
@@ -83,14 +91,14 @@ async def implant_view():
     with ui.row().classes("w-full items-center justify-between"):
 
         # LEFT: title / context
-        ui.label("Implants").classes(f"text-h6 {TEXT_COLOR}")
+        ui.label("Implants").classes(f"text-h6 dense {TEXT_COLOR}")
 
         # RIGHT: action buttons
         with ui.row().classes("items-center q-gutter-xs"):
 
             with ui.button(
                 icon="terminal", on_click=lambda: action_open_terminal()
-            ).props("dense flat round"):
+            ).props("dense flat round").classes(f"[&_.q-icon]:{ICON_COLOR}"):
                 ui.tooltip("Open shell")
 
             # note, can do this 2 ways:
@@ -104,13 +112,17 @@ async def implant_view():
 
             with ui.button(
                 icon="notes",
-            ).props(f"dense flat round disabled"):
+            ).props(f"dense flat round disabled").classes(
+                f"[&_.q-icon]:{ICON_COLOR}"
+            ):  # change JUST the icon color
                 ui.tooltip("Open notes")
 
             with ui.button(
                 icon="refresh",
                 on_click=lambda: refresh(),
-            ).props("dense flat round"):
+            ).props("dense flat round").classes(
+                f"[&_.q-icon]:{ICON_COLOR}"
+            ):  # change JUST the icon color:
                 ui.tooltip("Refresh")
 
             with ui.button(
@@ -369,5 +381,4 @@ async def terminal(implant_id):
     async def clear_input():
         ui_user_input.value = ""
 
-    # Run setup
     await setup_terminal()

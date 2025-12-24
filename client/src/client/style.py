@@ -6,3 +6,6 @@ BUTTON_COLOR = (
 )
 HIGHLIGHT_COLOR = "#A7F3D0"  # emerald-200
 NAVBAR_COLOR = "bg-emerald-700"
+ICON_COLOR = (
+    "text-emerald-500"  # .classes(f"[&_.q-icon]:{ICON_COLOR}") works for icon colors
+)

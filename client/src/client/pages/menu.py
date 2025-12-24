@@ -12,12 +12,6 @@ def setup_menu():
         ui.button(on_click=lambda: left_drawer.toggle(), icon="menu").props(
             "flat color=white"
         )
-        ui.label("Implants")
-        with ui.button(icon="terminal", on_click=lambda: ...).props("dense flat round"):
-            ui.tooltip("Open shell")  # with ui.tabs() as tabs:
-        #     ui.tab("A")
-        #     ui.tab("B")
-        #     ui.tab("C")
 
     # value=false keeps the drawer closed by default
     with left_drawer:
@@ -42,11 +36,3 @@ def setup_menu():
         ).classes(
             "w-full justify-start text-left px-4 text-white"
         ).props("flat no-caps ")
-
-    # with ui.tab_panels(tabs, value="A").classes("w-full"):
-    #     with ui.tab_panel("A"):
-    #         ui.label("Content of A")
-    #     with ui.tab_panel("B"):
-    #         ui.label("Content of B")
-    #     with ui.tab_panel("C"):
-    #         ui.label("Content of C")
