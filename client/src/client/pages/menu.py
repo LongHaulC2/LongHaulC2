@@ -24,15 +24,7 @@ def setup_menu():
         )
 
         ui.button(
-            "[placeholder] Help",
-            icon="help_outline",
-        ).classes(
-            "w-full justify-start text-left px-4 text-white"
-        ).props("flat no-caps")
-
-        ui.button(
-            "[placeholder] Settings",
-            icon="settings",
-        ).classes(
-            "w-full justify-start text-left px-4 text-white"
-        ).props("flat no-caps ")
+            "Search", icon="search", on_click=lambda: ui.navigate.to("/search")
+        ).classes("w-full justify-start text-left px-4 text-white").props(
+            "flat no-caps"
+        )

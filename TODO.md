@@ -82,3 +82,8 @@
 
       - [ ] Cleanup & document methods/structures. 
       - [X] Enter key bind to send
+
+ - [ ] Searching:
+      Add endpoints to server api for searching:
+         # POST /api/v1/search/implants
+         # POST /api/v1/search/implants/history
