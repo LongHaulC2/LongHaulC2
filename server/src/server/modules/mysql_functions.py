@@ -1,5 +1,5 @@
 from datetime import time
-from sqlalchemy import exc
+from sqlalchemy import exc, text
 import logging
 from dataclasses import asdict
 
@@ -118,6 +118,41 @@ class ImplantService:
         except Exception as e:
             server_logger.error(f"Error: {e}")
             raise
+
+    def search(self, search_term: str) -> list[dict]:
+        """
+        Search for, and return all implants that have the search_term string in them. Uses MySQL's FULLTEXT on
+        the following fields: `external_ip, internal_ip, listener, user, system_hostname, notes, process, arch`
+
+        Note: Longer/wordlike searches work best, ex:
+            Target: `msiexec.exe`
+            msi     -> DOES NOT WORK
+            msiexec -> DOES WORK
+
+        :param search_term: The term to match against the implants.
+        :type search_term: str
+
+        :return: A list of implants that match the query.
+        :rtype: list[dict[Any, Any]]
+        """
+
+        query = (
+            self.session.query(Implant)
+            .filter(
+                text(
+                    "MATCH(external_ip, internal_ip, listener, user, system_hostname, notes, process, arch) AGAINST(:term IN NATURAL LANGUAGE MODE)"
+                )
+            )
+            .params(term=search_term)
+        )
+
+        # Execute the query and get the results
+        results = query.all()
+
+        # Convert each Implant instance to a dictionary using the `to_dict` method
+        results_dict = [implant.to_dict() for implant in results]
+
+        return results_dict
 
 
 class MySQLImplantTaskService:

@@ -42,6 +42,11 @@ class ImplantUpdate:
     sleep_value: Optional[int] = None
 
 
+@dataclass
+class Search:
+    search_term: str
+
+
 """
 Task data classes
 

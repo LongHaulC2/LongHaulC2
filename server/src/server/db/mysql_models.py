@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Time, BigInteger, JSON
+from sqlalchemy import Column, Integer, String, Text, Time, BigInteger, JSON, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
@@ -25,6 +25,22 @@ class Implant(Base):
         BigInteger
     )  # Time field to store last check-in time - moved to epoch instead of old HH:DD:SS
     sleep_value = Column(Integer)  # Sleep value (seconds)
+
+    # fulltext index for easier searching with mysql
+    __table_args__ = (
+        Index(
+            "fulltext_index",
+            "external_ip",
+            "internal_ip",
+            "listener",
+            "user",
+            "system_hostname",
+            "notes",
+            "process",
+            "arch",
+            mysql_prefix="FULLTEXT",
+        ),
+    )
 
     def to_dict(self):
         """

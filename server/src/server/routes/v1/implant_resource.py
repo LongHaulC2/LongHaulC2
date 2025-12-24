@@ -4,7 +4,7 @@ from flask import request
 from ...utils.response import APIResponse
 from ...modules.mysql_functions import ImplantService, MySQLImplantTaskService
 from ...modules.redis_functions import RedisImplantTaskService
-from ...schemas.implant import ImplantCreate, ImplantUpdate, Task, TaskData
+from ...schemas.implant import ImplantCreate, ImplantUpdate, Task, TaskData, Search
 from ...db.mysql_connector import get_mysql_engine, get_mysql_session
 import logging
 import base64
@@ -40,7 +40,7 @@ implant_update_model = api.model(
         "pid": fields.Integer(description="Process ID", example=1234),
         "arch": fields.String(description="CPU architecture", example="x64"),
         "last_checkin": fields.String(
-            description="Last check-in time (HH:MM:SS)", example="22:31:05"
+            description="Last check-in time (unix)", example="11223344"
         ),
         "sleep_value": fields.Integer(
             description="Sleep interval in seconds", example=60
@@ -55,6 +55,14 @@ implant_task_model = api.model(
             required=True, description="Name of the task to be performed"
         ),
         "data": fields.Raw(required=True, description="Dynamic key/value pairs"),
+    },
+)
+
+
+search_model = api.model(
+    "SearchModel",
+    {
+        "search_term": fields.String(required=True, description="Term to search for."),
     },
 )
 
@@ -615,12 +623,108 @@ class ImplantHistory(Resource):
         return api_response.jsonify()
 
 
+# Implant & task Search
+
+
+# POST /api/v1/search/implants
+class ImplantSearch(Resource):
+    # create an implant in DB
+    @implants_ns.doc(
+        summary="Search for an implant with fields that match the supplied term.",
+        description="Search for an implant with fields that match the supplied term. Returns a list of dicts, with implants that have said term in them.",
+    )
+    @implants_ns.expect(search_model)
+    def post(self):
+        """
+        Search for an implant with fields that match the supplied term. Returns a list of dicts, with implants that have said term in them.
+        """
+        ip = request.remote_addr
+
+        # create dataclass from passed in data.
+        implant_data = Search(**api.payload)
+
+        api_logger.info(
+            f"Searching implants with term: {implant_data.search_term}",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
+        # get a seession
+        with get_mysql_session() as session:
+            implant_service = ImplantService(session)
+            search_results = implant_service.search(
+                search_term=implant_data.search_term
+            )
+
+        api_response = APIResponse(
+            status="200",
+            message="Success",
+            data=search_results,
+        )
+
+        return api_response.jsonify()
+
+
+class TaskSearch(Resource):
+    # create an implant in DB
+    @implants_ns.doc(
+        summary="Create a new implant entry.",
+        description="Create a new implant entry. Returns an Implant ID to use with that implant",
+    )
+    def post(self):
+        """
+        [Not Implemented]
+
+        Search for a Task / Task Response
+        """
+        ip = request.remote_addr
+        # api_logger.info(f"{ip} created an implant")
+
+        api_logger.info(
+            "Creating an implant",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
+        # get a seession
+        with get_mysql_session() as session:
+            implant_service = ImplantService(session)
+            # data = ImplantCreate(notes="TESTNOTES")
+            data = ImplantCreate()
+            implant_object = implant_service.create(data)
+            implant_id = implant_object.id
+
+        # need to get ID from DB
+        data = {"id": implant_id}
+
+        api_response = APIResponse(
+            status="200",
+            message=f"Implant {implant_id} created",
+            data=data,
+        )
+
+        api_logger.info(
+            f"Implant {implant_id} created",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
+        return api_response.jsonify()
+
+
 # Add the HelloWorld resource to the API
 implants_ns.add_resource(Implants, "/")
 implants_ns.add_resource(Implant, "/<int:id>")
 implants_ns.add_resource(ImplantTask, "/<int:id>/task")
 implants_ns.add_resource(ImplantTasks, "/<int:id>/tasks")
 implants_ns.add_resource(ImplantHistory, "/<int:id>/tasks/history")
+
+# search endpoints, maybe move to a new file
+implants_ns.add_resource(ImplantSearch, "/search")
+implants_ns.add_resource(TaskSearch, "/tasks/search")
 
 
 api.add_namespace(implants_ns)

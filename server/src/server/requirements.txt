@@ -7,3 +7,4 @@ cryptography
 flask-compress
 flask-limiter
 edwh-uuid7
+msgpack

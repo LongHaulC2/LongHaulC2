@@ -87,3 +87,4 @@
       Add endpoints to server api for searching:
          # POST /api/v1/search/implants
          # POST /api/v1/search/implants/history
+      These should be cached and have a refresh of 1-5 seconds. 
