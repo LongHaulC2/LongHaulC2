@@ -6,6 +6,7 @@ from client.src.client.modules.task_definitions import task_tree, ResultType
 from client.src.client.modules.api_calls import queue_task
 from nicegui.events import KeyEventArguments
 from client.src.client.pages.menu import setup_menu
+from client.src.client.style import BUTTON_COLOR, TEXT_COLOR, HIGHLIGHT_COLOR
 
 server_log = logging.getLogger("server")
 
@@ -82,7 +83,7 @@ async def implant_view():
     with ui.row().classes("w-full items-center justify-between"):
 
         # LEFT: title / context
-        ui.label("Implants").classes("text-h6")
+        ui.label("Implants").classes(f"text-h6 {TEXT_COLOR}")
 
         # RIGHT: action buttons
         with ui.row().classes("items-center q-gutter-xs"):
@@ -103,7 +104,7 @@ async def implant_view():
 
             with ui.button(
                 icon="notes",
-            ).props("dense flat round disabled"):
+            ).props(f"dense flat round disabled"):
                 ui.tooltip("Open notes")
 
             with ui.button(
@@ -128,7 +129,7 @@ async def implant_view():
             selection="multiple",
             # on_select=lambda e: ui.notify(f"selected: {e.selection}"),
         )
-        .classes("w-full no-shadow")
+        .classes(f"w-full no-shadow {TEXT_COLOR}")
         .props("dense")
     )
 
@@ -241,7 +242,7 @@ async def terminal_view():
 
     # init tabs and panel view (basically just a container that exists)
     # width/height full set here
-    tabs = ui.tabs().props("dense indicator-color=primary")
+    tabs = ui.tabs().props("dense indicator-color=grey")
     panels = (
         ui.tab_panels(tabs).classes("w-full h-full")
         # transition is set to 0, this disables the nauseating "panel slide"
@@ -304,14 +305,15 @@ async def terminal(implant_id):
             ui.input()
             .classes("flex-grow")
             .props("dense autofocus")
+            .style(f"--q-primary: {HIGHLIGHT_COLOR}")
             # use the .on to  trigger the send action if a user presses enter
             .on("keydown.enter", lambda e: handle_command())
         )
 
         # Button logic: On click, push the value of the user input to the log
-        ui.button("Send", on_click=lambda: handle_command()).classes("w-[10%]").props(
-            "dense"
-        )
+        ui.button(
+            "Send", color=BUTTON_COLOR, on_click=lambda: handle_command()
+        ).classes(f"w-[10%]").props("dense")
 
     # Setup message to indicate the terminal is connected
     async def setup_terminal():
