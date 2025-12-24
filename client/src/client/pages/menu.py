@@ -12,8 +12,9 @@ def setup_menu():
         ui.button(on_click=lambda: left_drawer.toggle(), icon="menu").props(
             "flat color=white"
         )
-        ui.label("SomeTExt?")
-        # with ui.tabs() as tabs:
+        ui.label("Implants")
+        with ui.button(icon="terminal", on_click=lambda: ...).props("dense flat round"):
+            ui.tooltip("Open shell")  # with ui.tabs() as tabs:
         #     ui.tab("A")
         #     ui.tab("B")
         #     ui.tab("C")

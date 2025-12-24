@@ -58,6 +58,20 @@
 
  - [ ] Styling: Clean up spacing/layout in terminal of operations
       - [x] tighter, better fitting, and [x] auto focus
+      - [ ] Crappy themes
+      - [ ] Move the Text of module, and the buttons, into  the navbar.
+
+      Ex,
+      = Implants ......................... X X X  X 
+
+      instead of 
+      = .............................................
+      Implants .............................. X X X X
+
+      May need some sort of dynamic navbar generation. Maybe pass in the pre-defined buttons, and have it handle it?
+      ORRR just create the navbar manually in each one, which is more explicit but harder to maintain.
+
+      See current setup for  an example (buttons on right though)
 
  - [ ] Terminal
       - [X] Task types & output formatting
