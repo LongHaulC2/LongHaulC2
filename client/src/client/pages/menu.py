@@ -2,7 +2,12 @@ from nicegui import ui
 
 
 def setup_menu():
-    with ui.header().classes(replace="row items-center") as header:
+    left_drawer = ui.left_drawer(value=False, elevated=False, bordered=False).classes(
+        "bg-grey-100"
+    )
+    with ui.header().classes(
+        add="bg-emerald-900", replace="row items-center"
+    ) as header:
         ui.button(on_click=lambda: left_drawer.toggle(), icon="menu").props(
             "flat color=white"
         )
@@ -12,31 +17,29 @@ def setup_menu():
         #     ui.tab("B")
         #     ui.tab("C")
 
-    with ui.left_drawer(elevated=False, bordered=False).classes(
-        "bg-grey-100"
-    ) as left_drawer:
+    # value=false keeps the drawer closed by default
+    with left_drawer:
         ui.label("Side menu").classes("px-4 py-2 text-grey-700 font-semibold")
 
         ui.button(
-            "Operations",
-            icon="build",
-        ).classes(
-            "w-full justify-start px-4"
-        ).props(" no-caps flat")
+            "Operations", icon="build", on_click=lambda: ui.navigate.to("/operations")
+        ).classes("w-full justify-start text-left px-4 text-white").props(
+            "flat no-caps"
+        )
 
         ui.button(
             "[placeholder] Help",
             icon="help_outline",
         ).classes(
-            "w-full justify-start px-4"
-        ).props("no-caps flat")
+            "w-full justify-start text-left px-4 text-white"
+        ).props("flat no-caps")
 
         ui.button(
             "[placeholder] Settings",
             icon="settings",
         ).classes(
-            "w-full justify-start px-4"
-        ).props("no-caps flat")
+            "w-full justify-start text-left px-4 text-white"
+        ).props("flat no-caps ")
 
     # with ui.tab_panels(tabs, value="A").classes("w-full"):
     #     with ui.tab_panel("A"):
