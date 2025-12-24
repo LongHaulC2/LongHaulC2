@@ -66,4 +66,4 @@
             Use UUID for timestamp sorting or something... might be a challenge. To prevent duplicate fetch, maybe do all events since last event. (time based)
 
       - [ ] Cleanup & document methods/structures. 
-      - [ ] Enter key bind to send
+      - [X] Enter key bind to send

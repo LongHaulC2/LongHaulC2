@@ -5,6 +5,7 @@ from client.src.client.utils.url import generate_url
 from client.src.client.modules.task_definitions import task_tree, ResultType
 from client.src.client.modules.api_calls import queue_task
 from nicegui.events import KeyEventArguments
+from client.src.client.pages.menu import setup_menu
 
 server_log = logging.getLogger("server")
 
@@ -37,6 +38,8 @@ async def operations():
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
     )
     ui.context.client.content.classes("h-full")
+
+    setup_menu()
 
     with ui.splitter(horizontal=True, value=50).classes("w-full h-full") as splitter:
         with splitter.before:
