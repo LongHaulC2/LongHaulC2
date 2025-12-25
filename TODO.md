@@ -56,6 +56,8 @@
       - needs a way to access user supplied address for where to make the requests
  - [X] Implement GET IMPLANTS (and updates every so often)
 
+ - [X]  Notes (multi and single edit)
+
  - [ ] Styling: Clean up spacing/layout in terminal of operations
       - [x] tighter, better fitting, and [x] auto focus
       - [ ] Crappy themes
@@ -77,6 +79,9 @@
       These should be cached and have a refresh of 1-5 seconds. 
 
    Finish the above before  continuing
+
+ - [ ] Perf:
+    - [ ] User specified refresh on operations table (Ex, between 1-60 seconds). Client gets a little slow when there's thousands of agents being updated  every second. Use some dataelement tospecify this. Should be fairly easy to implement, hopefully?
 
 Performance Considerations:
 ---------------------------
