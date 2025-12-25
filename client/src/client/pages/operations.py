@@ -140,6 +140,7 @@ async def implant_view():
             row_key="id",
             selection="multiple",
             # on_select=lambda e: ui.notify(f"selected: {e.selection}"),
+            pagination=100,
         )
         .classes(f"w-full no-shadow {TEXT_COLOR}")
         .props("dense")

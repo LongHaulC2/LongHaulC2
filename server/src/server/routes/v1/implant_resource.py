@@ -724,7 +724,7 @@ implants_ns.add_resource(ImplantHistory, "/<int:id>/tasks/history")
 
 # search endpoints, maybe move to a new file
 implants_ns.add_resource(ImplantSearch, "/search")
-implants_ns.add_resource(TaskSearch, "/tasks/search")
+implants_ns.add_resource(TaskSearch, "/history/search")  # next
 
 
 api.add_namespace(implants_ns)
