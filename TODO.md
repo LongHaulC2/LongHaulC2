@@ -85,6 +85,14 @@
 
  - [ ] Searching:
       Add endpoints to server api for searching:
-         # POST /api/v1/search/implants
+         # [X] POST /api/v1/search/implants
          # POST /api/v1/search/implants/history
       These should be cached and have a refresh of 1-5 seconds. 
+
+   Finish the above before  continuing
+
+Performance Considerations:
+---------------------------
+    - User specified refresh on operations table (Ex, between 1-60 seconds). Client gets a little slow when there's thousands of agents being updated  every second
+    - Use pagination EVERYWHERE when possible. 
+    - DO NOT use ui.notify for lots of events, it slows the whole thing down.
