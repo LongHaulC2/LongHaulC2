@@ -173,6 +173,7 @@ async def implants_list_layout(data: list[dict]):
             row_key="id",
             # selection="multiple",  # no selection, no use here currently.
             # on_select=lambda e: ui.notify(f"selected: {e.selection}"),
+            pagination=100,
         )
         .classes(f"w-full no-shadow {TEXT_COLOR}")
         .props("dense")

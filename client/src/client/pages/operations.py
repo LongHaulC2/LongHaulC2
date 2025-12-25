@@ -174,12 +174,13 @@ async def implant_view():
         # Detect new implants
         current_ids = {row["id"] for row in data if "id" in row}
 
-        if table_initialized:
-            new_ids = current_ids - previous_ids
-            for new_id in new_ids:
-                ui.notify(
-                    f"New implant with ID {new_id} has connected", color="positive"
-                )
+        # bypassing, causes client crash on high amount of notifications
+        # if table_initialized:
+        # new_ids = current_ids - previous_ids
+        # for new_id in new_ids:
+        #     ui.notify(
+        #         f"New implant with ID {new_id} has connected", color="positive"
+        #     )
 
         previous_ids = current_ids
 
