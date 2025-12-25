@@ -23,9 +23,10 @@ server_log.info("Loading /search page")
 
 @ui.page("/search")
 async def search():
-    setup_menu()
-    # ui.label("search")
-    await search_to_type()
+    setup_menu("Event Search")
+    with ui.element().classes("w-full h-full"):
+        # ui.label("search")
+        await search_to_type()
 
 
 async def search_to_type():
@@ -40,7 +41,6 @@ async def search_to_type():
 
         if running_query:
             running_query.cancel()  # cancel the previous query; happens when you type fast
-
         # define endpoints
         # note, add search endpoints for better/more efficent searching, that only returns necessary data
         if selector_button.text == "Implant Search":
@@ -82,7 +82,7 @@ async def search_to_type():
     search_field = (
         ui.input(on_change=search)
         .props("autofocus outlined flat")
-        .classes(f"w-1/2 self-center mt-24")
+        .classes(f"w-1/2 mt-24 mx-auto")
         .style(f"--q-primary: {HIGHLIGHT_COLOR};")
     )
 
@@ -105,6 +105,7 @@ async def search_to_type():
         with selector_button:
             ui.item("Implant Search", on_click=lambda: select_mode("Implant Search"))
             ui.item("Task Search", on_click=lambda: select_mode("Task Search"))
+
     results = ui.row()
 
 

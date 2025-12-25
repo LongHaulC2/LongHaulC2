@@ -73,6 +73,16 @@ class ImplantTask(Base):
     # status = Column(String(100), nullable=True)
     # due_date = Column(DateTime, nullable=True)  # Task due date, if relevant
 
+    __table_args__ = (
+        Index(
+            "fulltext_index",
+            "task_request",
+            "task_response",
+            "task_uuid",
+            mysql_prefix="FULLTEXT",
+        ),
+    )
+
     def __repr__(self):
         return f"<AgentTask(id={self.id}, agent_id={self.agent_id}, task_type={self.task_type}, status={self.status})>"
 

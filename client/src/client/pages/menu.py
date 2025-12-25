@@ -2,7 +2,7 @@ from nicegui import ui
 from client.src.client.style import *
 
 
-def setup_menu():
+def setup_menu(title: str):
     left_drawer = ui.left_drawer(value=False, elevated=False, bordered=False).classes(
         "bg-grey-100"
     )
@@ -13,18 +13,23 @@ def setup_menu():
             "flat color=white"
         )
 
+        ui.label(title)
+
     # value=false keeps the drawer closed by default
     with left_drawer:
-        ui.label("Side menu").classes("px-4 py-2 text-emerald-100 font-semibold")
+        # ui.label("Side menu").classes("px-4 py-2 text-emerald-100 font-semibold")
 
         ui.button(
             "Operations", icon="build", on_click=lambda: ui.navigate.to("/operations")
-        ).classes("w-full justify-start text-left px-4 text-white").props(
-            "flat no-caps"
-        )
+        ).classes("w-full px-4 text-white").props("flat no-caps")
 
         ui.button(
             "Search", icon="search", on_click=lambda: ui.navigate.to("/search")
-        ).classes("w-full justify-start text-left px-4 text-white").props(
-            "flat no-caps"
-        )
+        ).classes("w-full px-4 text-white").props("flat no-caps")
+
+        # Version label at the bottom
+        with ui.row().classes("mt-auto w-full"):
+            ui.separator().classes("w-full")
+            ui.label("Version Beta ?.0.0").classes(
+                "w-full text-sm text-center text-gray-500 mt-auto px-4 py-2"
+            )

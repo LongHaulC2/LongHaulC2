@@ -48,7 +48,7 @@ async def operations():
     )
     ui.context.client.content.classes("h-full")
 
-    setup_menu()
+    setup_menu("Operations")
 
     with ui.splitter(horizontal=True, value=50).classes("w-full h-full") as splitter:
         with splitter.before:
