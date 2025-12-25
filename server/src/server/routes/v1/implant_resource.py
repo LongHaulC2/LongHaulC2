@@ -18,32 +18,43 @@ server_logger = logging.getLogger("server")
 from flask_restx import fields
 
 implant_update_model = api.model(
+    # these are req'd false, as they are not technically all needed to make the req
     "ImplantCreate",
     {
         "external_ip": fields.String(
-            description="External IP address (IPv4/IPv6)", example="203.0.113.10"
+            description="External IP address (IPv4/IPv6)",
+            example="203.0.113.10",
+            required=False,
         ),
         "internal_ip": fields.String(
-            description="Internal IP address", example="10.0.0.15"
+            description="Internal IP address", example="10.0.0.15", required=False
         ),
         "listener": fields.String(
-            description="Listener address (IP or DNS)", example="c2.example.com:443"
+            description="Listener address (IP or DNS)",
+            example="c2.example.com:443",
+            required=False,
         ),
-        "user": fields.String(description="User account name", example="SYSTEM"),
+        "user": fields.String(
+            description="User account name", example="SYSTEM", required=False
+        ),
         "system_hostname": fields.String(
-            description="Hostname of the system", example="WIN-ABC123"
+            description="Hostname of the system", example="WIN-ABC123", required=False
         ),
         "notes": fields.String(
-            description="Operator notes", example="Initial check-in"
+            description="Operator notes", example="Initial check-in", required=False
         ),
-        "process": fields.String(description="Process name", example="svchost.exe"),
-        "pid": fields.Integer(description="Process ID", example=1234),
-        "arch": fields.String(description="CPU architecture", example="x64"),
+        "process": fields.String(
+            description="Process name", example="svchost.exe", required=False
+        ),
+        "pid": fields.Integer(description="Process ID", example=1234, required=False),
+        "arch": fields.String(
+            description="CPU architecture", example="x64", required=False
+        ),
         "last_checkin": fields.String(
-            description="Last check-in time (unix)", example="11223344"
+            description="Last check-in time (unix)", example="11223344", required=False
         ),
         "sleep_value": fields.Integer(
-            description="Sleep interval in seconds", example=60
+            description="Sleep interval in seconds", example=60, required=False
         ),
     },
 )

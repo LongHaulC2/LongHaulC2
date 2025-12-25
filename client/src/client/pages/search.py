@@ -198,6 +198,23 @@ async def implants_list_layout(data: list[dict]):
         for key in first_row.keys()
     ]
 
+    # https://nicegui.io/documentation/table#table_cells_with_html
+    # adding HTML rendering in.
+    # Slightly diff than example, but still renders correctly. Also, only adding on AFTER initilization, otherwise
+    # there's an error about the notes row not existing (which is expected with dynamic row generation)
+    # ALSO: <div style="max-height: 20px; max-width: 300px; overflow: hidden;">  keeps the row a max size to not blow up the screen
+    # this is slightly bigger  than the operations tab, for easier viewing
+    table.add_slot(
+        "body-cell-notes",
+        """
+        <q-td :props="props">
+            <div style="max-height: 100px; max-width: 300px; overflow: hidden; word-wrap: break-word; white-space: normal;"> 
+
+            <span v-html="props.row.notes"></span>
+        </q-td>
+        """,
+    )
+
     # finally, Update table rows
     table.rows = data
     table.update()

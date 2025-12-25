@@ -3,8 +3,14 @@ from nicegui import ui
 import logging
 from client.src.client.utils.url import generate_url
 from client.src.client.modules.task_definitions import task_tree, ResultType
-from client.src.client.modules.api_calls import queue_task
+from client.src.client.modules.api_calls import (
+    queue_task,
+    update_implant,
+    get_implant_data,
+    get_all_implant_data,
+)
 from client.src.client.pages.menu import setup_menu
+from client.src.client.pages.notes import open_notes_dialog
 from nicegui.events import KeyEventArguments
 
 # from client.src.client.pages.menu import setup_menu
@@ -58,15 +64,6 @@ async def operations():
             await terminal_view()
 
 
-async def get_implant_data() -> dict:
-    # get implants
-    async with httpx.AsyncClient() as client:
-        url = generate_url("/api/v1/implants/")
-        response = await client.get(url)
-        data = response.json().get("data")
-        return data
-
-
 async def delete_implant(id=int) -> None:
     # get implants
     async with httpx.AsyncClient() as client:
@@ -110,9 +107,9 @@ async def implant_view():
             ).props("dense flat round disabled color=amber"):
                 ui.tooltip("God Shell")
 
-            with ui.button(
-                icon="notes",
-            ).props(f"dense flat round disabled").classes(
+            with ui.button(icon="notes", on_click=lambda: handle_notes()).props(
+                f"dense flat round"
+            ).classes(
                 f"[&_.q-icon]:{ICON_COLOR}"
             ):  # change JUST the icon color
                 ui.tooltip("Open notes")
@@ -146,28 +143,12 @@ async def implant_view():
         .props("dense")
     )
 
-    # add button to table
-    # https://nicegui.io/documentation/table#table_with_buttons
-    # table.add_slot(
-    #     "body-cell-interact",
-    #     """
-    #     <q-td :props="props">
-    #         <q-btn
-    #             label="Interact"
-    #             flat
-    #             @click="() => $parent.$emit('interact', props.row)"
-    #             class="text-caption" //caption matches the rest of the text in the table
-    #         />
-    #     </q-td>
-    #     """,
-    # )
-    # table.on("Interact", lambda e: ui.notify(f'Implant {e.args["id"]} cllicked!'))
-
     async def refresh():
         nonlocal previous_ids  # use the variable above that's in the implant_view scope, to track id's between calls
         nonlocal table_initialized  # track if table columns are already built. Solves the bug of saying that every implant in the table is a new connection
 
-        data = await get_implant_data()
+        data = await get_all_implant_data()
+        data = data.get("data")
         if not data:
             return
 
@@ -198,16 +179,20 @@ async def implant_view():
                 }
                 for key in first_row.keys()
             ]
-
-            # # manually add column for interact
-            # table.columns.append(
-            #     {
-            #         "name": "interact",
-            #         "label": "Interact",
-            #         "field": "interact",
-            #         "align": "center",
-            #     }
-            # )
+            # https://nicegui.io/documentation/table#table_cells_with_html
+            # adding HTML rendering in.
+            # Slightly diff than example, but still renders correctly. Also, only adding on AFTER initilization, otherwise
+            # there's an error about the notes row not existing (which is expected with dynamic row generation)
+            # ALSO: <div style="max-height: 20px; max-width: 300px; overflow: hidden;">  keeps the row a max size to not blow up the screen
+            table.add_slot(
+                "body-cell-notes",
+                """
+                <q-td :props="props">
+                    <div style="max-height: 20px; max-width: 300px; overflow: hidden; word-wrap: break-word; white-space: normal;"> 
+                        <span v-html="props.row.notes"></span>
+                </q-td>
+                """,
+            )
 
             table_initialized = True  # mark table as initialized, meaning the first time setup is done & basic data is loaded in.
 
@@ -237,6 +222,41 @@ async def implant_view():
 
         for implant_id in ids:
             await terminal_add_tab(implant_id, implant_id)
+
+    async def handle_notes():
+        # get all selected
+        ids = [row["id"] for row in table.selected]
+        # if selected = 1, pull up notes from that agent and populate editor with them
+
+        if len(ids) == 1:
+            implant_id = ids[0]
+            # lookup server value of notes, NOT what's currently in the table. Server is source of truth
+            implant_data = await get_implant_data(implant_id=implant_id)
+            implant_notes = implant_data.get("data", {}).get("notes")
+
+            # get notes from dialog
+            notes = await open_notes_dialog(
+                implant_id=f"ID: {implant_id}", populate_editor_with=implant_notes
+            )
+            # ui.notify(notes)
+            data = {"notes": notes}
+            # post to update implant
+            await update_implant(implant_id=implant_id, data=data)
+
+        elif len(ids) > 1:
+            notes = await open_notes_dialog(
+                implant_id=f"Editing {len(ids)} implants notes"
+            )
+            # ui.notify(notes)
+            # post to update all the implants
+            data = {"notes": notes}
+
+            for id in ids:
+                await update_implant(implant_id=id, data=data)
+
+        else:
+            ui.notify("Please select an implant to edit its notes")
+        #
 
     ui.timer(1, refresh)
 
