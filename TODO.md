@@ -46,7 +46,18 @@
 
       Post this, close branch, move to gui, and implenet terminal properly. 
 
-      
+## Scripting Idea:
+   # FIX / PLAN EVERYTHING ELSE FIRST. 
+ - API  already exists, so let that be the way that 3rd party things can interact. 
+
+ - Idea #1:
+   - A "terminal" on a page that has scriptsin the current dir. These are scripts that make api calls that interact with the 
+      server
+
+ - Idea #2: Something similar to splunk soar's scripting, either with blockscripting (complicated) or manual scripting (simpler), where it's a glorified IDE, and has a run menu/output. 
+
+   From a usecase, #2 with blockscripting is easier, but #2 with manual scripting + fake IDE may be easiest.
+   Example scripts would be necessary,  ex, getting all current beacons, and queueing a task for those with the external ip of X
 
 ## Client:
  - [X] Figure out structure
@@ -82,6 +93,8 @@
 
  - [ ] Perf:
     - [ ] User specified refresh on operations table (Ex, between 1-60 seconds). Client gets a little slow when there's thousands of agents being updated  every second. Use some dataelement tospecify this. Should be fairly easy to implement, hopefully?
+
+
 
 Performance Considerations:
 ---------------------------
