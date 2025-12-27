@@ -27,6 +27,10 @@ def setup_menu(title: str):
             "Search", icon="search", on_click=lambda: ui.navigate.to("/search")
         ).classes("w-full px-4 text-white").props("flat no-caps")
 
+        ui.button(
+            "Scripts", icon="code", on_click=lambda: ui.navigate.to("/scripts")
+        ).classes("w-full px-4 text-white").props("flat no-caps")
+
         # Version label at the bottom
         with ui.row().classes("mt-auto w-full"):
             ui.separator().classes("w-full")

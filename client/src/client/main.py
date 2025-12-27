@@ -6,6 +6,7 @@ import client.src.client.log
 # also, use full paths due to nicegui being picky about relative paths
 import client.src.client.pages.operations
 import client.src.client.pages.search
+import client.src.client.pages.scripts
 
 
 server_log = logging.getLogger("server")
