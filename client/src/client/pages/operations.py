@@ -140,7 +140,8 @@ async def implant_view():
             pagination=100,
         )
         .classes(f"w-full no-shadow {TEXT_COLOR}")
-        .props("dense")
+        .props("dense virtual-scroll")
+        # virtual scroll only renders items on screen. Helpful when a large amount of items exist in the table.
     )
 
     async def refresh():
@@ -152,23 +153,22 @@ async def implant_view():
         if not data:
             return
 
-        # Detect new implants
-        current_ids = {row["id"] for row in data if "id" in row}
-
         # bypassing, causes client crash on high amount of notifications
+        # Detect new implants
+        # current_ids = {row["id"] for row in data if "id" in row}
         # if table_initialized:
         # new_ids = current_ids - previous_ids
         # for new_id in new_ids:
         #     ui.notify(
         #         f"New implant with ID {new_id} has connected", color="positive"
         #     )
-
-        previous_ids = current_ids
+        # revious_ids = current_ids
 
         # Build columns only once
         if not table_initialized:
-            # if not table.columns:
-            first_row = data[0]
+            # using tuple as rows are NOT re-created/edit
+            # previous iterations used a list derived from the inital row
+            keys = tuple(data[0].keys())
             table.columns = [
                 {
                     "name": key,
@@ -177,7 +177,7 @@ async def implant_view():
                     "sortable": True,
                     "align": "left",
                 }
-                for key in first_row.keys()
+                for key in keys
             ]
             # https://nicegui.io/documentation/table#table_cells_with_html
             # adding HTML rendering in.
@@ -189,7 +189,9 @@ async def implant_view():
                 """
                 <q-td :props="props">
                     <div style="max-height: 20px; max-width: 300px; overflow: hidden; word-wrap: break-word; white-space: normal;"> 
-                        <span v-html="props.row.notes"></span>
+                        <!-- <span v-html="props.row.notes"></span> -->
+                        <!-- v-if only applies if the row/data actually exists, which saves some JS work -->
+                        <span v-if="props.row.notes" v-html="props.row.notes"></span>
                 </q-td>
                 """,
             )

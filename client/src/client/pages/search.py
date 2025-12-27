@@ -177,7 +177,8 @@ async def implants_list_layout(data: list[dict]):
             pagination=100,
         )
         .classes(f"w-full no-shadow {TEXT_COLOR}")
-        .props("dense")
+        .props("dense virtual-scroll")
+        # virtual scroll only renders items on screen. Helpful when a large amount of items exist in the table.")
     )
 
     # if no search results, DO NOT continue with dynamic generation of table
@@ -207,11 +208,12 @@ async def implants_list_layout(data: list[dict]):
     table.add_slot(
         "body-cell-notes",
         """
-        <q-td :props="props">
-            <div style="max-height: 100px; max-width: 300px; overflow: hidden; word-wrap: break-word; white-space: normal;"> 
-
-            <span v-html="props.row.notes"></span>
-        </q-td>
+            <q-td :props="props">
+                <div style="max-height: 20px; max-width: 300px; overflow: hidden; word-wrap: break-word; white-space: normal;"> 
+                    <!-- <span v-html="props.row.notes"></span> -->
+                    <!-- v-if only applies if the row/data actually exists, which saves some JS work -->
+                    <span v-if="props.row.notes" v-html="props.row.notes"></span>
+            </q-td>
         """,
     )
 
