@@ -109,59 +109,6 @@ async def search_to_type():
     results = ui.row()
 
 
-# async def implants_list_layout(data):
-#     """
-#     implants_list_layout. Creates a layout for implants list
-#     :param data: JSON data to display in the results list
-#     """
-#     # using flex here as that is the only layout that wouldn't squish values together
-#     with ui.list().props("bordered separator").classes("w-full justify-center"):
-#         # ui.item_label("Results").props("header").classes("text-bold ")
-
-#         # ui.separator()
-#         for entry in data:
-#             implant_id = entry.get("id")
-#             internal_ip = entry.get("internal_ip")
-#             external_ip = entry.get("external_ip")
-#             listener = entry.get("listener")
-#             process = entry.get("process")
-#             sleep = entry.get("sleep")
-#             system_hostname = entry.get("system_hostname")
-#             user = entry.get("user")
-
-#             with ui.item(on_click=lambda: ui.notify(f"Selected: {implant_id}")):
-#                 # This is the container for each item
-#                 with ui.row().classes(
-#                     "items-center justify-between space-x-4"
-#                 ):  # Use flex row
-#                     with ui.column().classes("flex-1"):
-#                         ui.item_label(implant_id).classes("text-bold")
-
-#                     with ui.column().classes("flex-1"):
-#                         ui.item_label(internal_ip)
-
-#                     with ui.column().classes("flex-1"):
-#                         ui.item_label(external_ip)
-
-#                     with ui.column().classes("flex-1"):
-#                         ui.item_label(listener)
-
-#                     with ui.column().classes("flex-1"):
-#                         ui.item_label(process)
-
-#                     with ui.column().classes("flex-1"):
-#                         ui.item_label(sleep)
-
-#                     with ui.column().classes("flex-1"):
-#                         ui.item_label(system_hostname)
-
-#                     with ui.column().classes("flex-1"):
-#                         ui.item_label(user)
-
-#                     with ui.column().props("side").classes("ml-4"):
-#                         ui.icon("open_in_new")
-
-
 async def implants_list_layout(data: list[dict]):
     """
     Implant table view. Similar to the operations view, with reduced functionality.
