@@ -23,6 +23,14 @@ server_log.info("Loading /search page")
 
 @ui.page("/search")
 async def search():
+    # HEY- readme: This is a hack to get the page full screen (and make h-full work). It should also allow for things like headers to fit without adjusting it manually
+    # see the link below.
+    # https://github.com/zauberzeug/nicegui/discussions/4049
+    ui.context.client.page_container.default_slot.children[0].props(
+        ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
+    )
+    ui.context.client.content.classes("h-full")
+
     setup_menu("Event Search")
     with ui.element().classes("w-full h-full"):
         # ui.label("search")
