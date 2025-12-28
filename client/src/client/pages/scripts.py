@@ -312,7 +312,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str):
                 file_contents,  # your file contents
                 theme="androidstudio",
                 language="Python",
-            ).classes("h-full w-full outline p-0 gap-0")
+            ).classes("h-full w-full outline m-0 p-0 gap-0 leading-none")
 
         # Right panel: vertical buttons
         with splitter.after:
@@ -404,6 +404,7 @@ async def ide_close_tab(tab_name):
         # ui.label("No tabs open").classes("text-center text-grey")
 
 
-## Bug:
-
-# When having tabs open, and switching to a different page, the open tabs never get wiped
+# TODO:
+# - [ ] Keybinds (save)
+# - [ ] File save func
+# - [ ] Create new file
