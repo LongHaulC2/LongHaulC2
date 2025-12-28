@@ -33,6 +33,7 @@ async def scripts():
     ui.context.client.content.classes("h-full")
 
     # ui.query(".nicegui-content").classes("p-0 gap-0")
+    clear_state()
 
     setup_menu("Scripts")
     # fugly, but sets up the left right split, as well as a nested top/bottom for the IDE/Terminal split
@@ -52,6 +53,21 @@ async def scripts():
                     with horiz_splitter.after:
                         # ui.label("TERM BOTTOM").classes("w-full h-full")
                         await terminal_setup()
+
+
+# I really don't like this, but it works. Clears state of global vars declared in the module
+# this is called at page load, to wipeout previous items. This prevents "repeat tab"/"tab already open" errors
+# Dev Note: May need this for operations page as well.
+def clear_state():
+    global ide_tabs_parent, ide_panels_parent, ide_open_tabs
+    global terminal_tabs_parent, terminal_panels_parent, terminal_open_tabs
+    ide_tabs_parent = None
+    ide_panels_parent = None
+    ide_open_tabs = {}
+
+    terminal_tabs_parent = None
+    terminal_panels_parent = None
+    terminal_open_tabs = {}
 
 
 # -------------------------------
@@ -143,7 +159,7 @@ async def terminal_close_tab(tab_name):
     terminal_open_tabs.pop(tab_name)
 
     # If no tabs left, clear editor area or add aplaceholder when everything is closed
-    if not ide_open_tabs:
+    if not terminal_open_tabs:
         ...
         # with ide_panels_parent:
         # ui.label("No tabs open").classes("text-center text-grey")
@@ -289,27 +305,33 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str):
     with open(file_path, "r+") as file:
         file_contents = file.read()
 
-    # spacing is quite large, see if possibel to cut down, or move somewhere else
-    with ui.row().classes("w-full justify-end q-gutter-xs"):
-        with ui.button(
-            icon="play_arrow",
-            on_click=lambda: open_tab_and_execute_script(
-                script_output_terminal_tab_name, script_path=file_path
-            ),
-        ).props("dense flat round").classes(f"[&_.q-icon]:{ICON_COLOR}"):
-            ui.tooltip("Run script")
+    with ui.splitter(value=98, limits=(98, 98)).classes("w-full h-full") as splitter:
+        # Left panel: editor
+        with splitter.before:
+            editor = ui.codemirror(
+                file_contents,  # your file contents
+                theme="androidstudio",
+                language="Python",
+            ).classes("h-full w-full outline p-0 gap-0")
 
-        with ui.button("IDONTWORKYET", icon="stop", on_click=lambda: ...).props(
-            "dense flat round"
-        ).classes(f"[&_.q-icon]:{ICON_COLOR} disabled"):
-            ui.tooltip("Stop script")
+        # Right panel: vertical buttons
+        with splitter.after:
+            with ui.column().classes("h-full gap-1 justify-start items-center"):
+                ui.button(
+                    icon="play_arrow",
+                    on_click=lambda: open_tab_and_execute_script(
+                        script_output_terminal_tab_name, script_path=file_path
+                    ),
+                ).props("dense flat round").classes(f"[&_.q-icon]:{ICON_COLOR}")
+                ui.tooltip("Run script")
 
-    # ui.label("editor_placeholder")
-    # No need for a scrolling section, it's built into the editor
-    editor = ui.codemirror(
-        file_contents, theme="androidstudio", language="Python"
-    ).classes("h-full w-full outline p-0 gap-0")
-    # print(editor.supported_themes)
+                ui.button(
+                    icon="stop",
+                    on_click=lambda: ...,
+                ).props(
+                    "dense flat round"
+                ).classes(f"[&_.q-icon]:{ICON_COLOR} disabled")
+                ui.tooltip("Stop script")
 
 
 # Global function to add a tab from anywhere
@@ -380,3 +402,8 @@ async def ide_close_tab(tab_name):
         ...
         # with ide_panels_parent:
         # ui.label("No tabs open").classes("text-center text-grey")
+
+
+## Bug:
+
+# When having tabs open, and switching to a different page, the open tabs never get wiped
