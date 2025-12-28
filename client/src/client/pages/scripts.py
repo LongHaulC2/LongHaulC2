@@ -105,19 +105,19 @@ async def file_picker():
 # IDE
 # -------------------------------
 # global tabs for being able to access tab functions & vars without doing some weirder stuff
-tabs = None
-panels = None
+ide_tabs_parent = None
+ide_panels_parent = None
 open_tabs = {}
 
 
 async def ide_setup():
-    global tabs, panels
+    global ide_tabs_parent, ide_panels_parent
 
     # init tabs and panel view (basically just a container that exists)
     # width/height full set here
-    tabs = ui.tabs().props("dense indicator-color=grey")
-    panels = (
-        ui.tab_panels(tabs).classes("w-full h-full")
+    ide_tabs_parent = ui.tabs().props("dense indicator-color=grey")
+    ide_panels_parent = (
+        ui.tab_panels(ide_tabs_parent).classes("w-full h-full")
         # transition is set to 0, this disables the nauseating "panel slide"
         .props("dense transition-duration=0")
     )
@@ -149,16 +149,16 @@ async def code_editor(file_path):
 
 # Global function to add a tab from anywhere
 async def ide_add_tab(tab_name, script_path):
-    global tabs, panels, open_tabs
+    global ide_tabs_parent, ide_panels_parent, open_tabs
 
     # already open == switch
     if tab_name in open_tabs:
-        panels.set_value(tab_name)
+        ide_panels_parent.set_value(tab_name)
         ui.notify("Tab already open")
         return
 
     # create tab
-    with tabs:
+    with ide_tabs_parent:
         with ui.tab(tab_name, label="").classes("p-0 rounded-none") as tab:
             tab.meta = {"tab_name": tab_name}
 
@@ -170,7 +170,7 @@ async def ide_add_tab(tab_name, script_path):
                 ).classes("w-6 h-full px-0 text-xs rounded-none border-r")
 
     # create panel
-    with panels:
+    with ide_panels_parent:
         with ui.tab_panel(tab_name) as panel:
             await code_editor(script_path)
 
@@ -181,11 +181,11 @@ async def ide_add_tab(tab_name, script_path):
     }
 
     # switch to new tab
-    panels.set_value(tab_name)
+    ide_panels_parent.set_value(tab_name)
 
 
 async def ide_close_tab(tab_name):
-    global tabs, panels, open_tabs
+    global ide_tabs_parent, ide_panels_parent, open_tabs
 
     if tab_name not in open_tabs:
         ui.notify(f"Tab {tab_name} not found")
@@ -193,18 +193,15 @@ async def ide_close_tab(tab_name):
 
     # Remove the tab from the tabs object
     tab_object = open_tabs[tab_name]["tab_object"]
-    tabs.remove(tab_object)
+    ide_tabs_parent.remove(tab_object)
 
-    # Remove the tab panel content
+    # Remove the tab panel content & from dict
     tab_panel = open_tabs[tab_name].get("panel_object")
     if tab_panel:
-        panels.remove(tab_panel)
-
-    # Remove from dictionary
+        ide_panels_parent.remove(tab_panel)
     open_tabs.pop(tab_name)
 
-    # If no tabs left, clear editor area (optional placeholder)
+    # If no tabs left, clear editor area or add aplaceholder when everything is closed
     if not open_tabs:
-        # Either clear panels container or add a placeholder
-        with panels:
+        with ide_panels_parent:
             ui.label("No tabs open").classes("text-center text-grey")
