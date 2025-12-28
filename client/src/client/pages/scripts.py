@@ -4,7 +4,7 @@ import logging
 from client.src.client.pages.menu import setup_menu
 from client.src.client.utils.url import generate_url
 from typing import Optional
-import asyncio
+from pathlib import Path
 
 # from client.src.client.pages.menu import setup_menu
 from client.src.client.style import (
@@ -44,14 +44,90 @@ async def scripts():
                 ) as horiz_splitter:
                     with horiz_splitter.before:
                         # ui.label("RIGHT TOP").classes("w-full h-full")
-                        await code_editor()
+                        await ide_setup()
                     with horiz_splitter.after:
                         # ui.label("TERM BOTTOM").classes("w-full h-full")
                         await terminal()
 
 
-async def code_editor():
+# -------------------------------
+# Terminal
+# -------------------------------
 
+
+async def terminal():
+    log = ui.log().classes("w-full h-full outline")
+    log.push(
+        "placeholder term - not final. hookup input and output of subprocess/thread that runs the scripts  to here"
+    )
+
+
+# -------------------------------
+# File Picker
+# -------------------------------
+
+
+async def file_picker():
+    ui.label("Scripts")
+    ui.separator()
+    # temp and probably breakable relative reference to the scripts folder.
+    # effectively does ../../scripts
+    # This would cause an issue if the client ever gets compiled (pyinstaller/nuitka)/this path doesn't exist.
+    script_path = Path(__file__).resolve().parent.parent / "scripts"
+    server_log.info(f"Loading scripts from {script_path}")
+    # create parents if needed + okay if it exists
+    script_path.mkdir(parents=True, exist_ok=True)
+
+    files = [
+        {
+            "name": p.name,
+            "path": str(p),
+        }
+        for p in script_path.glob("*")
+        if p.is_file()
+    ]
+
+    with ui.scroll_area().classes("w-full h-full"):
+        for file_dict in files:
+            file_name = file_dict.get("name", "Error")
+            file_path = file_dict.get("path", "Error")
+
+            ui.button(
+                text=file_name,
+                on_click=lambda fn=file_name, fp=file_path: open_code_file(fn, fp),
+            ).classes("w-full").props("dense flat square")
+
+    async def open_code_file(file_name, file_path):
+        await ide_add_tab(tab_name=file_name, script_path=file_path)
+
+
+# -------------------------------
+# IDE
+# -------------------------------
+# global tabs for being able to access tab functions & vars without doing some weirder stuff
+tabs = None
+panels = None
+open_tabs = {}
+
+
+async def ide_setup():
+    global tabs, panels
+
+    # init tabs and panel view (basically just a container that exists)
+    # width/height full set here
+    tabs = ui.tabs().props("dense indicator-color=grey")
+    panels = (
+        ui.tab_panels(tabs).classes("w-full h-full")
+        # transition is set to 0, this disables the nauseating "panel slide"
+        .props("dense transition-duration=0")
+    )
+
+
+async def code_editor(file_path):
+    with open(file_path, "r+") as file:
+        file_contents = file.read()
+
+    # spacing is quite large, see if possibel to cut down
     with ui.row().classes("w-full justify-end q-gutter-xs"):
         with ui.button(icon="play_arrow", on_click=lambda: ...).props(
             "dense flat round"
@@ -66,18 +142,69 @@ async def code_editor():
     # ui.label("editor_placeholder")
     # No need for a scrolling section, it's built into the editor
     editor = ui.codemirror(
-        "def urmom():", theme="androidstudio", language="Python"
+        file_contents, theme="androidstudio", language="Python"
     ).classes("h-full w-full outline")
     # print(editor.supported_themes)
 
 
-async def file_picker():
-    ui.label("file_placeholder")
+# Global function to add a tab from anywhere
+async def ide_add_tab(tab_name, script_path):
+    global tabs, panels, open_tabs
+
+    # already open == switch
+    if tab_name in open_tabs:
+        panels.set_value(tab_name)
+        ui.notify("Tab already open")
+        return
+
+    # create tab
+    with tabs:
+        with ui.tab(tab_name, label="").classes("p-0 rounded-none") as tab:
+            tab.meta = {"tab_name": tab_name}
+
+            # tab header with label and close button
+            with ui.row().classes("items-center gap-0"):
+                ui.label(tab_name).classes("px-3 py-1 text-sm border-l")
+                ui.button("✕", on_click=lambda tn=tab_name: ide_close_tab(tn)).props(
+                    "flat dense"
+                ).classes("w-6 h-full px-0 text-xs rounded-none border-r")
+
+    # create panel
+    with panels:
+        with ui.tab_panel(tab_name) as panel:
+            await code_editor(script_path)
+
+    # Store both objects in the open tabs dict
+    open_tabs[tab_name] = {
+        "tab_object": tab,
+        "panel_object": panel,
+    }
+
+    # switch to new tab
+    panels.set_value(tab_name)
 
 
-async def terminal():
-    log = ui.log().classes("w-full h-full outline")
-    log.push(
-        "placeholder term - not final. hookup input and output of subprocess/thread that runs the scripts  to here"
-    )
-    # ui.label("term_placeholder")
+async def ide_close_tab(tab_name):
+    global tabs, panels, open_tabs
+
+    if tab_name not in open_tabs:
+        ui.notify(f"Tab {tab_name} not found")
+        return
+
+    # Remove the tab from the tabs object
+    tab_object = open_tabs[tab_name]["tab_object"]
+    tabs.remove(tab_object)
+
+    # Remove the tab panel content
+    tab_panel = open_tabs[tab_name].get("panel_object")
+    if tab_panel:
+        panels.remove(tab_panel)
+
+    # Remove from dictionary
+    open_tabs.pop(tab_name)
+
+    # If no tabs left, clear editor area (optional placeholder)
+    if not open_tabs:
+        # Either clear panels container or add a placeholder
+        with panels:
+            ui.label("No tabs open").classes("text-center text-grey")
