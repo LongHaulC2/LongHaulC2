@@ -227,12 +227,38 @@ async def open_tab_and_execute_script(tab_name: str, script_path: str):
     terminal_log.push(
         "[Warning: Need shutdown/crash handling to kill all PID's at exit]"
     )
-    terminal_log.push("[Warning: BUSTED ON WINDOWS DUE TO ASYNC LOOP THING.]")
+    terminal_log.push(
+        "[Warning: Output buffering is enabled for performance reasons. Data will be pushed to the terminal every 10 lines]"
+    )
 
     # Read stdout and stderr line by line asynchronously
     async def stream_output(stream, log):
+        """
+        Using a buffering mechanism to not pound the ui.log element, which can
+        get a bit slow if hit too hard.
+
+        10-100 lines works well
+
+        Old method:
+                # async for line in stream:
+                #     terminal_log.push(line.strip())
+        """
+
+        buffer_size = 10  # lines
+        buffer = []
+
         async for line in stream:
-            terminal_log.push(line.strip())
+            # Add the line to the buffer
+            buffer.append(line.decode().strip())
+
+            # If the buffer reaches the specified size, push it to the log
+            if len(buffer) >= buffer_size:
+                log.push("\n".join(buffer))  # Push the buffered content
+                buffer = []  # Clear the buffer
+
+        # If there are any leftover lines in the buffer after the stream ends, push them
+        if buffer:
+            log.push("\n".join(buffer))
 
     await asyncio.gather(
         stream_output(proc.stdout, terminal_log),
