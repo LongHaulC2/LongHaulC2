@@ -131,14 +131,14 @@ async def terminal_close_tab(tab_name):
         return
 
     # Remove the tab from the tabs object
-    tab_object = ide_open_tabs[tab_name]["tab_object"]
-    ide_tabs_parent.remove(tab_object)
+    tab_object = terminal_open_tabs[tab_name]["tab_object"]
+    terminal_tabs_parent.remove(tab_object)
 
     # Remove the tab panel content & from dict
-    tab_panel = ide_open_tabs[tab_name].get("panel_object")
+    tab_panel = terminal_open_tabs[tab_name].get("panel_object")
     if tab_panel:
-        ide_panels_parent.remove(tab_panel)
-    ide_open_tabs.pop(tab_name)
+        terminal_panels_parent.remove(tab_panel)
+    terminal_open_tabs.pop(tab_name)
 
     # If no tabs left, clear editor area or add aplaceholder when everything is closed
     if not ide_open_tabs:
