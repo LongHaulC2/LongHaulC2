@@ -30,6 +30,8 @@ async def scripts():
     )
     ui.context.client.content.classes("h-full")
 
+    # ui.query(".nicegui-content").classes("p-0 gap-0")
+
     setup_menu("Scripts")
     # fugly, but sets up the left right split, as well as a nested top/bottom for the IDE/Terminal split
     with ui.element().classes("w-full h-full"):
@@ -127,23 +129,23 @@ async def code_editor(file_path):
     with open(file_path, "r+") as file:
         file_contents = file.read()
 
-    # spacing is quite large, see if possibel to cut down
-    with ui.row().classes("w-full justify-end q-gutter-xs"):
-        with ui.button(icon="play_arrow", on_click=lambda: ...).props(
-            "dense flat round"
-        ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
-            ui.tooltip("Run script")
+    # spacing is quite large, see if possibel to cut down, or move somewhere else
+    # with ui.row().classes("w-full justify-end q-gutter-xs"):
+    #     with ui.button(icon="play_arrow", on_click=lambda: ...).props(
+    #         "dense flat round"
+    #     ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
+    #         ui.tooltip("Run script")
 
-        with ui.button(icon="stop", on_click=lambda: ...).props(
-            "dense flat round"
-        ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
-            ui.tooltip("Stop script")
+    #     with ui.button(icon="stop", on_click=lambda: ...).props(
+    #         "dense flat round"
+    #     ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
+    #         ui.tooltip("Stop script")
 
     # ui.label("editor_placeholder")
     # No need for a scrolling section, it's built into the editor
     editor = ui.codemirror(
         file_contents, theme="androidstudio", language="Python"
-    ).classes("h-full w-full outline")
+    ).classes("h-full w-full outline p-0 gap-0")
     # print(editor.supported_themes)
 
 
@@ -203,5 +205,6 @@ async def ide_close_tab(tab_name):
 
     # If no tabs left, clear editor area or add aplaceholder when everything is closed
     if not open_tabs:
-        with ide_panels_parent:
-            ui.label("No tabs open").classes("text-center text-grey")
+        ...
+        # with ide_panels_parent:
+        # ui.label("No tabs open").classes("text-center text-grey")
