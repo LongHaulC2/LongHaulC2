@@ -51,11 +51,24 @@ async def scripts():
 
 
 async def code_editor():
+
+    with ui.row().classes("w-full justify-end q-gutter-xs"):
+        with ui.button(icon="play_arrow", on_click=lambda: ...).props(
+            "dense flat round"
+        ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
+            ui.tooltip("Run script")
+
+        with ui.button(icon="stop", on_click=lambda: ...).props(
+            "dense flat round"
+        ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
+            ui.tooltip("Stop script")
+
     # ui.label("editor_placeholder")
-    with ui.scroll_area():
-        editor = ui.codemirror(
-            "def urmom():", theme="androidstudio", language="Python"
-        ).classes("h-full w-full outline")
+    # No need for a scrolling section, it's built into the editor
+    editor = ui.codemirror(
+        "def urmom():", theme="androidstudio", language="Python"
+    ).classes("h-full w-full outline")
+    # print(editor.supported_themes)
 
 
 async def file_picker():
@@ -64,5 +77,7 @@ async def file_picker():
 
 async def terminal():
     log = ui.log().classes("w-full h-full outline")
-    log.push("placeholder term - not final")
+    log.push(
+        "placeholder term - not final. hookup input and output of subprocess/thread that runs the scripts  to here"
+    )
     # ui.label("term_placeholder")
