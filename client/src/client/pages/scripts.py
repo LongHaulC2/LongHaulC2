@@ -5,6 +5,8 @@ from client.src.client.pages.menu import setup_menu
 from client.src.client.utils.url import generate_url
 from typing import Optional
 from pathlib import Path
+import asyncio
+import sys
 
 # from client.src.client.pages.menu import setup_menu
 from client.src.client.style import (
@@ -146,35 +148,81 @@ async def terminal_close_tab(tab_name):
 
 
 # not super robust, could break fairly easily
-async def execute_script(tab_name):
-    """
-    Executes a python script & spawns a new terminal for it to run in
+# async def open_tab_and_execute_script(tab_name: str, script_path: str):
+#     python_path = sys.executable
 
+#     proc = await asyncio.create_subprocess_exec(
+#         python_path,
+#         script_path,
+#         stdout=asyncio.subprocess.PIPE,
+#         stderr=asyncio.subprocess.PIPE,
+#         # text=True,
+#     )
+
+#     terminal_log = terminal_open_tabs[tab_name].get("log_object")
+
+#     terminal_log.push(f"[Script: {script_path}]")
+#     terminal_log.push(f"[Interpreter: {python_path}]")
+#     terminal_log.push(f"[PID: {proc.pid}]")
+#     terminal_log.push(
+#         f"[Warning: Need shutdown/crash handling to kill all PID's at exit]"
+#     )
+
+#     # Read stdout asynchronously line by line
+#     async for line in proc.stdout:
+#         terminal_log.push(line.strip())
+
+#     # Read stderr asynchronously line by line
+#     async for line in proc.stderr:
+#         terminal_log.push(line.strip())
+
+#     await proc.wait()
+#     terminal_log.push(f"[Process {proc.pid} finished]")
+
+
+async def open_tab_and_execute_script(tab_name: str, script_path: str):
+    """
+    Executes a python script & spawns a new terminal for it to run in,
+    streaming stdout and stderr asynchronously to the terminal log.
     """
     await terminal_add_tab(tab_name)
 
-    # ui.notify("NOTE: Create new tab here for each script run")
-    import subprocess
-    import sys
-
-    # use current python executable
+    terminal_log = terminal_open_tabs[tab_name].get("log_object")
     python_path = sys.executable
 
-    proc = subprocess.Popen(
-        [python_path, "-c", "print('Hello from subprocess')"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,  # decodes bytes to str
+    # Launch the script as a new subprocess asynchronously
+    proc = await asyncio.create_subprocess_exec(
+        python_path,
+        "-u",  # need to run pyhton in unbuffered mode, otherwse stdout waits till crash/script end for output.
+        script_path,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        # text=True,
     )
 
-    terminal_log = terminal_open_tabs[tab_name].get("log_object")
+    # Store the process in the tab dict for later cleanup [not implemented yet]
+    terminal_open_tabs[tab_name]["process"] = proc
 
+    terminal_log.push(f"[Script: {script_path}]")
     terminal_log.push(f"[Interpreter: {python_path}]")
     terminal_log.push(f"[PID: {proc.pid}]")
+    terminal_log.push(
+        "[Warning: Need shutdown/crash handling to kill all PID's at exit]"
+    )
 
-    stdout, stderr = proc.communicate()
-    terminal_log.push(stdout)
-    terminal_log.push(stderr)
+    # Read stdout and stderr line by line asynchronously
+    async def stream_output(stream, log):
+        async for line in stream:
+            terminal_log.push(line.strip())
+
+    await asyncio.gather(
+        stream_output(proc.stdout, terminal_log),
+        stream_output(proc.stderr, terminal_log),
+    )
+
+    # Wait for process to finish
+    await proc.wait()
+    terminal_log.push(f"[Process {proc.pid} finished]")
 
 
 # -------------------------------
@@ -247,7 +295,9 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str):
     with ui.row().classes("w-full justify-end q-gutter-xs"):
         with ui.button(
             icon="play_arrow",
-            on_click=lambda: execute_script(script_output_terminal_tab_name),
+            on_click=lambda: open_tab_and_execute_script(
+                script_output_terminal_tab_name, script_path=file_path
+            ),
         ).props("dense flat round").classes(f"[&_.q-icon]:{ICON_COLOR}"):
             ui.tooltip("Run script")
 
