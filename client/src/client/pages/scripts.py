@@ -86,7 +86,9 @@ async def terminal_add_tab(tab_name):
     # already open == switch
     if tab_name in terminal_open_tabs:
         terminal_panels_parent.set_value(tab_name)
-        ui.notify("Tab already open")
+        # not notifying, as upon executing, it will re-output to the same tab as it ran in last time.
+        # not intended, but it works well so I'm keeping it.
+        # ui.notify("Tab already open")
         return
 
     # create tab
@@ -234,35 +236,30 @@ async def open_tab_and_execute_script(tab_name: str, script_path: str):
 async def file_picker():
     ui.label("Scripts")
     ui.separator()
-    # temp and probably breakable relative reference to the scripts folder.
-    # effectively does ../../scripts
-    # This would cause an issue if the client ever gets compiled (pyinstaller/nuitka)/this path doesn't exist.
+
+    # Resolve scripts folder
     script_path = Path(__file__).resolve().parent.parent / "scripts"
-    server_log.info(f"Loading scripts from {script_path}")
-    # create parents if needed + okay if it exists
     script_path.mkdir(parents=True, exist_ok=True)
 
-    files = [
+    # Prepare files for tree
+    tree_items = [
         {
-            "name": p.name,
-            "path": str(p),
+            "id": str(p),
+            "label": p.name,
+            "children": [],  # no children since these are files
         }
         for p in script_path.glob("*")
         if p.is_file()
     ]
 
-    with ui.scroll_area().classes("w-full h-full"):
-        for file_dict in files:
-            file_name = file_dict.get("name", "Error")
-            file_path = file_dict.get("path", "Error")
-
-            ui.button(
-                text=file_name,
-                on_click=lambda fn=file_name, fp=file_path: open_code_file(fn, fp),
-            ).classes(f"w-full").props("dense flat square")
-
-    async def open_code_file(file_name, file_path):
+    # Callback to open file
+    async def open_code_file(node):
+        file_path = node.value  # found by printing node
+        file_name = Path(file_path).name
         await ide_add_tab(tab_name=file_name, script_path=file_path)
+
+    # Create the tree
+    ui.tree(nodes=tree_items, on_select=open_code_file).classes("w-full h-full")
 
 
 # -------------------------------
