@@ -209,6 +209,7 @@ async def open_tab_and_execute_script(tab_name: str, script_path: str):
     terminal_log.push(
         "[Warning: Need shutdown/crash handling to kill all PID's at exit]"
     )
+    terminal_log.push("[Warning: BUSTED ON WINDOWS DUE TO ASYNC LOOP THING.]")
 
     # Read stdout and stderr line by line asynchronously
     async def stream_output(stream, log):

@@ -13,9 +13,6 @@ import client.src.client.pages.scripts
 
 server_log = logging.getLogger("server")
 
-# TLDR: windows has different asyncio functionality, need to switch to it if we're on win
-if sys.platform.startswith("win"):
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 # ui.run(native=True, dark=True)
 ui.run(native=False, dark=True, show=False)
