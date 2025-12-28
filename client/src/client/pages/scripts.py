@@ -21,6 +21,9 @@ server_log = logging.getLogger("server")
 
 server_log.info("Loading /scripts page")
 
+# 1000 seems to be pretty smooth. Keeping for  now.
+TERMINAL_MAX_LINES = 1000
+
 
 @ui.page("/scripts")
 async def scripts():
@@ -125,7 +128,9 @@ async def terminal_add_tab(tab_name):
     with terminal_panels_parent:
         with ui.tab_panel(tab_name) as panel:
             # create terminal
-            terminal_log = ui.log().classes("w-full h-full outline")
+            terminal_log = ui.log(max_lines=TERMINAL_MAX_LINES).classes(
+                "w-full h-full outline"
+            )
 
     # Store both objects in the open tabs dict
     terminal_open_tabs[tab_name] = {
@@ -229,6 +234,9 @@ async def open_tab_and_execute_script(tab_name: str, script_path: str):
     )
     terminal_log.push(
         "[Warning: Output buffering is enabled for performance reasons. Data will be pushed to the terminal every 10 lines]"
+    )
+    terminal_log.push(
+        f"[Warning: After {TERMINAL_MAX_LINES} lines, older data will be pushed out. For continuous output, please add logging in your scripts.]"
     )
 
     # Read stdout and stderr line by line asynchronously
