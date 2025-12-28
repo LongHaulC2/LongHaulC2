@@ -301,9 +301,9 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str):
         ).props("dense flat round").classes(f"[&_.q-icon]:{ICON_COLOR}"):
             ui.tooltip("Run script")
 
-        with ui.button(icon="stop", on_click=lambda: ...).props(
+        with ui.button("IDONTWORKYET", icon="stop", on_click=lambda: ...).props(
             "dense flat round"
-        ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
+        ).classes(f"[&_.q-icon]:{ICON_COLOR} disabled"):
             ui.tooltip("Stop script")
 
     # ui.label("editor_placeholder")
