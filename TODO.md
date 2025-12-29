@@ -60,7 +60,7 @@
    Example scripts would be necessary,  ex, getting all current beacons, and queueing a task for those with the external ip of X
 
    TODO:
-   - [ ] Keybinds (save)
+   - [X] Keybinds (save) # would overwrite the default ctrl+s on the page. maybe a consideration for later. 
    - [X] File save func
       > might want to hash files, and compare OG to current saved file, to detect changes. Can then rename as something else? Prevents multiple save conflicts
    - [X] Create new file
