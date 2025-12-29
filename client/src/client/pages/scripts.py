@@ -170,39 +170,6 @@ async def terminal_close_tab(tab_name):
         # ui.label("No tabs open").classes("text-center text-grey")
 
 
-# not super robust, could break fairly easily
-# async def open_tab_and_execute_script(tab_name: str, script_path: str):
-#     python_path = sys.executable
-
-#     proc = await asyncio.create_subprocess_exec(
-#         python_path,
-#         script_path,
-#         stdout=asyncio.subprocess.PIPE,
-#         stderr=asyncio.subprocess.PIPE,
-#         # text=True,
-#     )
-
-#     terminal_log = terminal_open_tabs[tab_name].get("log_object")
-
-#     terminal_log.push(f"[Script: {script_path}]")
-#     terminal_log.push(f"[Interpreter: {python_path}]")
-#     terminal_log.push(f"[PID: {proc.pid}]")
-#     terminal_log.push(
-#         f"[Warning: Need shutdown/crash handling to kill all PID's at exit]"
-#     )
-
-#     # Read stdout asynchronously line by line
-#     async for line in proc.stdout:
-#         terminal_log.push(line.strip())
-
-#     # Read stderr asynchronously line by line
-#     async for line in proc.stderr:
-#         terminal_log.push(line.strip())
-
-#     await proc.wait()
-#     terminal_log.push(f"[Process {proc.pid} finished]")
-
-
 async def open_tab_and_execute_script(tab_name: str, script_path: str):
     """
     Executes a python script & spawns a new terminal for it to run in,
@@ -283,13 +250,32 @@ async def open_tab_and_execute_script(tab_name: str, script_path: str):
 # -------------------------------
 
 
+# allows for refresh on file creation
+@ui.refreshable
 async def file_picker():
-    ui.label("Scripts")
-    ui.separator()
-
+    """
+    parent file picker for the scripts tab.
+    """
     # Resolve scripts folder
     script_path = Path(__file__).resolve().parent.parent / "scripts"
     script_path.mkdir(parents=True, exist_ok=True)
+
+    with ui.row().classes("items-center w-full justify-between"):
+        # Left-aligned label
+        ui.label("Scripts").classes("text-xl font-semibold")
+
+        # Right-aligned buttons
+        with ui.row().classes("justify-end"):
+            ui.button(
+                icon="add", on_click=lambda: create_new_file_dialog(script_path)
+            ).props("dense flat round").classes(f"[&_.q-icon]:{ICON_COLOR}").tooltip(
+                "New script"
+            )
+            ui.button(icon="refresh", on_click=lambda: file_picker.refresh()).props(
+                "dense flat round"
+            ).classes(f"[&_.q-icon]:{ICON_COLOR}").tooltip("Refresh files list")
+
+    ui.separator()
 
     # Prepare files for tree
     tree_items = [
@@ -310,6 +296,59 @@ async def file_picker():
 
     # Create the tree
     ui.tree(nodes=tree_items, on_select=open_code_file).classes("w-full h-full")
+
+
+async def create_new_file_dialog(scripts_path):
+    """
+    Dialog for new file
+    """
+
+    with ui.dialog() as dialog, ui.card().classes("no-shadow"):
+        ui.label("New Script")
+        input_file_name = ui.input("Script Name")
+        with ui.row().classes("items-center w-full justify-between"):
+            ui.button(
+                "Create",
+                on_click=lambda: on_create(),
+                color=BUTTON_COLOR,
+            )
+            ui.button("Close", on_click=lambda: on_close(), color=BUTTON_COLOR)
+
+    dialog.open()
+
+    async def on_create():
+        await create_new_file(scripts_path, input_file_name.value)
+        dialog.close()
+
+    async def on_close():
+        dialog.close()
+
+
+async def create_new_file(file_path, file_name):
+    """
+    Creates a new file safely by preventing directory traversal.
+    """
+    # dir traversal protection
+    base_path = Path(
+        file_path
+    ).resolve()  # Base directory to restrict to. Ex, /whatever/scripts
+
+    # Join the file name to the base directory
+    full_path = base_path / file_name
+
+    # Ensure the full path is still inside the base directory, and no shenanigans are happening with path traversal
+    if not full_path.resolve().is_relative_to(base_path):
+        ui.notify("Try this instead: reddit.com/r/masterhacker")
+        return
+
+    # Proceed with file creation (e.g., open or write)
+    try:
+        with open(full_path, "w") as f:
+            f.write("")
+        print(f"File created at: {full_path}")
+        file_picker.refresh()
+    except Exception as e:
+        print(f"Error creating file: {e}")
 
 
 # -------------------------------
@@ -336,6 +375,15 @@ async def ide_setup():
 
 
 async def code_editor(file_path: str, script_output_terminal_tab_name: str):
+    """
+    A code editor window that contains a ui.codemirror object, and other functionality for the editor
+
+
+    file_path: the file to open and edit
+
+    script_output_terminal_tab_name: The name of the terminal that will be used to run the current code in.
+
+    """
     with open(file_path, "r+") as file:
         file_contents = file.read()
 
@@ -343,7 +391,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str):
         # Left panel: editor
         with splitter.before:
             editor = ui.codemirror(
-                file_contents,  # your file contents
+                file_contents,
                 theme="androidstudio",
                 language="Python",
             ).classes("h-full w-full outline m-0 p-0 gap-0 leading-none")
@@ -364,8 +412,25 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str):
                     on_click=lambda: ...,
                 ).props(
                     "dense flat round"
-                ).classes(f"[&_.q-icon]:{ICON_COLOR} disabled")
+                ).classes(f"disabled").props("color=negative")
                 ui.tooltip("Stop script")
+
+                ui.separator()
+
+                ui.button(
+                    icon="save",
+                    on_click=lambda: save_to_file(),
+                ).props(
+                    "dense flat round"
+                ).classes(f"[&_.q-icon]:{ICON_COLOR}")
+                ui.tooltip("Stop script")
+
+    async def save_to_file():
+        data = editor.value
+        with open(file_path, "r+") as file:
+            file.write(data)
+
+        ui.notify("File saved successfully")
 
 
 # Global function to add a tab from anywhere
@@ -440,5 +505,6 @@ async def ide_close_tab(tab_name):
 
 # TODO:
 # - [ ] Keybinds (save)
-# - [ ] File save func
+# - [X] File save func
+# might want to hash files, and compare OG to current saved file, to detect changes. Can then rename as something else?
 # - [ ] Create new file
