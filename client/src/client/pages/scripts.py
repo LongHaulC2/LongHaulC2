@@ -290,7 +290,9 @@ async def file_picker():
 
     # Callback to open file
     async def open_code_file(node):
+        # bug, when tab already open, node value == none, which throws a path error.
         file_path = node.value  # found by printing node
+        print(node.value)
         file_name = Path(file_path).name
         await ide_add_tab(tab_name=file_name, script_path=file_path)
 
@@ -427,7 +429,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str):
 
     async def save_to_file():
         data = editor.value
-        with open(file_path, "r+") as file:
+        with open(file_path, "w") as file:
             file.write(data)
 
         ui.notify("File saved successfully")
@@ -501,10 +503,3 @@ async def ide_close_tab(tab_name):
         ...
         # with ide_panels_parent:
         # ui.label("No tabs open").classes("text-center text-grey")
-
-
-# TODO:
-# - [ ] Keybinds (save)
-# - [X] File save func
-# might want to hash files, and compare OG to current saved file, to detect changes. Can then rename as something else?
-# - [ ] Create new file

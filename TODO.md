@@ -48,7 +48,7 @@
 
 ## Scripting Idea:
    # FIX / PLAN EVERYTHING ELSE FIRST. 
- - API  already exists, so let that be the way that 3rd party things can interact. 
+ - [x] API  already exists, so let that be the way that 3rd party things can interact. 
 
  - Idea #1:
    - A "terminal" on a page that has scriptsin the current dir. These are scripts that make api calls that interact with the 
@@ -58,6 +58,14 @@
 
    From a usecase, #2 with blockscripting is easier, but #2 with manual scripting + fake IDE may be easiest.
    Example scripts would be necessary,  ex, getting all current beacons, and queueing a task for those with the external ip of X
+
+   TODO:
+   - [ ] Keybinds (save)
+   - [X] File save func
+      > might want to hash files, and compare OG to current saved file, to detect changes. Can then rename as something else? Prevents multiple save conflicts
+   - [X] Create new file
+
+
 
 ## Client:
  - [X] Figure out structure

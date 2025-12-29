@@ -41,5 +41,4 @@ else:
             print(f"ID: {implant_id:<10} | IP: {internal_ip} - [!] Invalid IP")
 
 print("=" * 50)
-rint("=" * 50)
-" * 50)
+

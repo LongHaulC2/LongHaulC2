@@ -14,6 +14,8 @@ server_log = logging.getLogger("server")
 
 
 # ui.run(native=True, dark=True)
-ui.run(native=False, dark=True, show=False, reload=platform.system() != "Windows")
+ui.run(
+    native=False, dark=True, show=False, reload=False
+)  # reload=platform.system() != "Windows")
 # reload false to disable reload, which breaks async on windows
 # https://github.com/zauberzeug/nicegui/issues/486
