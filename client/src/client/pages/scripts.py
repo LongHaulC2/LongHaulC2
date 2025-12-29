@@ -291,6 +291,7 @@ async def file_picker():
     # Callback to open file
     async def open_code_file(node):
         # bug, when tab already open, node value == none, which throws a path error.
+        # this creates an unresponsive click. However, clicking again works normally.
         file_path = node.value  # found by printing node
         print(node.value)
         file_name = Path(file_path).name
@@ -386,8 +387,26 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str):
     script_output_terminal_tab_name: The name of the terminal that will be used to run the current code in.
 
     """
-    with open(file_path, "r+") as file:
-        file_contents = file.read()
+
+    # with open(file_path, "r+") as file:
+    #     file_contents = file.read()
+    async def save_to_file():
+        data = editor.value
+        with open(file_path, "w") as file:
+            file.write(data)
+
+        ui.notify("File saved successfully")
+
+    async def load_file():
+        with open(file_path, "r+") as file:
+            file_contents = file.read()
+            return file_contents
+
+    async def editor_update_file():
+        data = await load_file()
+        editor.value = data
+
+    file_contents = await load_file()
 
     with ui.splitter(value=98, limits=(98, 98)).classes("w-full h-full") as splitter:
         # Left panel: editor
@@ -425,14 +444,15 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str):
                 ).props(
                     "dense flat round"
                 ).classes(f"[&_.q-icon]:{ICON_COLOR}")
-                ui.tooltip("Stop script")
+                ui.tooltip("Save script")
 
-    async def save_to_file():
-        data = editor.value
-        with open(file_path, "w") as file:
-            file.write(data)
-
-        ui.notify("File saved successfully")
+                ui.button(
+                    icon="refresh",
+                    on_click=lambda: editor_update_file(),
+                ).props(
+                    "dense flat round"
+                ).classes(f"[&_.q-icon]:{ICON_COLOR}")
+                ui.tooltip("Reload script")
 
 
 # Global function to add a tab from anywhere
