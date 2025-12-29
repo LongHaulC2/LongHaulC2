@@ -46,7 +46,22 @@
 
       Post this, close branch, move to gui, and implenet terminal properly. 
 
-## Scripting Idea:
+   - [ ] Listeners
+      - [ ] Listener supervisor/logic
+            - [ ] table in DB with listeners (for easy restart, figure out fields later.)
+                  Fields: (listener_id [uuid7, can get start time], listener_ip, listener_port (optional), listener_config (a file pointing to config))
+            - [ ] DB service for this table
+      - [ ] Listener endpoints
+            - [ ]  GET /api/v1/listeners - gets all listeners
+            - [ ]  POST /api/v1/listener/ - Creates a new listener
+            - [ ]  GET /api/v1/listener/{id} - gets ONE listener
+            - [ ]  DELETE /api/v1/listener/{id} - stops one listener
+      - [ ] Listener hookup to redis/defining of response structure.
+            `{task_id:"", "data_type":binary|text, data="somedata"}`? seems good enough for now. 
+            Maybe make it a list, for future expansion for multiple responses? iffy.
+      - [ ] Keep in mind, be on look out for flexible python webservers, for http listeners. Ex, can easily set things such as endpoints, headers, etc, etc. 
+
+# Scripting Idea:
    # FIX / PLAN EVERYTHING ELSE FIRST. 
  - [x] API  already exists, so let that be the way that 3rd party things can interact. 
 

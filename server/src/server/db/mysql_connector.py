@@ -8,11 +8,13 @@ import urllib.parse
 from contextlib import contextmanager
 
 from ..instance import env_config
+
 #!! Importing base, as re-declaring it makes it so there are 2 different bases, and create_all does not work (tables do  not get created)
-from ..db.mysql_models import Implant, Base
+from ..db.mysql_models import Implant, Listener, Base
 
 # Logger setup
 logger = logging.getLogger("server")
+
 
 # defined ABOVE engine and SessionLocal module vars, so it is in scope
 def get_mysql_engine() -> object | None:
@@ -54,8 +56,10 @@ def get_mysql_engine() -> object | None:
         logger.error(f"Error connecting to MySQL: {e}\n{traceback.format_exc()}")
         return None
 
+
 engine = get_mysql_engine()  # returns a single Engine instance
 SessionLocal = sessionmaker(bind=engine)
+
 
 def _create_db_if_not_exist():
     """
@@ -92,11 +96,14 @@ def _create_db_if_not_exist():
         conn.execute(text(create_db_sql))
         logger.debug(f"Database '{database}' created successfully.")
 
+
 # used to get a mysql session, in context:
-'''
+"""
 with get_mysql_session() as session:
     ... use session
-'''
+"""
+
+
 @contextmanager
 def get_mysql_session():
     SessionLocal = sessionmaker(bind=engine)
@@ -111,6 +118,7 @@ def get_mysql_session():
         raise
     finally:
         session.close()
+
 
 def create_implants_table():
     try:
@@ -133,6 +141,7 @@ def create_implants_table():
         logger.error(f"Error creating table: {e}\n{traceback.format_exc()}")
     except Exception as e:
         logger.error(f"Unexpected error: {e}\n{traceback.format_exc()}")
+
 
 def mysql_setup():
     _create_db_if_not_exist()

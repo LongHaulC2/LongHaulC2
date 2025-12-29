@@ -1,4 +1,14 @@
-from sqlalchemy import Column, Integer, String, Text, Time, BigInteger, JSON, Index
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Text,
+    Time,
+    BigInteger,
+    JSON,
+    Index,
+    UniqueConstraint,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
@@ -109,3 +119,34 @@ session.commit()
 session.close()
 
 """
+
+
+class Listener(Base):
+    __tablename__ = "listeners"
+    listener_id = Column(String(36), primary_key=True)
+
+    listener_host = Column(
+        String(256)
+    )  # 256 is I hope long enough for now for a dns/host name...
+    listener_port = Column(Integer)
+
+    # listener_config = Column(String, primary_key=True)
+
+    # Adding UniqueConstraint to enforce unique combination of listener_host and listener_port
+    __table_args__ = (
+        UniqueConstraint("listener_host", "listener_port", name="_host_port_uc"),
+    )
+
+    def to_dict(self):
+        """
+        Turns each field into a dict.
+
+        Can then use as such, after querying:
+
+        ```
+            implants = session.query(Implant).all()
+            data = [i.to_dict() for i in implants]
+        ```
+
+        """
+        return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}

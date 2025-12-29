@@ -55,6 +55,7 @@ def parse_args():
 # setup the routes
 from .routes.v1.hello_resource import *
 from .routes.v1.implant_resource import *
+from .routes.v1.listener_resource import *
 
 
 logger = logging.getLogger("server")
