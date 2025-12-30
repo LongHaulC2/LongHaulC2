@@ -57,6 +57,9 @@
             - [DB yes, Listener No]  POST /api/v1/listener/ - Creates a new listener
             - [X]  GET /api/v1/listener/{id} - gets ONE listener
             - [DB Yes, Listener No]  DELETE /api/v1/listener/{id} - stops one listener
+            # Mismatch between running listeners and stored listeners. 
+               - [ ] Add an `active` entry in db for active listenrs. 
+               - [ ] update constraint to be active, host, and port. 
       - [ ] Listener hookup to redis/defining of response structure.
             `{task_id:"", "data_type":binary|text, data="somedata"}`? seems good enough for now. 
             Maybe make it a list, for future expansion for multiple responses? iffy.

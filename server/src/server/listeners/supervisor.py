@@ -2,6 +2,7 @@
 import multiprocessing
 import logging
 from .http.http import run as http_run
+from ..schemas.listeners import ListenerCreate
 
 listeners = {}  # pid -> Process object. internal, the start/stop keep track of pid's.
 # ex: {1234-1234-1234-1234:process_object}
@@ -13,32 +14,28 @@ server_logger = logging.getLogger("server")
 
 
 def start_listener(
-    listener_uuid: str,
+    listener_data: ListenerCreate,
 ):  # maybe add the dataclass for pulling out data, would work well with decision tree for listeners to start
-    server_logger.info(f"Starting listener {listener_uuid}")
+    server_logger.info(f"Starting listener {listener_data.listener_uuid}")
 
-    """
-    data = dataclass passed in 
-    case data.type
-        switch http:
-            process setup
-        switch ?:
-            process setup
+    # could be less code, but for explicity/expandability it's not.
+    # Also this allows for per listener kwargs if needed.
+    match listener_data.listener_type:
+        case "http":
+            p = multiprocessing.Process(
+                target=http_run,
+                kwargs={
+                    "listener_uuid": listener_data.listener_uuid,
+                },
+                daemon=True,  # shuts down listeners at program exit.
+            )
+            p.start()
+            listeners[listener_data.listener_uuid] = p
 
-        default:
-            ?   
-    """
-
-    # logic for type input var?
-    p = multiprocessing.Process(
-        target=http_run,
-        kwargs={
-            "listener_uuid": listener_uuid,
-        },
-        daemon=True,  # shuts down listeners at program exit.
-    )
-    p.start()
-    listeners[listener_uuid] = p
+        case _:
+            server_logger.warning(
+                f"Invalid listener type: {listener_data.listener_type}"
+            )
 
 
 def get_pid_from_uuid(listener_uuid):

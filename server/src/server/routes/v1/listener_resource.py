@@ -11,6 +11,7 @@ from ...listeners.supervisor import start_listener, stop_all, stop_listener
 import logging
 import base64
 from edwh_uuid7 import uuid7
+from dataclasses import dataclass, asdict
 
 listener_ns = Namespace("listeners", description="Listener related operations")
 api_logger = logging.getLogger("api")
@@ -200,7 +201,7 @@ class Listeners(Resource):
         )
 
         # try to start listener, if successful, put into db
-        start_listener(listener_uuid)
+        start_listener(listener_dataclass)
 
         # get a session
         with get_mysql_session() as session:
@@ -209,7 +210,9 @@ class Listeners(Resource):
             listener_id = listener.listener_uuid
 
         # need to get ID from DB
-        data = {"listener_id": listener_id}
+        # data = {"listener_uuid": listener_id}
+        # experiement with returning dataclasses
+        data = asdict(listener_dataclass)
 
         api_response = APIResponse(
             status="200",
