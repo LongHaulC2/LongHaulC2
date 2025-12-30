@@ -251,6 +251,18 @@ class ListenerService:
             server_logger.error(f"{self.__class__.__name__} Error: {e}")
             raise
 
+    def set_active(self, listener_id: uuid7, active: bool):
+        server_logger.debug(
+            f"Setting listener {listener_id} state: active={active} in MYSQL Database"
+        )
+
+        listener = self.get_by_id(listener_id)
+        if not listener:
+            return None
+
+        listener.listener_active = active
+        self.session.commit()
+
     def delete(self, listener_id: uuid7) -> bool:
         """
         Delete an implant by primary key.

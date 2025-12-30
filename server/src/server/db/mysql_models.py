@@ -8,6 +8,7 @@ from sqlalchemy import (
     JSON,
     Index,
     UniqueConstraint,
+    Boolean,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -134,11 +135,14 @@ class Listener(Base):
     listener_name = Column(String(255))
     listener_notes = Column(Text)
 
+    listener_active = Column(Boolean)
     # listener_config = Column(String, primary_key=True)
 
     # Adding UniqueConstraint to enforce unique combination of listener_host and listener_port
     __table_args__ = (
-        UniqueConstraint("listener_host", "listener_port", name="_host_port_uc"),
+        UniqueConstraint(
+            "listener_host", "listener_port", "listener_active", name="_host_port_uc"
+        ),
     )
 
     def to_dict(self):

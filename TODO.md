@@ -65,6 +65,10 @@
             Maybe make it a list, for future expansion for multiple responses? iffy.
       - [ ] Keep in mind, be on look out for flexible python webservers, for http listeners. Ex, can easily set things such as endpoints, headers, etc, etc. 
 
+   # API cleanup:
+      - [ ] Exceptions where needed in logic 
+         - These must bubble up
+
 # Scripting Idea:
    # FIX / PLAN EVERYTHING ELSE FIRST. 
  - [x] API  already exists, so let that be the way that 3rd party things can interact. 

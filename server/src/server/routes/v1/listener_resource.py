@@ -104,8 +104,13 @@ class Listener(Resource):
         stop_listener(listener_uuid=id)
 
         with get_mysql_session() as session:
-            listeer_service = ListenerService(session)
-            listeer_service = listeer_service.delete(id)
+            listener_service = ListenerService(session)
+
+            # next, update listener to be inactive in the DB
+            # listener_service.set_active(id, active=False)
+
+            # nuke the record, no need to set to inactive
+            listener_service.delete(id)
 
         api_logger.info(
             f"Listener {id} deleted successfully",
@@ -209,8 +214,11 @@ class Listeners(Resource):
             listener = listener_service.create(listener_dataclass)
             listener_id = listener.listener_uuid
 
-        # need to get ID from DB
-        # data = {"listener_uuid": listener_id}
+            # next, update listener to be active in the DB
+            listener_service.set_active(listener_id, active=True)
+            # and in the dataclass for the response
+            listener_dataclass.listener_active = True
+
         # experiement with returning dataclasses
         data = asdict(listener_dataclass)
 
