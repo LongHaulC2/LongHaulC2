@@ -6,7 +6,7 @@ from ...modules.mysql_functions import ListenerService
 from ...modules.redis_functions import RedisImplantTaskService
 from ...schemas.listeners import ListenerCreate
 from ...db.mysql_connector import get_mysql_engine, get_mysql_session
-from ...listeners.supervisor import start_listener
+from ...listeners.supervisor import start_listener, stop_all, stop_listener
 
 import logging
 import base64
@@ -99,9 +99,12 @@ class Listener(Resource):
             },
         )
 
+        # if successful, remove from db, else, maybe return a warning/degredaded listener state
+        stop_listener(listener_uuid=id)
+
         with get_mysql_session() as session:
-            implant_service = ListenerService(session)
-            implant_service = implant_service.delete(id)
+            listeer_service = ListenerService(session)
+            listeer_service = listeer_service.delete(id)
 
         api_logger.info(
             f"Listener {id} deleted successfully",
