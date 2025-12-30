@@ -42,6 +42,7 @@ def start_listener(
                 server_logger.warning(
                     f"Invalid listener type: {listener_data.listener_type}"
                 )
+                # throw custom error if invalid listener type
                 raise InvalidListenerType
 
     except Exception as e:

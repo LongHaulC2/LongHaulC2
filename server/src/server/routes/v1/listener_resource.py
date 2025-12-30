@@ -44,7 +44,7 @@ class Listener(Resource):
     )
     def get(self, id):  # get one implant
         """
-        Gets one implant based on user supplied ID
+        Gets one listener based on user supplied ID
 
         1. Gets a MYSQL Session
 
@@ -82,7 +82,7 @@ class Listener(Resource):
 
     def delete(self, id):  # delete one implant based on ID
         """
-        [DB logic complete, listener logic not implenented] Deletes/Stops one listener based on user supplied ID
+        Deletes/Stops one listener based on user supplied ID
 
         1. Gets a MYSQL Session
 
@@ -178,7 +178,7 @@ class Listeners(Resource):
     @listener_ns.expect(listener_spawn_model)
     def post(self):
         """
-        [DB logic complete, Listener spawn logic needed]  Spawn a new listener
+        Spawn a new listener
 
         1. Gets a MYSQL Session
 
@@ -238,7 +238,6 @@ class Listeners(Resource):
         return api_response.jsonify()
 
 
-# listener_ns.add_resource(Implants, "/")
 listener_ns.add_resource(Listener, "/<string:id>")
 listener_ns.add_resource(Listeners, "/")
 
