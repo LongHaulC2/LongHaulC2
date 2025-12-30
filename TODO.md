@@ -53,9 +53,9 @@
             - [ ] DB service for this table
       - [ ] Listener endpoints
             - [X]  GET /api/v1/listeners - gets all listeners
-            - [ ]  POST /api/v1/listener/ - Creates a new listener
+            - [DB yes, Listener No]  POST /api/v1/listener/ - Creates a new listener
             - [X]  GET /api/v1/listener/{id} - gets ONE listener
-            - [ ]  DELETE /api/v1/listener/{id} - stops one listener
+            - [DB Yes, Listener No]  DELETE /api/v1/listener/{id} - stops one listener
       - [ ] Listener hookup to redis/defining of response structure.
             `{task_id:"", "data_type":binary|text, data="somedata"}`? seems good enough for now. 
             Maybe make it a list, for future expansion for multiple responses? iffy.

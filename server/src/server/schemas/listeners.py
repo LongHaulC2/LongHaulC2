@@ -4,10 +4,15 @@ from typing import Optional, Dict, Any
 
 @dataclass
 class ListenerCreate:
+    listener_uuid: str
+    listener_type: Optional[str] = None
     listener_host: Optional[str] = None
     listener_port: Optional[int] = None
+    listener_name: Optional[str] = None
+    listener_notes: Optional[str] = None
 
 
+# not currently used afaik
 @dataclass
 class ListenerUpdate:
     listener_host: Optional[str] = None

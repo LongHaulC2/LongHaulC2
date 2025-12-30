@@ -123,12 +123,16 @@ session.close()
 
 class Listener(Base):
     __tablename__ = "listeners"
-    listener_id = Column(String(36), primary_key=True)
+    listener_uuid = Column(String(36), primary_key=True)
 
     listener_host = Column(
         String(256)
     )  # 256 is I hope long enough for now for a dns/host name...
     listener_port = Column(Integer)
+
+    listener_type = Column(String(255))
+    listener_name = Column(String(255))
+    listener_notes = Column(Text)
 
     # listener_config = Column(String, primary_key=True)
 

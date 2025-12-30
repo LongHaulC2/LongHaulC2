@@ -4,7 +4,7 @@ from flask import request
 from ...utils.response import APIResponse
 from ...modules.mysql_functions import ListenerService
 from ...modules.redis_functions import RedisImplantTaskService
-from ...schemas.implant import ImplantCreate, ImplantUpdate, Task, TaskData, Search
+from ...schemas.listeners import ListenerCreate
 from ...db.mysql_connector import get_mysql_engine, get_mysql_session
 import logging
 import base64
@@ -13,6 +13,24 @@ from edwh_uuid7 import uuid7
 listener_ns = Namespace("listeners", description="Listener related operations")
 api_logger = logging.getLogger("api")
 server_logger = logging.getLogger("server")
+
+listener_spawn_model = api.model(
+    "ListenerSpawnModel",
+    {
+        "listener_host": fields.String(
+            required=True,
+            description="Host the listener will listen on (DNS Host, or IP address)",
+        ),
+        "listener_port": fields.Integer(
+            required=False, description="Port to spawn the listener on"
+        ),
+        "listener_type": fields.String(
+            required=True, description="What type of listener to spawn"
+        ),
+        "listener_name": fields.String(required=True, description="Name of listener"),
+        "listener_notes": fields.String(required=False, description="Listener notes"),
+    },
+)
 
 
 class Listener(Resource):
@@ -56,6 +74,43 @@ class Listener(Resource):
             status="200",
             message="Success",
             data=data,
+        )
+        return api_response.jsonify()
+
+    def delete(self, id):  # delete one implant based on ID
+        """
+        [DB logic complete, listener logic not implenented] Deletes/Stops one listener based on user supplied ID
+
+        1. Gets a MYSQL Session
+
+        2. Deletes 1 record in 'listener' table based on ID
+
+        3. Returns said data in JSON format.
+        """
+        ip = request.remote_addr
+        # api_logger.info(f"{ip} is deleting implant {id}")
+
+        api_logger.info(
+            f"Stopping listener {id}",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
+        with get_mysql_session() as session:
+            implant_service = ListenerService(session)
+            implant_service = implant_service.delete(id)
+
+        api_logger.info(
+            f"Listener {id} deleted successfully",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
+        api_response = APIResponse(
+            status=200,
+            message="Implant deleted successfully",
         )
         return api_response.jsonify()
 
@@ -104,9 +159,72 @@ class Listeners(Resource):
         )
         return api_response.jsonify()
 
+    # create an implant in DB
+    @listener_ns.doc(
+        summary="Spawn a new listener, and Create a new listener entry.",
+        description="Create a new listener. Returns an listener ID to use with that listener",
+    )
+    @listener_ns.expect(listener_spawn_model)
+    def post(self):
+        """
+        [DB logic complete, Listener spawn logic needed]  Spawn a new listener
+
+        1. Gets a MYSQL Session
+
+        2. Creates a new record in the 'listeners' table
+
+        3. Returns ID of new record in response
+        """
+        ip = request.remote_addr
+        # api_logger.info(f"{ip} created an implant")
+
+        api_logger.info(
+            "Creating an implant",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
+        # data into dataclass
+
+        listener_uuid = str(uuid7())
+        listener_dataclass = ListenerCreate(
+            # unwrap data into a dataclass
+            **api.payload,
+            # add on a task id
+            listener_uuid=listener_uuid,
+        )
+
+        # get a seession
+        with get_mysql_session() as session:
+            listener_service = ListenerService(session)
+            listener = listener_service.create(listener_dataclass)
+            listener_id = listener.listener_uuid
+
+        # logic for starting listener HERE
+        ...
+
+        # need to get ID from DB
+        data = {"listener_id": listener_id}
+
+        api_response = APIResponse(
+            status="200",
+            message=f"Listener {listener_id} started",
+            data=data,
+        )
+
+        api_logger.info(
+            f"Listener {listener_id} started",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
+        return api_response.jsonify()
+
 
 # listener_ns.add_resource(Implants, "/")
-listener_ns.add_resource(Listener, "/<int:id>")
+listener_ns.add_resource(Listener, "/<string:id>")
 listener_ns.add_resource(Listeners, "/")
 
 api.add_namespace(listener_ns)
