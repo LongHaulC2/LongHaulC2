@@ -3,8 +3,14 @@ from sqlalchemy import exc, text
 import logging
 from dataclasses import asdict
 
-from ..db.mysql_models import Implant, ImplantTask
-from ..schemas.implant import ImplantUpdate, ImplantCreate, Task
+from ..db.mysql_models import Implant, ImplantTask, Listener
+from ..schemas.implant import (
+    ImplantUpdate,
+    ImplantCreate,
+    Task,
+)
+from ..schemas.listeners import ListenerCreate, ListenerUpdate
+from edwh_uuid7 import uuid7
 
 server_logger = logging.getLogger("server")
 
@@ -31,7 +37,7 @@ class ImplantService:
             raise
 
         except Exception as e:
-            server_logger.error(f"Error: {e}")
+            server_logger.error(f"{self.__class__.__name__} Error: {e}")
             raise
 
     def get_by_id(self, implant_id: int) -> Implant | None:
@@ -47,7 +53,7 @@ class ImplantService:
             self.session.rollback()
             raise
         except Exception as e:
-            server_logger.error(f"Error: {e}")
+            server_logger.error(f"{self.__class__.__name__} Error: {e}")
             raise
 
     def get_all(self):
@@ -64,7 +70,7 @@ class ImplantService:
             self.session.rollback()
             raise
         except Exception as e:
-            server_logger.error(f"Error: {e}")
+            server_logger.error(f"{self.__class__.__name__} Error: {e}")
             raise
 
     def update(self, implant_id: int, data: ImplantUpdate) -> Implant | None:
@@ -94,7 +100,7 @@ class ImplantService:
             self.session.rollback()
             raise
         except Exception as e:
-            server_logger.error(f"Error: {e}")
+            server_logger.error(f"{self.__class__.__name__} Error: {e}")
             raise
 
     def delete(self, implant_id: int) -> bool:
@@ -116,7 +122,7 @@ class ImplantService:
             self.session.rollback()
             raise
         except Exception as e:
-            server_logger.error(f"Error: {e}")
+            server_logger.error(f"{self.__class__.__name__} Error: {e}")
             raise
 
     def search(self, search_term: str) -> list[dict]:
@@ -153,6 +159,155 @@ class ImplantService:
         results_dict = [implant.to_dict() for implant in results]
 
         return results_dict
+
+
+class ListenerService:
+    def __init__(self, session):
+        self.session = session
+
+    def create(self, data: ListenerCreate) -> Listener:
+        """
+        Create a new listener entry.
+        """
+        server_logger.debug("Creating new listener entry")
+        try:
+            listener = Listener(**vars(data))
+            self.session.add(listener)
+            self.session.commit()
+            self.session.refresh(listener)
+            return listener
+
+        except exc.SQLAlchemyError as sqle:
+            server_logger.error(f"SQLAlchemy Error: {sqle}")
+            self.session.rollback()
+            raise
+
+        except Exception as e:
+            server_logger.error(f"{self.__class__.__name__} Error: {e}")
+            raise
+
+    def get_by_id(self, listener_id: uuid7) -> Listener | None:
+        """
+        Retrieve an implant by primary key.
+        """
+        try:
+            server_logger.debug(
+                f"Retrieving listener {listener_id} from MYSQL Database"
+            )
+            return self.session.query(Listener).get(listener_id)
+
+        except exc.SQLAlchemyError as sqle:
+            server_logger.error(f"SQLAlchemy Error: {sqle}")
+            self.session.rollback()
+            raise
+        except Exception as e:
+            server_logger.error(f"{self.__class__.__name__} Error: {e}")
+            raise
+
+    def get_all(self):
+        """
+        Gets all implants in the table.
+        """
+        try:
+            server_logger.debug(f"Retrieving all listeners from MYSQL Database")
+
+            return self.session.query(Listener).all()
+
+        except exc.SQLAlchemyError as sqle:
+            server_logger.error(f"SQLAlchemy Error: {sqle}")
+            self.session.rollback()
+            raise
+        except Exception as e:
+            server_logger.error(f"{self.__class__.__name__} Error: {e}")
+            raise
+
+    def update(self, listener_id: uuid7, data: ListenerUpdate) -> Listener | None:
+        """
+        Update an implant by primary key.
+        """
+        server_logger.debug(
+            f"Updating implant {listener_id} in MYSQL Database with {data}"
+        )
+        try:
+            listener = self.get_by_id(listener_id)
+            if not listener:
+                return None
+
+            # if value is not supplied, DO NOT update it in DB.
+            # AKA, only apply supplied values.
+            # NOTE: If you get an "vars() argument must have __dict__ attribute", that means you passed in a dict, NOT a ImplantUpdate dataclass as the
+            # function requires.
+            for field, value in vars(data).items():
+                if value is not None:
+                    setattr(listener, field, value)
+
+            self.session.commit()
+            return listener
+        except exc.SQLAlchemyError as sqle:
+            server_logger.error(f"SQLAlchemy Error: {sqle}")
+            self.session.rollback()
+            raise
+        except Exception as e:
+            server_logger.error(f"{self.__class__.__name__} Error: {e}")
+            raise
+
+    def delete(self, listener_id: uuid7) -> bool:
+        """
+        Delete an implant by primary key.
+        """
+        server_logger.debug(f"Deleting listener {listener_id} in MYSQL Database")
+
+        try:
+            listener = self.get_by_id(listener_id)
+            if not listener:
+                return False
+
+            self.session.delete(listener)
+            self.session.commit()
+            return True
+        except exc.SQLAlchemyError as sqle:
+            server_logger.error(f"SQLAlchemy Error: {sqle}")
+            self.session.rollback()
+            raise
+        except Exception as e:
+            server_logger.error(f"{self.__class__.__name__} Error: {e}")
+            raise
+
+    # implement later. Just need to add index code & use "listener" instead of "implant"
+    # def search(self, search_term: str) -> list[dict]:
+    #     """
+    #     Search for, and return all implants that have the search_term string in them. Uses MySQL's FULLTEXT on
+    #     the following fields: `external_ip, internal_ip, listener, user, system_hostname, notes, process, arch`
+
+    #     Note: Longer/wordlike searches work best, ex:
+    #         Target: `msiexec.exe`
+    #         msi     -> DOES NOT WORK
+    #         msiexec -> DOES WORK
+
+    #     :param search_term: The term to match against the implants.
+    #     :type search_term: str
+
+    #     :return: A list of implants that match the query.
+    #     :rtype: list[dict[Any, Any]]
+    #     """
+
+    #     query = (
+    #         self.session.query(Implant)
+    #         .filter(
+    #             text(
+    #                 "MATCH(external_ip, internal_ip, listener, user, system_hostname, notes, process, arch) AGAINST(:term IN NATURAL LANGUAGE MODE)"
+    #             )
+    #         )
+    #         .params(term=search_term)
+    #     )
+
+    #     # Execute the query and get the results
+    #     results = query.all()
+
+    #     # Convert each Implant instance to a dictionary using the `to_dict` method
+    #     results_dict = [implant.to_dict() for implant in results]
+
+    #     return results_dict
 
 
 class MySQLImplantTaskService:

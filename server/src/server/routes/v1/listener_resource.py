@@ -2,7 +2,7 @@ from ...instance import env_config, app, api
 from flask_restx import Resource, Namespace, fields, abort
 from flask import request
 from ...utils.response import APIResponse
-from ...modules.mysql_functions import ImplantService, MySQLImplantTaskService
+from ...modules.mysql_functions import ListenerService
 from ...modules.redis_functions import RedisImplantTaskService
 from ...schemas.implant import ImplantCreate, ImplantUpdate, Task, TaskData, Search
 from ...db.mysql_connector import get_mysql_engine, get_mysql_session
@@ -27,7 +27,7 @@ class Listener(Resource):
 
         1. Gets a MYSQL Session
 
-        2. Retrieves 1 record in 'implant' table based on ID
+        2. Retrieves 1 record in 'listeners' table based on ID
 
         3. Returns said data in JSON format.
 
@@ -42,9 +42,9 @@ class Listener(Resource):
         )
 
         with get_mysql_session() as session:
-            implant_service = ImplantService(session)
-            implants = implant_service.get_by_id(id)
-            data = implants.to_dict()
+            listener_service = ListenerService(session)
+            listeners = listener_service.get_by_id(id)
+            data = listeners.to_dict()
 
         api_response = APIResponse(
             status="200",
