@@ -52,9 +52,9 @@
                   Fields: (listener_id [uuid7, can get start time], listener_ip, listener_port (optional), listener_config (a file pointing to config))
             - [ ] DB service for this table
       - [ ] Listener endpoints
-            - [ ]  GET /api/v1/listeners - gets all listeners
+            - [X]  GET /api/v1/listeners - gets all listeners
             - [ ]  POST /api/v1/listener/ - Creates a new listener
-            - [ ]  GET /api/v1/listener/{id} - gets ONE listener
+            - [X]  GET /api/v1/listener/{id} - gets ONE listener
             - [ ]  DELETE /api/v1/listener/{id} - stops one listener
       - [ ] Listener hookup to redis/defining of response structure.
             `{task_id:"", "data_type":binary|text, data="somedata"}`? seems good enough for now. 

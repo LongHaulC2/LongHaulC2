@@ -41,10 +41,61 @@ class Listener(Resource):
             },
         )
 
+        # note, 500's on empty listeners.
         with get_mysql_session() as session:
             listener_service = ListenerService(session)
             listeners = listener_service.get_by_id(id)
-            data = listeners.to_dict()
+            # if no listeners
+            if listeners == None:
+                data = {}
+
+            else:
+                data = listeners.to_dict()
+
+        api_response = APIResponse(
+            status="200",
+            message="Success",
+            data=data,
+        )
+        return api_response.jsonify()
+
+
+class Listeners(Resource):
+    # gets all  implants
+    @listener_ns.doc(
+        summary="Get all Listeners",
+        description="Retrieve all listeners in the DB.",
+    )
+    def get(self):
+        """
+        Gets all listeners
+
+        1. Gets a MYSQL Session
+
+        2. Retrieves all records in 'listeners' table
+
+        3. Returns said data in JSON format.
+
+        Note: There is no pagination on this. If there's a lot of entries, this request may take a while.
+
+        """
+        ip = request.remote_addr
+        # api_logger.info(f"{ip} requested all implants")
+
+        api_logger.info(
+            "Getting all implants",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
+        with get_mysql_session() as session:
+            listener_service = ListenerService(session)
+            listeners = listener_service.get_all()
+            if listeners == None:
+                data = []
+            else:
+                data = [i.to_dict() for i in listeners]
 
         api_response = APIResponse(
             status="200",
@@ -56,5 +107,6 @@ class Listener(Resource):
 
 # listener_ns.add_resource(Implants, "/")
 listener_ns.add_resource(Listener, "/<int:id>")
+listener_ns.add_resource(Listeners, "/")
 
 api.add_namespace(listener_ns)
