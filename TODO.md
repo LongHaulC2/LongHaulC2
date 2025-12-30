@@ -52,6 +52,7 @@
                   Fields: (listener_id [uuid7, can get start time], listener_ip, listener_port (optional), listener_config (a file pointing to config))
             - [ ] DB service for this table
       - [ ] Listener endpoints
+            # put in listener logic with a dummy listener class, etc. & handling for listener args like type.
             - [X]  GET /api/v1/listeners - gets all listeners
             - [DB yes, Listener No]  POST /api/v1/listener/ - Creates a new listener
             - [X]  GET /api/v1/listener/{id} - gets ONE listener

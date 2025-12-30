@@ -64,25 +64,3 @@ if __name__ == "__main__":
 
 # example supervisor:
 # supervisor.py
-import multiprocessing
-import signal
-
-listeners = {}  # pid -> Process object. internal, the start/stop keep track of pid's.
-
-
-def start_listener():
-    p = multiprocessing.Process(target=listener_main)
-    p.start()
-    listeners[p.pid] = p
-
-
-def stop_listener(pid):
-    proc = listeners.pop(pid, None)
-    if proc:
-        proc.terminate()
-        proc.join()
-
-
-def stop_all():
-    for pid in list(listeners):
-        stop_listener(pid)

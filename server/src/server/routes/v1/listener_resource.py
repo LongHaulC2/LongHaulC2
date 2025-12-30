@@ -6,6 +6,8 @@ from ...modules.mysql_functions import ListenerService
 from ...modules.redis_functions import RedisImplantTaskService
 from ...schemas.listeners import ListenerCreate
 from ...db.mysql_connector import get_mysql_engine, get_mysql_session
+from ...listeners.supervisor import start_listener
+
 import logging
 import base64
 from edwh_uuid7 import uuid7
@@ -186,7 +188,6 @@ class Listeners(Resource):
         )
 
         # data into dataclass
-
         listener_uuid = str(uuid7())
         listener_dataclass = ListenerCreate(
             # unwrap data into a dataclass
@@ -195,14 +196,14 @@ class Listeners(Resource):
             listener_uuid=listener_uuid,
         )
 
-        # get a seession
+        # try to start listener, if successful, put into db
+        start_listener(listener_uuid)
+
+        # get a session
         with get_mysql_session() as session:
             listener_service = ListenerService(session)
             listener = listener_service.create(listener_dataclass)
             listener_id = listener.listener_uuid
-
-        # logic for starting listener HERE
-        ...
 
         # need to get ID from DB
         data = {"listener_id": listener_id}
