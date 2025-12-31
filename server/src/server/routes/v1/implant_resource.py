@@ -233,10 +233,25 @@ class Implant(Resource):
                 "caller_ip": ip,
             },
         )
-
         # create dataclass from passed in data.
-        implant_data = ImplantUpdate(**api.payload)
-        implant_id = id
+        try:
+            implant_data = ImplantUpdate(**api.payload)
+            implant_id = id
+
+        except TypeError as e:
+            # This happens if api.payload has missing or extra fields
+            api_response = APIResponse(
+                status="400",
+                message=f"Bad data: {e}",
+                data={},
+            )
+        except ValueError as e:
+            # This happens if field types are wrong
+            api_response = APIResponse(
+                status="400",
+                message=f"Invalid value: {e}",
+                data={},
+            )
 
         with get_mysql_session() as session:
             implant_service = ImplantService(session)
@@ -302,46 +317,6 @@ class Implant(Resource):
             message="Implant deleted successfully",
         )
         return api_response.jsonify()
-
-
-"""
-Quick notes: 
-
-Task struct:
-
-{
-  "task": "example_task",
-  "data": {
-    "some_var_1": "",
-    "user": "bob",
-    "hash": "..."
-  }
-}
-
-or a list version (later):
-
-{
-  [
-    {
-    "task": "example_task",
-    "data": {
-        "some_var_1": "",
-        "user": "bob",
-        "hash": "..."
-        }
-    }
-  ]
-}
-
-
-Need an input model to match this, maybe a dataclass too.
-
-One request = one task submitted. This is then encoded into msgpack,
-and stored into redis to the correct implant's queue. 
-
-Once that is hahed out, can complete thee POST task, and DELETE tasks endpoints. 
-
-"""
 
 
 # individual implaant
@@ -431,13 +406,20 @@ class ImplantTask(Resource):
                 uuid=task_uuid,
             )
 
-        except TypeError as exc:
+        except TypeError as e:
+            # This happens if api.payload has missing or extra fields
             api_response = APIResponse(
                 status="400",
-                message="Data failed validation",
-                data=None,
+                message=f"Bad data: {e}",
+                data={},
             )
-            return api_response.jsonify()
+        except ValueError as e:
+            # This happens if field types are wrong
+            api_response = APIResponse(
+                status="400",
+                message=f"Invalid value: {e}",
+                data={},
+            )
 
         # queue into redis
         task_service = RedisImplantTaskService(id)
@@ -652,7 +634,23 @@ class ImplantSearch(Resource):
         ip = request.remote_addr
 
         # create dataclass from passed in data.
-        implant_data = Search(**api.payload)
+        try:
+            implant_data = Search(**api.payload)
+
+        except TypeError as e:
+            # This happens if api.payload has missing or extra fields
+            api_response = APIResponse(
+                status="400",
+                message=f"Bad data: {e}",
+                data={},
+            )
+        except ValueError as e:
+            # This happens if field types are wrong
+            api_response = APIResponse(
+                status="400",
+                message=f"Invalid value: {e}",
+                data={},
+            )
 
         api_logger.info(
             f"Searching implants with term: {implant_data.search_term}",
