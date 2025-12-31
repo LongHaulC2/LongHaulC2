@@ -84,6 +84,7 @@ class Implants(Resource):
     @implants_ns.doc(
         summary="Get all implants",
         description="Retrieve all implants the server knows about.",
+        responses={200: "Success", 404: "Implant not found"},
     )
     def get(self):
         """
@@ -124,6 +125,7 @@ class Implants(Resource):
     @implants_ns.doc(
         summary="Create a new implant entry.",
         description="Create a new implant entry. Returns an Implant ID to use with that implant",
+        responses={200: "Success", 404: "Not found", 400: "Bad Request"},
     )
     def post(self):
         """
@@ -180,6 +182,7 @@ class Implant(Resource):
         summary="Get implant",
         description="Retrieve a single implant by its unique ID.",
         params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        responses={200: "Success", 404: "Implant not found"},
     )
     def get(self, id):  # get one implant
         """
@@ -218,6 +221,7 @@ class Implant(Resource):
         summary="Update implant",
         description="Update a single implant by its unique ID. Data is supplied in the body of the request.",
         params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        responses={200: "Success", 404: "Implant not found", 400: "Bad Request"},
     )
     @implants_ns.expect(implant_update_model)
     def put(self, id):  # update one implant based on ID
@@ -274,6 +278,7 @@ class Implant(Resource):
         summary="Delete implant",
         description="Delete a single implant by its unique ID.",
         params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        responses={200: "Success", 404: "Implant not found", 400: "Bad Request"},
     )
     def delete(self, id):  # delete one implant based on ID
         """
@@ -326,6 +331,7 @@ class ImplantTask(Resource):
         summary="Get next task implant",
         description="Retrieve the next task for the implant",
         params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        responses={200: "Success", 404: "Task not found"},
     )
     def get(self, id):  # get one implant
         """
@@ -378,6 +384,7 @@ class ImplantTask(Resource):
         summary="Add a task",
         description="Add a task to a single implant by its unique ID. Data is supplied in the body of the request.",
         params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        responses={200: "Success", 404: "Task not found", 400: "Bad request"},
     )
     # @implants_ns.expect(implant_update_model) # add expected field here
     @implants_ns.expect(implant_task_model)
@@ -454,6 +461,7 @@ class ImplantTasks(Resource):
         summary="Peeks all currently queued tasks of implant",
         description="Peeks all currently queued tasks of implant",
         params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        responses={200: "Success", 404: "Task not found"},
     )
     def get(self, id):  # get one implant
         """
@@ -513,6 +521,7 @@ class ImplantTasks(Resource):
         summary="Delete all the currently queued tasks of an implant",
         description="Delete all the tasks of an implant",
         params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        responses={200: "Success", 404: "Task not found", 400: "Bad request"},
     )
     def delete(self, id):  #  Delete all tasks of agent
         """
@@ -562,6 +571,7 @@ class ImplantHistory(Resource):
         summary="Gets ALL history of an implant from the DB.",
         description="Retrieve all tasks for the implant",
         params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        responses={200: "Success", 404: "Not found", 400: "Bad request"},
     )
     # GET /api/v1/{id}/tasks/history
     def get(self, id):  # Get history of an implant
@@ -625,6 +635,7 @@ class ImplantSearch(Resource):
     @implants_ns.doc(
         summary="Search for an implant with fields that match the supplied term.",
         description="Search for an implant with fields that match the supplied term. Returns a list of dicts, with implants that have said term in them.",
+        responses={200: "Success", 404: "Not found", 400: "Bad request"},
     )
     @implants_ns.expect(search_model)
     def post(self):
@@ -675,6 +686,7 @@ class ImplantSearch(Resource):
         return api_response.jsonify()
 
 
+# not implemented
 class TaskSearch(Resource):
     # create an implant in DB
     @implants_ns.doc(
