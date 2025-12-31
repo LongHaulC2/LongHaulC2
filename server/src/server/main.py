@@ -6,6 +6,7 @@ from .instance import env_config, app, api
 from .db.mysql_connector import mysql_setup
 from .db.redis_connector import get_redis_connection
 from .log import *
+from .listeners.watchdog import start_watchdog
 
 server_logger = logging.getLogger("server")
 api_logger = logging.getLogger("api")
@@ -94,4 +95,5 @@ if __name__ == "__main__":
             default_limits=["5000/minute"],
         )
 
+    start_watchdog()
     app.run(host="0.0.0.0", port=45045, debug=False)

@@ -37,6 +37,7 @@ def start_listener(
                 )
                 p.start()
                 listeners[listener_data.listener_uuid] = p
+                print(p.pid)
 
             case _:
                 server_logger.warning(
@@ -63,8 +64,8 @@ def get_pid_from_uuid(listener_uuid):
 def stop_listener(listener_uuid: str):
     try:
         server_logger.info(f"Stopping listener {listener_uuid}")
-        pid = get_pid_from_uuid(listener_uuid=listener_uuid)
-        proc = listeners.pop(pid, None)
+        # pid = get_pid_from_uuid(listener_uuid=listener_uuid)
+        proc = listeners.pop(listener_uuid, None)
         if proc:
             proc.terminate()
             proc.join()  # this may block
