@@ -1,0 +1,12 @@
+# to run: cd ./tests/schemathesis && uvx schemathesis run http://10.0.0.30:45045/api/v1/swagger.json
+#https://schemathesis.readthedocs.io/en/stable/configuration/
+
+# Run more tests for better coverage
+generation.max-examples = 5000 # can do more, but you get rate limited by api & throws extra errors about rejecting a normal request.
+
+# Increase timeout for slow APIs
+request-timeout = 10.0  # seconds
+
+# Basic authentication
+#[auth]
+# basic = { username = "${USERNAME}", password = "${PASSWORD}" }
