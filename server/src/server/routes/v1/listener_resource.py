@@ -80,6 +80,11 @@ class Listener(Resource):
         )
         return api_response.jsonify()
 
+    @listener_ns.doc(
+        summary="Stop a listener",
+        description="Stops one listener based on user supplied ID",
+        params={"id": {"description": "Listener ID (uuid)", "in": "path"}},
+    )
     def delete(self, id):  # delete one implant based on ID
         """
         Deletes/Stops one listener based on user supplied ID
@@ -197,13 +202,28 @@ class Listeners(Resource):
         )
 
         # data into dataclass
-        listener_uuid = str(uuid7())
-        listener_dataclass = ListenerCreate(
-            # unwrap data into a dataclass
-            **api.payload,
-            # add on a task id
-            listener_uuid=listener_uuid,
-        )
+        try:
+            listener_uuid = str(uuid7())
+            listener_dataclass = ListenerCreate(
+                # unwrap data into a dataclass
+                **api.payload,
+                # add on a listener UUID
+                listener_uuid=listener_uuid,
+            )
+        except TypeError as e:
+            # This happens if api.payload has missing or extra fields
+            api_response = APIResponse(
+                status="400",
+                message=f"Bad data: {e}",
+                data={},
+            )
+        except ValueError as e:
+            # This happens if field types are wrong
+            api_response = APIResponse(
+                status="400",
+                message=f"Invalid value: {e}",
+                data={},
+            )
 
         # try to start listener, if successful, put into db
         start_listener(listener_dataclass)
