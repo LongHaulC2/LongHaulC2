@@ -3,17 +3,19 @@ import multiprocessing
 import logging
 from .http.http import run as http_run
 from ..schemas.listeners import ListenerCreate
+import threading
 
 
 class InvalidListenerType(Exception):
     pass
 
 
-listeners = {}  # pid -> Process object. internal, the start/stop keep track of pid's.
+listeners_lock = threading.Lock()
+listeners = {}  # UUID -> Process object. internal, the start/stop keep track of pid's.
 # ex: {1234-1234-1234-1234:process_object}
 
-# problem, listeners get added to db, witout a "state". Need to udpate state to be like disabled at sutodwn, etc. otherwise
-# the api things the listeners are still up & existing.
+# problem, listeners get added to db, without a "state". Need to update state to be like disabled at shutdown, etc. otherwise
+# the api thinks the listeners are still up & existing.
 
 server_logger = logging.getLogger("server")
 
@@ -36,8 +38,12 @@ def start_listener(
                     daemon=True,  # shuts down listeners at program exit.
                 )
                 p.start()
-                listeners[listener_data.listener_uuid] = p
-                print(p.pid)
+                # THREAD-SAFE ADDITION
+                with listeners_lock:
+                    listeners[listener_data.listener_uuid] = p
+                server_logger.info(
+                    f"Listener {listener_data.listener_uuid} started, PID={p.pid}"
+                )
 
             case _:
                 server_logger.warning(
@@ -52,20 +58,20 @@ def start_listener(
 
 
 def get_pid_from_uuid(listener_uuid):
-    try:
+    # THREAD-SAFE READ
+    with listeners_lock:
         p = listeners.get(listener_uuid)
-        return p.pid
-
-    except Exception as e:
-        server_logger.error(e)
-        raise e
+    if not p:
+        raise KeyError(f"Listener {listener_uuid} not found")
+    return p.pid
 
 
 def stop_listener(listener_uuid: str):
     try:
         server_logger.info(f"Stopping listener {listener_uuid}")
-        # pid = get_pid_from_uuid(listener_uuid=listener_uuid)
-        proc = listeners.pop(listener_uuid, None)
+        # THREAD-SAFE POP
+        with listeners_lock:
+            proc = listeners.pop(listener_uuid, None)
         if proc:
             proc.terminate()
             proc.join()  # this may block
@@ -78,8 +84,12 @@ def stop_listener(listener_uuid: str):
 def stop_all():
     try:
         server_logger.info(f"Stopping all listeners")
-        for listener_uuid in listeners:
-            stop_listener(listener_uuid=listener_uuid)
+        # list creates a snapshot of the current listeners to operate on
+        with listeners_lock:
+            snapshot = list(listeners.keys())
+        for listener_uuid in snapshot:
+            stop_listener(listener_uuid)
+
     except Exception as e:
         server_logger.error(e)
         raise e

@@ -1,4 +1,4 @@
-from .supervisor import listeners
+from .supervisor import listeners, listeners_lock
 
 import threading
 import time
@@ -20,25 +20,31 @@ def _watchdog():
     while True:
         time.sleep(1)
 
-        for listener_uuid, proc in list(listeners.items()):
+        # snapshot listeners safely
+        with listeners_lock:
+            snapshot = list(listeners.items())
+
+        for listener_uuid, proc in snapshot:
             # Process was never started or already cleaned up
             if proc is None or proc.pid is None:
-                print(f"{listener_uuid}: offline")
+                server_logger.warning(f"Listener {listener_uuid} invalid process state")
+                with listeners_lock:
+                    listeners.pop(listener_uuid, None)
                 continue
 
-            # if process goes offline
             if not proc.is_alive():
                 print(f"{listener_uuid}: offline")
                 server_logger.warning(
                     f"Listener {listener_uuid} went offline (pid={proc.pid})"
                 )
 
-                # cleanup, commenting out for now, otherwise listener won't be in the list anymore
-                # there's more robustness I could do here in the future with processses & restarts.
-                # proc.join(timeout=0)
-                # listeners.pop(listener_uuid, None)
+                # cleanup dead listener
+                proc.join(timeout=0)
 
-                # and mark as inactive in the DB.
+                with listeners_lock:
+                    listeners.pop(listener_uuid, None)
+
+                # mark as inactive in the DB
                 with get_mysql_session() as session:
                     listener_service = ListenerService(session)
                     listener_service.set_active(listener_uuid, active=False)
