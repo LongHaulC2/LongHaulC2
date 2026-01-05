@@ -12,6 +12,13 @@ I can't beat CS as a day-to-day red team operations tool. I can
  - Good management capabilites (likely an API exposed from server, and a good management frontend)
 
 
+# Table of Contents
+
+1. [Introduction](#introduction)
+2. [Malleable C2 (yes it's supported =D)](#Malleable-C2)
+
+   1. [http-get](#http-get)
+
 # Implementation  Details:
 
 
@@ -61,10 +68,11 @@ I can't beat CS as a day-to-day red team operations tool. I can
 
 
 
-# Malleable C2:
+# Malleable-C2:
 The current supported options in Malleable C2 profiles:
 
 [Malleable Profile Docs](https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_profile-language.htm#_Toc65482837)
+
 ---
 # Blocks:
 
