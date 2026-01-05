@@ -64,6 +64,7 @@ I can't beat CS as a day-to-day red team operations tool. I can
 # Malleable C2:
 The current supported options in Malleable C2 profiles:
 
+[Malleable Profile Docs](https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_profile-language.htm#_Toc65482837)
 ---
 # Blocks:
 
@@ -78,19 +79,19 @@ The current supported options in Malleable C2 profiles:
 ### http-get.server.output
 
 #### Transform operations:
-* [X] `append "string"` ([Help Systems Tech Docs][1])
-* [X] `base64` ([Help Systems Tech Docs][1])
-* [X] `base64url` ([Help Systems Tech Docs][1])
-* [X] `mask` ([Help Systems Tech Docs][1])
-* [X] `netbios` ([Help Systems Tech Docs][1])
-* [X] `netbiosu` ([Help Systems Tech Docs][1])
-* [X] `prepend "string"` ([Help Systems Tech Docs][1])
+* [X] `append "string"` 
+* [X] `base64` 
+* [X] `base64url` 
+* [X] `mask` 
+* [X] `netbios` 
+* [X] `netbiosu` 
+* [X] `prepend "string"` 
 
 #### Termination options:
-* [ ] `header "header"` (send data in HTTP header) ([Help Systems Tech Docs][1])
-* [ ] `parameter "key"` (send data as URI parameter) ([Help Systems Tech Docs][1])
-* [X] `print` (send data in transaction body) ([Help Systems Tech Docs][1])
-* [ ] `uri-append` (append data to URI) ([Help Systems Tech Docs][1])
+* [ ] `header "header"` (send data in HTTP header) 
+* [ ] `parameter "key"` (send data as URI parameter) 
+* [X] `print` (send data in transaction body) 
+* [ ] `uri-append` (append data to URI) 
 
 ---
 # http-post:
@@ -104,19 +105,19 @@ The current supported options in Malleable C2 profiles:
 ### http-post.server.output
 
 #### Transform operations:
-* [ ] `append "string"` ([Help Systems Tech Docs][1])
-* [ ] `base64` ([Help Systems Tech Docs][1])
-* [ ] `base64url` ([Help Systems Tech Docs][1])
-* [ ] `mask` ([Help Systems Tech Docs][1])
-* [ ] `netbios` ([Help Systems Tech Docs][1])
-* [ ] `netbiosu` ([Help Systems Tech Docs][1])
-* [ ] `prepend "string"` ([Help Systems Tech Docs][1])
+* [ ] `append "string"` 
+* [ ] `base64` 
+* [ ] `base64url` 
+* [ ] `mask` 
+* [ ] `netbios` 
+* [ ] `netbiosu` 
+* [ ] `prepend "string"` 
 
 #### Termination options:
-* [ ] `header "header"` (send data in HTTP header) ([Help Systems Tech Docs][1])
-* [ ] `parameter "key"` (send data as URI parameter) ([Help Systems Tech Docs][1])
-* [ ] `print` (send data in transaction body) ([Help Systems Tech Docs][1])
-* [ ] `uri-append` (append data to URI) ([Help Systems Tech Docs][1])
+* [ ] `header "header"` (send data in HTTP header) 
+* [ ] `parameter "key"` (send data as URI parameter) 
+* [ ] `print` (send data in transaction body) 
+* [ ] `uri-append` (append data to URI) 
 
 ---
 # http-stager:
@@ -124,22 +125,22 @@ The current supported options in Malleable C2 profiles:
 
 # Options:
 
-* [ ] `data_jitter` ([Help Systems Tech Docs][1])
-* [ ] `headers_remove` ([Help Systems Tech Docs][1])
-* [ ] `host_stage` ([Help Systems Tech Docs][1])
-* [ ] `jitter` ([Help Systems Tech Docs][1])
-* [ ] `pipename` ([Help Systems Tech Docs][1])
-* [ ] `pipename_stager` ([Help Systems Tech Docs][1])
-* [ ] `sample_name` ([Help Systems Tech Docs][1])
-* [ ] `sleep` ([Help Systems Tech Docs][1])
-* [ ] `sleeptime` ([Help Systems Tech Docs][1])
-* [ ] `smb_frame_header` ([Help Systems Tech Docs][1])
-* [ ] `ssh_banner` ([Help Systems Tech Docs][1])
-* [ ] `ssh_pipename` ([Help Systems Tech Docs][1])
-* [ ] `steal_token_access_mask` ([Help Systems Tech Docs][1])
-* [ ] `tasks_max_size` ([Help Systems Tech Docs][1])
-* [ ] `tasks_proxy_max_size` ([Help Systems Tech Docs][1])
-* [ ] `tasks_dns_proxy_max_size` ([Help Systems Tech Docs][1])
-* [ ] `tcp_frame_header` ([Help Systems Tech Docs][1])
-* [ ] `tcp_port` ([Help Systems Tech Docs][1])
-* [ ] `useragent` (global default) ([Help Systems Tech Docs][1])
+* [ ] `data_jitter` 
+* [ ] `headers_remove` 
+* [ ] `host_stage` 
+* [ ] `jitter` 
+* [ ] `pipename` 
+* [ ] `pipename_stager` 
+* [ ] `sample_name` 
+* [ ] `sleep` 
+* [ ] `sleeptime` 
+* [ ] `smb_frame_header` 
+* [ ] `ssh_banner` 
+* [ ] `ssh_pipename` 
+* [ ] `steal_token_access_mask` 
+* [ ] `tasks_max_size` 
+* [ ] `tasks_proxy_max_size` 
+* [ ] `tasks_dns_proxy_max_size` 
+* [ ] `tcp_frame_header` 
+* [ ] `tcp_port` 
+* [ ] `useragent` (global default) 
