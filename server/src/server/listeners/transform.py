@@ -3,6 +3,11 @@ import logging
 
 server_logger = logging.getLogger("server")
 
+"""
+This is for Data Transform Language
+https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_profile-language.htm#_Toc65482837 (Data Transform Language))
+"""
+
 
 def transform_prepend(data: bytes, value) -> bytes:
     b = value if isinstance(value, bytes) else malleable_string_to_bytes(value)

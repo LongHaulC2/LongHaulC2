@@ -38,6 +38,8 @@ http-get {
             append "\x69";
             append "\x70";
             base64;
+            append "\x69";
+            #append "plaintext" # breaks - need to check if this is in spec or not. If so, convert to bytes
 			print;
 		}
 	}

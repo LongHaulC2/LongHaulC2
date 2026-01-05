@@ -62,13 +62,56 @@ async def http_get():
 
     # get the stuff we need from it
     headers = emitter.headers()
-    body = emitter.generate_body()
+    data = emitter.generate_data()
 
     # note, payload would need to be inserted somehwere here too.  Ex,
     # redis lookup for next task -> insert where print it
 
-    # and construct the response
-    return Response(content=body, headers=headers)
+    # based on terminationstatement, need to store data in certain location
+    # Ex: header: store in header
+
+    """
+    Statement 	        What
+    ------------------------------------------------
+    header "header" 	Store data in an HTTP header
+    parameter "key" 	Store data in a URI parameter
+    print 	            Send data as transaction body
+    uri-append 	        Append to URI
+    """
+    terminator_type, target = emitter.get_terminator()
+
+    match terminator_type:
+        case "header":
+            # send data in a header
+            headers[target] = data
+            # construct response here
+
+        case "parameter":
+            # send data as URI parameter
+            # params[target] = data
+            print("placeholder uri paramter")
+
+        case "uri-append":
+            # append data to URL path
+            # url += data.decode("latin-1")
+            print("placeholder uri append")
+
+        case "print":
+            # send data in the body
+            body = data
+            # and construct the response
+            return Response(content=body, headers=headers)
+
+        case None:
+            # fallback if no terminator\
+
+            body = data
+            return Response(content=body, headers=headers)
+
+        case _:
+            # unknown terminator
+            print("Unknown terminator: %r", terminator_type)
+            body = data
 
 
 ###################################

@@ -42,18 +42,37 @@ class HttpServerEmitter:
         server_logger.debug(f"Extracted Headers: {list(headers.items())}")
         return headers
 
-    def generate_body(self):
+    def generate_data(self):
         """
-        Generates the entire body for the response for the server
+        Generates the entire data for the response for the server
 
         Does all the transforms, data insertion, etc etc and creates body based on that.
         """
         # get task
         task = b"mydata"
 
-        body = self.apply_transforms(task)
+        data = self.apply_transforms(task)
 
-        return body
+        return data
+
+    def get_terminator(self):
+        """
+        Return a tuple: (terminator_type, target_name)
+        - terminator_type: "header", "parameter", "print", "uri-append"
+        - target_name: header name / parameter key, or None if body
+        """
+        for stmt in self.server.output.data:
+            name = stmt.statement
+            value = stmt.value
+
+            if name in ("header", "parameter", "uri-append"):
+                return name, value
+            elif name == "print":
+                return "print", None
+            # if multiple terminators, this will return the last one
+
+        # fallback if no terminator found
+        return None, None
 
     def apply_transforms(self, data: bytes) -> bytes:
         """
