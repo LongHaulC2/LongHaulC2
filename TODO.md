@@ -33,6 +33,18 @@
       - [ ] Exceptions where needed in logic 
          - These must bubble up
 
+# Mal c2:
+
+ - [ ] Server
+   - [ ] RESPONSE
+      - [ ] PREPEND
+      - [ ] APPEND
+
+   - [ ] REQUEST
+      ...
+
+ - [ ] Implant
+
 # Scripting Idea:
    # FIX / PLAN EVERYTHING ELSE FIRST. 
  - [x] API  already exists, so let that be the way that 3rd party things can interact. 

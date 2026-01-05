@@ -62,7 +62,7 @@ async def http_get():
 
     # get the stuff we need from it
     headers = emitter.headers()
-    body = emitter.output_bytes()
+    body = emitter.generate_body()
 
     # note, payload would need to be inserted somehwere here too.  Ex,
     # redis lookup for next task -> insert where print it
