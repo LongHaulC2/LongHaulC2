@@ -69,15 +69,13 @@ The current supported options in Malleable C2 profiles:
 
 # http-get:
 
-### Applicable to:
-- http-get.server
+### http-get.server
 
 #### Misc:
 * [X] Add on headers (`header "Content-Type" "image/gif";`)
 * [X] Output Block (`output {}`)
 
-### Applicable to:
-- http-get.server.output
+### http-get.server.output
 
 #### Transform operations:
 * [X] `append "string"` ([Help Systems Tech Docs][1])
@@ -97,15 +95,13 @@ The current supported options in Malleable C2 profiles:
 ---
 # http-post:
 
-### Applicable to:
-- http-post.server
+### http-post.server
 
 #### Misc:
 * [ ] Add on headers (`header "Content-Type" "image/gif";`)
 * [ ] Output Block (`output {}`)
 
-### Applicable to:
-- http-post.server.output
+### http-post.server.output
 
 #### Transform operations:
 * [ ] `append "string"` ([Help Systems Tech Docs][1])
