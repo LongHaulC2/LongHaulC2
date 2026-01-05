@@ -38,6 +38,7 @@ I can't beat CS as a day-to-day red team operations tool. I can
         - API - JSON responses. REST.
     Listeners:
         - [http] Not sure. Something that allows for a new listener/schema on the fly
+        - Mal c2
 
 
 #### Data Management:
@@ -57,3 +58,101 @@ I can't beat CS as a day-to-day red team operations tool. I can
 
 #### Managemnt:
  - A payload store on the server would be cool, for easy "re-access" to targets. Ex, a quick "spawn" command that you can choose whaat payload to spawn on said host.
+
+
+
+# Malleable C2:
+Support list, what is currently supported by LongHaul
+
+---
+
+## 🔁 Data Transform Statements (Order‑dependent)
+
+* [X] `append "string"` ([Help Systems Tech Docs][1])
+* [X] `base64` ([Help Systems Tech Docs][1])
+* [X] `base64url` ([Help Systems Tech Docs][1])
+* [X] `mask` ([Help Systems Tech Docs][1])
+* [X] `netbios` ([Help Systems Tech Docs][1])
+* [X] `netbiosu` ([Help Systems Tech Docs][1])
+* [X] `prepend "string"` ([Help Systems Tech Docs][1])
+
+---
+
+## 🛑 Transform Termination Statements
+
+* [ ] `header "header"` (send data in HTTP header) ([Help Systems Tech Docs][1])
+* [ ] `parameter "key"` (send data as URI parameter) ([Help Systems Tech Docs][1])
+* [X] `print` (send data in transaction body) ([Help Systems Tech Docs][1])
+* [ ] `uri-append` (append data to URI) ([Help Systems Tech Docs][1])
+
+---
+
+## String Escape Sequences
+
+* [ ] `"\n"` newline ([Help Systems Tech Docs][1])
+* [ ] `"\r"` carriage return ([Help Systems Tech Docs][1])
+* [ ] `"\t"` tab ([Help Systems Tech Docs][1])
+* [ ] `"\u####"` Unicode codepoint ([Help Systems Tech Docs][1])
+* [ ] `"\x##"` hex byte ([Help Systems Tech Docs][1])
+* [ ] `"\\"` backslash ([Help Systems Tech Docs][1])
+
+---
+
+## Headers & Parameters
+
+* [ ] `header "Header‑Name" "value"` in client context ([Help Systems Tech Docs][1])
+* [ ] `header "Header‑Name" "value"` in server context ([Help Systems Tech Docs][1])
+* [ ] `parameter "key" "value"` in client context ([Help Systems Tech Docs][1])
+
+---
+
+## Global Options (Beacon Defaults)
+
+*(apply outside specific protocol blocks)*
+
+* [ ] `data_jitter` ([Help Systems Tech Docs][1])
+* [ ] `headers_remove` ([Help Systems Tech Docs][1])
+* [ ] `host_stage` ([Help Systems Tech Docs][1])
+* [ ] `jitter` ([Help Systems Tech Docs][1])
+* [ ] `pipename` ([Help Systems Tech Docs][1])
+* [ ] `pipename_stager` ([Help Systems Tech Docs][1])
+* [ ] `sample_name` ([Help Systems Tech Docs][1])
+* [ ] `sleep` ([Help Systems Tech Docs][1])
+* [ ] `sleeptime` ([Help Systems Tech Docs][1])
+* [ ] `smb_frame_header` ([Help Systems Tech Docs][1])
+* [ ] `ssh_banner` ([Help Systems Tech Docs][1])
+* [ ] `ssh_pipename` ([Help Systems Tech Docs][1])
+* [ ] `steal_token_access_mask` ([Help Systems Tech Docs][1])
+* [ ] `tasks_max_size` ([Help Systems Tech Docs][1])
+* [ ] `tasks_proxy_max_size` ([Help Systems Tech Docs][1])
+* [ ] `tasks_dns_proxy_max_size` ([Help Systems Tech Docs][1])
+* [ ] `tcp_frame_header` ([Help Systems Tech Docs][1])
+* [ ] `tcp_port` ([Help Systems Tech Docs][1])
+* [ ] `useragent` (global default) ([Help Systems Tech Docs][1])
+
+---
+
+## Local (Transaction‑Specific) Options
+
+*(usable inside protocol blocks like `http-get`, `http-post`, `http-stager`)*
+
+* [ ] `uri` (required for http‑get/http‑post) ([Help Systems Tech Docs][1])
+* [ ] `uri_x86` (http‑stager) ([Help Systems Tech Docs][1])
+* [ ] `uri_x64` (http‑stager) ([Help Systems Tech Docs][1])
+* [ ] `verb` (HTTP verb) ([Help Systems Tech Docs][1])
+* [ ] `client_max_post_get_packet` ([Help Systems Tech Docs][1])
+* [ ] `client_max_post_get_size` ([Help Systems Tech Docs][1])
+* [ ] `client_max_post_post_size` ([Help Systems Tech Docs][1])
+
+---
+
+## Protocol Block Patterns
+
+(For parser feature flags — actual block names are used in profiles)
+
+* [partially] `http-get` ([Help Systems Tech Docs][1])
+* [partially] `http-post` ([Help Systems Tech Docs][1])
+* [NO] `http-stager` ([Help Systems Tech Docs][1])
+
+---
+

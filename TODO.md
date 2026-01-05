@@ -37,8 +37,16 @@
 
  - [ ] Server
    - [ ] RESPONSE
-      - [ ] PREPEND
-      - [ ] APPEND
+      - [X] PREPEND
+      - [X] APPEND
+      - [ ] Base64     (check)
+      - [ ] base64 url (check)
+      - [ ] mask 	(check)
+      - [ ] netbios 	(check)
+      - [ ] netbiosu (check)
+      
+      - [ ] terminiation types (learn how cs puts data in the responses) 
+            Spin up  wireshark and do some research with an http beacon on where this data is put for each terminator type
 
    - [ ] REQUEST
       ...
