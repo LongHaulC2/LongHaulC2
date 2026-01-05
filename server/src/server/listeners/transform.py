@@ -1,0 +1,171 @@
+import base64
+import logging
+
+server_logger = logging.getLogger("server")
+
+
+def transform_prepend(data: bytes, value) -> bytes:
+    b = value if isinstance(value, bytes) else malleable_string_to_bytes(value)
+    return b + data
+
+
+def transform_append(data: bytes, value) -> bytes:
+    b = value if isinstance(value, bytes) else malleable_string_to_bytes(value)
+    return data + b
+
+
+def base64_encode(data: bytes) -> bytes:
+    server_logger.debug("Base64 Encode input: %r", data)
+    out = base64.b64encode(data)
+    server_logger.debug("Base64 Encode output: %r", out)
+    return out
+
+
+def base64_decode(data: bytes) -> bytes:
+    server_logger.debug("Base64 Decode input: %r", data)
+    out = base64.b64decode(data)
+    server_logger.debug("Base64 Decode output: %r", out)
+    return out
+
+
+def base64url_encode(data: bytes) -> bytes:
+    server_logger.debug("Base64URL Encode input: %r", data)
+    out = base64.urlsafe_b64encode(data).rstrip(b"=")
+    server_logger.debug("Base64URL Encode output: %r", out)
+    return out
+
+
+def base64url_decode(data: bytes) -> bytes:
+    server_logger.debug("Base64URL Decode input: %r", data)
+    padding = b"=" * (-len(data) % 4)
+    out = base64.urlsafe_b64decode(data + padding)
+    server_logger.debug("Base64URL Decode output: %r", out)
+    return out
+
+
+def xor_mask(data: bytes, key: bytes) -> bytes:
+    server_logger.debug("XOR Mask input: data=%r key=%r", data, key)
+    if not key:
+        raise ValueError("Key must not be empty")
+
+    out = bytes(b ^ key[i % len(key)] for i, b in enumerate(data))
+    server_logger.debug("XOR Mask output: %r", out)
+    return out
+
+
+def netbios_encode(data: bytes) -> bytes:
+    server_logger.debug("NetBIOS Encode input: %r", data)
+    out = bytearray()
+
+    for b in data:
+        high = (b >> 4) & 0x0F
+        low = b & 0x0F
+        out.append(ord("a") + high)
+        out.append(ord("a") + low)
+
+    out_bytes = bytes(out)
+    server_logger.debug("NetBIOS Encode output: %r", out_bytes)
+    return out_bytes
+
+
+def netbios_decode(data: bytes) -> bytes:
+    server_logger.debug("NetBIOS Decode input: %r", data)
+    if len(data) % 2 != 0:
+        raise ValueError("Invalid NetBIOS data length")
+
+    out = bytearray()
+
+    for i in range(0, len(data), 2):
+        high = data[i] - ord("a")
+        low = data[i + 1] - ord("a")
+        out.append((high << 4) | low)
+
+    out_bytes = bytes(out)
+    server_logger.debug("NetBIOS Decode output: %r", out_bytes)
+    return out_bytes
+
+
+def netbiosu_encode(data: bytes) -> bytes:
+    server_logger.debug("NetBIOSU Encode input: %r", data)
+    out = bytearray()
+
+    for b in data:
+        high = (b >> 4) & 0x0F
+        low = b & 0x0F
+        out.append(ord("A") + high)
+        out.append(ord("A") + low)
+
+    out_bytes = bytes(out)
+    server_logger.debug("NetBIOSU Encode output: %r", out_bytes)
+    return out_bytes
+
+
+def netbiosu_decode(data: bytes) -> bytes:
+    server_logger.debug("NetBIOSU Decode input: %r", data)
+    if len(data) % 2 != 0:
+        raise ValueError("Invalid NetBIOSU data length")
+
+    out = bytearray()
+
+    for i in range(0, len(data), 2):
+        high = data[i] - ord("A")
+        low = data[i + 1] - ord("A")
+        out.append((high << 4) | low)
+
+    out_bytes = bytes(out)
+    server_logger.debug("NetBIOSU Decode output: %r", out_bytes)
+    return out_bytes
+
+
+# def malleable_string_to_bytes(value: str) -> bytes:
+#     """
+#     Convert a malleable C2 string like "\\x47\\x49\\x46"
+#     into raw bytes b"GIF".
+
+#     TLDR otherwise this includes the \x strings to convert to base64, etc.
+#     """
+#     return value.encode("latin-1").decode("unicode_escape").encode("latin-1")
+import re
+
+_HEX_ESCAPE_RE = re.compile(r"\\x([0-9a-fA-F]{2})")
+
+
+def malleable_string_to_bytes(value: str) -> bytes:
+    """
+    Decode valid \\xNN escapes only.
+    Leave malformed escapes literal.
+
+    Old approach used `unicode_escape`, which requires perfect `\\xNN` escapes and
+    crashes on malformed or partial escapes allowed in malleable C2 profiles.
+    New approach decodes only valid `\\xNN` sequences and leaves everything else
+    literal, matching Cobalt Strike Mal c2 behavior and never throwing.
+    """
+    out = bytearray()
+    i = 0
+
+    while i < len(value):
+        if value[i] == "\\" and i + 3 < len(value) and value[i + 1] == "x":
+            hex_part = value[i + 2 : i + 4]
+            try:
+                out.append(int(hex_part, 16))
+                i += 4
+                continue
+            except ValueError:
+                pass  # fall through → literal
+        out.append(ord(value[i]))
+        i += 1
+
+    return bytes(out)
+
+
+# example:
+"""
+data = b"\x01\xffABC"
+
+assert base64_decode(base64_encode(data)) == data
+assert base64url_decode(base64url_encode(data)) == data
+assert netbios_decode(netbios_encode(data)) == data
+assert netbiosu_decode(netbiosu_encode(data)) == data
+assert xor_mask(xor_mask(data, b"\x13\x37"), b"\x13\x37") == data
+
+"""

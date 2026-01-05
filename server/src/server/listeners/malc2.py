@@ -2,6 +2,7 @@ from mpp import MalleableProfile
 from fastapi import Response, FastAPI
 from yarl import URL
 import logging
+from .transform import *
 
 """
 Logic for extracting Malleable C2 options within the profiles. Piggybacks off of MalleableProfile (mpp)
@@ -47,74 +48,52 @@ class HttpServerEmitter:
 
         Does all the transforms, data insertion, etc etc and creates body based on that.
         """
-        # body
+        # get task
+        task = b"mydata"
 
-        # Get prepend and append data
-        prepend_data: bytes = self.get_prepend()
-        append_data: bytes = self.get_append()
-        # get next task
-        task = b"sometask"
-        # Do transformations
-
-        # stick it all together
-
-        body = b"".join([prepend_data, task, append_data])
+        body = self.apply_transforms(task)
 
         return body
 
-    # just a placeholer for append. Maybe have a func that puts the body togheter
-    # ex, parses all the things, adds in payload, then returns body
-    def get_prepend(self) -> bytes:
+    def apply_transforms(self, data: bytes) -> bytes:
         """
-        Get prepend data for the server response, from the Malleable C2 profile
-
-        Note: Prepend is weird, and takes the data in reverse order:
-            prepend "\x01";
-            prepend "\x02";
-            prepend "\x03";
-
-        This will return the data as : "\x03, \x02, \x01" (or: `\x03\x02\x01` on the wire),
-        as it is "prepending" to each current data blob
-
-        Don't worry, this function handles it properly, and will do the conversion for you to the correct
-        `\x03\x02\x01`
-
-        Returns bytes.
+        Apply output transforms sequentially, in source order.
         """
-        output = self.server.output.data
+        # loop over each transform
+        for stmt in self.server.output.data:
+            name = stmt.statement
+            value = stmt.value
 
-        prepend_data = b"".join(
-            (s.value if isinstance(s.value, bytes) else s.value.encode("latin-1"))
-            for s in reversed(output)
-            if s.statement == "prepend"
-        )
-        server_logger.debug(f"Extracted prepend data: {prepend_data.hex()}")
+            server_logger.debug("Applying transform: %s %r", name, value)
 
-        return prepend_data
+            if name == "prepend":
+                data = transform_prepend(data, stmt.value)
 
-    def get_append(self) -> bytes:
-        """
-        Get append data for the server response, from the Malleable C2 profile
+            elif name == "append":
+                data = transform_append(data, stmt.value)
 
-        Returns bytes.
-        """
-        output = self.server.output.data
+            elif name == "base64":
+                data = base64_encode(data)
 
-        append_data = b"".join(
-            (s.value if isinstance(s.value, bytes) else s.value.encode("latin-1"))
-            for s in output
-            if s.statement == "append"
-        )
-        server_logger.debug(f"Extracted append data: {append_data.hex()}")
+            elif name == "base64url":
+                data = base64url_encode(data)
 
-        return append_data
+            elif name == "netbios":
+                data = netbios_encode(data)
 
-    def response_body(self):
-        ...
-        data = ...
-        # parse:
-        # prepend, append, etc etc into a valid body
-        # reutnr body
+            elif name == "netbiosu":
+                data = netbiosu_encode(data)
+
+            elif name == "mask":
+                # assuming stmt.key or stmt.value holds the mask key
+                data = xor_mask(data, value)
+
+            else:
+                server_logger.debug("Skipping unsupported transform: %s", name)
+
+            server_logger.debug("Data after %s: %r", name, data)
+
+        return data
 
 
 # other parsers here too...

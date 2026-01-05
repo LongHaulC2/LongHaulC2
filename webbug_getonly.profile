@@ -37,7 +37,7 @@ http-get {
 			prepend "\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00\x00\x00";
             append "\x69";
             append "\x70";
-
+            base64;
 			print;
 		}
 	}
