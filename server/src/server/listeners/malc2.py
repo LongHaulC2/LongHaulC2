@@ -2,6 +2,13 @@ from mpp import MalleableProfile
 from fastapi import Response, FastAPI
 from yarl import URL
 
+"""
+Logic for extracting Malleable C2 options within the profiles. Piggybacks off of MalleableProfile (mpp)
+to get the values needed. 
+
+This is currently purely for server side logic, does not have the logic to setup implants with the same options. 
+"""
+
 
 ###################################
 # HTTP Parse

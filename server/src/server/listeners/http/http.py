@@ -6,12 +6,14 @@ from time import sleep
 from edwh_uuid7 import uuid7
 
 from mpp import MalleableProfile
-from fastapi import Response, FastAPI
+from fastapi import Response, FastAPI, Request
+from fastapi.responses import JSONResponse
 from yarl import URL
+import uvicorn
 
 from ..malc2 import HttpServerEmitter
 
-app = FastAPI()
+app = FastAPI
 mp = MalleableProfile
 
 
@@ -19,15 +21,25 @@ mp = MalleableProfile
 def run(listener_uuid: str):
 
     # make mp global to this module so we don't have to  read from it/pass everywhere constantly
-    global mp
+    global mp, app
     # placeholder
     mp = MalleableProfile(profile="/home/ubuntu-dev/LongHaulC2/webbug_getonly.profile")
     print(mp)
 
+    # to shutoff docs
+    # app = FastAPI(
+    #     docs_url=None,
+    #     redoc_url=None,
+    #     openapi_url=None,
+    # )
+    app = FastAPI(
+        title="LongHaul C2 HTTP Listener",
+        description="Malleable C2 defined Listener endpoints",
+        version="0.0.0",
+    )
+
     # dont register until mp is created.
     register_routes()
-
-    import uvicorn
 
     # reload needs to be OFF.
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
@@ -59,6 +71,27 @@ async def http_get():
     return Response(content=body, headers=headers)
 
 
+###################################
+# HTTP POST
+###################################
+"""
+HTTP POST with CS is where task response data is sent back to
+
+"""
+
+
+async def http_post():
+    emitter = HttpServerEmitter(mp.http_post.server)
+
+    headers = emitter.headers()
+    body = emitter.output_bytes()
+
+    # note, payload would need to be inserted into redis:
+    # ex, strip all BS, connect to redis, dump into it.
+
+    return Response(content=body, headers=headers)
+
+
 def register_routes():
     """
     Registeres routes. Prevents these being called on import as well.
@@ -79,24 +112,3 @@ def register_routes():
         response_model=dict,
         tags=["items"],
     )
-
-
-###################################
-# HTTP POST
-###################################
-"""
-HTTP POST with CS is where task response data is sent back to
-
-"""
-
-
-async def http_post():
-    emitter = HttpServerEmitter(mp.http_post.server)
-
-    headers = emitter.headers()
-    body = emitter.output_bytes()
-
-    # note, payload would need to be inserted into redis:
-    # ex, strip all BS, connect to redis, dump into it.
-
-    return Response(content=body, headers=headers)

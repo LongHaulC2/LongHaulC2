@@ -9,3 +9,4 @@ flask-limiter
 edwh-uuid7
 msgpack
 pyMalleableProfileParser
+uvicorn
