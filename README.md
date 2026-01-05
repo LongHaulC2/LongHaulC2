@@ -62,12 +62,24 @@ I can't beat CS as a day-to-day red team operations tool. I can
 
 
 # Malleable C2:
-Support list, what is currently supported by LongHaul
+The current supported options in Malleable C2 profiles:
 
 ---
+# Blocks:
 
-## 🔁 Data Transform Statements (Order‑dependent)
+# http-get:
 
+### Applicable to:
+- http-get.server
+
+#### Misc:
+* [X] Add on headers (`header "Content-Type" "image/gif";`)
+* [X] Output Block (`output {}`)
+
+### Applicable to:
+- http-get.server.output
+
+#### Transform operations:
 * [X] `append "string"` ([Help Systems Tech Docs][1])
 * [X] `base64` ([Help Systems Tech Docs][1])
 * [X] `base64url` ([Help Systems Tech Docs][1])
@@ -76,39 +88,45 @@ Support list, what is currently supported by LongHaul
 * [X] `netbiosu` ([Help Systems Tech Docs][1])
 * [X] `prepend "string"` ([Help Systems Tech Docs][1])
 
----
-
-## 🛑 Transform Termination Statements
-
+#### Termination options:
 * [ ] `header "header"` (send data in HTTP header) ([Help Systems Tech Docs][1])
 * [ ] `parameter "key"` (send data as URI parameter) ([Help Systems Tech Docs][1])
 * [X] `print` (send data in transaction body) ([Help Systems Tech Docs][1])
 * [ ] `uri-append` (append data to URI) ([Help Systems Tech Docs][1])
 
 ---
+# http-post:
 
-## String Escape Sequences
+### Applicable to:
+- http-post.server
 
-* [ ] `"\n"` newline ([Help Systems Tech Docs][1])
-* [ ] `"\r"` carriage return ([Help Systems Tech Docs][1])
-* [ ] `"\t"` tab ([Help Systems Tech Docs][1])
-* [ ] `"\u####"` Unicode codepoint ([Help Systems Tech Docs][1])
-* [ ] `"\x##"` hex byte ([Help Systems Tech Docs][1])
-* [ ] `"\\"` backslash ([Help Systems Tech Docs][1])
+#### Misc:
+* [ ] Add on headers (`header "Content-Type" "image/gif";`)
+* [ ] Output Block (`output {}`)
+
+### Applicable to:
+- http-post.server.output
+
+#### Transform operations:
+* [ ] `append "string"` ([Help Systems Tech Docs][1])
+* [ ] `base64` ([Help Systems Tech Docs][1])
+* [ ] `base64url` ([Help Systems Tech Docs][1])
+* [ ] `mask` ([Help Systems Tech Docs][1])
+* [ ] `netbios` ([Help Systems Tech Docs][1])
+* [ ] `netbiosu` ([Help Systems Tech Docs][1])
+* [ ] `prepend "string"` ([Help Systems Tech Docs][1])
+
+#### Termination options:
+* [ ] `header "header"` (send data in HTTP header) ([Help Systems Tech Docs][1])
+* [ ] `parameter "key"` (send data as URI parameter) ([Help Systems Tech Docs][1])
+* [ ] `print` (send data in transaction body) ([Help Systems Tech Docs][1])
+* [ ] `uri-append` (append data to URI) ([Help Systems Tech Docs][1])
 
 ---
+# http-stager:
+ - STAGERS NOT SUPPORTED. 
 
-## Headers & Parameters
-
-* [ ] `header "Header‑Name" "value"` in client context ([Help Systems Tech Docs][1])
-* [ ] `header "Header‑Name" "value"` in server context ([Help Systems Tech Docs][1])
-* [ ] `parameter "key" "value"` in client context ([Help Systems Tech Docs][1])
-
----
-
-## Global Options (Beacon Defaults)
-
-*(apply outside specific protocol blocks)*
+# Options:
 
 * [ ] `data_jitter` ([Help Systems Tech Docs][1])
 * [ ] `headers_remove` ([Help Systems Tech Docs][1])
@@ -129,30 +147,3 @@ Support list, what is currently supported by LongHaul
 * [ ] `tcp_frame_header` ([Help Systems Tech Docs][1])
 * [ ] `tcp_port` ([Help Systems Tech Docs][1])
 * [ ] `useragent` (global default) ([Help Systems Tech Docs][1])
-
----
-
-## Local (Transaction‑Specific) Options
-
-*(usable inside protocol blocks like `http-get`, `http-post`, `http-stager`)*
-
-* [ ] `uri` (required for http‑get/http‑post) ([Help Systems Tech Docs][1])
-* [ ] `uri_x86` (http‑stager) ([Help Systems Tech Docs][1])
-* [ ] `uri_x64` (http‑stager) ([Help Systems Tech Docs][1])
-* [ ] `verb` (HTTP verb) ([Help Systems Tech Docs][1])
-* [ ] `client_max_post_get_packet` ([Help Systems Tech Docs][1])
-* [ ] `client_max_post_get_size` ([Help Systems Tech Docs][1])
-* [ ] `client_max_post_post_size` ([Help Systems Tech Docs][1])
-
----
-
-## Protocol Block Patterns
-
-(For parser feature flags — actual block names are used in profiles)
-
-* [partially] `http-get` ([Help Systems Tech Docs][1])
-* [partially] `http-post` ([Help Systems Tech Docs][1])
-* [NO] `http-stager` ([Help Systems Tech Docs][1])
-
----
-
