@@ -34,3 +34,13 @@ class HttpServerEmitter:
         # parse:
         # prepend, append, etc etc into a valid body
         # reutnr body
+
+
+# other parsers here too...
+###################################
+# HTTPS Parse
+###################################
+
+###################################
+# ICMP Parse [custom addon, parser still works on them]
+###################################

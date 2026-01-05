@@ -29,11 +29,8 @@ def run(listener_uuid: str):
 
     import uvicorn
 
+    # reload needs to be OFF.
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
-
-    # while True:
-    #     print(f"listener {listener_uuid}")
-    #     sleep(1)
 
 
 ###################################
