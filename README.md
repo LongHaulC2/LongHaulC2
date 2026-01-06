@@ -133,9 +133,9 @@ https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/conten
 
 goes with every response served by listener
 
-* [ ] `set headers ` (`set headers "Date, Server, Content-Length, Keep-Alive, 
+* [X] `set headers ` (`set headers "Date, Server, Content-Length, Keep-Alive, 
                     Connection, Content-Type"`)
-* [ ] `header "header"`
+* [X] `header "header"`
 * [unsure if needed yet] `set trust_x_forwarded_for` 
 * [ ] block_useragents 
 * [ ] allow_useragents

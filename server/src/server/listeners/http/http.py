@@ -86,7 +86,14 @@ def check_user_agent(user_agent) -> bool:
     Checks user agent. If allowed (via profile), returns true
     else, false
     """
-    ...
+    hcbsp = HttpConfigBlockServerParser(mp.http_config)
+
+    blocked_useragents = hcbsp.get_blocked_user_agents()
+    allowed_useragents = hcbsp.get_allowed_user_agents()
+
+    print(blocked_useragents)
+    print(allowed_useragents)
+
     return True
     if user_agent != "bob":
         return False
@@ -144,6 +151,8 @@ class HeadersMiddleware(BaseHTTPMiddleware):
             init_headers takes a dict of headers, which overwrites the old ones.
 
             Headers work and are in order now
+
+            Note: Date seems to show up first every time for some reason. 
         """
         response.init_headers(headers=ordered_headers)
         print(response.headers)

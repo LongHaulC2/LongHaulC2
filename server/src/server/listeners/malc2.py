@@ -1,4 +1,4 @@
-from mpp import MalleableProfile
+from mpp import *
 from fastapi import Response, FastAPI
 from yarl import URL
 import logging
@@ -28,8 +28,23 @@ class HttpConfigBlockServerParser:
         """
         self.http_config = http_config
 
-    def get_allowed_user_agents(self) -> dict: ...
-    def get_blocked_user_agents(self) -> dict: ...
+    def get_allowed_user_agents(self) -> list:
+        # Iterate over the objects inside the http_config
+        for stmt in self.http_config.data:
+            # Check if the object has an 'option' attribute and matches 'block_useragents'
+            if hasattr(stmt, "option") and stmt.option == "allow_useragents":
+
+                allow_useragents = stmt.value.strip().split(",")
+                return allow_useragents
+
+    def get_blocked_user_agents(self) -> list:
+        for stmt in self.http_config.data:
+            # Check if the object has an 'option' attribute and matches 'block_useragents'
+            if hasattr(stmt, "option") and stmt.option == "block_useragents":
+
+                block_useragents = stmt.value.strip().split(",")
+                return block_useragents
+
     def get_headers_to_add_to_request(self) -> dict:
         """
         Add all the headers specifed by 'header "x-1", "value"' in the malleable c2 profile
@@ -79,13 +94,13 @@ class HttpConfigBlockServerParser:
 
             # Strip whitespace around each individual header
             ordered_headers = [header.strip() for header in ordered_headers]
-            print(ordered_headers)
+            # print(ordered_headers)
 
         # Reorder the headers according to the desired_order
         ordered_headers = {
             header: headers[header] for header in ordered_headers if header in headers
         }
-        print(ordered_headers)
+        # print(ordered_headers)
         return ordered_headers
         # You can now return the ordered headers in the response
         # return Response(content="Headers have been reordered.", headers=ordered_headers)
