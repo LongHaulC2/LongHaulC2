@@ -45,6 +45,7 @@ http-post {
 	set uri "/__utm.gif";
 	set verb "GET";
 	client {
+		# need to figure out ID still
 		id {
 			prepend "UA-220";
 			append "-2";
@@ -57,11 +58,15 @@ http-post {
 		parameter "utmsc" "32-bit";
 		parameter "utmul" "en-US";
 
+		# weird. post uses output instead  of metadata
 		output {
 			base64url;
 			prepend "__utma";
-			parameter "utmcc";
+			#parameter "utmcc";
+			#header "x-test";
+			print;
 		}
+		
 	}
 
 	server {

@@ -17,7 +17,7 @@ server_logger = logging.getLogger("server")
 ###################################
 # HTTP Parse
 ###################################
-class HttpServerEmitter:
+class HttpGetBlockServerParser:
     def __init__(self, server_block):
         """
         Server block: Parsed server block. Ex: mp.http_post.server
@@ -57,7 +57,7 @@ class HttpServerEmitter:
 
         return data
 
-    def get_terminator(self):
+    def get_output_terminator(self):
         """
         Return a tuple: (terminator_type, target_name)
         - terminator_type: "header", "parameter", "print", "uri-append"
@@ -139,7 +139,7 @@ class HttpServerEmitter:
 """
 
 
-class HttpClientEmitter:
+class HttpGetBlockClientParser:
     """
     Handles all the client parsing
     """
@@ -172,6 +172,25 @@ class HttpClientEmitter:
         # fallback if no terminator found
         return None, None
 
+    def get_output_terminator(self):
+        """
+        Return a tuple: (terminator_type, target_name)
+        - terminator_type: "header", "parameter", "print", "uri-append"
+        - target_name: header name / parameter key, or None if body
+        """
+        for stmt in self.client.output.data:
+            name = stmt.statement
+            value = stmt.value
+
+            if name in ("header", "parameter", "uri-append"):
+                return name, value
+            elif name == "print":
+                return "print", None
+            # if multiple terminators, this will return the last one
+
+        # fallback if no terminator found
+        return None, None
+
     def extract_data(self):
         """
         Does the inverse on the data that is specified in the malleablec2 to make it readable again
@@ -183,6 +202,186 @@ class HttpClientEmitter:
 
     def apply_transforms(self, data):
         for stmt in self.client.metadata.data:
+            name = stmt.statement
+            value = stmt.value
+
+            server_logger.debug("Applying transform: %s %r", name, value)
+
+            if name == "prepend":
+                data = undo_transform_prepend(data, stmt.value)
+
+            elif name == "append":
+                data = undo_transform_append(data, stmt.value)
+
+            elif name == "base64":
+                data = base64_decode(data)
+
+            elif name == "base64url":
+                data = base64url_decode(data)
+
+            elif name == "netbios":
+                data = netbios_decode(data)
+
+            elif name == "netbiosu":
+                data = netbiosu_decode(data)
+
+            elif name == "mask":
+                # assuming stmt.key or stmt.value holds the mask key
+                data = xor_mask(data, value)
+
+            else:
+                server_logger.debug("Skipping unsupported transform: %s", name)
+
+            server_logger.debug("Data after %s: %r", name, data)
+
+        return data
+
+
+# post block has a few differneces,so this accounts for that
+# - no metadata field, only ID, and OUTPUT
+class HttpPostBlockServerParser:
+    def __init__(self, server_block):
+        """
+        Server block: Parsed server block. Ex: mp.http_post.server
+
+        Handles the server parsing
+        """
+        self.server = server_block
+
+    def headers(self) -> dict:
+        """
+        Extracts headers from malc2 profile
+
+        Returns a dict of headers:
+        {
+            "Myheader1":"SomeValue"
+        }
+
+        """
+        headers = {
+            stmt.key: stmt.value
+            for stmt in self.server.data
+            if getattr(stmt, "statement", None) == "header"
+        }
+        server_logger.debug(f"Extracted Headers: {list(headers.items())}")
+        return headers
+
+    def generate_data(self):
+        """
+        Generates the entire data for the response for the server
+
+        Does all the transforms, data insertion, etc etc and creates body based on that.
+        """
+        # get task
+        task = b"mydata"
+
+        data = self.apply_transforms(task)
+
+        return data
+
+    def get_output_terminator(self):
+        """
+        Return a tuple: (terminator_type, target_name)
+        - terminator_type: "header", "parameter", "print", "uri-append"
+        - target_name: header name / parameter key, or None if body
+        """
+        for stmt in self.server.output.data:
+            name = stmt.statement
+            value = stmt.value
+
+            if name in ("header", "parameter", "uri-append"):
+                return name, value
+            elif name == "print":
+                return "print", None
+            # if multiple terminators, this will return the last one
+
+        # fallback if no terminator found
+        return None, None
+
+    def apply_transforms(self, data: bytes) -> bytes:
+        """
+        Apply output transforms sequentially, in source order.
+        """
+        # loop over each transform
+        for stmt in self.server.output.data:
+            name = stmt.statement
+            value = stmt.value
+
+            server_logger.debug("Applying transform: %s %r", name, value)
+
+            if name == "prepend":
+                data = transform_prepend(data, stmt.value)
+
+            elif name == "append":
+                data = transform_append(data, stmt.value)
+
+            elif name == "base64":
+                data = base64_encode(data)
+
+            elif name == "base64url":
+                data = base64url_encode(data)
+
+            elif name == "netbios":
+                data = netbios_encode(data)
+
+            elif name == "netbiosu":
+                data = netbiosu_encode(data)
+
+            elif name == "mask":
+                # assuming stmt.key or stmt.value holds the mask key
+                data = xor_mask(data, value)
+
+            else:
+                server_logger.debug("Skipping unsupported transform: %s", name)
+
+            server_logger.debug("Data after %s: %r", name, data)
+
+        return data
+
+
+class HttpPostBlockClientParser:
+    """
+    Handles all the client parsing
+    """
+
+    def __init__(self, client_block):
+        """
+        Server block: Parsed server block. Ex: mp.http_post.server
+
+        Handles the server parsing
+        """
+        self.client = client_block
+
+    def get_output_terminator(self):
+        """
+        Return a tuple: (terminator_type, target_name)
+        - terminator_type: "header", "parameter", "print", "uri-append"
+        - target_name: header name / parameter key, or None if body
+        """
+        for stmt in self.client.output.data:
+            name = stmt.statement
+            value = stmt.value
+
+            if name in ("header", "parameter", "uri-append"):
+                return name, value
+            elif name == "print":
+                return "print", None
+            # if multiple terminators, this will return the last one
+
+        # fallback if no terminator found
+        return None, None
+
+    def extract_data(self):
+        """
+        Does the inverse on the data that is specified in the malleablec2 to make it readable again
+        """
+        # room for more functions later, and extract_data makes more sense
+        # as a function name
+
+        self.apply_transforms()
+
+    def apply_transforms(self, data):
+        for stmt in self.client.output.data:
             name = stmt.statement
             value = stmt.value
 
