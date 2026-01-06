@@ -82,7 +82,7 @@ The current supported options in Malleable C2 profiles:
 
 #### Misc:
 * [X] Add on headers (`header "Content-Type" "image/gif";`)
-* [X] Output Block (`output {}`)
+* [X] Metadata Block (`metadata {}`)
 
 ### http-get.server.output
 
@@ -109,6 +109,7 @@ The current supported options in Malleable C2 profiles:
 #### Misc:
 * [X] Add on headers (`header "Content-Type" "image/gif";`)
 * [X] Output Block (`output {}`)
+* [ ] ID Block (`id {}`)
 
 ### http-post.server.output
 
