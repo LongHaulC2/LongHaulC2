@@ -10,7 +10,6 @@ from fastapi import Response, FastAPI, Request
 from fastapi.responses import JSONResponse
 from yarl import URL
 import uvicorn
-
 from ..malc2 import HttpServerEmitter, HttpClientEmitter
 
 app = FastAPI
@@ -19,7 +18,6 @@ mp = MalleableProfile
 
 # entrypoint
 def run(listener_uuid: str):
-
     # make mp global to this module so we don't have to  read from it/pass everywhere constantly
     global mp, app
     # placeholder
@@ -94,29 +92,35 @@ async def http_get(request: Request):
     # print(terminator_key)
 
     match terminator_type:
+        # [X] works
         case "header":
-            # in header, get whichheader from malprof, and pull out
-            print("HEADER")
-            ...
+            data_from_request = dict(request.headers).get(terminator_key)
+            print(f"Data from request: {data_from_request}")
 
+            hce = HttpClientEmitter(client_block=mp.http_get.client)
+            print(f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}")
+
+        # [X] works
         case "parameter":
             # get URLparameter
             # ex, would  get value ofutmcc
             data_from_request = request.query_params.get(terminator_key)
             print(f"Data from request: {data_from_request}")
 
-            print("parameter")
             hce = HttpClientEmitter(client_block=mp.http_get.client)
             print(f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}")
 
             ...
 
-        case "uri-append":
-            # assuming its something like /adskjfksdfjsdlkfjasdklfsjdaklfsd==
-            print("uri_append")
+        # [ ] works
+        # case "uri-append":
+        #     # assuming its something like /adskjfksdfjsdlkfjasdklfsjdaklfsd==
+        #     # https://www.cobaltstrike.com/blog/malleable-command-and-control
+        #     print("uri_append")
 
-            ...
+        #     ...
 
+        # [ ] works
         case "print":
             # in body, so just get body
             print("print")
@@ -189,6 +193,82 @@ async def http_get(request: Request):
             # unknown terminator
             print("Unknown terminator: %r", terminator_type)
             body = data
+            return Response(status_code=500)
+
+
+async def http_get_uri(request: Request, data: str):
+    """ """
+    print(request)
+    print(data)
+
+    # we can assume URI terminator is uri-append.
+    # data is the /someendpoint/<HERE>, so we just need to transform it.
+
+    full_uri = str(
+        request.url
+    )  # Full URL including the scheme, host, path, and query params. useful for logging
+
+    hce = HttpClientEmitter(client_block=mp.http_get.client)
+    print(f"De-Obsfucated data: {hce.apply_transforms(data=data)}")
+
+    print(f"Full URL: {full_uri}")
+    print(f"Data from URL: {data}")
+
+    # save to redis...
+    # generate response...
+
+    """
+    Setup a response for the implant
+
+    """
+
+    # pass in block to respective class
+    emitter = HttpServerEmitter(mp.http_get.server)
+
+    # get the stuff we need from it
+    headers = emitter.headers()
+    data = emitter.generate_data()
+
+    # note, payload would need to be inserted somehwere here too.  Ex,
+    # redis lookup for next task -> insert where print it
+
+    # based on terminationstatement, need to store data in certain location
+    # Ex: header: store in header
+    terminator_type, target = emitter.get_terminator()
+
+    match terminator_type:
+        case "header":
+            # send data in a header
+            headers[target] = data
+            # construct response here
+
+        case "parameter":
+            # send data as URI parameter
+            # params[target] = data
+            print("placeholder uri paramter")
+
+        case "uri-append":
+            # append data to URL path
+            # url += data.decode("latin-1")
+            print("placeholder uri append")
+
+        case "print":
+            # send data in the body
+            body = data
+            # and construct the response
+            return Response(content=body, headers=headers)
+
+        case None:
+            # fallback if no terminator\
+
+            body = data
+            return Response(content=body, headers=headers)
+
+        case _:
+            # unknown terminator
+            print("Unknown terminator: %r", terminator_type)
+            body = data
+            return Response(status_code=500)
 
 
 def register_http_get_route(
@@ -205,6 +285,28 @@ def register_http_get_route(
         # response_model=dict,
         # tags=["items"],
     )
+
+    # for uri-append, add another route
+    # hack together a string for what it wants: "myuri/{data}"
+    full_uri = str(uri) + "/{data}"
+    # Register the route with the dynamic path
+    app.add_api_route(
+        path=str(full_uri),
+        endpoint=http_get_uri,  # The handler function for this route
+        methods=[method],
+    )
+    """
+    Why Two Routes are Needed in FastAPI:
+
+    FastAPI resolves routes based on exact paths. When using Cobalt Strike's `uri-append` 
+        (e.g., `/myuri/some-random-data`), FastAPI treats `/myuri` as a fixed endpoint and doesn't automatically handle `/myuri/{data}`. 
+
+    To handle this, you need two routes:
+    1. One for the base path (`/myuri`).
+    2. Another for the dynamic append (`/myuri/{data}`).
+
+    This way, FastAPI can process both the static and dynamic parts of the URL correctly.    
+    """
 
 
 ###################################

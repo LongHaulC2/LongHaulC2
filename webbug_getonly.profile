@@ -18,7 +18,9 @@ http-get {
 		metadata {
 			base64url;
 			prepend "__utma";
-			parameter "utmcc";
+			#parameter "utmcc";
+			#header "x-test";
+			uri-append;
 		}
 	}
 
