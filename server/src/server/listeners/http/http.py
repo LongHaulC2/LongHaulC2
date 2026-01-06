@@ -54,6 +54,26 @@ def run(listener_uuid: str):
 
 
 ###################################
+# Various Handlers
+###################################
+
+
+def check_if_data(data_from_request):
+    """
+    Check if the request had data (evaluates falsey-ness). If not, return a 400.
+
+    data_from_request: The data that was in the request, and needs to not be empty/missing.
+
+    Here so I don't repeat this line 58145148754 times for each case/switch
+    """
+    if not data_from_request:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Missing required header",
+        )
+
+
+###################################
 # HTTP GET
 ###################################
 """
@@ -104,11 +124,7 @@ async def http_get(request: Request):
             normalized_headers = {k.lower(): v for k, v in request.headers.items()}
             data_from_request = normalized_headers.get(terminator_key.lower(), None)
 
-            if not data_from_request:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Missing required header",
-                )
+            check_if_data(data_from_request)
 
             print(request.headers)
             print(f"Data from request: {data_from_request}")
@@ -128,11 +144,7 @@ async def http_get(request: Request):
             data_from_request = request.query_params.get(terminator_key, None)
             print(f"Data from request: {data_from_request}")
 
-            if not data_from_request:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Missing required parameter",
-                )
+            check_if_data(data_from_request)
 
             try:
                 hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
@@ -149,11 +161,7 @@ async def http_get(request: Request):
             # in body, so just get body
             data_from_request = await request.body()
 
-            if not data_from_request:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Missing required parameter",
-                )
+            check_if_data(data_from_request)
 
             try:
                 hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
@@ -391,11 +399,7 @@ async def http_post(request: Request):
             data_from_request = normalized_headers.get(terminator_key.lower())
             print(f"Data from request: {data_from_request}")
 
-            if not data_from_request:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Missing required parameter",
-                )
+            check_if_data(data_from_request)
 
             try:
                 hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
@@ -411,11 +415,7 @@ async def http_post(request: Request):
             data_from_request = request.query_params.get(terminator_key)
             print(f"Data from request: {data_from_request}")
 
-            if not data_from_request:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Missing required parameter",
-                )
+            check_if_data(data_from_request)
 
             try:
                 hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
@@ -431,11 +431,7 @@ async def http_post(request: Request):
             # in body, so just get body
             data_from_request = await request.body()
 
-            if not data_from_request:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Missing required parameter",
-                )
+            check_if_data(data_from_request)
 
             try:
                 hce = HttpPostBlockClientParser(client_block=mp.http_post.client)

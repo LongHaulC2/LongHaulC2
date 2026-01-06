@@ -61,10 +61,10 @@
          - [ ] Implement tasking mechanisms to inject custom data into responses.
 
       ### 4. **Error Handling**
-         - [ ] Implement error handling for invalid profiles.
+         ~~- [ ] Implement error handling for invalid profiles.~~
          - [ ] Add error handling for invalid options or bad configurations.
          - [ ] Create logging for when errors occur.
-         - [ ] Graceful failure for unexpected scenarios (e.g., invalid data format, connection issues).
+         - [X] Graceful failure for unexpected scenarios (e.g., invalid data format, connection issues).
 
       ### 5. teseting:
          - [ ] Test "untested" methods in readme to make sure they work. 
