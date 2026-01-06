@@ -90,33 +90,25 @@ async def http_get(request: Request):
     # last item in metadata is where the data is stored.
     # current options I can find: header, parameter. URI append and print may work here too
 
+    # steps
+
     # 1. get last item in metadata
     # terminator_type = "parameter"
 
-    TERMINATOR_TYPES = {"header", "parameter", "print", "uri-append"}
+    # 2. Switch case based on terminator type
 
-    metadata_block = mp.http_get.client.metadata.data
-    print(metadata_block)
+    # 3. extract data based on term, then de-obsfucate as needed
 
-    # note, figure out when key is used vs when value is used.
-    # causes  some weird code below/not delcaringkey unless a terminator?
-    for stmt in metadata_block:
-        print(stmt)
-        name = stmt.statement
-        # this uses key instead of value
+    hce = HttpClientEmitter(client_block=mp.http_get.client)
+    # extract terminator data
+    terminator_type, terminator_key = hce.get_metadata_terminator()
 
-        # # If your block itself represents a statement:
-        if name in TERMINATOR_TYPES:
-            key = stmt.key
-
-            print("Terminator found:", name, key)
-            #! keyi instead of value here
-            terminator_type, terminator_key = name, key
-        else:
-            print("Not a terminator:", name)
+    # print(terminator_type)
+    # print(terminator_key)
 
     match terminator_type:
         case "header":
+            # in header, get whichheader from malprof, and pull out
             print("HEADER")
             ...
 
@@ -127,19 +119,19 @@ async def http_get(request: Request):
             print(f"Data from request: {data_from_request}")
 
             print("parameter")
-            hce = HttpClientEmitter(
-                client_block=mp.http_get.client, data=data_from_request
-            )
-            print(f"De-Obsfucated data: {hce.apply_transforms()}")
+            hce = HttpClientEmitter(client_block=mp.http_get.client)
+            print(f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}")
 
             ...
 
         case "uri-append":
+            # assuming its something like /adskjfksdfjsdlkfjasdklfsjdaklfsd==
             print("uri_append")
 
             ...
 
         case "print":
+            # in body, so just get body
             print("print")
             ...
 

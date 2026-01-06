@@ -144,14 +144,33 @@ class HttpClientEmitter:
     Handles all the client parsing
     """
 
-    def __init__(self, client_block, data):
+    def __init__(self, client_block):
         """
         Server block: Parsed server block. Ex: mp.http_post.server
 
         Handles the server parsing
         """
         self.client = client_block
-        self.data = data
+
+    def get_metadata_terminator(self):
+        """
+        Return a tuple: (terminator_type, target_name)
+        - terminator_type: "header", "parameter", "print", "uri-append"
+        - target_name: header name / parameter key, or None if body
+        """
+        for stmt in self.client.metadata.data:
+            name = stmt.statement
+            value = stmt.value
+
+            if name in ("header", "parameter", "uri-append"):
+                key = stmt.key
+                return name, key
+            elif name == "print":
+                return "print", None
+            # if multiple terminators, this will return the last one
+
+        # fallback if no terminator found
+        return None, None
 
     def extract_data(self):
         """
@@ -162,7 +181,7 @@ class HttpClientEmitter:
 
         self.apply_transforms()
 
-    def apply_transforms(self):
+    def apply_transforms(self, data):
         for stmt in self.client.metadata.data:
             name = stmt.statement
             value = stmt.value
@@ -170,33 +189,33 @@ class HttpClientEmitter:
             server_logger.debug("Applying transform: %s %r", name, value)
 
             if name == "prepend":
-                self.data = undo_transform_prepend(self.data, stmt.value)
+                data = undo_transform_prepend(data, stmt.value)
 
             elif name == "append":
-                self.data = undo_transform_append(self.data, stmt.value)
+                data = undo_transform_append(data, stmt.value)
 
             elif name == "base64":
-                self.data = base64_decode(self.data)
+                data = base64_decode(data)
 
             elif name == "base64url":
-                self.data = base64url_decode(self.data)
+                data = base64url_decode(data)
 
             elif name == "netbios":
-                self.data = netbios_decode(self.data)
+                data = netbios_decode(data)
 
             elif name == "netbiosu":
-                self.data = netbiosu_decode(self.data)
+                data = netbiosu_decode(data)
 
             elif name == "mask":
                 # assuming stmt.key or stmt.value holds the mask key
-                self.data = xor_mask(self.data, value)
+                data = xor_mask(data, value)
 
             else:
                 server_logger.debug("Skipping unsupported transform: %s", name)
 
-            server_logger.debug("Data after %s: %r", name, self.data)
+            server_logger.debug("Data after %s: %r", name, data)
 
-        return self.data
+        return data
 
 
 # other parsers here too...
