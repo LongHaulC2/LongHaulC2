@@ -21,6 +21,8 @@ class HttpServerEmitter:
     def __init__(self, server_block):
         """
         Server block: Parsed server block. Ex: mp.http_post.server
+
+        Handles the server parsing
         """
         self.server = server_block
 
@@ -113,6 +115,88 @@ class HttpServerEmitter:
             server_logger.debug("Data after %s: %r", name, data)
 
         return data
+
+
+"""
+    # client -> serer
+	client {
+        # can ignore all of these on the server side
+		parameter "utmac" "UA-2202604-2";
+		parameter "utmcn" "1";
+		parameter "utmcs" "ISO-8859-1";
+		parameter "utmsr" "1280x1024";
+		parameter "utmsc" "32-bit";
+		parameter "utmul" "en-US";
+
+        # this is waht we need
+		metadata {
+			base64url;
+			prepend "__utma";
+			parameter "utmcc";
+		}
+	}
+
+"""
+
+
+class HttpClientEmitter:
+    """
+    Handles all the client parsing
+    """
+
+    def __init__(self, client_block, data):
+        """
+        Server block: Parsed server block. Ex: mp.http_post.server
+
+        Handles the server parsing
+        """
+        self.client = client_block
+        self.data = data
+
+    def extract_data(self):
+        """
+        Does the inverse on the data that is specified in the malleablec2 to make it readable again
+        """
+        # room for more functions later, and extract_data makes more sense
+        # as a function name
+
+        self.apply_transforms()
+
+    def apply_transforms(self):
+        for stmt in self.client.metadata.data:
+            name = stmt.statement
+            value = stmt.value
+
+            server_logger.debug("Applying transform: %s %r", name, value)
+
+            if name == "prepend":
+                self.data = undo_transform_prepend(self.data, stmt.value)
+
+            elif name == "append":
+                self.data = undo_transform_append(self.data, stmt.value)
+
+            elif name == "base64":
+                self.data = base64_decode(self.data)
+
+            elif name == "base64url":
+                self.data = base64url_decode(self.data)
+
+            elif name == "netbios":
+                self.data = netbios_decode(self.data)
+
+            elif name == "netbiosu":
+                self.data = netbiosu_decode(self.data)
+
+            elif name == "mask":
+                # assuming stmt.key or stmt.value holds the mask key
+                self.data = xor_mask(self.data, value)
+
+            else:
+                server_logger.debug("Skipping unsupported transform: %s", name)
+
+            server_logger.debug("Data after %s: %r", name, self.data)
+
+        return self.data
 
 
 # other parsers here too...

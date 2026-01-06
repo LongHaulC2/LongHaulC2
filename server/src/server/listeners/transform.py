@@ -14,9 +14,33 @@ def transform_prepend(data: bytes, value) -> bytes:
     return b + data
 
 
+def undo_transform_prepend(data: bytes, value) -> bytes:
+    """
+    data: The bytes that *were* prepended, and are now getting removed
+    """
+    b = value if isinstance(value, bytes) else malleable_string_to_bytes(value)
+
+    if not data.startswith(b):
+        raise ValueError("Data does not start with the expected prefix")
+
+    return data[len(b) :]
+
+
 def transform_append(data: bytes, value) -> bytes:
     b = value if isinstance(value, bytes) else malleable_string_to_bytes(value)
     return data + b
+
+
+def undo_transform_append(data: bytes, value) -> bytes:
+    """
+    data: The bytes that *were* appended, and are now getting removed
+    """
+    b = value if isinstance(value, bytes) else malleable_string_to_bytes(value)
+
+    if not data.endswith(b):
+        raise ValueError("Data does not end with the expected suffix")
+
+    return data[: -len(b)]
 
 
 def base64_encode(data: bytes) -> bytes:
