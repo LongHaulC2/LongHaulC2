@@ -99,7 +99,11 @@ async def http_get(request: Request):
     match terminator_type:
         # [X] works
         case "header":
-            data_from_request = dict(request.headers).get(terminator_key)
+            # bug, header capatalziation. They should be case insensitive. Lowering for
+            # the comparison here, they previsouly were not, causing a mismatch.
+            normalized_headers = {k.lower(): v for k, v in request.headers.items()}
+            data_from_request = normalized_headers.get(terminator_key.lower())
+            print(request.headers)
             print(f"Data from request: {data_from_request}")
 
             hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
@@ -341,7 +345,8 @@ async def http_post(request: Request):
     match terminator_type:
         # [X] works
         case "header":
-            data_from_request = dict(request.headers).get(terminator_key)
+            normalized_headers = {k.lower(): v for k, v in request.headers.items()}
+            data_from_request = normalized_headers.get(terminator_key.lower())
             print(f"Data from request: {data_from_request}")
 
             hce = HttpPostBlockClientParser(client_block=mp.http_post.client)

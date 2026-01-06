@@ -90,16 +90,16 @@ The current supported options in Malleable C2 profiles:
 * [X] `append "string"` 
 * [X] `base64` 
 * [X] `base64url` 
-* [X] `mask` 
-* [X] `netbios` 
-* [X] `netbiosu` 
+* [untested] `mask` 
+* [untested] `netbios` 
+* [untested] `netbiosu` 
 * [X] `prepend "string"` 
 
 #### Termination options:
-* [ ] `header "header"` (send data in HTTP header) 
-* [ ] `parameter "key"` (send data as URI parameter) 
+* [X] `header "header"` (send data in HTTP header) 
+* [X] `parameter "key"` (send data as URI parameter) 
 * [X] `print` (send data in transaction body) 
-* [ ] `uri-append` (append data to URI) 
+* [X] `uri-append` (append data to URI) 
 
 ---
 # http-post:
@@ -107,29 +107,29 @@ The current supported options in Malleable C2 profiles:
 ### http-post.server
 
 #### Misc:
-* [ ] Add on headers (`header "Content-Type" "image/gif";`)
-* [ ] Output Block (`output {}`)
+* [X] Add on headers (`header "Content-Type" "image/gif";`)
+* [X] Output Block (`output {}`)
 
 ### http-post.server.output
 
 #### Transform operations:
-* [ ] `append "string"` 
-* [ ] `base64` 
-* [ ] `base64url` 
-* [ ] `mask` 
-* [ ] `netbios` 
-* [ ] `netbiosu` 
-* [ ] `prepend "string"` 
+* [X] `append "string"` 
+* [X] `base64` 
+* [X] `base64url` 
+* [untested] `mask` 
+* [untested] `netbios` 
+* [untested] `netbiosu` 
+* [X] `prepend "string"` 
 
 #### Termination options:
-* [ ] `header "header"` (send data in HTTP header) 
-* [ ] `parameter "key"` (send data as URI parameter) 
-* [ ] `print` (send data in transaction body) 
-* [ ] `uri-append` (append data to URI) 
+* [X] `header "header"` (send data in HTTP header) 
+* [X] `parameter "key"` (send data as URI parameter) 
+* [X] `print` (send data in transaction body) 
+* [X] `uri-append` (append data to URI) 
 
 ---
 # http-stager:
- - STAGERS NOT SUPPORTED. 
+ - STAGERS NOT SUPPORTED. NOT IN SCOPE FOR PROJECT
 
 # Options:
 

@@ -41,11 +41,33 @@
 
       # after  that, client side support would be good to look into
       
-      - [ ] terminiation types (learn how cs puts data in the responses) 
+      - [X] terminiation types (learn how cs puts data in the responses) 
             Spin up  wireshark and do some research with an http beacon on where this data is put for each terminator type
 
-   - [ ] REQUEST
-      ...
+
+   See readme, tldr:
+      left off  trying different profiles. Things to do:
+
+      ### 1. **Test Various Malleable C2 Profiles**
+         - [ ] Test different C2 profiles.
+         - [ ] Experiment with different configurations to see if I can break it
+
+      ### 2. **Global Options**
+         - [ ] Set up global options handling for the system.
+
+      ### 3. **Redis Integration**
+         - [ ] hook into Redis for task management.
+         - [ ] Ensure proper data retrieval from Redis.
+         - [ ] Implement tasking mechanisms to inject custom data into responses.
+
+      ### 4. **Error Handling**
+         - [ ] Implement error handling for invalid profiles.
+         - [ ] Add error handling for invalid options or bad configurations.
+         - [ ] Create logging for when errors occur.
+         - [ ] Graceful failure for unexpected scenarios (e.g., invalid data format, connection issues).
+
+      ### 5. teseting:
+         - [ ] Test "untested" methods in readme to make sure they work. 
 
  - [ ] Implant
 
