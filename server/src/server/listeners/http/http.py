@@ -10,11 +10,14 @@ from fastapi import Response, FastAPI, Request, status, HTTPException
 from fastapi.responses import JSONResponse
 from yarl import URL
 import uvicorn
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.datastructures import MutableHeaders
 from ..malc2 import (
     HttpGetBlockServerParser,
     HttpGetBlockClientParser,
     HttpPostBlockServerParser,
     HttpPostBlockClientParser,
+    HttpConfigBlockServerParser,
 )
 
 app = FastAPI
@@ -41,6 +44,9 @@ def run(listener_uuid: str):
         version="0.0.0",
     )
 
+    # header handling
+    app.add_middleware(HeadersMiddleware)
+
     # setup get route
     http_get_method = getattr(mp.http_get.verb, "value", "GET")
     register_http_get_route(method=http_get_method, uri=URL(mp.http_get.uri.value))
@@ -50,7 +56,8 @@ def run(listener_uuid: str):
     register_http_post_route(method=http_post_method, uri=URL(mp.http_post.uri.value))
 
     # reload needs to be OFF.
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
+    # server_header=false disabled  "server uvicorn" in the response
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False, server_header=False)
 
 
 ###################################
@@ -58,7 +65,7 @@ def run(listener_uuid: str):
 ###################################
 
 
-def check_if_data(data_from_request):
+def check_if_data(data_from_request):  #
     """
     Check if the request had data (evaluates falsey-ness). If not, return a 400.
 
@@ -69,8 +76,79 @@ def check_if_data(data_from_request):
     if not data_from_request:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Missing required header",
+            # intentially vague to not give away what field the data is in
+            detail=f"Missing required data",
         )
+
+
+def check_user_agent(user_agent) -> bool:
+    """
+    Checks user agent. If allowed (via profile), returns true
+    else, false
+    """
+    ...
+    return True
+    if user_agent != "bob":
+        return False
+    else:
+        return True
+    # if user agent matches block, return a 400? or just sinkhole
+    # if user agent matches allow, return
+
+
+###################################
+# Various Middleware
+###################################
+class HeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Add/removes headers to each request.
+
+    Pulls which headers to add/remove based on malleable c2 profiles
+    """
+
+    async def dispatch(self, request, call_next):
+        # Call the next request handler
+        response = await call_next(request)
+
+        hcbsp = HttpConfigBlockServerParser(mp.http_config)
+
+        headers_to_add = hcbsp.get_headers_to_add_to_request()
+        # get all added headers
+        for header, value in headers_to_add.items():
+            # del existing headers first (so you don't endup with 2 of the same)
+            # RFC 7230 (Section 3.2.2) (for HTTP/1.1) states that:
+            # A sender SHOULD NOT generate duplicate header fields, and a recipient SHOULD ignore duplicate header fields unless otherwise indicated."
+            if header in response.headers:
+                """
+                Ignore header if it already exists.
+                https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_http-server-config.htm#_Toc65482845
+
+                header - This keyword adds a header value to each of Cobalt Strike’s HTTP
+                responses. If the header value is already defined in a response, this value
+                is ignored.
+                """
+                continue
+
+            # then add
+            print(f"Adding header: {header}: {value}")
+            response.headers[header] = value
+
+            # could just replace too instead of deleting.
+
+        # After constructing, reorder the headers according to the desired order
+        ordered_headers = hcbsp.reorder_headers(response.headers)
+        """
+            oh my fuck this is kind of cursed. Had to go into the response calss
+            definition, and find a method that reset the headers.
+            hopefully this doesn't break in the future, but for now,
+            init_headers takes a dict of headers, which overwrites the old ones.
+
+            Headers work and are in order now
+        """
+        response.init_headers(headers=ordered_headers)
+        print(response.headers)
+
+        return response
 
 
 ###################################
@@ -93,6 +171,13 @@ async def http_get(request: Request):
 
     !!Holy shit clean this all up
     """
+    # security checks
+    user_agent = request.headers.get("user-agent")
+    print(user_agent)
+
+    # 204 on fail. Can't sinkhole without extra setup/steps atm.
+    if not check_user_agent(user_agent):
+        return Response(status_code=204)
 
     """
     Handle inputted data form fastapi
@@ -577,3 +662,7 @@ def register_http_post_route(
 
     This way, FastAPI can process both the static and dynamic parts of the URL correctly.    
     """
+
+
+# name == main linter here? ex, setup and show what a request might look like?
+# not a must.

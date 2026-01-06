@@ -9,6 +9,15 @@ set jitter    "0";
 set maxdns    "255";
 set useragent "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko";
 
+http-config {
+    set headers "Date, Connection, Keep-Alive, Content-Length, Content-Type"; 
+    header "Server" "Apache";
+    header "Keep-Alive" "timeout=5, max=100";    
+    header "Connection" "Keep-Alive";
+    set trust_x_forwarded_for "true";
+    set block_useragents "curl*,lynx*,wget*";
+}
+
 http-get {
 
     set uri "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";

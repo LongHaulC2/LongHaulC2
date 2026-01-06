@@ -17,6 +17,82 @@ server_logger = logging.getLogger("server")
 ###################################
 # HTTP Parse
 ###################################
+class HttpConfigBlockServerParser:
+    """ """
+
+    def __init__(self, http_config):
+        """
+        Server block: Parsed server block. Ex: mp.http_post.server
+
+        Handles the server parsing
+        """
+        self.http_config = http_config
+
+    def get_allowed_user_agents(self) -> dict: ...
+    def get_blocked_user_agents(self) -> dict: ...
+    def get_headers_to_add_to_request(self) -> dict:
+        """
+        Add all the headers specifed by 'header "x-1", "value"' in the malleable c2 profile
+
+        """
+        # https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_http-server-config.htm#_Toc65482845
+        headers = {}
+
+        # Add in rest of headers based on declared headers
+        headers.update(
+            {
+                stmt.key: stmt.value
+                for stmt in self.http_config.data
+                if getattr(stmt, "statement", None) == "header"
+            }
+        )
+        server_logger.debug(f"Extracted Headers: {list(headers.items())}")
+        return headers
+
+    def reorder_headers(self, headers) -> dict:
+        """
+        IF, and a big IF the headers are included in the current headers,
+        re-order them according to the malleable c2 profile set headers.
+
+        If a header is NOT ALREADY included in the header list, it WILL NOT be added.
+
+        returns new headers.
+
+        https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_http-server-config.htm#_Toc65482845
+
+        """
+        # Sample headers (this would be the actual headers in a real request/response)
+        # headers = {
+        #     "X-Header-1": "Value 1",
+        #     "X-Header-2": "Value 2",
+        #     "X-Header-3": "Value 3",
+        #     "X-Header-4": "Value 4",
+        # }
+
+        # # Define the order you want the headers to follow (you can define custom order)
+        # desired_order = ["X-Header-3", "X-Header-1", "X-Header-2", "X-Header-4"]
+
+        ordered_headers = self.http_config.headers.value
+        if ordered_headers:
+            # cleanup  headers, turn into a list
+            ordered_headers = ordered_headers.strip().split(",")
+
+            # Strip whitespace around each individual header
+            ordered_headers = [header.strip() for header in ordered_headers]
+            print(ordered_headers)
+
+        # Reorder the headers according to the desired_order
+        ordered_headers = {
+            header: headers[header] for header in ordered_headers if header in headers
+        }
+        print(ordered_headers)
+        return ordered_headers
+        # You can now return the ordered headers in the response
+        # return Response(content="Headers have been reordered.", headers=ordered_headers)
+
+    def get_headers_to_remove_from_request(self) -> dict: ...
+
+
 class HttpGetBlockServerParser:
     def __init__(self, server_block):
         """

@@ -128,6 +128,17 @@ The current supported options in Malleable C2 profiles:
 * [X] `print` (send data in transaction body) 
 * [X] `uri-append` (append data to URI) 
 
+### http-config
+https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_http-server-config.htm#_Toc65482845
+
+goes with every response served by listener
+
+* [ ] `set headers ` (`set headers "Date, Server, Content-Length, Keep-Alive, 
+                    Connection, Content-Type"`)
+* [ ] `header "header"`
+* [unsure if needed yet] `set trust_x_forwarded_for` 
+* [ ] block_useragents 
+* [ ] allow_useragents
 ---
 # http-stager:
  - STAGERS NOT SUPPORTED. NOT IN SCOPE FOR PROJECT.
@@ -152,4 +163,4 @@ The current supported options in Malleable C2 profiles:
 * [ ] `tasks_dns_proxy_max_size` 
 * [ ] `tcp_frame_header` 
 * [ ] `tcp_port` 
-* [ ] `useragent` (global default) 
+* [todo] `useragent` (global default) 
