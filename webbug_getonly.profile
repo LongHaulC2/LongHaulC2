@@ -20,7 +20,7 @@ http-get {
 			prepend "__utma";
 			#parameter "utmcc";
 			#header "x-test";
-			uri-append;
+			print;
 		}
 	}
 

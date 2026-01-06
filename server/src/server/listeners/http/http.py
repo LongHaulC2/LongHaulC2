@@ -102,8 +102,6 @@ async def http_get(request: Request):
 
         # [X] works
         case "parameter":
-            # get URLparameter
-            # ex, would  get value ofutmcc
             data_from_request = request.query_params.get(terminator_key)
             print(f"Data from request: {data_from_request}")
 
@@ -112,32 +110,22 @@ async def http_get(request: Request):
 
             ...
 
-        # [ ] works
-        # case "uri-append":
-        #     # assuming its something like /adskjfksdfjsdlkfjasdklfsjdaklfsd==
-        #     # https://www.cobaltstrike.com/blog/malleable-command-and-control
-        #     print("uri_append")
-
-        #     ...
-
-        # [ ] works
+        # [X] works
         case "print":
             # in body, so just get body
-            print("print")
-            ...
-
-        case None:
-            ...
+            data_from_request = await request.body()
+            hce = HttpClientEmitter(client_block=mp.http_get.client)
+            print(f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}")
 
         case _:
             # unknown terminator
             print("Unknown terminator: %r", terminator_type)
+            # throw error cuz we can't continue if we don't have the task
 
     """
     Setup a response for the implant
 
     """
-
     # pass in block to respective class
     emitter = HttpServerEmitter(mp.http_get.server)
 
@@ -157,7 +145,7 @@ async def http_get(request: Request):
     header "header" 	Store data in an HTTP header
     parameter "key" 	Store data in a URI parameter
     print 	            Send data as transaction body
-    uri-append 	        Append to URI
+    uri-append 	        Append to URI (seperate function, see http_get_uri)
     """
     terminator_type, target = emitter.get_terminator()
 
@@ -183,16 +171,9 @@ async def http_get(request: Request):
             # and construct the response
             return Response(content=body, headers=headers)
 
-        case None:
-            # fallback if no terminator\
-
-            body = data
-            return Response(content=body, headers=headers)
-
         case _:
             # unknown terminator
             print("Unknown terminator: %r", terminator_type)
-            body = data
             return Response(status_code=500)
 
 
@@ -302,7 +283,7 @@ def register_http_get_route(
         (e.g., `/myuri/some-random-data`), FastAPI treats `/myuri` as a fixed endpoint and doesn't automatically handle `/myuri/{data}`. 
 
     To handle this, you need two routes:
-    1. One for the base path (`/myuri`).
+    1. One for the base path (`/myuri`). (note, /myuri/ will 307 -> /myuri, this is fine)
     2. Another for the dynamic append (`/myuri/{data}`).
 
     This way, FastAPI can process both the static and dynamic parts of the URL correctly.    
