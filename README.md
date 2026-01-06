@@ -130,16 +130,16 @@ The current supported options in Malleable C2 profiles:
 
 ---
 # http-stager:
- - STAGERS NOT SUPPORTED. NOT IN SCOPE FOR PROJECT
+ - STAGERS NOT SUPPORTED. NOT IN SCOPE FOR PROJECT.
 
 # Options:
 
 * [ ] `data_jitter` 
 * [ ] `headers_remove` 
-* [ ] `host_stage` 
+~~* [ ] `host_stage`~~
 * [ ] `jitter` 
 * [ ] `pipename` 
-* [ ] `pipename_stager` 
+~~* [ ] `pipename_stager` ~~
 * [ ] `sample_name` 
 * [ ] `sleep` 
 * [ ] `sleeptime` 

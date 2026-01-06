@@ -6,7 +6,7 @@ from time import sleep
 from edwh_uuid7 import uuid7
 
 from mpp import MalleableProfile
-from fastapi import Response, FastAPI, Request
+from fastapi import Response, FastAPI, Request, status, HTTPException
 from fastapi.responses import JSONResponse
 from yarl import URL
 import uvicorn
@@ -102,29 +102,68 @@ async def http_get(request: Request):
             # bug, header capatalziation. They should be case insensitive. Lowering for
             # the comparison here, they previsouly were not, causing a mismatch.
             normalized_headers = {k.lower(): v for k, v in request.headers.items()}
-            data_from_request = normalized_headers.get(terminator_key.lower())
+            data_from_request = normalized_headers.get(terminator_key.lower(), None)
+
+            if not data_from_request:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Missing required header",
+                )
+
             print(request.headers)
             print(f"Data from request: {data_from_request}")
 
-            hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
-            print(f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}")
+            try:
+                hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
+                print(
+                    f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}"
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400, detail="Invalid or malformed client data"
+                )
 
         # [X] works
         case "parameter":
-            data_from_request = request.query_params.get(terminator_key)
+            data_from_request = request.query_params.get(terminator_key, None)
             print(f"Data from request: {data_from_request}")
 
-            hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
-            print(f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}")
+            if not data_from_request:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Missing required parameter",
+                )
 
-            ...
+            try:
+                hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
+                print(
+                    f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}"
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400, detail="Invalid or malformed client data"
+                )
 
         # [X] works
         case "print":
             # in body, so just get body
             data_from_request = await request.body()
-            hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
-            print(f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}")
+
+            if not data_from_request:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Missing required parameter",
+                )
+
+            try:
+                hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
+                print(
+                    f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}"
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400, detail="Invalid or malformed client data"
+                )
 
         case _:
             # unknown terminator
@@ -198,11 +237,14 @@ async def http_get_uri(request: Request, data: str):
         request.url
     )  # Full URL including the scheme, host, path, and query params. useful for logging
 
-    hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
-    print(f"De-Obsfucated data: {hce.apply_transforms(data=data)}")
+    try:
+        hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
+        print(f"De-Obsfucated data: {hce.apply_transforms(data=data)}")
 
-    print(f"Full URL: {full_uri}")
-    print(f"Data from URL: {data}")
+        print(f"Full URL: {full_uri}")
+        print(f"Data from URL: {data}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     # save to redis...
     # generate response...
@@ -349,24 +391,61 @@ async def http_post(request: Request):
             data_from_request = normalized_headers.get(terminator_key.lower())
             print(f"Data from request: {data_from_request}")
 
-            hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
-            print(f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}")
+            if not data_from_request:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Missing required parameter",
+                )
 
+            try:
+                hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
+                print(
+                    f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}"
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400, detail="Invalid or malformed client data"
+                )
         # [X] works
         case "parameter":
             data_from_request = request.query_params.get(terminator_key)
             print(f"Data from request: {data_from_request}")
 
-            hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
-            print(f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}")
+            if not data_from_request:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Missing required parameter",
+                )
 
+            try:
+                hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
+                print(
+                    f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}"
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400, detail="Invalid or malformed client data"
+                )
         # [X] works
         case "print":
             # in body, so just get body
             data_from_request = await request.body()
-            hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
-            print(f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}")
 
+            if not data_from_request:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Missing required parameter",
+                )
+
+            try:
+                hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
+                print(
+                    f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}"
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400, detail="Invalid or malformed client data"
+                )
         case _:
             # unknown terminator
             print("Unknown terminator: %r", terminator_type)
@@ -437,11 +516,14 @@ async def http_post_uri(request: Request, data: str):
         request.url
     )  # Full URL including the scheme, host, path, and query params. useful for logging
 
-    hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
-    print(f"De-Obsfucated data: {hce.apply_transforms(data=data)}")
+    try:
+        hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
+        print(f"De-Obsfucated data: {hce.apply_transforms(data=data)}")
 
-    print(f"Full URL: {full_uri}")
-    print(f"Data from URL: {data}")
+        print(f"Full URL: {full_uri}")
+        print(f"Data from URL: {data}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     # save to redis...
     # generate response...
