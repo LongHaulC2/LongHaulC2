@@ -78,20 +78,7 @@ async def http_get(request: Request):
     # all_params = dict(request.query_params)
     # print(all_params)
 
-    # maybe validate those params.
-    # like if "incorrect params", then redirect to some other page.
-
-    # also, grab the parameter specified in metadata, and untransform it.
-    # hce = HttpClientEmitter(client_block=mp.http_get.client, data=all_params)
-    # plaintext = hce.apply_transforms()
-    # print(plaintext)
-
-    # based on specified paramter/etc, pull out the data based on malleable c2
-    # last item in metadata is where the data is stored.
-    # current options I can find: header, parameter. URI append and print may work here too
-
     # steps
-
     # 1. get last item in metadata
     # terminator_type = "parameter"
 
@@ -204,6 +191,22 @@ async def http_get(request: Request):
             body = data
 
 
+def register_http_get_route(
+    uri: URL,
+    method: str,
+):
+    """
+    Registeres routes. Prevents these being called on import as well.
+    """
+    app.add_api_route(
+        path=str(URL(uri)),
+        endpoint=http_get,  # logic for endpoint here
+        methods=[method],
+        # response_model=dict,
+        # tags=["items"],
+    )
+
+
 ###################################
 # HTTP POST
 ###################################
@@ -223,22 +226,6 @@ async def http_post():
     # ex, strip all BS, connect to redis, dump into it.
 
     return Response(content=body, headers=headers)
-
-
-def register_http_get_route(
-    uri: URL,
-    method: str,
-):
-    """
-    Registeres routes. Prevents these being called on import as well.
-    """
-    app.add_api_route(
-        path=str(URL(uri)),
-        endpoint=http_get,  # logic for endpoint here
-        methods=[method],
-        # response_model=dict,
-        # tags=["items"],
-    )
 
 
 def register_http_post_route(
