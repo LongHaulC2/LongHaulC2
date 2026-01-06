@@ -16,8 +16,8 @@ http-get {
 		parameter "utmul" "en-US";
 
 		metadata {
-			#base64url;
-			#prepend "__utma";
+			base64url;
+			prepend "__utma";
 			parameter "utmcc";
 		}
 	}
