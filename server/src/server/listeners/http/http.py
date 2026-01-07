@@ -155,9 +155,10 @@ async def deobsfucate_malleable_c2_request_data(
         - "print": Extracts data from the request body.
     - terminator_key (str, optional): The key used to identify the specific data within the terminator type. For example, the header or parameter name. This is only required for certain terminator types (like "header" or "parameter").
     - Malleable C2 block: The block to get values from: ex: mp.http_get.client if decoding an inbound GET request
+    - parser_class: The parser class used to extract data. Ex, HttpPostBlockServerParser. Needed because each class has some block specific options
 
     Returns:
-    - str: The extracted data, which may undergo transformation (e.g., de-obfuscation) if necessary.
+    - bytes: The extracted data
 
     Raises:
     - ValueError: If an unsupported `terminator_type` is provided.
