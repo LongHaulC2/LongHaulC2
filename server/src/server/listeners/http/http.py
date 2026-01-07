@@ -1,6 +1,10 @@
-# PLACEHOLDER while I figure out the supervisor logic
+"""
+HTTP Malleable C2 Listener
 
-# must haves: run entrypoint, that is a func, most flexible + no class init then by the supervisor (adds complexity)
+An HTTP Listener, which is defined by a Malleable C2 Profile.
+
+
+"""
 
 from time import sleep
 from edwh_uuid7 import uuid7
@@ -50,11 +54,21 @@ def run(listener_uuid: str):
 
     # setup get route
     http_get_method = getattr(mp.http_get.verb, "value", "GET")
-    register_http_get_route(method=http_get_method, uri=URL(mp.http_get.uri.value))
+    register_http_route(
+        method=http_get_method,
+        uri=URL(mp.http_get.uri.value),
+        endpoint=http_get,
+        uri_endpoint=http_get_uri,
+    )
 
     # setup post route
     http_post_method = getattr(mp.http_post.verb, "value", "POST")
-    register_http_post_route(method=http_post_method, uri=URL(mp.http_post.uri.value))
+    register_http_route(
+        method=http_post_method,
+        uri=URL(mp.http_post.uri.value),
+        endpoint=http_post,
+        uri_endpoint=http_post_uri,
+    )
 
     # reload needs to be OFF.
     # server_header=false disabled  "server uvicorn" in the response
@@ -288,7 +302,7 @@ HTTP POST with CS is where task data is retrieved from the server.
 """
 
 
-async def http_get(request: Request):
+async def http_get(request: Request) -> Response:
     """
     HTTP GET endpoint for the HTTP listener.
 
@@ -303,7 +317,7 @@ async def http_get(request: Request):
     user_agent = request.headers.get("user-agent")
     print(user_agent)
 
-    # 204 on fail. Can't sinkhole without extra setup/steps atm.
+    # 404 on fail. Can't sinkhole without extra setup/steps atm.
     if not check_user_agent(user_agent):
         return Response(status_code=404)
 
@@ -311,17 +325,6 @@ async def http_get(request: Request):
     Handle inputted data form fastapi
 
     """
-    # all_params = dict(request.query_params)
-    # print(all_params)
-
-    # steps
-    # 1. get last item in metadata
-    # terminator_type = "parameter"
-
-    # 2. Switch case based on terminator type
-
-    # 3. extract data based on term, then de-obsfucate as needed
-
     hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
     try:
         metadata_terminator_type, metadata_terminator_key = (
@@ -393,7 +396,7 @@ async def http_get(request: Request):
             return Response(status_code=500)
 
 
-async def http_get_uri(request: Request, data: str):
+async def http_get_uri(request: Request, data: str) -> Response:
     """ """
     print(request)
     print(data)
@@ -471,44 +474,6 @@ async def http_get_uri(request: Request, data: str):
             return Response(status_code=500)
 
 
-def register_http_get_route(
-    uri: URL,
-    method: str,
-):
-    """
-    Registeres routes. Prevents these being called on import as well.
-    """
-    app.add_api_route(
-        path=str(URL(uri)),
-        endpoint=http_get,  # logic for endpoint here
-        methods=[method],
-        # response_model=dict,
-        # tags=["items"],
-    )
-
-    # for uri-append, add another route
-    # hack together a string for what it wants: "myuri/{data}"
-    full_uri = str(uri) + "/{data}"
-    # Register the route with the dynamic path
-    app.add_api_route(
-        path=str(full_uri),
-        endpoint=http_get_uri,  # The handler function for this route
-        methods=[method],
-    )
-    """
-    Why Two Routes are Needed in FastAPI:
-
-    FastAPI resolves routes based on exact paths. When using Cobalt Strike's `uri-append` 
-        (e.g., `/myuri/some-random-data`), FastAPI treats `/myuri` as a fixed endpoint and doesn't automatically handle `/myuri/{data}`. 
-
-    To handle this, you need two routes:
-    1. One for the base path (`/myuri`). (note, /myuri/ will 307 -> /myuri, this is fine)
-    2. Another for the dynamic append (`/myuri/{data}`).
-
-    This way, FastAPI can process both the static and dynamic parts of the URL correctly.    
-    """
-
-
 ###################################
 # HTTP POST
 ###################################
@@ -518,7 +483,7 @@ HTTP POST with CS is where task response data is sent back to
 """
 
 
-async def http_post(request: Request):
+async def http_post(request: Request) -> Response:
     """
     HTTP POST endpoint for the HTTP listener.
 
@@ -528,7 +493,11 @@ async def http_post(request: Request):
     - This design enables a more flexible and malleable C2 interface.
 
     """
-
+    user_agent = request.headers.get("user-agent")
+    print(user_agent)
+    # 404 on fail. Can't sinkhole without extra setup/steps atm.
+    if not check_user_agent(user_agent):
+        return Response(status_code=404)
     """
     Handle inputted data form fastapi.
 
@@ -619,7 +588,7 @@ async def http_post(request: Request):
             return Response(status_code=500)
 
 
-async def http_post_uri(request: Request, data: str):
+async def http_post_uri(request: Request, data: str) -> Response:
     """ """
 
     # we can assume URI terminator is uri-append.
@@ -657,17 +626,19 @@ async def http_post_uri(request: Request, data: str):
     # redis lookup for next task -> insert where print it
 
 
-def register_http_post_route(
-    uri: URL,
-    method: str,
-):
+###################################
+# Route setup
+###################################
+
+
+def register_http_route(uri: URL, method: str, endpoint, uri_endpoint):
     """
     Registeres routes. Prevents these being called on import as well.
     """
     # HTTP POST ROUTE
     app.add_api_route(
         path=str(URL(uri)),
-        endpoint=http_post,  # logic for endpoint here
+        endpoint=endpoint,  # logic for endpoint here
         methods=[method],
         # response_model=dict,
         # tags=["items"],
@@ -679,7 +650,7 @@ def register_http_post_route(
     # Register the route with the dynamic path
     app.add_api_route(
         path=str(full_uri),
-        endpoint=http_post_uri,  # The handler function for this route
+        endpoint=uri_endpoint,  # The handler function for this route
         methods=[method],
     )
     """

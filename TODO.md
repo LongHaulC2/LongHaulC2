@@ -51,6 +51,9 @@
       ### 1. **Test Various Malleable C2 Profiles**
          - [ ] Test different C2 profiles.
          - [ ] Experiment with different configurations to see if I can break it
+         - [ ] Mask is busted, needs a key, and that doesnt seem to be specified in the 
+               mc2 profile. Need a way to store that key, or just not include mask at the moment.
+            * [Throws Key Error] `mask` 
 
       ### 2. **Global Options**
          - [ ] Set up global options handling for the system.
@@ -66,9 +69,9 @@
          - [ ] Create logging for when errors occur.
          - [X] Graceful failure for unexpected scenarios (e.g., invalid data format, connection issues).
 
-      ### 5. teseting:
+      ### 5. teseting & docs:
          - [ ] Test "untested" methods in readme to make sure they work. 
-
+         - [ ] Create a draw io of full path of data as it comes in (including if bytes, etc. When headers appended, etc. For post and get)
       ### Addtl HTTP blocks:
          - [X] http-config
 

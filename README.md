@@ -117,9 +117,9 @@ The current supported options in Malleable C2 profiles:
 * [X] `append "string"` 
 * [X] `base64` 
 * [X] `base64url` 
-* [untested] `mask` 
-* [untested] `netbios` 
-* [untested] `netbiosu` 
+* [Throws Key Error] `mask` 
+* [X] `netbios` 
+* [X] `netbiosu` 
 * [X] `prepend "string"` 
 
 #### Termination options:
@@ -163,4 +163,4 @@ goes with every response served by listener
 * [ ] `tasks_dns_proxy_max_size` 
 * [ ] `tcp_frame_header` 
 * [ ] `tcp_port` 
-* [todo] `useragent` (global default) 
+* [ ] `useragent` (global default) 
