@@ -464,6 +464,25 @@ class HttpPostBlockClientParser:
         # fallback if no terminator found
         return None, None
 
+    def get_id_terminator(self):
+        """
+        Return a tuple: (terminator_type, target_name)
+        - terminator_type: "header", "parameter", "print", "uri-append"
+        - target_name: header name / parameter key, or None if body
+        """
+        for stmt in self.client.id.data:
+            name = stmt.statement
+            value = stmt.value
+
+            if name in ("header", "parameter", "uri-append"):
+                return name, value
+            elif name == "print":
+                return "print", None
+            # if multiple terminators, this will return the last one
+
+        # fallback if no terminator found
+        return None, None
+
     def extract_data(self):
         """
         Does the inverse on the data that is specified in the malleablec2 to make it readable again

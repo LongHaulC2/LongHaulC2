@@ -124,11 +124,101 @@ def check_user_agent(user_agent) -> bool:
                 return True  # Allowed agent
 
     # Default return if no matches were found
-    print("User-agent not allowed (no matching patterns found)")
+    # print("User-agent not allowed (no matching patterns found)")
     return True  # Default to allow through if not in blocked, and there's nothign in
 
 
-# allow list/that option is not set
+# getting a 400 somehow:
+#'NoneType' object has no attribute 'data'
+async def deobsfucate_malleable_c2_request_data(
+    request: Request,
+    terminator_type,
+    # coudl just require the parser class instead of adding both
+    malleable_c2_block,
+    parser_class,
+    terminator_key=None,
+) -> bytes:
+    """
+    Extracts data from the HTTP request based on the specified terminator type.
+    This function is designed to work with the FastAPI `Request` object to extract
+    relevant data (e.g., headers, query parameters, or body content) based on the
+    configured extraction method.
+
+    The function is tightly coupled with the HTTP request structure, making it
+    suitable for use in FastAPI endpoints that process incoming requests.
+
+    Parameters:
+    - request (Request): The FastAPI `Request` object containing the HTTP request data.
+    - terminator_type (str): Specifies the type of terminator used to define where to extract the data from. Possible values are:
+        - "header": Extracts data from the HTTP headers.
+        - "parameter": Extracts data from URL query parameters.
+        - "print": Extracts data from the request body.
+    - terminator_key (str, optional): The key used to identify the specific data within the terminator type. For example, the header or parameter name. This is only required for certain terminator types (like "header" or "parameter").
+    - Malleable C2 block: The block to get values from: ex: mp.http_get.client if decoding an inbound GET request
+
+    Returns:
+    - str: The extracted data, which may undergo transformation (e.g., de-obfuscation) if necessary.
+
+    Raises:
+    - ValueError: If an unsupported `terminator_type` is provided.
+    - Exception: If there is an error during the data extraction or transformation process.
+
+    Notes:
+    - This function assumes the `request` object is passed, which is required for data extraction from headers, query parameters, and the body. It is specifically designed for FastAPI endpoints.
+    - The function includes basic error handling, raising exceptions when an unsupported terminator type is provided or if data extraction fails.
+    """
+    match terminator_type:
+        # [X] works
+        case "header":
+            normalized_headers = {k.lower(): v for k, v in request.headers.items()}
+            data_from_request = normalized_headers.get(terminator_key.lower())
+            print(f"Data from request: {data_from_request}")
+            check_if_data(data_from_request)
+
+            try:
+                hce = parser_class(client_block=malleable_c2_block)
+                data = hce.apply_transforms(data=data_from_request)
+                print(f"De-Obsfucated data: {data}")
+                return data
+            except Exception as e:
+                print(e)
+                raise e
+
+        # [X] works
+        case "parameter":
+            data_from_request = request.query_params.get(terminator_key)
+            print(f"Data from request: {data_from_request}")
+
+            check_if_data(data_from_request)
+
+            try:
+                hce = parser_class(client_block=malleable_c2_block)
+                data = hce.apply_transforms(data=data_from_request)
+                print(f"De-Obsfucated data: {data}")
+                return data
+            except Exception as e:
+                print(e)
+                raise e
+        # [X] works
+        case "print":
+            # in body, so just get body
+            data_from_request = await request.body()
+
+            check_if_data(data_from_request)
+
+            try:
+                hce = parser_class(client_block=malleable_c2_block)
+                data = hce.apply_transforms(data=data_from_request)
+                print(f"De-Obsfucated data: {data}")
+                return data
+            except Exception as e:
+                print(e)
+                raise e
+        case _:
+            # unknown terminator
+            print("Unknown terminator: %r", terminator_type)
+            # throw error cuz we can't continue if we don't have the task
+            raise ValueError
 
 
 ###################################
@@ -232,73 +322,20 @@ async def http_get(request: Request):
     # 3. extract data based on term, then de-obsfucate as needed
 
     hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
-    # extract terminator data
-    terminator_type, terminator_key = hce.get_metadata_terminator()
-
-    # print(terminator_type)
-    # print(terminator_key)
-
-    match terminator_type:
-        # [X] works
-        case "header":
-            # bug, header capatalziation. They should be case insensitive. Lowering for
-            # the comparison here, they previsouly were not, causing a mismatch.
-            normalized_headers = {k.lower(): v for k, v in request.headers.items()}
-            data_from_request = normalized_headers.get(terminator_key.lower(), None)
-
-            check_if_data(data_from_request)
-
-            print(request.headers)
-            print(f"Data from request: {data_from_request}")
-
-            try:
-                hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
-                print(
-                    f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}"
-                )
-            except Exception as e:
-                raise HTTPException(
-                    status_code=400, detail="Invalid or malformed client data"
-                )
-
-        # [X] works
-        case "parameter":
-            data_from_request = request.query_params.get(terminator_key, None)
-            print(f"Data from request: {data_from_request}")
-
-            check_if_data(data_from_request)
-
-            try:
-                hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
-                print(
-                    f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}"
-                )
-            except Exception as e:
-                raise HTTPException(
-                    status_code=400, detail="Invalid or malformed client data"
-                )
-
-        # [X] works
-        case "print":
-            # in body, so just get body
-            data_from_request = await request.body()
-
-            check_if_data(data_from_request)
-
-            try:
-                hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
-                print(
-                    f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}"
-                )
-            except Exception as e:
-                raise HTTPException(
-                    status_code=400, detail="Invalid or malformed client data"
-                )
-
-        case _:
-            # unknown terminator
-            print("Unknown terminator: %r", terminator_type)
-            # throw error cuz we can't continue if we don't have the task
+    try:
+        metadata_terminator_type, metadata_terminator_key = (
+            hce.get_metadata_terminator()
+        )
+        data_from_implant = await deobsfucate_malleable_c2_request_data(
+            request=request,
+            terminator_type=metadata_terminator_type,
+            terminator_key=metadata_terminator_key,
+            malleable_c2_block=mp.http_get.client,
+            parser_class=HttpGetBlockClientParser,
+        )
+        print(f"Data from implant: {data_from_implant}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     """
     Setup a response for the implant
@@ -492,82 +529,39 @@ async def http_post(request: Request):
     """
 
     """
-    Handle inputted data form fastapi
+    Handle inputted data form fastapi.
+
+    On failure,return a 400 for bad data
 
     """
-    # all_params = dict(request.query_params)
-    # print(all_params)
-
-    # steps
-    # 1. get last item in metadata
-    # terminator_type = "parameter"
-
-    # 2. Switch case based on terminator type
-
-    # 3. extract data based on term, then de-obsfucate as needed
-
     hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
     # extract terminator data
     # for some reason, http-post uses output, not metadata
-    terminator_type, terminator_key = hce.get_output_terminator()
+    try:
+        output_terminator_type, output_terminator_key = hce.get_output_terminator()
+        data_from_implant = await deobsfucate_malleable_c2_request_data(
+            request=request,
+            terminator_type=output_terminator_type,
+            terminator_key=output_terminator_key,
+            malleable_c2_block=mp.http_post.client,
+            parser_class=HttpPostBlockClientParser,
+        )
+        print(f"Data from implant: {data_from_implant}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
-    # print(terminator_type)
-    # print(terminator_key)
-
-    match terminator_type:
-        # [X] works
-        case "header":
-            normalized_headers = {k.lower(): v for k, v in request.headers.items()}
-            data_from_request = normalized_headers.get(terminator_key.lower())
-            print(f"Data from request: {data_from_request}")
-
-            check_if_data(data_from_request)
-
-            try:
-                hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
-                print(
-                    f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}"
-                )
-            except Exception as e:
-                raise HTTPException(
-                    status_code=400, detail="Invalid or malformed client data"
-                )
-        # [X] works
-        case "parameter":
-            data_from_request = request.query_params.get(terminator_key)
-            print(f"Data from request: {data_from_request}")
-
-            check_if_data(data_from_request)
-
-            try:
-                hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
-                print(
-                    f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}"
-                )
-            except Exception as e:
-                raise HTTPException(
-                    status_code=400, detail="Invalid or malformed client data"
-                )
-        # [X] works
-        case "print":
-            # in body, so just get body
-            data_from_request = await request.body()
-
-            check_if_data(data_from_request)
-
-            try:
-                hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
-                print(
-                    f"De-Obsfucated data: {hce.apply_transforms(data=data_from_request)}"
-                )
-            except Exception as e:
-                raise HTTPException(
-                    status_code=400, detail="Invalid or malformed client data"
-                )
-        case _:
-            # unknown terminator
-            print("Unknown terminator: %r", terminator_type)
-            # throw error cuz we can't continue if we don't have the task
+    try:
+        id_terminator_type, id_terminator_key = hce.get_id_terminator()
+        implant_id = await deobsfucate_malleable_c2_request_data(
+            request=request,
+            terminator_type=id_terminator_type,
+            terminator_key=id_terminator_key,
+            malleable_c2_block=mp.http_post.client,
+            parser_class=HttpPostBlockClientParser,
+        )
+        print(f"Implant ID: {implant_id}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     """
     Setup a response for the implant

@@ -69,6 +69,9 @@
       ### 5. teseting:
          - [ ] Test "untested" methods in readme to make sure they work. 
 
+      ### Addtl HTTP blocks:
+         - [X] http-config
+
  - [ ] Implant
 
 # Scripting Idea:
