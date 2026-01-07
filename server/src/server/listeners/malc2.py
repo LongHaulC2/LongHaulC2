@@ -36,6 +36,7 @@ class HttpConfigBlockServerParser:
 
                 allow_useragents = stmt.value.strip().split(",")
                 return allow_useragents
+        return []
 
     def get_blocked_user_agents(self) -> list:
         for stmt in self.http_config.data:
@@ -44,6 +45,7 @@ class HttpConfigBlockServerParser:
 
                 block_useragents = stmt.value.strip().split(",")
                 return block_useragents
+        return []
 
     def get_headers_to_add_to_request(self) -> dict:
         """

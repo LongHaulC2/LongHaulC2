@@ -137,8 +137,8 @@ goes with every response served by listener
                     Connection, Content-Type"`)
 * [X] `header "header"`
 * [unsure if needed yet] `set trust_x_forwarded_for` 
-* [ ] block_useragents 
-* [ ] allow_useragents
+* [X] block_useragents 
+* [X] allow_useragents
 ---
 # http-stager:
  - STAGERS NOT SUPPORTED. NOT IN SCOPE FOR PROJECT.

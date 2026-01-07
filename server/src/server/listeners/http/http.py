@@ -19,6 +19,7 @@ from ..malc2 import (
     HttpPostBlockClientParser,
     HttpConfigBlockServerParser,
 )
+import re
 
 app = FastAPI
 mp = MalleableProfile
@@ -83,24 +84,51 @@ def check_if_data(data_from_request):  #
 
 def check_user_agent(user_agent) -> bool:
     """
-    Checks user agent. If allowed (via profile), returns true
-    else, false
+    Checks user agent. If allowed (via profile), returns True
+    else, False.
+
+    Calling function should return a 404 on a check fail
+
+    https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_http-server-config.htm#_Toc65482845
     """
     hcbsp = HttpConfigBlockServerParser(mp.http_config)
 
+    # Get the blocked and allowed user agents from the configuration
     blocked_useragents = hcbsp.get_blocked_user_agents()
     allowed_useragents = hcbsp.get_allowed_user_agents()
 
-    print(blocked_useragents)
-    print(allowed_useragents)
+    print("Blocked user agents:", blocked_useragents)
+    print("Allowed user agents:", allowed_useragents)
 
-    return True
-    if user_agent != "bob":
-        return False
-    else:
-        return True
-    # if user agent matches block, return a 400? or just sinkhole
-    # if user agent matches allow, return
+    # First, check for blocked user agents
+    if blocked_useragents:
+        for pattern in blocked_useragents:
+            # Convert the pattern to a regular expression
+            regex = pattern.replace("*", ".*")  # Convert * to .*
+
+            # Check if the user-agent matches the pattern
+            if re.match(regex, user_agent):
+                print(f"Blocked by pattern: {pattern}")
+                return False  # Blocked agent
+
+    # If blocked_useragents passed, we don't need to check allowed_useragents
+    # But if allowed_useragents are specified and blocked didn't block, we check allow
+    if allowed_useragents:
+        for pattern in allowed_useragents:
+            # Convert the pattern to a regular expression
+            regex = pattern.replace("*", ".*")  # Convert * to .*
+
+            # Check if the user-agent matches the pattern
+            if re.match(regex, user_agent):
+                print(f"Allowed by pattern: {pattern}")
+                return True  # Allowed agent
+
+    # Default return if no matches were found
+    print("User-agent not allowed (no matching patterns found)")
+    return True  # Default to allow through if not in blocked, and there's nothign in
+
+
+# allow list/that option is not set
 
 
 ###################################
@@ -186,7 +214,7 @@ async def http_get(request: Request):
 
     # 204 on fail. Can't sinkhole without extra setup/steps atm.
     if not check_user_agent(user_agent):
-        return Response(status_code=204)
+        return Response(status_code=404)
 
     """
     Handle inputted data form fastapi
