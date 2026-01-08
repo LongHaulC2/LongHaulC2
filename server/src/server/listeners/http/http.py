@@ -426,7 +426,8 @@ async def http_get(request: Request) -> Response:
         case _:
             # unknown terminator
             print("Unknown terminator: %r", terminator_type)
-            return Response(status_code=500)
+            # note still sent headers to make it somewhat less suspicous
+            return Response(status_code=500, headers=headers)
 
 
 async def http_get_uri(request: Request) -> Response:
@@ -552,6 +553,7 @@ async def http_post(request: Request) -> Response:
     hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
     # extract terminator data
     # for some reason, http-post uses output, not metadata
+
     try:
         output_terminator_type, output_terminator_key = hce.get_output_terminator()
         data_from_implant = await deobsfucate_malleable_c2_request_data(
@@ -566,6 +568,8 @@ async def http_post(request: Request) -> Response:
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     try:
+        # note, id is always in a header or param
+        # https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_beacon-http-transaction-walkthru.htm#_Toc65482844
         id_terminator_type, id_terminator_key = hce.get_id_terminator()
         implant_id = await deobsfucate_malleable_c2_request_data(
             request=request,
@@ -587,13 +591,17 @@ async def http_post(request: Request) -> Response:
 
     # get the stuff we need from it
     headers = emitter.headers()
-    data = emitter.generate_data()
+    # data = emitter.generate_data()
 
     # note, payload would need to be inserted somehwere here too.  Ex,
     # redis lookup for next task -> insert where print it
 
-    # based on terminationstatement, need to store data in certain location
-    # Ex: header: store in header
+    # data_from_implant, and implant_id are in scope now
+
+    # spin up  redis class
+    # write to inbox queue (which doesn't exist yet...)
+
+    # return response
 
     """
     Statement 	        What
@@ -605,32 +613,37 @@ async def http_post(request: Request) -> Response:
     """
     terminator_type, target = emitter.get_output_terminator()
 
+    # adjust to print
+    # also, find out what data the server sends back on a post.
+    # it's somhwere in those malleable c2 docs with the flow of a req.
+    # looks to be emptyy.
+
+    """
+    Request 	Component 	Block 	    Data
+    http-get 	client 	    metadata 	Session metadata
+    http-get 	server 	    output 	    Beacon’s tasks
+    http-post 	client 	    id 	        Session ID
+    http-post 	client 	    output 	    Beacon’s responses
+    http-post 	server 	    output 	    Empty
+    http-stager server 	    output 	    Encoded payload stage
+    """
+
     match terminator_type:
-        case "header":
-            # send data in a header
-            headers[target] = data
-            # construct response here
-
-        case "parameter":
-            # send data as URI parameter
-            # params[target] = data
-            print("placeholder uri paramter")
-
-        case "uri-append":
-            # append data to URL path
-            # url += data.decode("latin-1")
-            print("placeholder uri append")
+        # case "header":
+        #     # send data in a header
+        #     headers[target] = data
+        #     # construct response here
 
         case "print":
-            # send data in the body
-            body = data
-            # and construct the response
-            return Response(content=body, headers=headers)
+            # server post sends none after a task result is sent in.
+            # 200 back, no content (make sure it's not null...)
+            return Response(status_code=200, content=None, headers=headers)
 
         case _:
             # unknown terminator
             print("Unknown terminator: %r", terminator_type)
-            return Response(status_code=500)
+            # note still sent headers to make it somewhat less suspicous
+            return Response(status_code=500, headers=headers)
 
 
 async def http_post_uri(request: Request, data: str) -> Response:

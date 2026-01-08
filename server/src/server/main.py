@@ -7,6 +7,7 @@ from .db.mysql_connector import mysql_setup
 from .db.redis_connector import get_redis_connection
 from .log import *
 from .listeners.watchdog import start_watchdog
+from .modules.task_batch_job import start_task_batch_job
 
 server_logger = logging.getLogger("server")
 api_logger = logging.getLogger("api")
@@ -96,4 +97,5 @@ if __name__ == "__main__":
         )
 
     start_watchdog()
+    start_task_batch_job()
     app.run(host="0.0.0.0", port=45045, debug=False)

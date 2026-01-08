@@ -25,6 +25,7 @@ class RedisImplantTaskService:
     def __init__(self, agent_id: str):
         self.agent_id = agent_id
         self.outbox_key = f"c2:implant:{self.agent_id}:tasks:outbox"
+        self.inbox_key = f"c2:implant:{self.agent_id}:tasks:inbox"
         self.redis = get_redis_connection()
 
     def enqueue_task(self, task: Task):
@@ -53,6 +54,40 @@ class RedisImplantTaskService:
         self.redis.ltrim(self.outbox_key, 1, 0)
 
         return queue_length
+
+    # ---------- Response funcs ----------
+
+    def enqueue_response(self, implant_response: bytes):
+        """Push a response to the inbox of the client."""
+        try:
+            self.redis.rpush(self.inbox_key, implant_response)
+        except Exception as e:
+            server_logger.error(e)
+            raise e
+
+    def dequeue_response(self) -> bytes | None:
+        """Pop the next task (MessagePack bytes)."""
+        return self.redis.lpop(self.inbox_key)
+
+    def dequeue_response_dict(self) -> dict | None:
+        """Pop and dequue the next response."""
+        packed = self.dequeue_response()
+        if packed is None:
+            return None
+        return msgpack.unpackb(packed, raw=False)
+
+    def clear_response_queue(self) -> int:
+        """Clear all responses but keep the key. Returns the number of responses removed (approx)."""
+        # Get current length (optional)
+        queue_length = self.redis.llen(self.inbox_key)
+
+        # Trim to empty
+        self.redis.ltrim(self.inbox_key, 1, 0)
+
+        return queue_length
+
+    def respone_queue_length(self) -> int:
+        return self.redis.llen(self.inbox_key)
 
     # ---------- RAW (bytes) ----------
 

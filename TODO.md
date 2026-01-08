@@ -59,9 +59,22 @@
          - [ ] Set up global options handling for the system.
 
       ### 3. **Redis Integration**
-         - [ ] > hook into Redis for task management.
-            - [ ] > Need to define metadata structure. Likely will contain ID at a minimum. 
-               {"id":"uuid"} (msgpack) is probably best minimum needed on get. Can then add other fields  as needed, later.   
+         - [X] > hook into Redis for task management.
+            - [X] > Need to define metadata structure. Likely will contain ID at a minimum. 
+               {"id":"uuid"} (msgpack) is probably best minimum needed on get. Can then add other fields  as needed, later. 
+
+               - [X] HTTP Get  
+               - [X] HTTP Get URI 
+               - [X] HTTP Post  
+               - [X] HTTP Post URI  
+
+               - [ ] fix up the redis side/rest of code to use new task stuff
+                  - [ ] Modify to have inbox/outbox keys.
+                  - [ ] Note, implant-tasks might have a busted implant_id,that shows 0
+               - [ ] Redis watchdog to actually write responses/make sure the full chain/flow works
+               - [ ] Make a quick shitty dev python implant with hardcoded responses to test the flow
+
+
          - [ ] Ensure proper data retrieval from Redis.
          - [ ] Implement tasking mechanisms to inject custom data into responses.
 
@@ -74,7 +87,6 @@
       ### 5. teseting & docs:
          - [ ] Test "untested" methods in readme to make sure they work. 
 
-         > Left off here, do this:
          - [X] Create a draw io of full path of data as it comes in (including if bytes, etc. When headers appended, etc. For post and get)
       ### Addtl HTTP blocks:
          - [X] http-config

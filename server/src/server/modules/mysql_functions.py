@@ -431,3 +431,30 @@ class MySQLImplantTaskService:
         ]
 
         return task_list
+
+    def bulk_update_responses(self, responses: list[dict]):
+        """
+        responses = [
+            {
+                "task_uuid": "...",
+                "task_response": {...}
+            },
+            ...
+        ]
+        """
+        if not responses:
+            return
+
+        self.session.bulk_update_mappings(
+            ImplantTask,
+            [
+                {
+                    "task_uuid": r["task_uuid"],
+                    "implant_id": self.implant_id,
+                    "task_response": r["task_response"],
+                }
+                for r in responses
+            ],
+        )
+
+        self.session.commit()
