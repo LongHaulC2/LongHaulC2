@@ -33,7 +33,7 @@ http-get {
             # prepend "skin=noskin;";
             # append "csm-hit=s-24KU11BB82RZSYGJ3BDK|1419899012996";
             # header "Cookie";
-			header "cookie";
+			uri-append;
         }
     }
 
