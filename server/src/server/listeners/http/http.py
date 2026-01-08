@@ -4,11 +4,19 @@ HTTP Malleable C2 Listener
 An HTTP Listener, which is defined by a Malleable C2 Profile.
 
 
+Note on return types, keeping it simple. These are the only http status
+codes used.
+
+200: OK, continue with whatever
+204: No content, things worked but nothign for you
+400/404: requester fucked something up, go away/try again later
+500: something went wrong
 """
 
 from time import sleep
 from edwh_uuid7 import uuid7
-
+import re
+import msgpack
 from mpp import MalleableProfile
 from fastapi import Response, FastAPI, Request, status, HTTPException
 from fastapi.responses import JSONResponse
@@ -24,7 +32,8 @@ from ..malc2 import (
     HttpConfigBlockServerParser,
 )
 from ...modules.redis_functions import RedisImplantTaskService
-import re
+from ...modules.task import Task, TaskResponse, Metadata
+
 
 app = FastAPI
 mp = MalleableProfile
@@ -83,7 +92,7 @@ def run(listener_uuid: str):
 
 def check_if_data(data_from_request):  #
     """
-    Check if the request had data (evaluates falsey-ness). If not, return a 400.
+    Check if somehting (the request, a value you extracted, etc) had data (evaluates falsey-ness). If not, return a 400.
 
     data_from_request: The data that was in the request, and needs to not be empty/missing.
 
@@ -346,25 +355,38 @@ async def http_get(request: Request) -> Response:
     Setup a response for the implant
 
     """
-    # pass in block to respective class
-    emitter = HttpGetBlockServerParser(mp.http_get.server)
+
+    # take extracted data, shove into class:
+    try:
+        unpacked_metadata = msgpack.unpackb(data_from_implant)
+        md = Metadata(unpacked_metadata)
+        md.validate()  # , if err return 400 malformed
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Malformed data",
+        )
 
     # note, payload would need to be inserted somehwere here too.  Ex,
     # redis lookup for next task -> insert where print it
     # | Redis Here >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    its = RedisImplantTaskService(...)  # still need to pull out ID
-    data = its.dequeue_task()
-    # if not data... handle this
+    implant_id = unpacked_metadata.get("implant_uuid", None)
+    check_if_data(implant_id)
 
+    its = RedisImplantTaskService(implant_id)
+    msgpack_task = its.dequeue_task()
+    if not msgpack_task:
+
+        raise HTTPException(
+            status_code=204  # 204 for no content, but the request suceeded.
+        )
+
+    # pass in block to respective class
     # get the stuff we need from it
+    emitter = HttpGetBlockServerParser(mp.http_get.server)
     headers = emitter.headers()
-    data = emitter.generate_data(data)
-
-    # some redis conn
-    # based on implant_id, get next task
-
-    # based on terminationstatement, need to store data in certain location
-    # Ex: header: store in header
+    obsfucated_task = emitter.generate_data(msgpack_task)
 
     """
     Statement 	        What
@@ -376,25 +398,27 @@ async def http_get(request: Request) -> Response:
     """
     terminator_type, target = emitter.get_output_terminator()
 
+    # The print statement is the expected termination statement for the http-get.server.output, http- post.server.output, and http-stager.server.output blocks. You may use the header, parameter, print and uri-append termination statements for the other blocks.
+    """
+        Big note here: Traditional Malleable C2/Beacon only supports 
+        the `print` terminator for responses for
+        http-get.server.output, http- post.server.output, and http-stager.server.output blocks.
+
+        This seems like an overcomeable limitation, especially with the header field (can hide data there), 
+        but for now, I'll stick to spec. 
+        
+        https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_profile-language.htm#_Toc65482842
+    """
     match terminator_type:
-        case "header":
-            # send data in a header
-            headers[target] = data
-            # construct response here
 
-        case "parameter":
-            # send data as URI parameter
-            # params[target] = data
-            print("placeholder uri paramter")
-
-        case "uri-append":
-            # append data to URL path
-            # url += data.decode("latin-1")
-            print("placeholder uri append")
+        # case "header":
+        #     # send data in a header
+        #     headers[target] = obsfucated_task
+        #     # construct response here
 
         case "print":
             # send data in the body
-            body = data
+            body = obsfucated_task
             # and construct the response
             return Response(content=body, headers=headers)
 

@@ -87,20 +87,20 @@ Note: Task_uuid and implant_uuid are included for task verification (right task 
 and for potential pivoting (to know which tasks go to which agents)
 
 ## Task  Structure
-- `{task_uuid: <some_uuid>, implant_uuid: <intended_target>, <taskname>: {"arg1":"value1"}}`
+- `{task_uuid: <some_uuid>, implant_uuid: <intended_target>, "task":{"taskname":"somename" "args":{"arg1":"value1"}}}`
 
-Ex: `{"task_uuid": "1234", "implant_uuid": 9999, "cmd": {"cli":"whoami"}}`
+Ex: `{task_uuid: 1234, implant_uuid: 9999, "task":{"taskname":"cmd" "args":{"cli":"whoami"}}}`
 
 List of tasks:
-- `[{"task_uuid": "1234", "implant_uuid": 9999, "cmd": {"cli":"whoami"}}, {"task_uuid": "1234", "implant_uuid": 9999, "cmd": {"cli":"whoami"}}]`
+- `[{task_uuid: 1234, implant_uuid: 9999, "task":{"taskname":"cmd" "args":{"cli":"whoami"}}}, {task_uuid: 1234, implant_uuid: 9999, "task":{"taskname":"cmd" "args":{"cli":"whoami"}}}]`
 
 # Task Response Structure:
-- `{"task_id":"", "implant_uuid": 9999, "result":{"data_type":binary|text, "data":"somedata"}}`
+- `{"task_uuid":"", "implant_uuid": 9999, "result":{"data_type":binary|text, "data":"somedata"}}`
 
-Ex: `{"task_id":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}`
+Ex: `{"task_uuid":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}`
 
 List of task responses:
-- `[{"task_id":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}, {"task_id":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}]`
+- `[{"task_uuid":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}, {"task_uuid":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}]`
 
 # Metadata Structure:
 - `{"implant_uuid":"uuid", ...}`
