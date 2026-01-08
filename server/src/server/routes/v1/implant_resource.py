@@ -337,6 +337,8 @@ class ImplantTask(Resource):
         """
         [Needs marshalling & testing] Gets next task of implant. Task is returned as a base64 encoded, MSGPACK blob
 
+        This will DEQUEUE the next task, NOT peek.
+
         Meant to be called by listeners, to get the next task to forward to the implant.
 
         1. Spins up a new RedisImplantTaskService instance

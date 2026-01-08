@@ -137,18 +137,14 @@ class HttpGetBlockServerParser:
         server_logger.debug(f"Extracted Headers: {list(headers.items())}")
         return headers
 
-    def generate_data(self):
+    def generate_data(self, data: bytes):
         """
         Generates the entire data for the response for the server
 
         Does all the transforms, data insertion, etc etc and creates body based on that.
         """
-        # get task
-        task = b"mydata"
-
-        data = self.apply_transforms(task)
-
-        return data
+        obsfucated_data = self.apply_transforms(data)
+        return obsfucated_data
 
     def get_output_terminator(self):
         """

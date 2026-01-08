@@ -59,7 +59,9 @@
          - [ ] Set up global options handling for the system.
 
       ### 3. **Redis Integration**
-         - [ ] hook into Redis for task management.
+         - [ ] > hook into Redis for task management.
+            - [ ] > Need to define metadata structure. Likely will contain ID at a minimum. 
+               {"id":"uuid"} (msgpack) is probably best minimum needed on get. Can then add other fields  as needed, later.   
          - [ ] Ensure proper data retrieval from Redis.
          - [ ] Implement tasking mechanisms to inject custom data into responses.
 
@@ -71,11 +73,39 @@
 
       ### 5. teseting & docs:
          - [ ] Test "untested" methods in readme to make sure they work. 
-         - [ ] Create a draw io of full path of data as it comes in (including if bytes, etc. When headers appended, etc. For post and get)
+
+         > Left off here, do this:
+         - [X] Create a draw io of full path of data as it comes in (including if bytes, etc. When headers appended, etc. For post and get)
       ### Addtl HTTP blocks:
          - [X] http-config
 
  - [ ] Implant
+
+# Task Formatting (for reference):
+
+Note: Task_uuid and implant_uuid are included for task verification (right task to right agent),
+and for potential pivoting (to know which tasks go to which agents)
+
+## Task  Structure
+- `{task_uuid: <some_uuid>, implant_uuid: <intended_target>, <taskname>: {"arg1":"value1"}}`
+
+Ex: `{"task_uuid": "1234", "implant_uuid": 9999, "cmd": {"cli":"whoami"}}`
+
+List of tasks:
+- `[{"task_uuid": "1234", "implant_uuid": 9999, "cmd": {"cli":"whoami"}}, {"task_uuid": "1234", "implant_uuid": 9999, "cmd": {"cli":"whoami"}}]`
+
+# Task Response Structure:
+- `{"task_id":"", "implant_uuid": 9999, "result":{"data_type":binary|text, "data":"somedata"}}`
+
+Ex: `{"task_id":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}`
+
+List of task responses:
+- `[{"task_id":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}, {"task_id":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}]`
+
+# Metadata Structure:
+- `{"implant_uuid":"uuid", ...}`
+
+Ex: `{"implant_uuid":1234, ...}`
 
 # Scripting Idea:
    # FIX / PLAN EVERYTHING ELSE FIRST. 
