@@ -55,13 +55,13 @@ While it is not designed to surpass Cobalt Strike or similar C2 tooling as a day
 
 * **Language:** Python (chosen for dynamic restarts, rapid development, and library support).
 * **Management Layer:**
-* API with JSON responses.
-* Built using `REST` / `Flask-RestX`.
+    * API with JSON responses.
+    * Built using `REST` / `Flask-RestX`.
 
 
 * **Listeners:**
-* **[http]** FastAPI: Traffic defined by Malleable C2 profiles.
-* **[NTP]** Custom Socket: Planned implementation for NTP tunneling (Not yet implemented).
+    * **[http]** FastAPI: Traffic defined by Malleable C2 profiles.
+    * **[NTP]** Custom Socket: Planned implementation for NTP tunneling (Not yet implemented).
 
 
 
@@ -70,20 +70,20 @@ While it is not designed to surpass Cobalt Strike or similar C2 tooling as a day
 The backend utilizes a containerized approach for caching and persistent storage.
 
 * **[Container] Redis:** Acts as a high-performance cache layer.
-* Stores queued commands.
-* Caches responses destined for implants.
+    * Stores queued commands.
+    * Caches responses destined for implants.
 
 
 * **[Container] MySQL:** Handles long-term storage and structured data.
 * **Active Listener List**
 * **Task Logs:** Long-term archival of executed tasks.
 * **Implant Metadata:**
-* ID (Primary Key)
-* External IP / Internal IP
-* Listener ID
-* User / System Hostname
-* Process / PID / Arch
-* Last Checkin / Sleep Value
+    * ID (Primary Key)
+    * External IP / Internal IP
+    * Listener ID
+    * User / System Hostname
+    * Process / PID / Arch
+    * Last Checkin / Sleep Value
 
 
 
@@ -110,9 +110,9 @@ LongHaul currently implements the network communication layer of Malleable C2 pr
 
 LongHaul plans to introduce custom blocks for non-traditional listeners:
 
-* `ntp-get`
-* `ntp-post`
-* `ntp-config`
+    * `ntp-get`
+    * `ntp-post`
+    * `ntp-config`
 
 ### Supported Blocks
 
@@ -128,20 +128,20 @@ Configuration for downloading tasks from the server.
 **http-get.server.output**
 
 * *Transform Operations:*
-* [x] `append "string"`
-* [x] `base64`
-* [x] `base64url`
-* [Untested] `mask`
-* [Untested] `netbios`
-* [Untested] `netbiosu`
-* [x] `prepend "string"`
+    * [x] `append "string"`
+    * [x] `base64`
+    * [x] `base64url`
+    * [Untested] `mask`
+    * [Untested] `netbios`
+    * [Untested] `netbiosu`
+    * [x] `prepend "string"`
 
 
 * *Termination Options:*
-* [x] `header "header"` (Send data in HTTP header)
-* [x] `parameter "key"` (Send data as URI parameter)
-* [x] `print` (Send data in transaction body)
-* [x] `uri-append` (Append data to URI)
+    * [x] `header "header"` (Send data in HTTP header)
+    * [x] `parameter "key"` (Send data as URI parameter)
+    * [x] `print` (Send data in transaction body)
+    * [x] `uri-append` (Append data to URI)
 
 
 
@@ -151,27 +151,27 @@ Configuration for submitting data/responses to the server.
 
 **http-post.server**
 
-* [x] Add on headers (e.g., `header "Content-Type" "image/gif";`)
-* [x] Output Block (`output {}`)
-* [ ] ID Block (`id {}`)
+    * [x] Add on headers (e.g., `header "Content-Type" "image/gif";`)
+    * [x] Output Block (`output {}`)
+    * [X] ID Block (`id {}`)
 
 **http-post.server.output**
 
 * *Transform Operations:*
-* [x] `append "string"`
-* [x] `base64`
-* [x] `base64url`
-* [Error] `mask` (Currently throws Key Error)
-* [x] `netbios`
-* [x] `netbiosu`
-* [x] `prepend "string"`
+    * [x] `append "string"`
+    * [x] `base64`
+    * [x] `base64url`
+    * [Error] `mask` (Currently throws Key Error)
+    * [x] `netbios`
+    * [x] `netbiosu`
+    * [x] `prepend "string"`
 
 
 * *Termination Options:*
-* [x] `header "header"`
-* [x] `parameter "key"`
-* [x] `print`
-* [x] `uri-append`
+    * [x] `header "header"`
+    * [x] `parameter "key"`
+    * [x] `print`
+    * [x] `uri-append`
 
 
 
