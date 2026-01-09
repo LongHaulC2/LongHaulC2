@@ -38,6 +38,11 @@ mp = MalleableProfile
 
 # entrypoint
 def run(listener_uuid: str):
+    """The entrypoint for the listener
+
+    Args:
+        listener_uuid (str): UUID of the listener that is being spawned
+    """
     # make mp global to this module so we don't have to  read from it/pass everywhere constantly
     global mp, app
     # placeholder
@@ -201,7 +206,6 @@ async def deobsfucate_malleable_c2_request_data(
     - The function includes basic error handling, raising exceptions when an unsupported terminator type is provided or if data extraction fails.
     """
     match terminator_type:
-        # [X] works
         case "header":
             print(request.headers)
             normalized_headers = {k.lower(): v for k, v in request.headers.items()}
@@ -221,7 +225,6 @@ async def deobsfucate_malleable_c2_request_data(
                 print(e)
                 raise e
 
-        # [X] works
         case "parameter":
             data_from_request = request.query_params.get(terminator_key)
             print(f"Data from request: {data_from_request}")
@@ -238,7 +241,6 @@ async def deobsfucate_malleable_c2_request_data(
             except Exception as e:
                 print(e)
                 raise e
-        # [X] works
         case "print":
             # in body, so just get body
             data_from_request = await request.body()
@@ -540,9 +542,6 @@ async def http_post(request: Request) -> Response:
         # BUG: output key not being retrieved for some reason
         output_terminator_type, output_terminator_key = hce.get_output_terminator()
 
-        # print("output term, output key")
-        # print(output_terminator_type)
-        # print(output_terminator_key)
         # check if keys, ifnot, throw a 400 (it's a server error though - so maybe change later)
         check_if_data(output_terminator_type)
         check_if_data(output_terminator_key)
@@ -589,7 +588,19 @@ async def http_post(request: Request) -> Response:
 
 
 async def http_post_uri(request: Request, data: str) -> Response:
-    """ """
+    """POST endpoint specifially for the 'uri-append' option in malleable c2
+
+    Args:
+        request (Request): The request object
+        data (str): The URI-appended url. Ex: /fkajskdlfjsdaklfasdlkfsjadkfl
+
+    Raises:
+        HTTPException: _description_
+        HTTPException: _description_
+
+    Returns:
+        Response: Returns a response for FastAPI to send back to the implant
+    """
 
     # we can assume URI terminator is uri-append.
     # data is the /someendpoint/<HERE>, so we just need to transform it.
@@ -627,9 +638,6 @@ async def http_post_uri(request: Request, data: str) -> Response:
         # https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_beacon-http-transaction-walkthru.htm#_Toc65482844
         id_terminator_type, id_terminator_key = hce.get_id_terminator()
 
-        # print("id term, id key")
-        # print(id_terminator_type)
-        # print(id_terminator_key)
         # check if keys
         check_if_data(id_terminator_type)
         check_if_data(id_terminator_key)
@@ -721,7 +729,6 @@ def register_http_route(uri: URL, method: str, endpoint, uri_endpoint):
     """
     Registeres routes. Prevents these being called on import as well.
     """
-    # HTTP POST ROUTE
     app.add_api_route(
         path=str(URL(uri)),
         endpoint=endpoint,  # logic for endpoint here
