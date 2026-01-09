@@ -302,15 +302,6 @@ class HttpGetBlockClientParser:
         # fallback if no terminator found
         return None, None
 
-    def extract_data(self):
-        """
-        Does the inverse on the data that is specified in the malleablec2 to make it readable again
-        """
-        # room for more functions later, and extract_data makes more sense
-        # as a function name
-
-        self.apply_transforms()
-
     def apply_transforms(self, data, block_field):
         for stmt in block_field.data:  # self.client.metadata.data:
             name = stmt.statement
@@ -376,19 +367,6 @@ class HttpPostBlockServerParser:
         }
         server_logger.debug(f"Extracted Headers: {list(headers.items())}")
         return headers
-
-    def generate_data(self):
-        """
-        Generates the entire data for the response for the server
-
-        Does all the transforms, data insertion, etc etc and creates body based on that.
-        """
-        # get task
-        task = b"mydata"
-
-        data = self.apply_transforms(task)
-
-        return data
 
     def get_output_terminator(self):
         """
@@ -517,15 +495,6 @@ class HttpPostBlockClientParser:
 
         # fallback if no terminator found
         return None, None
-
-    def extract_data(self):
-        """
-        Does the inverse on the data that is specified in the malleablec2 to make it readable again
-        """
-        # room for more functions later, and extract_data makes more sense
-        # as a function name
-
-        self.apply_transforms()
 
     def apply_transforms(self, data, block_field):
         for stmt in block_field.data:  # self.client.output.data:
