@@ -1,174 +1,228 @@
-# LongHaulC2
-C2 Aimed at Long Haul Management
+Here is the reformatted documentation for **LongHaulC2**, organized for clarity and professionalism.
 
-# Goals:
-Replace other  C2's as a long haul, Red Team/Offensive management C2. A "guardian"/"maintain access"/"Oh shit my shell got detected" solution.
+---
 
-I can't beat CS as a day-to-day red team operations tool. I can 
-(probabbly) beat it as an overhead management tool.
+# LongHaulC2: Persistent Access Management
 
-## Things  I would like: 
- - Malleable C2 interopability (use CS's malleable C2 capabilities/scripts)
- - Good management capabilites (likely an API exposed from server, and a good management frontend)
+**Project Goal:** To replace existing C2 frameworks for long-haul, Red Team/Offensive management scenarios. This tool serves as a "guardian" or "maintain access" solution—the failsafe when primary access methods are detected or neutralized.
 
+While it is not designed to surpass Cobalt Strike (CS) as a day-to-day operations tool, LongHaulC2 aims to outperform it as a low-overhead management and persistence solution.
 
-# Table of Contents
+## Objectives
 
-1. [Introduction](#introduction)
-2. [Malleable C2 (yes it's supported =D)](#Malleable-C2)
+* **Malleable C2 Interoperability:** Leverage existing CS Malleable C2 capabilities and scripts.
+* **Robust Management:** Provide a comprehensive API and a user-friendly frontend for operator management.
 
-   1. [http-get](#http-get)
+---
 
-# Implementation  Details:
+## Table of Contents
 
-
-#### Comms:
- - MessagaePack: Simple, easy to parse, JSON like, binary encoded structure. 
-
-- Borrow from CS, Seperation between a beacon, and a checkin
-    - Beacon: Do you have job for me (minimal proof this thing exists/is still up)
-    - Checkin: Data going back and forth. Only happens if a job is available
-
-#### Implant:
- - C++
-
- Primary platform: Windows first, but linux would be useful for long  term. Make the beacon source  as 
- platform agnostic as possible/have compile options (ex, win_func.cpp, lin_func.cpp)
-
- ###### Pivoting... 
-    Various ways to do this. Maybe a "final" ip address where the messageneeds to go, etc. Not sure. Would be handy tohave, but not a thing that needs to be set in stone yet. 
-
-#### Server:
- - Python
-    - Flexibility with dynamic restarts, faster dev time, and flask-restx.
-    Management:
-        - API - JSON responses. REST.
-    Listeners:
-        - [http] Not sure. Something that allows for a new listener/schema on the fly
-        - Mal c2
+1. [Introduction](https://www.google.com/search?q=%23longhaulc2-persistent-access-management)
+2. [Objectives](https://www.google.com/search?q=%23objectives)
+3. [Implementation Details](https://www.google.com/search?q=%23implementation-details)
+* [Communication](https://www.google.com/search?q=%23communication)
+* [Implant Design](https://www.google.com/search?q=%23implant-design)
+* [Server Architecture](https://www.google.com/search?q=%23server-architecture)
+* [Data Management](https://www.google.com/search?q=%23data-management)
+* [Encryption](https://www.google.com/search?q=%23encryption)
+* [Management Features](https://www.google.com/search?q=%23management-features)
 
 
-#### Data Management:
- - [container] Redis: For caching/message/pub sub DB work. 
-    This would hold:
-        - Queued Commands
-        - Responses to Implants
+4. [Malleable C2 Support](https://www.google.com/search?q=%23malleable-c2-support)
+* [Overview](https://www.google.com/search?q=%23overview)
+* [Supported Blocks](https://www.google.com/search?q=%23supported-blocks)
+* [http-get](https://www.google.com/search?q=%23http-get)
+* [http-post](https://www.google.com/search?q=%23http-post)
+* [http-config](https://www.google.com/search?q=%23http-config)
 
 
- - [container] MySql: For long term data storage/stricter data types
-        - [X]Implant metadata (ID [primary key], External IP, Internal IP, Listener, User, System Hostname, Notes, Process, PID, arch, last Checkin, Sleep Value)
-        - Job Logs
-            (Job ID [primary key], Job contents, User who Queued Job, Job Response)
-
-#### Encryption:
- - Borrow CS's flow, Asymetric PKI, then symmetric once connected back. 
-
-#### Managemnt:
- - A payload store on the server would be cool, for easy "re-access" to targets. Ex, a quick "spawn" command that you can choose whaat payload to spawn on said host.
+* [Unsupported Features](https://www.google.com/search?q=%23unsupported-features)
+* [Global Options](https://www.google.com/search?q=%23global-options)
 
 
 
-# Malleable-C2:
+---
+
+## Implementation Details
+
+### Communication
+
+* **MessagePack:** Utilizes MessagePack for a simple, binary-encoded, JSON-like structure that is easy to parse.
+* **Beacon vs. Checkin Logic:** Adopts the Cobalt Strike model of separating status checks from data transmission.
+* **Beacon:** Minimal proof of life; checks for available tasks.
+* **Checkin:** Bi-directional data transfer; occurs only if a task is available.
+
+
+
+### Implant Design
+
+* **Language:** C++
+* **Platform Support:** Windows-first, with Linux support planned for long-term versatility.
+* **Source Structure:** Designed for platform agnosticism with conditional compilation options (e.g., `win_func.cpp`, `lin_func.cpp`).
+* **Pivoting:**  Strategies for routing traffic (e.g., via a "final" IP) are under consideration but not yet finalized.
+
+### Server Architecture
+
+* **Language:** Python (chosen for dynamic restarts, rapid development, and library support).
+* **Management Layer:**
+* API with JSON responses.
+* Built using `REST` / `Flask-RestX`.
+
+
+* **Listeners:**
+* **[http]** FastAPI: Traffic defined by Malleable C2 profiles.
+* **[NTP]** Custom Socket: Planned implementation for NTP tunneling (Not yet implemented).
+
+
+
+### Data Management
+
+The backend utilizes a containerized approach for caching and persistent storage.
+
+* **[Container] Redis:** Acts as a high-performance cache layer.
+* Stores queued commands.
+* Caches responses destined for implants.
+
+
+* **[Container] MySQL:** Handles long-term storage and structured data.
+* **Active Listener List**
+* **Task Logs:** Long-term archival of executed tasks.
+* **Implant Metadata:**
+* ID (Primary Key)
+* External IP / Internal IP
+* Listener ID
+* User / System Hostname
+* Process / PID / Arch
+* Last Checkin / Sleep Value
+
+
+
+
+
+### Encryption
+
+* **Status:** Not Implemented.
+* **Plan:** Implement the Cobalt Strike model: Asymmetric PKI for initial key exchange, followed by symmetric encryption for session traffic.
+
+### Management Features
+
+* **Payload Store:** A server-side repository for payloads to facilitate rapid "re-access" or spawning of new sessions on compromised hosts.
+
+---
+
+## Malleable C2 Support
+
 LongHaul currently implements the network communication layer of Malleable C2 profiles. It focuses on traffic shaping and indicators (http-get, http-post, etc.), while omitting Cobalt Strike-specific payload and artifact configurations.
 
-[not implemented] Additionally, LongHaul has custom blocks for the non-traditional listeners:
- - `ntp-get`
- - `ntp-post`
- - `ntp-config`
+**Documentation Reference:** [Cobalt Strike Malleable Profile Docs](https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_profile-language.htm#_Toc65482837)
+
+### Custom Extensions (Planned)
+
+LongHaul plans to introduce custom blocks for non-traditional listeners:
+
+* `ntp-get`
+* `ntp-post`
+* `ntp-config`
+
+### Supported Blocks
+
+#### http-get
+
+Configuration for downloading tasks from the server.
+
+**http-get.server**
+
+* [x] Add on headers (e.g., `header "Content-Type" "image/gif";`)
+* [x] Metadata Block (`metadata {}`)
+
+**http-get.server.output**
+
+* *Transform Operations:*
+* [x] `append "string"`
+* [x] `base64`
+* [x] `base64url`
+* [Untested] `mask`
+* [Untested] `netbios`
+* [Untested] `netbiosu`
+* [x] `prepend "string"`
 
 
-The current supported options in Malleable C2 profiles:
+* *Termination Options:*
+* [x] `header "header"` (Send data in HTTP header)
+* [x] `parameter "key"` (Send data as URI parameter)
+* [x] `print` (Send data in transaction body)
+* [x] `uri-append` (Append data to URI)
 
-[Malleable Profile Docs](https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_profile-language.htm#_Toc65482837)
 
----
-# Blocks:
 
-# http-get:
+#### http-post
 
-### http-get.server
+Configuration for submitting data/responses to the server.
 
-#### Misc:
-* [X] Add on headers (`header "Content-Type" "image/gif";`)
-* [X] Metadata Block (`metadata {}`)
+**http-post.server**
 
-### http-get.server.output
-
-#### Transform operations:
-* [X] `append "string"` 
-* [X] `base64` 
-* [X] `base64url` 
-* [untested] `mask` 
-* [untested] `netbios` 
-* [untested] `netbiosu` 
-* [X] `prepend "string"` 
-
-#### Termination options:
-* [X] `header "header"` (send data in HTTP header) 
-* [X] `parameter "key"` (send data as URI parameter) 
-* [X] `print` (send data in transaction body) 
-* [X] `uri-append` (append data to URI) 
-
----
-# http-post:
-
-### http-post.server
-
-#### Misc:
-* [X] Add on headers (`header "Content-Type" "image/gif";`)
-* [X] Output Block (`output {}`)
+* [x] Add on headers (e.g., `header "Content-Type" "image/gif";`)
+* [x] Output Block (`output {}`)
 * [ ] ID Block (`id {}`)
 
-### http-post.server.output
+**http-post.server.output**
 
-#### Transform operations:
-* [X] `append "string"` 
-* [X] `base64` 
-* [X] `base64url` 
-* [Throws Key Error] `mask` 
-* [X] `netbios` 
-* [X] `netbiosu` 
-* [X] `prepend "string"` 
+* *Transform Operations:*
+* [x] `append "string"`
+* [x] `base64`
+* [x] `base64url`
+* [Error] `mask` (Currently throws Key Error)
+* [x] `netbios`
+* [x] `netbiosu`
+* [x] `prepend "string"`
 
-#### Termination options:
-* [X] `header "header"` (send data in HTTP header) 
-* [X] `parameter "key"` (send data as URI parameter) 
-* [X] `print` (send data in transaction body) 
-* [X] `uri-append` (append data to URI) 
 
-### http-config
-https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_http-server-config.htm#_Toc65482845
+* *Termination Options:*
+* [x] `header "header"`
+* [x] `parameter "key"`
+* [x] `print`
+* [x] `uri-append`
 
-goes with every response served by listener
 
-* [X] `set headers ` (`set headers "Date, Server, Content-Length, Keep-Alive, 
-                    Connection, Content-Type"`)
-* [X] `header "header"`
-* [unsure if needed yet] `set trust_x_forwarded_for` 
-* [X] block_useragents 
-* [X] allow_useragents
----
-# http-stager:
- - STAGERS NOT SUPPORTED. NOT IN SCOPE FOR PROJECT.
 
-# Options:
+#### http-config
 
-* [ ] `data_jitter` 
-* [ ] `headers_remove` 
-~~* [ ] `host_stage`~~
-* [ ] `jitter` 
-* [ ] `pipename` 
-~~* [ ] `pipename_stager` ~~
-* [ ] `sample_name` 
-* [ ] `sleep` 
-* [ ] `sleeptime` 
-* [ ] `smb_frame_header` 
-* [ ] `ssh_banner` 
-* [ ] `ssh_pipename` 
-* [ ] `steal_token_access_mask` 
-* [ ] `tasks_max_size` 
-* [ ] `tasks_proxy_max_size` 
-* [ ] `tasks_dns_proxy_max_size` 
-* [ ] `tcp_frame_header` 
-* [ ] `tcp_port` 
-* [ ] `useragent` (global default) 
+Global configuration applied to every HTTP response served by the listener.
+*Reference:* [http-server-config](https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_http-server-config.htm#_Toc65482845)
+
+* [x] `set headers` (e.g., `set headers "Date, Server, Content-Length, Keep-Alive, Connection, Content-Type"`)
+* [x] `header "header"`
+* [x] `block_useragents`
+* [x] `allow_useragents`
+* [Pending] `set trust_x_forwarded_for`
+
+### Unsupported Features
+
+* **http-stager:** Stagers are not supported and are out of scope for this project.
+
+### Global Options
+
+Status of global profile options:
+
+* [ ] `data_jitter`
+* [ ] `headers_remove`
+* [ ] `jitter`
+* [ ] `pipename`
+* [ ] `sample_name`
+* [ ] `sleep`
+* [ ] `sleeptime`
+* [ ] `smb_frame_header`
+* [ ] `ssh_banner`
+* [ ] `ssh_pipename`
+* [ ] `steal_token_access_mask`
+* [ ] `tasks_max_size`
+* [ ] `tasks_proxy_max_size`
+* [ ] `tasks_dns_proxy_max_size`
+* [ ] `tcp_frame_header`
+* [ ] `tcp_port`
+* [ ] `useragent` (Global default)
+
+**Removed/Out of Scope:**
+
+* `host_stage`
+* `pipename_stager`
