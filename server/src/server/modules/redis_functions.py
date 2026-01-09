@@ -86,7 +86,8 @@ class RedisImplantTaskService:
 
         return queue_length
 
-    def respone_queue_length(self) -> int:
+    def response_queue_length(self) -> int:
+        print(self.inbox_key)
         return self.redis.llen(self.inbox_key)
 
     # ---------- RAW (bytes) ----------

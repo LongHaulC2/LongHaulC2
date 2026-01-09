@@ -455,7 +455,7 @@ class MySQLImplantTaskService:
                 {
                     "task_uuid": r["task_uuid"],
                     "implant_uuid": self.implant_uuid,
-                    "task_response": r["task_response"],
+                    "task_response": r["result"],
                 }
                 for r in responses
             ],
