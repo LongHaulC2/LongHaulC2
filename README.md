@@ -1,8 +1,5 @@
-Here is the reformatted documentation for **LongHaulC2**, organized for clarity and professionalism.
-
----
-
 # LongHaulC2: Persistent Access Management
+
 
 **Project Goal:** To replace existing C2 frameworks for long-haul, Red Team/Offensive management scenarios. This tool serves as a "guardian" or "maintain access" solution—the failsafe when primary access methods are detected or neutralized.
 
