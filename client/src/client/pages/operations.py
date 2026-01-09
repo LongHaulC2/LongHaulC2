@@ -209,9 +209,9 @@ async def implant_view():
             ui.notify("No rows selected", color="warning")
             return
 
-        for implant_id in ids:
+        for implant_uuid in ids:
             # do request
-            await delete_implant(id=implant_id)
+            await delete_implant(id=implant_uuid)
 
             # bug, rows are still "checked" after deleting
 
@@ -222,8 +222,8 @@ async def implant_view():
             ui.notify("No implants selected", color="warning")
             return
 
-        for implant_id in ids:
-            await terminal_add_tab(implant_id, implant_id)
+        for implant_uuid in ids:
+            await terminal_add_tab(implant_uuid, implant_uuid)
 
     async def handle_notes():
         # get all selected
@@ -231,30 +231,30 @@ async def implant_view():
         # if selected = 1, pull up notes from that agent and populate editor with them
 
         if len(ids) == 1:
-            implant_id = ids[0]
+            implant_uuid = ids[0]
             # lookup server value of notes, NOT what's currently in the table. Server is source of truth
-            implant_data = await get_implant_data(implant_id=implant_id)
+            implant_data = await get_implant_data(implant_uuid=implant_uuid)
             implant_notes = implant_data.get("data", {}).get("notes")
 
             # get notes from dialog
             notes = await open_notes_dialog(
-                implant_id=f"ID: {implant_id}", populate_editor_with=implant_notes
+                implant_uuid=f"ID: {implant_uuid}", populate_editor_with=implant_notes
             )
             # ui.notify(notes)
             data = {"notes": notes}
             # post to update implant
-            await update_implant(implant_id=implant_id, data=data)
+            await update_implant(implant_uuid=implant_uuid, data=data)
 
         elif len(ids) > 1:
             notes = await open_notes_dialog(
-                implant_id=f"Editing {len(ids)} implants notes"
+                implant_uuid=f"Editing {len(ids)} implants notes"
             )
             # ui.notify(notes)
             # post to update all the implants
             data = {"notes": notes}
 
             for id in ids:
-                await update_implant(implant_id=id, data=data)
+                await update_implant(implant_uuid=id, data=data)
 
         else:
             ui.notify("Please select an implant to edit its notes")
@@ -287,23 +287,23 @@ async def terminal_view():
 
 
 # Global function to add a tab from anywhere
-async def terminal_add_tab(tab_name, implant_id):
+async def terminal_add_tab(tab_name, implant_uuid):
     global tabs, panels, open_tabs
 
     # already open → switch
-    if implant_id in open_tabs:
-        panels.set_value(open_tabs.get("implant_id"))
+    if implant_uuid in open_tabs:
+        panels.set_value(open_tabs.get("implant_uuid"))
         return
 
     # create tab
     with tabs:
-        # create tab with implant_id metadata  for identifying it later
+        # create tab with implant_uuid metadata  for identifying it later
         with ui.tab(tab_name, label="").classes("p-0 rounded-none") as tab:
-            tab.meta = {"implant_id": implant_id}
+            tab.meta = {"implant_uuid": implant_uuid}
 
             with ui.row().classes("items-center gap-0"):
                 # implant id (could make into ip as well)
-                ui.label(implant_id).classes("px-3 py-1 text-sm border-l")
+                ui.label(implant_uuid).classes("px-3 py-1 text-sm border-l")
                 # close button
                 ui.button("✕", on_click=lambda e=tab_name: terminal_close_tab(e)).props(
                     "flat dense"
@@ -312,27 +312,27 @@ async def terminal_add_tab(tab_name, implant_id):
     # create panel
     with panels:
         with ui.tab_panel(tab_name):
-            await terminal(implant_id)
+            await terminal(implant_uuid)
 
     # register specific tab object in tab dict
-    open_tabs[implant_id] = {"tab_object": tab}
+    open_tabs[implant_uuid] = {"tab_object": tab}
 
     # and switch to it
     panels.set_value(tab_name)
 
 
-async def terminal_close_tab(implant_id):
+async def terminal_close_tab(implant_uuid):
     global tabs, open_tabs
 
-    tab_object = open_tabs[implant_id]["tab_object"]
+    tab_object = open_tabs[implant_uuid]["tab_object"]
     # remove the tab from the tab object
     tabs.remove(tab_object)
     # remove from dict
-    open_tabs.pop(implant_id)
+    open_tabs.pop(implant_uuid)
 
 
-async def terminal(implant_id):
-    terminal_prepend = f"{implant_id} > "
+async def terminal(implant_uuid):
+    terminal_prepend = f"{implant_uuid} > "
     ui_log = ui.log().classes("w-full h-full")
 
     with ui.row().classes("w-full items-center"):
@@ -353,7 +353,7 @@ async def terminal(implant_id):
 
     # Setup message to indicate the terminal is connected
     async def setup_terminal():
-        await push_text_to_terminal(f"Connected to {implant_id}")
+        await push_text_to_terminal(f"Connected to {implant_uuid}")
 
     async def handle_command():
         # get user input from ui input
@@ -380,7 +380,7 @@ async def terminal(implant_id):
 
         # on task, queue task
         if result_type == ResultType.TASK:
-            await queue_task(implant_id=implant_id, task=result_data.to_task())
+            await queue_task(implant_uuid=implant_uuid, task=result_data.to_task())
 
         # on data, push to screen
         elif result_type == ResultType.TEXT:

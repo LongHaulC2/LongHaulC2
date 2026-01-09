@@ -28,19 +28,20 @@ def _task_batch_job():
     """
 
     while True:
-
+        print("Batch job, retrieving data from redis")
         with get_mysql_session() as session:
             implant_service = ImplantService(session)
+
+            # showing up wit none
             all_implants = implant_service.get_all()
 
             for implant in all_implants:
-                print(implant.id)
 
-                rits = RedisImplantTaskService(implant.id)
+                rits = RedisImplantTaskService(implant.implant_uuid)
                 response_queue_length = rits.respone_queue_length()
 
                 print(
-                    f"TEMP implant {implant.id} has {response_queue_length} tasks to insert"
+                    f"TEMP implant {implant.implant_uuid} has {response_queue_length} tasks to insert"
                 )
 
                 # batch write to db
@@ -51,7 +52,7 @@ def _task_batch_job():
 
                 if responses_to_insert:
                     msits = MySQLImplantTaskService(
-                        implant_id=implant.id, session=session
+                        implant_uuid=implant.implant_uuid, session=session
                     )
                     msits.bulk_update_responses(responses=responses_to_insert)
 

@@ -143,7 +143,8 @@ class HttpGetBlockServerParser:
 
         Does all the transforms, data insertion, etc etc and creates body based on that.
         """
-        obsfucated_data = self.apply_transforms(data)
+        block_field = self.server.output
+        obsfucated_data = self.apply_transforms(data, block_field=block_field)
         return obsfucated_data
 
     def get_output_terminator(self):
@@ -172,12 +173,12 @@ class HttpGetBlockServerParser:
         # fallback if no terminator found
         return None, None
 
-    def apply_transforms(self, data: bytes) -> bytes:
+    def apply_transforms(self, data: bytes, block_field) -> bytes:
         """
         Apply output transforms sequentially, in source order.
         """
         # loop over each transform
-        for stmt in self.server.output.data:
+        for stmt in block_field.data:  # self.server.output.data:
             name = stmt.statement
             value = stmt.value
 
@@ -310,8 +311,8 @@ class HttpGetBlockClientParser:
 
         self.apply_transforms()
 
-    def apply_transforms(self, data):
-        for stmt in self.client.metadata.data:
+    def apply_transforms(self, data, block_field):
+        for stmt in block_field.data:  # self.client.metadata.data:
             name = stmt.statement
             value = stmt.value
 
@@ -415,12 +416,12 @@ class HttpPostBlockServerParser:
         # fallback if no terminator found
         return None, None
 
-    def apply_transforms(self, data: bytes) -> bytes:
+    def apply_transforms(self, data: bytes, block_field) -> bytes:
         """
         Apply output transforms sequentially, in source order.
         """
         # loop over each transform
-        for stmt in self.server.output.data:
+        for stmt in block_field.data:  # self.server.output.data:
             name = stmt.statement
             value = stmt.value
 
@@ -526,8 +527,8 @@ class HttpPostBlockClientParser:
 
         self.apply_transforms()
 
-    def apply_transforms(self, data):
-        for stmt in self.client.output.data:
+    def apply_transforms(self, data, block_field):
+        for stmt in block_field.data:  # self.client.output.data:
             name = stmt.statement
             value = stmt.value
 

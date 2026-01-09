@@ -40,13 +40,15 @@ class ImplantService:
             server_logger.error(f"{self.__class__.__name__} Error: {e}")
             raise
 
-    def get_by_id(self, implant_id: int) -> Implant | None:
+    def get_by_id(self, implant_uuid: int) -> Implant | None:
         """
         Retrieve an implant by primary key.
         """
         try:
-            server_logger.debug(f"Retrieving implant {implant_id} from MYSQL Database")
-            return self.session.query(Implant).get(implant_id)
+            server_logger.debug(
+                f"Retrieving implant {implant_uuid} from MYSQL Database"
+            )
+            return self.session.query(Implant).get(implant_uuid)
 
         except exc.SQLAlchemyError as sqle:
             server_logger.error(f"SQLAlchemy Error: {sqle}")
@@ -73,15 +75,15 @@ class ImplantService:
             server_logger.error(f"{self.__class__.__name__} Error: {e}")
             raise
 
-    def update(self, implant_id: int, data: ImplantUpdate) -> Implant | None:
+    def update(self, implant_uuid: int, data: ImplantUpdate) -> Implant | None:
         """
         Update an implant by primary key.
         """
         server_logger.debug(
-            f"Updating implant {implant_id} in MYSQL Database with {data}"
+            f"Updating implant {implant_uuid} in MYSQL Database with {data}"
         )
         try:
-            implant = self.get_by_id(implant_id)
+            implant = self.get_by_id(implant_uuid)
             if not implant:
                 return None
 
@@ -103,14 +105,14 @@ class ImplantService:
             server_logger.error(f"{self.__class__.__name__} Error: {e}")
             raise
 
-    def delete(self, implant_id: int) -> bool:
+    def delete(self, implant_uuid: int) -> bool:
         """
         Delete an implant by primary key.
         """
-        server_logger.debug(f"Deleting implant {implant_id} in MYSQL Database")
+        server_logger.debug(f"Deleting implant {implant_uuid} in MYSQL Database")
 
         try:
-            implant = self.get_by_id(implant_id)
+            implant = self.get_by_id(implant_uuid)
             if not implant:
                 return False
 
@@ -327,8 +329,8 @@ class MySQLImplantTaskService:
     Class for managing tasks? Have this handle sql and redis updates?
     """
 
-    def __init__(self, implant_id: int, session):
-        self.implant_id = implant_id
+    def __init__(self, implant_uuid: int, session):
+        self.implant_uuid = implant_uuid
         self.session = session
 
     def create_entry(self, task_uuid):
@@ -340,7 +342,7 @@ class MySQLImplantTaskService:
         """
         server_logger.info(f"Adding task to MySQL for implant {task_uuid}")
         task = ImplantTask(
-            implant_id=self.implant_id,
+            implant_uuid=self.implant_uuid,
             task_uuid=task_uuid,
             task_request=None,
             task_response=None,
@@ -365,7 +367,7 @@ class MySQLImplantTaskService:
         # Fetch the task by key
         task = (
             self.session.query(ImplantTask)
-            .filter_by(task_uuid=task_uuid, implant_id=self.implant_id)
+            .filter_by(task_uuid=task_uuid, implant_uuid=self.implant_uuid)
             .first()
         )
 
@@ -377,7 +379,7 @@ class MySQLImplantTaskService:
         else:
             # If the task is not found, log an error or raise an exception
             raise ValueError(
-                f"Task with ID {task_uuid} not found for agent {self.implant_id}."
+                f"Task with ID {task_uuid} not found for agent {self.implant_uuid}."
             )
 
     def update_response(self, task_uuid, response: dict):
@@ -393,7 +395,7 @@ class MySQLImplantTaskService:
         # Fetch the task by key
         task = (
             self.session.query(ImplantTask)
-            .filter_by(id=task_uuid, implant_id=self.implant_id)
+            .filter_by(id=task_uuid, implant_uuid=self.implant_uuid)
             .first()
         )
 
@@ -405,25 +407,27 @@ class MySQLImplantTaskService:
         else:
             # If the task is not found, log an error or raise an exception
             raise ValueError(
-                f"Task with ID {task_uuid} not found for agent {self.implant_id}."
+                f"Task with ID {task_uuid} not found for agent {self.implant_uuid}."
             )
 
     def get_all_tasks(self) -> list:
         """
-        Retrieve all tasks for the given implant_id from MySQL and return them as a list of dictionaries.
+        Retrieve all tasks for the given implant_uuid from MySQL and return them as a list of dictionaries.
         Returns:
             List of task dictionaries.
         """
-        server_logger.info(f"Retrieving all tasks for implant {self.implant_id}")
+        server_logger.info(f"Retrieving all tasks for implant {self.implant_uuid}")
 
         tasks = (
-            self.session.query(ImplantTask).filter_by(implant_id=self.implant_id).all()
+            self.session.query(ImplantTask)
+            .filter_by(implant_uuid=self.implant_uuid)
+            .all()
         )
 
         task_list = [
             {
                 "task_uuid": task.task_uuid,
-                "implant_id": task.implant_id,
+                "implant_uuid": task.implant_uuid,
                 "task_request": task.task_request,
                 "task_response": task.task_response,
             }
@@ -450,7 +454,7 @@ class MySQLImplantTaskService:
             [
                 {
                     "task_uuid": r["task_uuid"],
-                    "implant_id": self.implant_id,
+                    "implant_uuid": self.implant_uuid,
                     "task_response": r["task_response"],
                 }
                 for r in responses

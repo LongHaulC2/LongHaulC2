@@ -27,18 +27,17 @@ if not implants:
     print("[*] No implants connected")
 else:
     for implant in implants:
-        implant_id = implant.get("id", "N/A")
+        implant_uuid = implant.get("id", "N/A")
         internal_ip = implant.get("internal_ip", "N/A")
 
         # Check if the external IP is in the allowed range
         try:
             ip = ipaddress.IPv4Address(internal_ip)
             if ip in allowed_network:
-                print(f"ID: {implant_id:<10} | IP: {internal_ip} - In Scope")
+                print(f"ID: {implant_uuid:<10} | IP: {internal_ip} - In Scope")
             else:
-                print(f"ID: {implant_id:<10} | IP: {internal_ip} - [!] Out of Scope")
+                print(f"ID: {implant_uuid:<10} | IP: {internal_ip} - [!] Out of Scope")
         except ValueError:
-            print(f"ID: {implant_id:<10} | IP: {internal_ip} - [!] Invalid IP")
+            print(f"ID: {implant_uuid:<10} | IP: {internal_ip} - [!] Invalid IP")
 
 print("=" * 50)
-

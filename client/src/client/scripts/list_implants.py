@@ -23,8 +23,8 @@ if not implants:
     print("[*] No implants connected")
 else:
     for implant in implants:
-        implant_id = implant.get("id", "N/A")
+        implant_uuid = implant.get("id", "N/A")
         external_ip = implant.get("external_ip", "N/A")
-        print(f"ID: {implant_id:<10} | IP: {external_ip}")
+        print(f"ID: {implant_uuid:<10} | IP: {external_ip}")
 
 print("=" * 50)

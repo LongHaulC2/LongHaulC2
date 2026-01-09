@@ -174,19 +174,19 @@ class Implants(Resource):
             # data = ImplantCreate(notes="TESTNOTES")
             data = ImplantCreate()
             implant_object = implant_service.create(data)
-            implant_id = implant_object.id
+            implant_uuid = implant_object.implant_uuid
 
         # need to get ID from DB
-        data = {"id": implant_id}
+        data = {"id": implant_uuid}
 
         api_response = APIResponse(
             status="200",
-            message=f"Implant {implant_id} created",
+            message=f"Implant {implant_uuid} created",
             data=data,
         )
 
         api_logger.info(
-            f"Implant {implant_id} created",
+            f"Implant {implant_uuid} created",
             extra={
                 "caller_ip": ip,
             },
@@ -259,7 +259,7 @@ class Implant(Resource):
         # create dataclass from passed in data.
         try:
             implant_data = ImplantUpdate(**api.payload)
-            implant_id = id
+            implant_uuid = id
 
         except TypeError as e:
             # This happens if api.payload has missing or extra fields
@@ -278,7 +278,7 @@ class Implant(Resource):
 
         with get_mysql_session() as session:
             implant_service = ImplantService(session)
-            implant_service.update(implant_id, implant_data)
+            implant_service.update(implant_uuid, implant_data)
 
         api_logger.info(
             f"Updated implant {id}'s data successfully",
@@ -457,7 +457,7 @@ class ImplantTask(Resource):
         # create blank row in mysql, get taskID (which mysql generates, sequentially), append to task.
         with get_mysql_session() as session:
             mysql_implant_service = MySQLImplantTaskService(
-                implant_id=id, session=session
+                implant_uuid=id, session=session
             )
             mysql_implant_service.create_entry(task_uuid=task_uuid)
             mysql_implant_service.update_request(task_uuid=task_uuid, request=task)
@@ -607,7 +607,7 @@ class ImplantHistory(Resource):
         {
             "data": [
                 {
-                    "implant_id": 1,
+                    "implant_uuid": 1,
                     "task_request": {
                         "data": {
                             "somevar": "1234"
@@ -635,7 +635,7 @@ class ImplantHistory(Resource):
         # get data from db
         with get_mysql_session() as session:
             mysql_implant_service = MySQLImplantTaskService(
-                implant_id=id, session=session
+                implant_uuid=id, session=session
             )
             tasks = mysql_implant_service.get_all_tasks()
 
@@ -736,19 +736,19 @@ class TaskSearch(Resource):
             # data = ImplantCreate(notes="TESTNOTES")
             data = ImplantCreate()
             implant_object = implant_service.create(data)
-            implant_id = implant_object.id
+            implant_uuid = implant_object.implant_uuid
 
         # need to get ID from DB
-        data = {"id": implant_id}
+        data = {"id": implant_uuid}
 
         api_response = APIResponse(
             status="200",
-            message=f"Implant {implant_id} created",
+            message=f"Implant {implant_uuid} created",
             data=data,
         )
 
         api_logger.info(
-            f"Implant {implant_id} created",
+            f"Implant {implant_uuid} created",
             extra={
                 "caller_ip": ip,
             },
@@ -759,10 +759,10 @@ class TaskSearch(Resource):
 
 # Add the HelloWorld resource to the API
 implants_ns.add_resource(Implants, "/")
-implants_ns.add_resource(Implant, "/<int:id>")
-implants_ns.add_resource(ImplantTask, "/<int:id>/task")
-implants_ns.add_resource(ImplantTasks, "/<int:id>/tasks")
-implants_ns.add_resource(ImplantHistory, "/<int:id>/tasks/history")
+implants_ns.add_resource(Implant, "/<string:id>")
+implants_ns.add_resource(ImplantTask, "/<string:id>/task")
+implants_ns.add_resource(ImplantTasks, "/<string:id>/tasks")
+implants_ns.add_resource(ImplantHistory, "/<string:id>/tasks/history")
 
 # search endpoints, maybe move to a new file
 implants_ns.add_resource(ImplantSearch, "/search")

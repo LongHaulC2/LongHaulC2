@@ -35,8 +35,8 @@ All responses should follow this format:
   "status": 200,
   "message": "Items retrieved successfully",
   "data": [
-    { "implant_id": "1", "implant_name": "Item 1" },
-    { "implant_id": "2", "implant_name": "Item 2" }
+    { "implant_uuid": "1", "implant_name": "Item 1" },
+    { "implant_uuid": "2", "implant_name": "Item 2" }
   ]
 }
 ```
@@ -47,7 +47,7 @@ All responses should follow this format:
 {
   "status": 200,
   "message": "Item created successfully",
-  "data": { "implant_id": "1", "implant_name": "Item 1" }
+  "data": { "implant_uuid": "1", "implant_name": "Item 1" }
 }
 ```
 

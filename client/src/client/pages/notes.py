@@ -2,12 +2,12 @@ from nicegui import ui
 
 
 async def open_notes_dialog(
-    implant_id: int | str, populate_editor_with: str = ""
+    implant_uuid: int | str, populate_editor_with: str = ""
 ) -> str:
     with ui.dialog() as dialog, ui.card().classes("w-1/2 h-1/2 p-4"):
 
         # Title or header for the editor
-        ui.label(f"Notes: {implant_id}").classes(
+        ui.label(f"Notes: {implant_uuid}").classes(
             "text-lg font-semibold text-center mb-4"
         )
 

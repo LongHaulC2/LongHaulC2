@@ -70,7 +70,7 @@
 
                - [ ] fix up the redis side/rest of code to use new task stuff
                   - [X] Modify to have inbox/outbox keys.
-                  - [ ] Note, implant-tasks might have a busted implant_id,that shows 0
+                  - [ ] Note, implant-tasks might have a busted implant_uuid,that shows 0
 
                   >> HERE
                - [ ] ! BUG: Implants not being UUID causes base64 issues. FUCK. Go change to uuid implant values. 

