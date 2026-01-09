@@ -13,27 +13,24 @@ codes used.
 500: something went wrong
 """
 
-from time import sleep
-from edwh_uuid7 import uuid7
 import re
-import msgpack
-from mpp import MalleableProfile
-from fastapi import Response, FastAPI, Request, status, HTTPException
-from fastapi.responses import JSONResponse
-from yarl import URL
-import uvicorn
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.datastructures import MutableHeaders
-from ..malc2 import (
-    HttpGetBlockServerParser,
-    HttpGetBlockClientParser,
-    HttpPostBlockServerParser,
-    HttpPostBlockClientParser,
-    HttpConfigBlockServerParser,
-)
-from ...modules.redis_functions import RedisImplantTaskService
-from ...modules.task import Task, TaskResponse, Metadata
 
+import msgpack
+import uvicorn
+from fastapi import FastAPI, HTTPException, Request, Response, status
+from mpp import MalleableProfile
+from starlette.middleware.base import BaseHTTPMiddleware
+from yarl import URL
+
+from ...modules.redis_functions import RedisImplantTaskService
+from ...modules.task import Metadata
+from ..malc2 import (
+    HttpConfigBlockServerParser,
+    HttpGetBlockClientParser,
+    HttpGetBlockServerParser,
+    HttpPostBlockClientParser,
+    HttpPostBlockServerParser,
+)
 
 app = FastAPI
 mp = MalleableProfile
@@ -568,9 +565,6 @@ async def http_post(request: Request) -> Response:
         # https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_beacon-http-transaction-walkthru.htm#_Toc65482844
         id_terminator_type, id_terminator_key = hce.get_id_terminator()
 
-        print("id term, id key")
-        print(id_terminator_type)
-        print(id_terminator_key)
         # check if keys
         check_if_data(id_terminator_type)
         check_if_data(id_terminator_key)

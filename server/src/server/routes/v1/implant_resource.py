@@ -1,11 +1,11 @@
-from ...instance import env_config, app, api
-from flask_restx import Resource, Namespace, fields, abort
+from ...instance import api
+from flask_restx import Resource, Namespace, fields
 from flask import request
 from ...utils.response import APIResponse
 from ...modules.mysql_functions import ImplantService, MySQLImplantTaskService
 from ...modules.redis_functions import RedisImplantTaskService
 from ...schemas.implant import *
-from ...db.mysql_connector import get_mysql_engine, get_mysql_session
+from ...db.mysql_connector import get_mysql_session
 import logging
 import base64
 from edwh_uuid7 import uuid7

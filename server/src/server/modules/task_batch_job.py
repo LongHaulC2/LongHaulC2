@@ -3,7 +3,7 @@ import time
 import logging
 
 from ..db.mysql_connector import get_mysql_session
-from .mysql_functions import ListenerService, ImplantService, MySQLImplantTaskService
+from .mysql_functions import ImplantService, MySQLImplantTaskService
 from .redis_functions import RedisImplantTaskService
 
 server_logger = logging.getLogger("server")

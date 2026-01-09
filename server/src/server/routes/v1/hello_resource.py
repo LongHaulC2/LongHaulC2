@@ -1,4 +1,4 @@
-from ...instance import env_config, app, api
+from ...instance import api
 from flask_restx import Resource
 
 

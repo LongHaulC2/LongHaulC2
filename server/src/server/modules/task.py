@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 import msgpack
 
 
@@ -14,7 +14,6 @@ class BaseStructure:
 
     def validate(self) -> None:
         """Override in subclasses to enforce structure."""
-        pass
 
     def to_dict(self) -> Dict[str, Any]:
         return self._data

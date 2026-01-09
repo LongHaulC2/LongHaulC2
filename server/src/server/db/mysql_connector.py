@@ -1,7 +1,6 @@
 import logging
 import traceback
-from sqlalchemy import create_engine, Column, Integer, String, Text, Time, text, exc
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine, text, exc
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 import urllib.parse
@@ -10,7 +9,7 @@ from contextlib import contextmanager
 from ..instance import env_config
 
 #!! Importing base, as re-declaring it makes it so there are 2 different bases, and create_all does not work (tables do  not get created)
-from ..db.mysql_models import Implant, Listener, Base
+from ..db.mysql_models import Base
 
 # Logger setup
 logger = logging.getLogger("server")

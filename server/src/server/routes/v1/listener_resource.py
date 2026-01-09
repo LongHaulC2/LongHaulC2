@@ -1,17 +1,15 @@
-from ...instance import env_config, app, api
-from flask_restx import Resource, Namespace, fields, abort
+from ...instance import api
+from flask_restx import Resource, Namespace, fields
 from flask import request
 from ...utils.response import APIResponse
 from ...modules.mysql_functions import ListenerService
-from ...modules.redis_functions import RedisImplantTaskService
 from ...schemas.listeners import ListenerCreate
-from ...db.mysql_connector import get_mysql_engine, get_mysql_session
-from ...listeners.supervisor import start_listener, stop_all, stop_listener
+from ...db.mysql_connector import get_mysql_session
+from ...listeners.supervisor import start_listener, stop_listener
 
 import logging
-import base64
 from edwh_uuid7 import uuid7
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 
 listener_ns = Namespace("listeners", description="Listener related operations")
 api_logger = logging.getLogger("api")

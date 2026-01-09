@@ -3,7 +3,6 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    Time,
     BigInteger,
     JSON,
     Index,
@@ -11,8 +10,6 @@ from sqlalchemy import (
     Boolean,
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.inspection import inspect
 from edwh_uuid7 import uuid7
 

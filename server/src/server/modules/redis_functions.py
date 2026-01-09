@@ -1,18 +1,11 @@
-from datetime import time
-from sqlalchemy import exc
 import logging
 from dataclasses import asdict
 
-from ..db.mysql_models import Implant
-from ..schemas.implant import ImplantUpdate, ImplantCreate, Task
+from ..schemas.implant import Task
 
 server_logger = logging.getLogger("server")
 
-import redis
 import msgpack
-import uuid
-from datetime import datetime
-from ..instance import env_config
 from ..db.redis_connector import get_redis_connection
 import logging
 

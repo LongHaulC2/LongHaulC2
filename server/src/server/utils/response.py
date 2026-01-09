@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field, asdict
-from typing import Any, Optional, Dict
+from dataclasses import dataclass, asdict
+from typing import Any, Optional
 from flask import jsonify
 import logging
 
