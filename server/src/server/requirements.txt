@@ -10,3 +10,5 @@ edwh-uuid7
 msgpack
 pyMalleableProfileParser
 uvicorn
+structlog
+concurrent-log-handler

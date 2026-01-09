@@ -2,7 +2,7 @@ import base64
 import logging
 import re
 
-server_logger = logging.getLogger("server")
+server_logger = logging.getLogger("listener")
 
 """
 This is for Data Transform Language

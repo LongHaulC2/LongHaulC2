@@ -71,32 +71,10 @@
                - [ ] fix up the redis side/rest of code to use new task stuff
 
                   >> HERE
-               - [X] ! BUG: Implants not being UUID causes base64 issues. FUCK. Go change to uuid implant values. 
-               - [X] Redis watchdog to actually write responses/make sure the full chain/flow works
-                  - [X] Stuck at http-post, bug when posting back, shows data is none that is from parameter and header apparently have a .key method, instead of a .value
-                     
-                     this was causing 400 errs on http-post
-                     Unsure if uri-append is key or value 
-
-                     - [X] Check URI-APPEND malleable c2 option and see if it stores the parameter in value or key (if it even stores one... I don;t think it does)
-
-                     ```
-                     if name in ("uri-append"):
-                        return name, value
-                     elif name in ("parameter", "header"):
-                        return name, stmt.key
-                     ```req. Weird. print more stuff.
-
-               -
-
-               - [X] Validate that the batch write back to MYSQL works (currently all responses are NULL). I'm guessing inbox is busted (make reset to  re-build?) or something is broken somewhere. 
-
-               - [X] Make a quick shitty dev python implant with hardcoded responses to test the flow
-
                - [ ] implament logic into the URI funcs (they do not have it currently)
                   - [not_tested] http_post_uri 
-                  - [ ] http_get_uri
-                  
+                  - [not_tested] http_get_uri
+
                - [ ] cleanup and add logging where needed. 
 
 
