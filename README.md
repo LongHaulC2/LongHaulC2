@@ -3,7 +3,7 @@
 
 **Project Goal:** To replace existing C2 frameworks for long-haul, Red Team/Offensive management scenarios. This tool serves as a "guardian" or "maintain access" solution—the failsafe when primary access methods are detected or neutralized.
 
-While it is not designed to surpass Cobalt Strike (CS) as a day-to-day operations tool, LongHaulC2 aims to outperform it as a low-overhead management and persistence solution.
+While it is not designed to surpass Cobalt Strike or similar C2 tooling as a day-to-day operations tool, LongHaulC2 aims to outperform all of them as a low-overhead management and persistence solution.
 
 ## Objectives
 
@@ -14,29 +14,22 @@ While it is not designed to surpass Cobalt Strike (CS) as a day-to-day operation
 
 ## Table of Contents
 
-1. [Introduction](https://www.google.com/search?q=%23longhaulc2-persistent-access-management)
-2. [Objectives](https://www.google.com/search?q=%23objectives)
-3. [Implementation Details](https://www.google.com/search?q=%23implementation-details)
-* [Communication](https://www.google.com/search?q=%23communication)
-* [Implant Design](https://www.google.com/search?q=%23implant-design)
-* [Server Architecture](https://www.google.com/search?q=%23server-architecture)
-* [Data Management](https://www.google.com/search?q=%23data-management)
-* [Encryption](https://www.google.com/search?q=%23encryption)
-* [Management Features](https://www.google.com/search?q=%23management-features)
-
-
-4. [Malleable C2 Support](https://www.google.com/search?q=%23malleable-c2-support)
-* [Overview](https://www.google.com/search?q=%23overview)
-* [Supported Blocks](https://www.google.com/search?q=%23supported-blocks)
-* [http-get](https://www.google.com/search?q=%23http-get)
-* [http-post](https://www.google.com/search?q=%23http-post)
-* [http-config](https://www.google.com/search?q=%23http-config)
-
-
-* [Unsupported Features](https://www.google.com/search?q=%23unsupported-features)
-* [Global Options](https://www.google.com/search?q=%23global-options)
-
-
+1. [Introduction](#longhaulc2-persistent-access-management)
+2. [Objectives](#objectives)
+3. [Implementation Details](#implementation-details)
+   - [Communication](#communication)
+   - [Implant Design](#implant-design)
+   - [Server Architecture](#server-architecture)
+   - [Data Management](#data-management)
+   - [Encryption](#encryption)
+   - [Management Features](#management-features)
+4. [Malleable C2 Support](#malleable-c2-support)
+   - [Supported Blocks](#supported-blocks)
+     - [http-get](#http-get)
+     - [http-post](#http-post)
+     - [http-config](#http-config)
+   - [Unsupported Features](#unsupported-features)
+   - [Global Options](#global-options)
 
 ---
 
