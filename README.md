@@ -69,6 +69,14 @@ I can't beat CS as a day-to-day red team operations tool. I can
 
 
 # Malleable-C2:
+LongHaul currently implements the network communication layer of Malleable C2 profiles. It focuses on traffic shaping and indicators (http-get, http-post, etc.), while omitting Cobalt Strike-specific payload and artifact configurations.
+
+[not implemented] Additionally, LongHaul has custom blocks for the non-traditional listeners:
+ - `ntp-get`
+ - `ntp-post`
+ - `ntp-config`
+
+
 The current supported options in Malleable C2 profiles:
 
 [Malleable Profile Docs](https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_profile-language.htm#_Toc65482837)
