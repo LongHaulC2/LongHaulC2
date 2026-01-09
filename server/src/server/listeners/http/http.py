@@ -47,7 +47,9 @@ listener_logger = structlog.get_logger("listener")
 
 
 # entrypoint
-def run(listener_uuid: str):
+def run(
+    listener_uuid: str, listener_port: int, listener_host: str, listener_profile=None
+):
     """The entrypoint for the listener
 
     Args:
@@ -98,7 +100,9 @@ def run(listener_uuid: str):
 
     # reload needs to be OFF.
     # server_header=false disabled  "server uvicorn" in the response
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False, server_header=False)
+    uvicorn.run(
+        app, host=listener_host, port=listener_port, reload=False, server_header=False
+    )
 
 
 ###################################

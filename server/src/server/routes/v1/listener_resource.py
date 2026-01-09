@@ -1,15 +1,16 @@
-from ...instance import api
-from flask_restx import Resource, Namespace, fields
+import logging
+from dataclasses import asdict
+
+from edwh_uuid7 import uuid7
 from flask import request
-from ...utils.response import APIResponse
+from flask_restx import Namespace, Resource, fields
+
+from ...db.mysql_connector import get_mysql_session
+from ...instance import api
+from ...listeners.supervisor import start_listener, stop_listener
 from ...modules.mysql_functions import ListenerService
 from ...schemas.listeners import ListenerCreate
-from ...db.mysql_connector import get_mysql_session
-from ...listeners.supervisor import start_listener, stop_listener
-
-import logging
-from edwh_uuid7 import uuid7
-from dataclasses import asdict
+from ...utils.response import APIResponse
 
 listener_ns = Namespace("listeners", description="Listener related operations")
 api_logger = logging.getLogger("api")
@@ -30,6 +31,10 @@ listener_spawn_model = api.model(
         ),
         "listener_name": fields.String(required=True, description="Name of listener"),
         "listener_notes": fields.String(required=False, description="Listener notes"),
+        "listener_profile": fields.String(
+            required=False,
+            description="Listener malleable c2 profile [not implemented yet]",
+        ),
     },
 )
 

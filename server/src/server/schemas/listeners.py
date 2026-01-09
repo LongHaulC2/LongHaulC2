@@ -10,6 +10,7 @@ class ListenerCreate:
     listener_port: Optional[int] = None
     listener_name: Optional[str] = None
     listener_notes: Optional[str] = None
+    listener_profile: Optional[str] = None
     # not required by api
     listener_active: Optional[bool] = None
 

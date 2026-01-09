@@ -1,17 +1,17 @@
+from edwh_uuid7 import uuid7
 from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Boolean,
     Column,
+    Index,
     Integer,
     String,
     Text,
-    BigInteger,
-    JSON,
-    Index,
     UniqueConstraint,
-    Boolean,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.inspection import inspect
-from edwh_uuid7 import uuid7
 
 Base = declarative_base()
 
@@ -137,7 +137,7 @@ class Listener(Base):
     listener_notes = Column(Text)
 
     listener_active = Column(Boolean)
-    # listener_config = Column(String, primary_key=True)
+    listener_profile = Column(Text)  # FULL malleablec2 profile
 
     # Adding UniqueConstraint to enforce unique combination of listener_host and listener_port
     __table_args__ = (

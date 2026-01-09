@@ -1,37 +1,21 @@
 ## Planning:
  
 ##  server
-   - [ ] Add API Endpoints for these 
-      X Left off: `{{baseUrl}}/implants/:id/task` - return payload["id"] bug.
-
-      - Marshalling on output of GET /implants/id/task, and /implants/id/tasks. 
-         - maybe consider marhsalling on every output... don't go too far into the rabbit hole
-
-
-      - Configure/rename keys, have an "inbox" and "outbox" for each agent.
-         [ ] Inbox: Data from implants (unknown format - some json/msgpack format. Undecided)
-            - Batch write to mysql every 1 second to prevent thrashing, and have a command log
-         [X] Outbox: Tasks for clients (the usual task queue, just rename it.)
-            - [X] Write command to mysql (plaintext for searchability), and redis (msgpack). 
-               (if scaling is an issue here, can cache commands in redis and batch write to mysql on intervals - more complicated)
-               [X] Define mysql schema
-               NOTE: task_uuid will be used for request and response for correlation.
-            - [X] Clean up and add logging. 
-
-      Post this, close branch, move to gui, and implenet terminal properly. 
-
    - [ ] Listeners
       - [ ] Listeners
-         - [ ] play with HTTP listener & malleable c2 parsing POC. 
-
-      - [ ] Listener hookup to redis/defining of response structure.
-            `{task_id:"", "data_type":binary|text, data="somedata"}`? seems good enough for now. 
-            Maybe make it a list, for future expansion for multiple responses? iffy.
-      - [ ] Keep in mind, be on look out for flexible python webservers, for http listeners. Ex, can easily set things such as endpoints, headers, etc, etc. 
+         - [X] play with HTTP listener & malleable c2 parsing POC. 
 
    # API cleanup:
       - [ ] Exceptions where needed in logic 
          - These must bubble up
+
+   #### Listeners:
+    - [X] API so port/etc are accurate
+      - `{{baseUrl}}/listeners/`
+    - [ ] Add new implants to implants db at connect, if they are not added yet (currently a manual process)
+
+   #### Logging:
+      - Convert everything to structlogger (with binds, etc.) Big tasks
 
 # Mal c2:
 
@@ -58,34 +42,10 @@
       ### 2. **Global Options**
          - [ ] Set up global options handling for the system.
 
-      ### 3. **Redis Integration**
-         - [X] > hook into Redis for task management.
-            - [X] > Need to define metadata structure. Likely will contain ID at a minimum. 
-               {"id":"uuid"} (msgpack) is probably best minimum needed on get. Can then add other fields  as needed, later. 
-
-               - [X] HTTP Get  
-               - [X] HTTP Get URI 
-               - [X] HTTP Post  
-               - [X] HTTP Post URI  
-
-               - [ ] fix up the redis side/rest of code to use new task stuff
-
-                  >> HERE
-               - [ ] implament logic into the URI funcs (they do not have it currently)
-                  - [not_tested] http_post_uri 
-                  - [not_tested] http_get_uri
-
-               - [ ] cleanup and add logging where needed. 
-
-
-
-         - [ ] Ensure proper data retrieval from Redis.
-         - [ ] Implement tasking mechanisms to inject custom data into responses.
-
       ### 4. **Error Handling**
          ~~- [ ] Implement error handling for invalid profiles.~~
          - [ ] Add error handling for invalid options or bad configurations.
-         - [ ] Create logging for when errors occur.
+         - [X] Create logging for when errors occur.
          - [X] Graceful failure for unexpected scenarios (e.g., invalid data format, connection issues).
 
       ### 5. teseting & docs:
@@ -122,26 +82,6 @@ List of task responses:
 - `{"implant_uuid":"uuid", ...}`
 
 Ex: `{"implant_uuid":"1234"}`
-
-# Scripting Idea:
-   # FIX / PLAN EVERYTHING ELSE FIRST. 
- - [x] API  already exists, so let that be the way that 3rd party things can interact. 
-
- - Idea #1:
-   - A "terminal" on a page that has scriptsin the current dir. These are scripts that make api calls that interact with the 
-      server
-
- - Idea #2: Something similar to splunk soar's scripting, either with blockscripting (complicated) or manual scripting (simpler), where it's a glorified IDE, and has a run menu/output. 
-
-   From a usecase, #2 with blockscripting is easier, but #2 with manual scripting + fake IDE may be easiest.
-   Example scripts would be necessary,  ex, getting all current beacons, and queueing a task for those with the external ip of X
-
-   TODO:
-   - [X] Keybinds (save) # would overwrite the default ctrl+s on the page. maybe a consideration for later. 
-   - [X] File save func
-      > might want to hash files, and compare OG to current saved file, to detect changes. Can then rename as something else? Prevents multiple save conflicts
-   - [X] Create new file
-
 
 
 ## Client:

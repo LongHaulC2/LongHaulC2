@@ -1,9 +1,10 @@
 # listener supervisor
-import multiprocessing
 import logging
-from .http.http import run as http_run
-from ..schemas.listeners import ListenerCreate
+import multiprocessing
 import threading
+
+from ..schemas.listeners import ListenerCreate
+from .http.http import run as http_run
 
 
 class InvalidListenerType(Exception):
@@ -34,6 +35,9 @@ def start_listener(
                     target=http_run,
                     kwargs={
                         "listener_uuid": listener_data.listener_uuid,
+                        "listener_host": listener_data.listener_host,
+                        "listener_port": listener_data.listener_port,
+                        "listener_profile": listener_data.listener_profile,
                     },
                     daemon=True,  # shuts down listeners at program exit.
                 )
