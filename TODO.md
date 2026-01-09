@@ -73,7 +73,21 @@
                   - [ ] Note, implant-tasks might have a busted implant_id,that shows 0
 
                - [ ] Redis watchdog to actually write responses/make sure the full chain/flow works
-                  - [ ] Stuck at http-post, bug when posting back, shows data is none that is from req. Weird. print more stuff.
+                  - [X] Stuck at http-post, bug when posting back, shows data is none that is from parameter and header apparently have a .key method, instead of a .value
+                     
+                     this was causing 400 errs on http-post
+                     Unsure if uri-append is key or value 
+
+                     - [ ] Check URI-APPEND malleable c2 option and see if it stores the parameter in value or key (if it even stores one...)
+
+                     ```
+                     if name in ("uri-append"):
+                        return name, value
+                     elif name in ("parameter", "header"):
+                        return name, stmt.key
+                     ```req. Weird. print more stuff.
+
+
                - [ ] Make a quick shitty dev python implant with hardcoded responses to test the flow
 
 
