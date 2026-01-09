@@ -579,9 +579,9 @@ async def http_post(request: Request) -> Response:
         # BUG: output key not being retrieved for some reason
         output_terminator_type, output_terminator_key = hce.get_output_terminator()
 
-        print("output term, output key")
-        print(output_terminator_type)
-        print(output_terminator_key)
+        # print("output term, output key")
+        # print(output_terminator_type)
+        # print(output_terminator_key)
         # check if keys, ifnot, throw a 400 (it's a server error though - so maybe change later)
         check_if_data(output_terminator_type)
         check_if_data(output_terminator_key)
@@ -603,9 +603,9 @@ async def http_post(request: Request) -> Response:
         # https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_beacon-http-transaction-walkthru.htm#_Toc65482844
         id_terminator_type, id_terminator_key = hce.get_id_terminator()
 
-        print("id term, id key")
-        print(id_terminator_type)
-        print(id_terminator_key)
+        # print("id term, id key")
+        # print(id_terminator_type)
+        # print(id_terminator_key)
         # check if keys
         check_if_data(id_terminator_type)
         check_if_data(id_terminator_key)

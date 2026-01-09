@@ -39,6 +39,10 @@ def _task_batch_job():
                 rits = RedisImplantTaskService(implant.id)
                 response_queue_length = rits.respone_queue_length()
 
+                print(
+                    f"TEMP implant {implant.id} has {response_queue_length} tasks to insert"
+                )
+
                 # batch write to db
                 responses_to_insert = []
                 for _ in range(response_queue_length):
