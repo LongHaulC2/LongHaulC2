@@ -69,18 +69,16 @@
                - [X] HTTP Post URI  
 
                - [ ] fix up the redis side/rest of code to use new task stuff
-                  - [X] Modify to have inbox/outbox keys.
-                  - [ ] Note, implant-tasks might have a busted implant_uuid,that shows 0
 
                   >> HERE
-               - [ ] ! BUG: Implants not being UUID causes base64 issues. FUCK. Go change to uuid implant values. 
-               - [ ] Redis watchdog to actually write responses/make sure the full chain/flow works
+               - [X] ! BUG: Implants not being UUID causes base64 issues. FUCK. Go change to uuid implant values. 
+               - [X] Redis watchdog to actually write responses/make sure the full chain/flow works
                   - [X] Stuck at http-post, bug when posting back, shows data is none that is from parameter and header apparently have a .key method, instead of a .value
                      
                      this was causing 400 errs on http-post
                      Unsure if uri-append is key or value 
 
-                     - [ ] Check URI-APPEND malleable c2 option and see if it stores the parameter in value or key (if it even stores one... I don;t think it does)
+                     - [X] Check URI-APPEND malleable c2 option and see if it stores the parameter in value or key (if it even stores one... I don;t think it does)
 
                      ```
                      if name in ("uri-append"):
@@ -91,11 +89,14 @@
 
                -
 
-               - [ ] Validate that the batch write back to MYSQL works (currently all responses are NULL). I'm guessing inbox is busted (make reset to  re-build?) or something is broken somewhere. 
+               - [X] Validate that the batch write back to MYSQL works (currently all responses are NULL). I'm guessing inbox is busted (make reset to  re-build?) or something is broken somewhere. 
 
                - [X] Make a quick shitty dev python implant with hardcoded responses to test the flow
 
+               - [ ] implament logic into the URI funcs (they do not have it currently)
                - [ ] cleanup and add logging where needed. 
+
+
 
          - [ ] Ensure proper data retrieval from Redis.
          - [ ] Implement tasking mechanisms to inject custom data into responses.
