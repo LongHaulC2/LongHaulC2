@@ -69,9 +69,11 @@
                - [X] HTTP Post URI  
 
                - [ ] fix up the redis side/rest of code to use new task stuff
-                  - [ ] Modify to have inbox/outbox keys.
+                  - [X] Modify to have inbox/outbox keys.
                   - [ ] Note, implant-tasks might have a busted implant_id,that shows 0
+
                - [ ] Redis watchdog to actually write responses/make sure the full chain/flow works
+                  - [ ] Stuck at http-post, bug when posting back, shows data is none that is from req. Weird. print more stuff.
                - [ ] Make a quick shitty dev python implant with hardcoded responses to test the flow
 
 
@@ -117,7 +119,7 @@ List of task responses:
 # Metadata Structure:
 - `{"implant_uuid":"uuid", ...}`
 
-Ex: `{"implant_uuid":1234, ...}`
+Ex: `{"implant_uuid":"1234"}`
 
 # Scripting Idea:
    # FIX / PLAN EVERYTHING ELSE FIRST. 

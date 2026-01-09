@@ -156,11 +156,18 @@ class HttpGetBlockServerParser:
             name = stmt.statement
             value = stmt.value
 
-            if name in ("header", "parameter", "uri-append"):
+            # if name in ("header", "parameter", "uri-append"):
+            #     return name, value
+            # elif name == "print":
+            #     return "print", None
+            # if multiple terminators, this will return the last one
+
+            if name in ("uri-append"):
                 return name, value
+            elif name in ("parameter", "header"):
+                return name, stmt.key
             elif name == "print":
                 return "print", None
-            # if multiple terminators, this will return the last one
 
         # fallback if no terminator found
         return None, None
@@ -251,12 +258,19 @@ class HttpGetBlockClientParser:
             name = stmt.statement
             value = stmt.value
 
-            if name in ("header", "parameter", "uri-append"):
-                key = stmt.key
-                return name, key
+            # if name in ("header", "parameter", "uri-append"):
+            #     key = stmt.key
+            #     return name, key
+            # elif name == "print":
+            #     return "print", None
+            # if multiple terminators, this will return the last one
+
+            if name in ("uri-append"):
+                return name, value
+            elif name in ("parameter", "header"):
+                return name, stmt.key
             elif name == "print":
                 return "print", None
-            # if multiple terminators, this will return the last one
 
         # fallback if no terminator found
         return None, None
@@ -271,11 +285,18 @@ class HttpGetBlockClientParser:
             name = stmt.statement
             value = stmt.value
 
-            if name in ("header", "parameter", "uri-append"):
+            # if name in ("header", "parameter", "uri-append"):
+            #     return name, value
+            # elif name == "print":
+            #     return "print", None
+            # if multiple terminators, this will return the last one
+
+            if name in ("uri-append"):
                 return name, value
+            elif name in ("parameter", "header"):
+                return name, stmt.key
             elif name == "print":
                 return "print", None
-            # if multiple terminators, this will return the last one
 
         # fallback if no terminator found
         return None, None
@@ -378,11 +399,18 @@ class HttpPostBlockServerParser:
             name = stmt.statement
             value = stmt.value
 
-            if name in ("header", "parameter", "uri-append"):
+            # if name in ("header", "parameter", "uri-append"):
+            #     return name, value
+            # elif name == "print":
+            #     return "print", None
+            # if multiple terminators, this will return the last one
+
+            if name in ("uri-append"):
                 return name, value
+            elif name in ("parameter", "header"):
+                return name, stmt.key
             elif name == "print":
                 return "print", None
-            # if multiple terminators, this will return the last one
 
         # fallback if no terminator found
         return None, None
@@ -451,8 +479,10 @@ class HttpPostBlockClientParser:
             name = stmt.statement
             value = stmt.value
 
-            if name in ("header", "parameter", "uri-append"):
+            if name in ("uri-append"):
                 return name, value
+            elif name in ("parameter", "header"):
+                return name, stmt.key
             elif name == "print":
                 return "print", None
             # if multiple terminators, this will return the last one
@@ -470,8 +500,16 @@ class HttpPostBlockClientParser:
             name = stmt.statement
             value = stmt.value
 
-            if name in ("header", "parameter", "uri-append"):
+            print(self.client.id.data)
+
+            # header and parameter are in  KEY wtf
+            # [Statement(statement=base64url, value=""), Statement(statement=header, key="utmcc", value="")]
+            # [Statement(statement=parameter, key="utmac", value="")]
+
+            if name in ("uri-append"):
                 return name, value
+            elif name in ("parameter", "header"):
+                return name, stmt.key
             elif name == "print":
                 return "print", None
             # if multiple terminators, this will return the last one

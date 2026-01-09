@@ -115,6 +115,16 @@ def check_user_agent(user_agent) -> bool:
 
     https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_http-server-config.htm#_Toc65482845
     """
+    try:
+        mp.http_config
+        # print("http-config block not found")
+        # return False
+    except Exception as e:
+        print(e)
+        print("http-config block not found")
+        # no block set, so every user agent is okay
+        return True
+
     hcbsp = HttpConfigBlockServerParser(mp.http_config)
 
     # Get the blocked and allowed user agents from the configuration
@@ -195,8 +205,10 @@ async def deobsfucate_malleable_c2_request_data(
     match terminator_type:
         # [X] works
         case "header":
+            print(request.headers)
             normalized_headers = {k.lower(): v for k, v in request.headers.items()}
             data_from_request = normalized_headers.get(terminator_key.lower())
+            print(f"Looking for data in header: {terminator_key}")
             print(f"Data from request: {data_from_request}")
             check_if_data(data_from_request)
 
@@ -259,6 +271,15 @@ class HeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         # Call the next request handler
         response = await call_next(request)
+
+        # err checkincase mp.http_config doesn't exist.
+        try:
+            mp.http_config
+        except Exception as e:
+            print(e)
+            print("http-config block not found")
+            # pass all processing, just return response
+            return response
 
         hcbsp = HttpConfigBlockServerParser(mp.http_config)
 
@@ -555,7 +576,16 @@ async def http_post(request: Request) -> Response:
     # for some reason, http-post uses output, not metadata
 
     try:
+        # BUG: output key not being retrieved for some reason
         output_terminator_type, output_terminator_key = hce.get_output_terminator()
+
+        print("output term, output key")
+        print(output_terminator_type)
+        print(output_terminator_key)
+        # check if keys, ifnot, throw a 400 (it's a server error though - so maybe change later)
+        check_if_data(output_terminator_type)
+        check_if_data(output_terminator_key)
+
         data_from_implant = await deobsfucate_malleable_c2_request_data(
             request=request,
             terminator_type=output_terminator_type,
@@ -565,12 +595,21 @@ async def http_post(request: Request) -> Response:
         )
         print(f"Data from implant: {data_from_implant}")
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     try:
         # note, id is always in a header or param
         # https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_beacon-http-transaction-walkthru.htm#_Toc65482844
         id_terminator_type, id_terminator_key = hce.get_id_terminator()
+
+        print("id term, id key")
+        print(id_terminator_type)
+        print(id_terminator_key)
+        # check if keys
+        check_if_data(id_terminator_type)
+        check_if_data(id_terminator_key)
+
         implant_id = await deobsfucate_malleable_c2_request_data(
             request=request,
             terminator_type=id_terminator_type,
@@ -580,6 +619,7 @@ async def http_post(request: Request) -> Response:
         )
         print(f"Implant ID: {implant_id}")
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     """
@@ -663,6 +703,7 @@ async def http_post_uri(request: Request, data: str) -> Response:
         print(f"Full URL: {full_uri}")
         print(f"Data from URL: {data}")
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     # save to redis...

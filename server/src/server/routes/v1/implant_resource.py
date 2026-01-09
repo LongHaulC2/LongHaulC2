@@ -4,7 +4,7 @@ from flask import request
 from ...utils.response import APIResponse
 from ...modules.mysql_functions import ImplantService, MySQLImplantTaskService
 from ...modules.redis_functions import RedisImplantTaskService
-from ...schemas.implant import ImplantCreate, ImplantUpdate, Task, TaskData, Search
+from ...schemas.implant import *
 from ...db.mysql_connector import get_mysql_engine, get_mysql_session
 import logging
 import base64
@@ -59,16 +59,35 @@ implant_update_model = api.model(
     },
 )
 
-implant_task_model = api.model(
-    "TaskModel",
+# Task model
+task_args_model = api.model(
+    "TaskArgs",
     {
-        "task": fields.String(
-            required=True, description="Name of the task to be performed"
-        ),
-        "data": fields.Raw(required=True, description="Dynamic key/value pairs"),
+        "cli": fields.String(required=True, description="Command line to execute"),
     },
 )
 
+task_detail_model = api.model(
+    "TaskDetail",
+    {
+        "taskname": fields.String(required=True, description="Task type/name"),
+        "args": fields.Nested(
+            task_args_model, required=True, description="Task arguments"
+        ),
+    },
+)
+
+implant_task_model = api.model(
+    "Task",
+    {
+        # "task_uuid": fields.String(
+        #     required=False,  # added by server
+        #     description="Task UUID (assigned by server)",
+        # ),
+        "implant_uuid": fields.String(required=True, description="Implant UUID"),
+        "task": fields.Nested(task_detail_model, required=True),
+    },
+)
 
 search_model = api.model(
     "SearchModel",
@@ -412,7 +431,7 @@ class ImplantTask(Resource):
                 # unwrap data into a dataclass
                 **api.payload,
                 # add on a task id
-                uuid=task_uuid,
+                task_uuid=task_uuid,
             )
 
         except TypeError as e:

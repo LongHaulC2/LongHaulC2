@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Literal, Union
 import time
 
 """
@@ -64,13 +64,79 @@ task = Task(
 """
 
 
+# Task Structure
+"""
+{
+    "task_uuid": "1234", 
+    "implant_uuid": "9999", 
+    "task": 
+        {
+            "taskname":"cmd",
+            "args":
+                {
+                    "cli":"whoami" # others...
+                }
+            }
+        }
+
+"""
+
+
 @dataclass
-class TaskData:
-    extra: Dict[str, Any] = field(default_factory=dict)
+class TaskArgs:
+    cli: str
+
+
+@dataclass
+class TaskDetail:
+    taskname: str
+    args: TaskArgs
 
 
 @dataclass
 class Task:
-    task: str
-    data: TaskData
-    uuid: str
+    task_uuid: str  # added by server
+    implant_uuid: str
+    task: TaskDetail
+
+
+# task response data class
+
+"""
+{
+    "task_uuid":"", 
+    "implant_uuid": "9999", 
+    "result":
+        {
+            "data_type":"something,
+            "data":"somedata"
+        }
+    }
+
+"""
+
+
+@dataclass
+class TaskResult:
+    data_type: str  # Literal["text", "binary"] # if I waant to  validate an option
+    data: Union[str, bytes]  # str or bytes here
+
+
+@dataclass
+class TaskResponse:
+    task_uuid: str
+    implant_uuid: int
+    result: TaskResult
+
+
+# implant metadata
+"""
+{
+    "implant_uuid":"1234"
+}
+"""
+
+
+@dataclass
+class ImplantMetadata:
+    implant_uuid: str
