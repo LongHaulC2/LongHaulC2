@@ -94,6 +94,9 @@
                - [X] Make a quick shitty dev python implant with hardcoded responses to test the flow
 
                - [ ] implament logic into the URI funcs (they do not have it currently)
+                  - [not_tested] http_post_uri 
+                  - [ ] http_get_uri
+                  
                - [ ] cleanup and add logging where needed. 
 
 
