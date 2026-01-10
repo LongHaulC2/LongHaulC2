@@ -34,7 +34,7 @@ from yarl import URL
 from ...db.mysql_connector import get_mysql_session
 from ...modules.mysql_functions import ImplantService
 from ...modules.redis_functions import RedisImplantTaskService
-from ...modules.task import Metadata, Task, TaskService
+from ...modules.task import MetadataService, TaskService
 from ...schemas.implant import ImplantCreate, ImplantMetadata, ImplantUpdate
 from ..malc2 import (
     HttpConfigBlockServerParser,
@@ -437,8 +437,9 @@ def http_response(data_from_implant):
     # take extracted data, shove into class:
     try:
         unpacked_metadata = msgpack.unpackb(data_from_implant)
-        md = Metadata(unpacked_metadata)
-        md.validate()  # , if err return 400 malformed
+        ImplantMetadata(**unpacked_metadata)
+        # md = Metadata(unpacked_metadata)
+        # md.validate()  # , if err return 400 malformed
     except Exception as e:
         listener_logger.error("metadata_validation_failed", error=str(e))
         raise HTTPException(
