@@ -63,24 +63,6 @@ task = Task(
 """
 
 
-# Task Structure
-"""
-{
-    "task_uuid": "1234", 
-    "implant_uuid": "9999", 
-    "task": 
-        {
-            "taskname":"cmd",
-            "args":
-                {
-                    "cli":"whoami" # others...
-                }
-            }
-        }
-
-"""
-
-
 @dataclass
 class TaskDetail:
     taskname: str
@@ -94,22 +76,6 @@ class Task:
     task: TaskDetail
 
 
-# task response data class
-
-"""
-{
-    "task_uuid":"", 
-    "implant_uuid": "9999", 
-    "result":
-        {
-            "data_type":"something,
-            "data":"somedata"
-        }
-    }
-
-"""
-
-
 @dataclass
 class TaskResult:
     data_type: str  # Literal["text", "binary"] # if I waant to  validate an option
@@ -121,14 +87,6 @@ class TaskResponse:
     task_uuid: str
     implant_uuid: int
     result: TaskResult
-
-
-# implant metadata
-"""
-{
-    "implant_uuid":"1234"
-}
-"""
 
 
 @dataclass
