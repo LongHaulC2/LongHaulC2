@@ -5,9 +5,11 @@ from ..schemas.implant import Task
 
 server_logger = logging.getLogger("server")
 
-import msgpack
-from ..db.redis_connector import get_redis_connection
 import logging
+
+import msgpack
+
+from ..db.redis_connector import get_redis_connection
 
 
 class RedisImplantTaskService:
@@ -22,7 +24,7 @@ class RedisImplantTaskService:
         self.redis = get_redis_connection()
 
     def enqueue_task(self, task: Task):
-        """Push a task to the agent's queue.
+        """Covnerts task to msgpack, then push said task to the agent's queue.
 
         Takes a dataclass of Task
         """

@@ -82,14 +82,9 @@ task = Task(
 
 
 @dataclass
-class TaskArgs:
-    cli: str
-
-
-@dataclass
 class TaskDetail:
     taskname: str
-    args: TaskArgs
+    args: dict
 
 
 @dataclass

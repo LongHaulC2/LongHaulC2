@@ -1,10 +1,6 @@
 ## Planning:
  
 ##  server
-   - [ ] Listeners
-      - [ ] Listeners
-         - [X] play with HTTP listener & malleable c2 parsing POC. 
-
    # API cleanup:
       - [ ] Exceptions where needed in logic 
          - These must bubble up
@@ -12,6 +8,7 @@
    #### Listeners:
     - [X] API so port/etc are accurate
       - `{{baseUrl}}/listeners/`
+      >> Next:
     - [ ] Add new implants to implants db at connect, if they are not added yet (currently a manual process)
 
    #### Logging:

@@ -25,13 +25,17 @@ import msgpack
 import structlog
 import uvicorn
 from concurrent_log_handler import ConcurrentRotatingFileHandler
+from edwh_uuid7 import uuid7
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from mpp import MalleableProfile
 from starlette.middleware.base import BaseHTTPMiddleware
 from yarl import URL
 
+from ...db.mysql_connector import get_mysql_session
+from ...modules.mysql_functions import ImplantService
 from ...modules.redis_functions import RedisImplantTaskService
-from ...modules.task import Metadata
+from ...modules.task import Metadata, Task, TaskService
+from ...schemas.implant import ImplantCreate, ImplantMetadata, ImplantUpdate
 from ..malc2 import (
     HttpConfigBlockServerParser,
     HttpGetBlockClientParser,
@@ -380,6 +384,8 @@ async def http_get(request: Request) -> Response:
         listener_logger.error("get_processing_error", error=str(e))
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
+    # add implant to sql
+
     response = http_response(data_from_implant=data_from_implant)
     return response
 
@@ -443,17 +449,48 @@ def http_response(data_from_implant):
     # note, payload would need to be inserted somehwere here too.  Ex,
     # redis lookup for next task -> insert where listener_logger.debug it
     # | Redis Here >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    implant_uuid = unpacked_metadata.get("implant_uuid", None)
+    implant_uuid = unpacked_metadata.get("implant_uuid", "")
     check_if_data(implant_uuid)
 
-    # STRUCTLOG: Bind the ID to the context! Now all subsequent logs in this flow have the ID.
-    structlog.contextvars.bind_contextvars(implant_id=implant_uuid)
+    if implant_uuid == "00000000-0000-0000-0000-00000000000":
+        """
+        When an implant hasn't checked in, go ahead and setup the first "task"
+        for it, and do all the necessary registration steps
+        """
+        with get_mysql_session() as session:
+            implant_service = ImplantService(session)
+            data = ImplantCreate()
+            implant_object = implant_service.create(data)
+            implant_uuid = implant_object.implant_uuid
+            # Goign to need to send implant_uuid back with first task, so it knows its UUID.  (implant id is in each task already.)
+
+            task_uuid = uuid7()
+            # create task dict
+            task = TaskService.create_task(
+                task_uuid=task_uuid,
+                implant_uuid=implant_uuid,
+                task_name="register",
+                task_args={},
+                convert_to_msgpack=False,
+            )
+
+            # write task to db, do NOT queue in redis though as we just created it
+            task_service = TaskService(task=task)
+            task_service._save_to_mysql()
+
+            msgpack_task = task_service.get_as_msgpack()
+
+    else:
+        its = RedisImplantTaskService(implant_uuid)
+        msgpack_task = its.dequeue_task()
 
     # listener_logger.debug("Warning: implant metadata not currently being stored")
     # store metadata at all? Maybe a metadata field in agent table, that gets updated (only on change)
 
-    its = RedisImplantTaskService(implant_uuid)
-    msgpack_task = its.dequeue_task()
+    # STRUCTLOG: Bind the ID to the context! Now all subsequent logs in this flow have the ID.
+
+    structlog.contextvars.bind_contextvars(implant_id=implant_uuid)
+
     if not msgpack_task:
         listener_logger.info("checkin_no_task")
         raise HTTPException(

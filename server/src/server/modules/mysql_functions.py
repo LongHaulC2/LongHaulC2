@@ -1,15 +1,12 @@
-from sqlalchemy import exc, text
 import logging
 from dataclasses import asdict
 
-from ..db.mysql_models import Implant, ImplantTask, Listener
-from ..schemas.implant import (
-    ImplantUpdate,
-    ImplantCreate,
-    Task,
-)
-from ..schemas.listeners import ListenerCreate, ListenerUpdate
 from edwh_uuid7 import uuid7
+from sqlalchemy import exc, text
+
+from ..db.mysql_models import Implant, ImplantTask, Listener
+from ..schemas.implant import ImplantCreate, ImplantUpdate, Task
+from ..schemas.listeners import ListenerCreate, ListenerUpdate
 
 server_logger = logging.getLogger("server")
 
@@ -328,7 +325,7 @@ class MySQLImplantTaskService:
     Class for managing tasks? Have this handle sql and redis updates?
     """
 
-    def __init__(self, implant_uuid: int, session):
+    def __init__(self, implant_uuid: str, session):
         self.implant_uuid = implant_uuid
         self.session = session
 

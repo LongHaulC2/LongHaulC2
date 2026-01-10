@@ -1,14 +1,17 @@
-from ...instance import api
-from flask_restx import Resource, Namespace, fields
+import base64
+import logging
+
+from edwh_uuid7 import uuid7
 from flask import request
-from ...utils.response import APIResponse
+from flask_restx import Namespace, Resource, fields
+
+from ...db.mysql_connector import get_mysql_session
+from ...instance import api
 from ...modules.mysql_functions import ImplantService, MySQLImplantTaskService
 from ...modules.redis_functions import RedisImplantTaskService
+from ...modules.task import TaskService
 from ...schemas.implant import *
-from ...db.mysql_connector import get_mysql_session
-import logging
-import base64
-from edwh_uuid7 import uuid7
+from ...utils.response import APIResponse
 
 implants_ns = Namespace("implants", description="Implant related operations")
 
@@ -449,18 +452,10 @@ class ImplantTask(Resource):
                 data={},
             )
 
-        # queue into redis
-        task_service = RedisImplantTaskService(id)
-        task_service.enqueue_task(task)
+        task_service = TaskService(task=task)
+        task_service.push_task()
 
-        # Log task into mysql
-        # create blank row in mysql, get taskID (which mysql generates, sequentially), append to task.
-        with get_mysql_session() as session:
-            mysql_implant_service = MySQLImplantTaskService(
-                implant_uuid=id, session=session
-            )
-            mysql_implant_service.create_entry(task_uuid=task_uuid)
-            mysql_implant_service.update_request(task_uuid=task_uuid, request=task)
+        task_uuid = task_service.task.task_uuid
 
         api_response = APIResponse(
             status="200",
