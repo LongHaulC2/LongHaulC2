@@ -153,7 +153,7 @@ Configuration for submitting data/responses to the server.
 
     * [x] Add on headers (e.g., `header "Content-Type" "image/gif";`)
     * [x] Output Block (`output {}`)
-    * [X] ID Block (`id {}`)
+    * [X] ID Block (`uuid {}`)
 
 **http-post.server.output**
 

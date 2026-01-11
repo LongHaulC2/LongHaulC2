@@ -1,49 +1,88 @@
-from pathlib import Path
 import logging
+import sys
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
-# Define log directory
+import structlog
+
+# 1. SETUP DIRECTORIES
 log_dir = Path(__file__).parent / "logs"
 log_dir.mkdir(parents=True, exist_ok=True)
 
-# Log file paths for server and API
-server_log_file = log_dir / "server.log"
-api_log_file = log_dir / "api.log"
+# 2. SHARED PROCESSORS
+# These run for EVERY log entry, regardless of where it goes.
+shared_processors = [
+    structlog.contextvars.merge_contextvars,  # Async context (IP, UUID)
+    structlog.stdlib.add_logger_name,  # Adds "logger": "api"
+    structlog.stdlib.add_log_level,  # Adds "level": "info"
+    structlog.stdlib.PositionalArgumentsFormatter(),
+    structlog.processors.TimeStamper(fmt="iso"),
+    structlog.processors.StackInfoRenderer(),
+    structlog.processors.format_exc_info,
+    structlog.processors.UnicodeDecoder(),
+]
 
-# Create separate loggers for server and api
-server_logger = logging.getLogger("server")
-api_logger = logging.getLogger("api")
+# 3. CONFIGURE STRUCTLOG BACKEND
+structlog.configure(
+    processors=shared_processors
+    + [
+        # Prepare the event dict so the stdlib Formatter can render it
+        structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+    ],
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
+)
 
-# Set log level for each logger
-server_logger.setLevel(logging.DEBUG)
-api_logger.setLevel(logging.DEBUG)
+# 4. DEFINE FORMATTERS
+# Both use ConsoleRenderer now.
 
-# File handler to write server logs to a file
-server_file_handler = logging.FileHandler(server_log_file, encoding="utf-8")
-server_file_handler.setLevel(logging.DEBUG)
+# Console: Colors = True (Pretty for Terminal)
+console_formatter = structlog.stdlib.ProcessorFormatter(
+    processor=structlog.dev.ConsoleRenderer(colors=True),
+    foreign_pre_chain=shared_processors,
+)
 
-# File handler to write API logs to a separate file
-api_file_handler = logging.FileHandler(api_log_file, encoding="utf-8")
-api_file_handler.setLevel(logging.DEBUG)
+# File: Colors = False (Exact same text layout, just no ANSI color codes)
+file_formatter = structlog.stdlib.ProcessorFormatter(
+    processor=structlog.dev.ConsoleRenderer(colors=False),
+    foreign_pre_chain=shared_processors,
+)
 
-# Stream handler to output logs to the console (same for both loggers)
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
 
-# Log format (same for both handlers)
-log_format = logging.Formatter("[%(asctime)s] %(name)s - %(levelname)s - %(message)s")
-server_file_handler.setFormatter(log_format)
-api_file_handler.setFormatter(log_format)
-console_handler.setFormatter(log_format)
+# 5. BUILD LOGGERS
+def setup_logger(name, filename):
+    """
+    Configures a logger to write to a specific file and the console.
+    """
+    # Create File Handler
+    file_handler = RotatingFileHandler(
+        log_dir / filename, maxBytes=5 * 1024 * 1024, backupCount=5, encoding="utf-8"
+    )
+    file_handler.setFormatter(file_formatter)
+    file_handler.setLevel(logging.DEBUG)
 
-# Add the handlers to the respective loggers
-server_logger.addHandler(server_file_handler)
-server_logger.addHandler(console_handler)
+    # Create Console Handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(console_formatter)
+    console_handler.setLevel(logging.DEBUG)
 
-api_logger.addHandler(api_file_handler)
-api_logger.addHandler(console_handler)
+    # Configure the Standard Library Logger
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
 
-# Log a startup message for server
-server_logger.info("Server Startup")
+    # Avoid duplicate handlers if imported multiple times
+    if not logger.handlers:
+        logger.addHandler(file_handler)
+        logger.addHandler(console_handler)
 
-# Example API logging
-# api_logger.info("API Endpoint '/login' was accessed")
+    logger.propagate = False
+
+    # Return a structlog-wrapped version
+    return structlog.wrap_logger(logger)
+
+
+# 6. EXPORT LOGGERS
+api_logger = setup_logger("api", "api.log")
+server_logger = setup_logger("server", "server.log")
+listener_logger = setup_logger("listener", "listener.log")

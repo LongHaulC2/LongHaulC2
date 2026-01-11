@@ -1,5 +1,7 @@
-from yarl import URL
 import logging
+
+import structlog
+from yarl import URL
 
 server_log = logging.getLogger("server")
 
@@ -22,5 +24,8 @@ def generate_url(uri: str) -> str:
     HOST = "http://10.0.0.30:45045"
 
     url = URL(HOST) / uri
-    server_log.debug(f"Generated URL: {url}")
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(url=str(url))
+    server_log.debug(f"Generated URL")
     return str(url)

@@ -5,7 +5,7 @@ for i in range(1, 10000):
     r = requests.post("http://10.0.0.30:45045/api/v1/implants")
 
     data = r.json()
-    id = data.get("data").get("id")
+    uuid = data.get("data").get("uuid")
 
     implant_data = {
         "external_ip": "203.0.113.10",

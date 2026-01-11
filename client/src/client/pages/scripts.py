@@ -1,21 +1,23 @@
-import httpx
-from nicegui import ui, events
-import logging
-from client.src.client.pages.menu import setup_menu
-from client.src.client.utils.url import generate_url
-from typing import Optional
-from pathlib import Path
 import asyncio
+import logging
 import sys
+from pathlib import Path
+from typing import Optional
+
+import httpx
+from nicegui import events, ui
+
+from client.src.client.pages.menu import setup_menu
 
 # from client.src.client.pages.menu import setup_menu
 from client.src.client.style import (
     BUTTON_COLOR,
-    TEXT_COLOR,
     HIGHLIGHT_COLOR,
-    NAVBAR_COLOR,
     ICON_COLOR,
+    NAVBAR_COLOR,
+    TEXT_COLOR,
 )
+from client.src.client.utils.url import generate_url
 
 server_log = logging.getLogger("server")
 
@@ -280,7 +282,7 @@ async def file_picker():
     # Prepare files for tree
     tree_items = [
         {
-            "id": str(p),
+            "uuid": str(p),
             "label": p.name,
             "children": [],  # no children since these are files
         }

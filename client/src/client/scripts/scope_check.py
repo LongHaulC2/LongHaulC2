@@ -1,6 +1,7 @@
+import ipaddress
+
 import requests
 from yarl import URL
-import ipaddress
 
 # setup server variables
 api_url = URL("http://10.0.0.30:45045/")
@@ -27,7 +28,7 @@ if not implants:
     print("[*] No implants connected")
 else:
     for implant in implants:
-        implant_uuid = implant.get("id", "N/A")
+        implant_uuid = implant.get("uuid", "N/A")
         internal_ip = implant.get("internal_ip", "N/A")
 
         # Check if the external IP is in the allowed range

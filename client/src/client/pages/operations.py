@@ -1,26 +1,28 @@
+import logging
+
 import httpx
 from nicegui import ui
-import logging
-from client.src.client.utils.url import generate_url
-from client.src.client.modules.task_definitions import task_tree, ResultType
+from nicegui.events import KeyEventArguments
+
 from client.src.client.modules.api_calls import (
+    get_all_implant_data,
+    get_implant_data,
     queue_task,
     update_implant,
-    get_implant_data,
-    get_all_implant_data,
 )
+from client.src.client.modules.task_definitions import ResultType, task_tree
 from client.src.client.pages.menu import setup_menu
 from client.src.client.pages.notes import open_notes_dialog
-from nicegui.events import KeyEventArguments
 
 # from client.src.client.pages.menu import setup_menu
 from client.src.client.style import (
     BUTTON_COLOR,
-    TEXT_COLOR,
     HIGHLIGHT_COLOR,
-    NAVBAR_COLOR,
     ICON_COLOR,
+    NAVBAR_COLOR,
+    TEXT_COLOR,
 )
+from client.src.client.utils.url import generate_url
 
 server_log = logging.getLogger("server")
 
@@ -64,10 +66,10 @@ async def operations():
             await terminal_view()
 
 
-async def delete_implant(id=int) -> None:
+async def delete_implant(implant_uuid=int) -> None:
     # get implants
     async with httpx.AsyncClient() as client:
-        url = generate_url(f"/api/v1/implants/{id}")
+        url = generate_url(f"/api/v1/implants/{implant_uuid}")
         response = await client.delete(url)
 
 
@@ -134,7 +136,7 @@ async def implant_view():
         ui.table(
             columns=[],  # filled later
             rows=[],
-            row_key="id",
+            row_key="implant_uuid",
             selection="multiple",
             # on_select=lambda e: ui.notify(f"selected: {e.selection}"),
             pagination=100,
@@ -145,17 +147,18 @@ async def implant_view():
     )
 
     async def refresh():
-        nonlocal previous_ids  # use the variable above that's in the implant_view scope, to track id's between calls
+        nonlocal previous_ids  # use the variable above that's in the implant_view scope, to track implant_uuid's between calls
         nonlocal table_initialized  # track if table columns are already built. Solves the bug of saying that every implant in the table is a new connection
 
         data = await get_all_implant_data()
         data = data.get("data")
         if not data:
+            server_log.debug("No data from implant")
             return
 
         # bypassing, causes client crash on high amount of notifications
         # Detect new implants
-        # current_ids = {row["id"] for row in data if "id" in row}
+        # current_ids = {row["implant_uuid"] for row in data if "implant_uuid" in row}
         # if table_initialized:
         # new_ids = current_ids - previous_ids
         # for new_id in new_ids:
@@ -203,7 +206,7 @@ async def implant_view():
         table.update()
 
     async def action_delete_rows():
-        ids = [row["id"] for row in table.selected]
+        ids = [row["implant_uuid"] for row in table.selected]
 
         if not ids:
             ui.notify("No rows selected", color="warning")
@@ -211,12 +214,12 @@ async def implant_view():
 
         for implant_uuid in ids:
             # do request
-            await delete_implant(id=implant_uuid)
+            await delete_implant(implant_uuid=implant_uuid)
 
             # bug, rows are still "checked" after deleting
 
     async def action_open_terminal():
-        ids = [row["id"] for row in table.selected]
+        ids = [row["implant_uuid"] for row in table.selected]
 
         if not ids:
             ui.notify("No implants selected", color="warning")
@@ -227,7 +230,7 @@ async def implant_view():
 
     async def handle_notes():
         # get all selected
-        ids = [row["id"] for row in table.selected]
+        ids = [row["implant_uuid"] for row in table.selected]
         # if selected = 1, pull up notes from that agent and populate editor with them
 
         if len(ids) == 1:
@@ -253,8 +256,8 @@ async def implant_view():
             # post to update all the implants
             data = {"notes": notes}
 
-            for id in ids:
-                await update_implant(implant_uuid=id, data=data)
+            for implant_uuid in ids:
+                await update_implant(implant_uuid=implant_uuid, data=data)
 
         else:
             ui.notify("Please select an implant to edit its notes")
@@ -302,7 +305,7 @@ async def terminal_add_tab(tab_name, implant_uuid):
             tab.meta = {"implant_uuid": implant_uuid}
 
             with ui.row().classes("items-center gap-0"):
-                # implant id (could make into ip as well)
+                # implant implant_uuid (could make into ip as well)
                 ui.label(implant_uuid).classes("px-3 py-1 text-sm border-l")
                 # close button
                 ui.button("✕", on_click=lambda e=tab_name: terminal_close_tab(e)).props(

@@ -1,20 +1,21 @@
-import httpx
-from nicegui import ui, events
-import logging
-from client.src.client.pages.menu import setup_menu
-from client.src.client.utils.url import generate_url
-from typing import Optional
 import asyncio
+import logging
+from typing import Optional
 
+import httpx
+from nicegui import events, ui
+
+from client.src.client.pages.menu import setup_menu
 
 # from client.src.client.pages.menu import setup_menu
 from client.src.client.style import (
     BUTTON_COLOR,
-    TEXT_COLOR,
     HIGHLIGHT_COLOR,
-    NAVBAR_COLOR,
     ICON_COLOR,
+    NAVBAR_COLOR,
+    TEXT_COLOR,
 )
+from client.src.client.utils.url import generate_url
 
 server_log = logging.getLogger("server")
 
@@ -126,7 +127,7 @@ async def implants_list_layout(data: list[dict]):
         ui.table(
             columns=[],  # filled later
             rows=[],
-            row_key="id",
+            row_key="uuid",
             # selection="multiple",  # no selection, no use here currently.
             # on_select=lambda e: ui.notify(f"selected: {e.selection}"),
             pagination=100,

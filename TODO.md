@@ -6,6 +6,7 @@
    - [ ] Task Retrieval
 
 
+   >> start here (in gui-cleanup branch)
    # nice to haves:
       - [ ] Logging
       - [ ] Type checker (check_type) where possible. 
