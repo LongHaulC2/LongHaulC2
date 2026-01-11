@@ -397,7 +397,7 @@ class ImplantTask(Resource):
     )
     def get(self, uuid):  # get one implant
         """
-        [Needs marshalling & testing] Gets next task of implant. Task is returned as a base64 encoded, MSGPACK blob
+        Gets next task of implant. Task is returned as a base64 encoded, MSGPACK blob
 
         This will DEQUEUE the next task, NOT peek.
 
@@ -536,7 +536,7 @@ class ImplantTasks(Resource):
     )
     def get(self, uuid):  # get one implant
         """
-        [needs marshalling & testing] Peek all currently queued tasks of implant. Tasks are returned as a list of tasks,
+        Peek all currently queued tasks of implant. Tasks are returned as a list of tasks,
         with the task being a base64 encoded MSGPACK blob.
 
 
@@ -661,7 +661,7 @@ class ImplantHistory(Resource):
     # GET /api/v1/{uuid}/tasks/history
     def get(self, uuid):  # Get history of an implant
         """
-        [Needs marshalling] Gets ALL history of an implant from the DB.
+        Gets ALL history of an implant from the DB.
 
         1. Queries MySQL DB
         2. Returns results as a list of tasks
