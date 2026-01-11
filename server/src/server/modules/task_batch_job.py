@@ -1,6 +1,6 @@
+import logging
 import threading
 import time
-import logging
 
 from ..db.mysql_connector import get_mysql_session
 from .mysql_functions import ImplantService, MySQLImplantTaskService
@@ -28,7 +28,6 @@ def _task_batch_job():
     """
 
     while True:
-        print("Batch job, retrieving data from redis")
         with get_mysql_session() as session:
             implant_service = ImplantService(session)
 
@@ -40,9 +39,15 @@ def _task_batch_job():
                 rits = RedisImplantTaskService(implant.implant_uuid)
                 response_queue_length = rits.response_queue_length()
 
-                server_logger.debug(
-                    f"Implant {implant.implant_uuid} has {response_queue_length} tasks to insert"
-                )
+                # super noisy
+                # server_logger.debug(
+                #     f"Implant {implant.implant_uuid} has {response_queue_length} tasks to insert"
+                # )
+                # only log when there's actual data
+                if response_queue_length > 1:
+                    server_logger.debug(
+                        f"Implant {implant.implant_uuid} has {response_queue_length} tasks to insert"
+                    )
 
                 # batch write to db
                 responses_to_insert = []
@@ -56,7 +61,7 @@ def _task_batch_job():
                     )
                     msits.bulk_update_responses(responses=responses_to_insert)
 
-        time.sleep(5)
+        time.sleep(1)
 
     # get all current implant ID's from DB
     # loop over all inbox keys in redis.

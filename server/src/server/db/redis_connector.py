@@ -1,12 +1,18 @@
-import redis
 import logging
 import traceback
+
+import redis
+
 from ..instance import env_config
 
 logger = logging.getLogger("server")  # Get the logger with the same name
 
+# flag for not printing connection logs after the first connect
+_shut_the_f_up_after_first_connect = False
+
 
 def get_redis_connection() -> object | None:
+    global _shut_the_f_up_after_first_connect
     try:
         host = env_config.get("REDIS_HOST")
         user = env_config.get("REDIS_USER")
@@ -18,7 +24,9 @@ def get_redis_connection() -> object | None:
             )
             exit()
 
-        logger.info(f"Connecting to REDIS server with {user}@{host}")
+        if not _shut_the_f_up_after_first_connect:
+            logger.info(f"Connecting to REDIS server with {user}@{host}")
+
         r = redis.Redis(
             host=host,
             port=6379,
@@ -29,14 +37,12 @@ def get_redis_connection() -> object | None:
             # socket_timeout=5,
         )
 
+        # quick connection test
         try:
-            # Send a PING command to Redis to verify the connection
-            response = r.ping()
-            if response:
-                logger.info(f"REDIS connection is alive")
-            else:
-                logger.info(f"REDIS connection is not alive")
-
+            if r.ping():
+                if not _shut_the_f_up_after_first_connect:
+                    logger.info("REDIS connection is alive")
+                    _shut_the_f_up_after_first_connect = True
         except redis.ConnectionError as e:
             logger.warning(f"Failed to connect to REDIS: {e}")
 
