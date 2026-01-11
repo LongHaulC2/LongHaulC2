@@ -4,6 +4,7 @@ import multiprocessing
 import threading
 
 from ..schemas.listeners import ListenerCreate
+from ..utils.checks import check_type
 from .http.http import run as http_run
 
 
@@ -24,6 +25,8 @@ server_logger = logging.getLogger("server")
 def start_listener(
     listener_data: ListenerCreate,
 ):
+    check_type(listener_data, ListenerCreate, "listener_data")
+
     try:
         server_logger.info(f"Starting listener {listener_data.listener_uuid}")
 
@@ -61,8 +64,11 @@ def start_listener(
         raise e
 
 
-def get_pid_from_uuid(listener_uuid):
+def get_pid_from_uuid(listener_uuid: str):
+    check_type(listener_uuid, str, "listener_uuid")
+
     # THREAD-SAFE READ
+
     with listeners_lock:
         p = listeners.get(listener_uuid)
     if not p:
@@ -71,6 +77,8 @@ def get_pid_from_uuid(listener_uuid):
 
 
 def stop_listener(listener_uuid: str):
+    check_type(listener_uuid, str, "listener_uuid")
+
     try:
         server_logger.info(f"Stopping listener {listener_uuid}")
         # THREAD-SAFE POP

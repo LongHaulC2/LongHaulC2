@@ -2,6 +2,7 @@ import logging
 
 from mpp import *
 
+from ..utils.checks import check_type
 from .transform import *
 
 """
@@ -143,6 +144,7 @@ class HttpGetBlockServerParser:
 
         Does all the transforms, data insertion, etc etc and creates body based on that.
         """
+        check_type(data, bytes, "data")
         block_field = self.server.output
         obsfucated_data = self.apply_transforms(data, block_field=block_field)
         return obsfucated_data
@@ -177,6 +179,8 @@ class HttpGetBlockServerParser:
         """
         Apply output transforms sequentially, in source order.
         """
+        check_type(data, bytes, "data")
+
         # loop over each transform
         for stmt in block_field.data:  # self.server.output.data:
             name = stmt.statement
@@ -302,7 +306,9 @@ class HttpGetBlockClientParser:
         # fallback if no terminator found
         return None, None
 
-    def apply_transforms(self, data, block_field):
+    def apply_transforms(self, data: bytes, block_field):
+        check_type(data, bytes, "data")
+
         for stmt in block_field.data:  # self.client.metadata.data:
             name = stmt.statement
             value = stmt.value
@@ -398,6 +404,8 @@ class HttpPostBlockServerParser:
         """
         Apply output transforms sequentially, in source order.
         """
+        check_type(data, bytes, "data")
+
         # loop over each transform
         for stmt in block_field.data:  # self.server.output.data:
             name = stmt.statement
@@ -497,6 +505,8 @@ class HttpPostBlockClientParser:
         return None, None
 
     def apply_transforms(self, data, block_field):
+        check_type(data, bytes, "data")
+
         for stmt in block_field.data:  # self.client.output.data:
             name = stmt.statement
             value = stmt.value

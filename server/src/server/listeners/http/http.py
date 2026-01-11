@@ -36,6 +36,7 @@ from ...modules.mysql_functions import ImplantService
 from ...modules.redis_functions import RedisImplantTaskService
 from ...modules.task import MetadataService, TaskService
 from ...schemas.implant import ImplantCreate, ImplantMetadata, ImplantUpdate
+from ...utils.checks import check_type
 from ..malc2 import (
     HttpConfigBlockServerParser,
     HttpGetBlockClientParser,
@@ -52,7 +53,10 @@ listener_logger = structlog.get_logger("listener")
 
 # entrypoint
 def run(
-    listener_uuid: str, listener_port: int, listener_host: str, listener_profile=None
+    listener_uuid: str,
+    listener_port: int,
+    listener_host: str,
+    listener_profile: str = None,
 ):
     """The entrypoint for the listener
 
@@ -61,6 +65,11 @@ def run(
     """
     # make mp global to this module so we don't have to  read from it/pass everywhere constantly
     global mp, app
+
+    check_type(listener_uuid, str, "listener_uuid")
+    check_type(listener_port, int, "listener_port")
+    check_type(listener_host, str, "listener_host")
+    check_type(listener_profile, str, "listener_profile")
 
     # placeholder
     mp = MalleableProfile(profile="/home/ubuntu-dev/LongHaulC2/webbug_getonly.profile")
@@ -130,7 +139,7 @@ def check_if_data(data_from_request):  #
         )
 
 
-def check_user_agent(user_agent) -> bool:
+def check_user_agent(user_agent: str) -> bool:
     """
     Checks user agent. If allowed (via profile), returns True
     else, False.
@@ -139,6 +148,8 @@ def check_user_agent(user_agent) -> bool:
 
     https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_http-server-config.htm#_Toc65482845
     """
+    check_type(user_agent, str, "user_agent")
+
     try:
         mp.http_config
         # listener_logger.debug("http-config block not found")
@@ -752,6 +763,11 @@ def register_http_route(uri: URL, method: str, endpoint, uri_endpoint):
     """
     Registeres routes. Prevents these being called on import as well.
     """
+    check_type(uri, URL, "uri")
+    check_type(method, str, "method")
+    # function is not defined, some weird python type only thing.
+    # check_type(uri_endpoint, function, "uri_endpoint")
+
     app.add_api_route(
         path=str(URL(uri)),
         endpoint=endpoint,  # logic for endpoint here
