@@ -1,6 +1,19 @@
 ## Planning:
  
-##  server
+# GUI:
+
+   - [ ] Task Enqueuing
+   - [ ] Task Retrieval
+
+
+   # nice to haves:
+      - [ ] Logging
+      - [ ] Type checker (check_type) where possible. 
+
+
+   - [ ] Per-Agent page
+
+#  server
    # API cleanup:
 
    #### Logging:
@@ -8,25 +21,16 @@
       - [ ] Convert everything to structlogger (with binds, etc.) Big tasks
       - [X] Add `check_type` on modules/other server code where applicable
 
-# Mal c2:
+## Mal c2:
 
  - [ ] Server
-   - [ ] RESPONSE
-      # leftoff working on maleable c2 compatability. GET seems fine, finish with terminiationtypes, then start on POST.
-
-      # after  that, client side support would be good to look into
-      
-      - [X] terminiation types (learn how cs puts data in the responses) 
-            Spin up  wireshark and do some research with an http beacon on where this data is put for each terminator type
-
 
    See readme, tldr:
       left off  trying different profiles. Things to do:
 
       ### 1. **Test Various Malleable C2 Profiles**
-         - [ ] Test different C2 profiles.
          - [ ] Experiment with different configurations to see if I can break it
-         - [ ] Mask is busted, needs a key, and that doesnt seem to be specified in the 
+         - [ ] > Mask is busted, needs a key, and that doesnt seem to be specified in the 
                mc2 profile. Need a way to store that key, or just not include mask at the moment.
             * [Throws Key Error] `mask` 
 
@@ -47,6 +51,7 @@
          - [X] http-config
 
  - [ ] Implant
+   - not implementing implant specific options. Sticking to response/network shaping options
 
 # Task Formatting (for reference):
 
@@ -61,7 +66,7 @@ Ex: `{task_uuid: 1234, implant_uuid: 9999, "task":{"taskname":"cmd" "args":{"cli
 List of tasks:
 - `[{task_uuid: 1234, implant_uuid: 9999, "task":{"taskname":"cmd" "args":{"cli":"whoami"}}}, {task_uuid: 1234, implant_uuid: 9999, "task":{"taskname":"cmd" "args":{"cli":"whoami"}}}]`
 
-# Task Response Structure:
+## Task Response Structure:
 - `{"task_uuid":"", "implant_uuid": 9999, "result":{"data_type":binary|text, "data":"somedata"}}`
 
 Ex: `{"task_uuid":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}`
@@ -69,7 +74,7 @@ Ex: `{"task_uuid":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "d
 List of task responses:
 - `[{"task_uuid":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}, {"task_uuid":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}]`
 
-# Metadata Structure:
+## Metadata Structure:
 - `{"implant_uuid":"uuid", ...}`
 
 Ex: `{"implant_uuid":"1234"}`
