@@ -1,12 +1,14 @@
+import argparse
 import logging
 from pathlib import Path
+
 from flask import Flask
-import argparse
-from .instance import env_config, app, api
+
 from .db.mysql_connector import mysql_setup
 from .db.redis_connector import get_redis_connection
-from .log import *
+from .instance import api, app, env_config
 from .listeners.watchdog import start_watchdog
+from .log import *
 from .modules.task_batch_job import start_task_batch_job
 
 server_logger = logging.getLogger("server")
@@ -55,10 +57,8 @@ def parse_args():
 
 
 # setup the routes
-from .routes.v1.hello_resource import *
 from .routes.v1.implant_resource import *
 from .routes.v1.listener_resource import *
-
 
 logger = logging.getLogger("server")
 

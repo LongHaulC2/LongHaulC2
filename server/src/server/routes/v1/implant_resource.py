@@ -11,6 +11,7 @@ from ...modules.mysql_functions import ImplantService, MySQLImplantTaskService
 from ...modules.redis_functions import RedisImplantTaskService
 from ...modules.task import TaskService
 from ...schemas.implant import *
+from ...utils.checks import check_type
 from ...utils.response import APIResponse
 
 implants_ns = Namespace("implants", description="Implant related operations")
@@ -159,7 +160,7 @@ class Implants(Resource):
 
         3. Returns ID of new record in response
 
-        Note: This will create "ghost" sessions with no metadata. Metadata gets updated when 'PUT /v1/api/implants/{id}/' is called.
+        Note: This will create "ghost" sessions with no metadata. Metadata gets updated when 'PUT /v1/api/implants/{uuid}/' is called.
         """
         ip = request.remote_addr
         # api_logger.info(f"{ip} created an implant")
@@ -180,7 +181,7 @@ class Implants(Resource):
             implant_uuid = implant_object.implant_uuid
 
         # need to get ID from DB
-        data = {"id": implant_uuid}
+        data = {"uuid": implant_uuid}
 
         api_response = APIResponse(
             status="200",
@@ -203,10 +204,10 @@ class Implant(Resource):
     @implants_ns.doc(
         summary="Get implant",
         description="Retrieve a single implant by its unique ID.",
-        params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        params={"uuid": {"description": "Agent ID (64-bit integer)", "in": "path"}},
         responses={200: "Success", 404: "Implant not found"},
     )
-    def get(self, id):  # get one implant
+    def get(self, uuid):  # get one implant
         """
         Gets one implant based on user supplied ID
 
@@ -218,18 +219,20 @@ class Implant(Resource):
 
         """
         ip = request.remote_addr
-        # api_logger.info(f"{ip} is retrieving implant {id}")
+        # api_logger.info(f"{ip} is retrieving implant {uuid}")
 
         api_logger.info(
-            f"Getting implant {id} data",
+            f"Getting implant {uuid} data",
             extra={
                 "caller_ip": ip,
             },
         )
 
+        check_type(uuid, str, "uuid")
+
         with get_mysql_session() as session:
             implant_service = ImplantService(session)
-            implants = implant_service.get_by_id(id)
+            implants = implant_service.get_by_id(uuid)
             data = implants.to_dict()
 
         api_response = APIResponse(
@@ -242,27 +245,29 @@ class Implant(Resource):
     @implants_ns.doc(
         summary="Update implant",
         description="Update a single implant by its unique ID. Data is supplied in the body of the request.",
-        params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        params={"uuid": {"description": "Agent ID (64-bit integer)", "in": "path"}},
         responses={200: "Success", 404: "Implant not found", 400: "Bad Request"},
     )
     @implants_ns.expect(implant_update_model)
-    def put(self, id):  # update one implant based on ID
+    def put(self, uuid):  # update one implant based on ID
         """
         Update a single implant by its unique ID.
         """
         ip = request.remote_addr
-        # api_logger.info(f"{ip} is updating implant {id}")
+        # api_logger.info(f"{ip} is updating implant {uuid}")
 
         api_logger.info(
-            f"Updating implant {id}'s data",
+            f"Updating implant {uuid}'s data",
             extra={
                 "caller_ip": ip,
             },
         )
+        check_type(uuid, str, "uuid")
+
         # create dataclass from passed in data.
         try:
             implant_data = ImplantUpdate(**api.payload)
-            implant_uuid = id
+            implant_uuid = uuid
 
         except TypeError as e:
             # This happens if api.payload has missing or extra fields
@@ -284,7 +289,7 @@ class Implant(Resource):
             implant_service.update(implant_uuid, implant_data)
 
         api_logger.info(
-            f"Updated implant {id}'s data successfully",
+            f"Updated implant {uuid}'s data successfully",
             extra={
                 "caller_ip": ip,
             },
@@ -299,10 +304,10 @@ class Implant(Resource):
     @implants_ns.doc(
         summary="Delete implant",
         description="Delete a single implant by its unique ID.",
-        params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        params={"uuid": {"description": "Agent ID (64-bit integer)", "in": "path"}},
         responses={200: "Success", 404: "Implant not found", 400: "Bad Request"},
     )
-    def delete(self, id):  # delete one implant based on ID
+    def delete(self, uuid):  # delete one implant based on ID
         """
         Deletes one implant based on user supplied ID
 
@@ -317,23 +322,25 @@ class Implant(Resource):
 
         """
         ip = request.remote_addr
-        # api_logger.info(f"{ip} is deleting implant {id}")
+        # api_logger.info(f"{ip} is deleting implant {uuid}")
 
         api_logger.info(
-            f"Deleting implant {id}",
+            f"Deleting implant {uuid}",
             extra={
                 "caller_ip": ip,
             },
         )
 
+        check_type(uuid, str, "uuid")
+
         with get_mysql_session() as session:
             implant_service = ImplantService(session)
-            implants = implant_service.delete(id)
+            implants = implant_service.delete(uuid)
 
-        # api_logger.info(f"Implant {id} deleted successfully")
+        # api_logger.info(f"Implant {uuid} deleted successfully")
 
         api_logger.info(
-            f"Implant {id} deleted successfully",
+            f"Implant {uuid} deleted successfully",
             extra={
                 "caller_ip": ip,
             },
@@ -352,10 +359,10 @@ class ImplantTask(Resource):
     @implants_ns.doc(
         summary="Get next task implant",
         description="Retrieve the next task for the implant",
-        params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        params={"uuid": {"description": "Agent ID (64-bit integer)", "in": "path"}},
         responses={200: "Success", 404: "Task not found"},
     )
-    def get(self, id):  # get one implant
+    def get(self, uuid):  # get one implant
         """
         [Needs marshalling & testing] Gets next task of implant. Task is returned as a base64 encoded, MSGPACK blob
 
@@ -369,15 +376,17 @@ class ImplantTask(Resource):
         4. Return response with task in data field: `{"task":"AABB=="}`
         """
         ip = request.remote_addr
-        # api_logger.info(f"{ip} requested a task for {id}")
+        # api_logger.info(f"{ip} requested a task for {uuid}")
         api_logger.info(
-            f"Requesting a task for {id}",
+            f"Requesting a task for {uuid}",
             extra={
                 "caller_ip": ip,
             },
         )
 
-        its = RedisImplantTaskService(id)
+        check_type(uuid, str, "uuid")
+
+        its = RedisImplantTaskService(uuid)
         task = its.dequeue_task()
 
         if task == None:
@@ -407,12 +416,12 @@ class ImplantTask(Resource):
     @implants_ns.doc(
         summary="Add a task",
         description="Add a task to a single implant by its unique ID. Data is supplied in the body of the request.",
-        params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        params={"uuid": {"description": "Agent ID (64-bit integer)", "in": "path"}},
         responses={200: "Success", 404: "Task not found", 400: "Bad request"},
     )
     # @implants_ns.expect(implant_update_model) # add expected field here
     @implants_ns.expect(implant_task_model)
-    def post(self, id):  # Create a new  command
+    def post(self, uuid):  # Create a new  command
         """
         Add a task to a single implant by its unique ID. Data is supplied in the body of the request.
 
@@ -420,11 +429,12 @@ class ImplantTask(Resource):
         ip = request.remote_addr
 
         api_logger.info(
-            f"Enqueued a task for {id}",
+            f"Enqueued a task for {uuid}",
             extra={
                 "caller_ip": ip,
             },
         )
+        check_type(uuid, str, "uuid")
 
         try:
             # create task ID here
@@ -433,7 +443,7 @@ class ImplantTask(Resource):
             task = Task(
                 # unwrap data into a dataclass
                 **api.payload,
-                # add on a task id
+                # add on a task uuid
                 task_uuid=task_uuid,
             )
 
@@ -464,7 +474,7 @@ class ImplantTask(Resource):
         )
 
         api_logger.info(
-            f"Task {task_uuid} for {id} enqueued successfully",
+            f"Task {task_uuid} for {uuid} enqueued successfully",
             extra={
                 "caller_ip": ip,
             },
@@ -477,10 +487,10 @@ class ImplantTasks(Resource):
     @implants_ns.doc(
         summary="Peeks all currently queued tasks of implant",
         description="Peeks all currently queued tasks of implant",
-        params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        params={"uuid": {"description": "Agent ID (64-bit integer)", "in": "path"}},
         responses={200: "Success", 404: "Task not found"},
     )
-    def get(self, id):  # get one implant
+    def get(self, uuid):  # get one implant
         """
         [needs marshalling & testing] Peek all currently queued tasks of implant. Tasks are returned as a list of tasks,
         with the task being a base64 encoded MSGPACK blob.
@@ -493,17 +503,18 @@ class ImplantTasks(Resource):
 
         """
         ip = request.remote_addr
-        # api_logger.info(f"{ip} requested all tasks for implant {id}")
+        # api_logger.info(f"{ip} requested all tasks for implant {uuid}")
 
         api_logger.info(
-            f"Getting all currently queued tasks for implant {id}",
+            f"Getting all currently queued tasks for implant {uuid}",
             extra={
                 "caller_ip": ip,
             },
         )
+        check_type(uuid, str, "uuid")
 
         # get length of queue
-        its = RedisImplantTaskService(id)
+        its = RedisImplantTaskService(uuid)
         task_queue_length = its.queue_length()
 
         tasks = its.peek_queue(task_queue_length)
@@ -537,33 +548,34 @@ class ImplantTasks(Resource):
     @implants_ns.doc(
         summary="Delete all the currently queued tasks of an implant",
         description="Delete all the tasks of an implant",
-        params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        params={"uuid": {"description": "Agent ID (64-bit integer)", "in": "path"}},
         responses={200: "Success", 404: "Task not found", 400: "Bad request"},
     )
-    def delete(self, id):  #  Delete all tasks of agent
+    def delete(self, uuid):  #  Delete all tasks of agent
         """
         Delete all the currently queued tasks of an agent.
 
         """
         ip = request.remote_addr
-        # api_logger.info(f"{ip} is clearing task queue for implant {id}")
+        # api_logger.info(f"{ip} is clearing task queue for implant {uuid}")
         api_logger.info(
-            f"Deleting all tasks for implant {id}",
+            f"Deleting all tasks for implant {uuid}",
             extra={
                 "caller_ip": ip,
             },
         )
+        check_type(uuid, str, "uuid")
 
-        its = RedisImplantTaskService(id)
+        its = RedisImplantTaskService(uuid)
         its.clear_queue()
 
         api_response = APIResponse(
             status="200",
-            message=f"Cleared all pending tasks from implant {id}",
+            message=f"Cleared all pending tasks from implant {uuid}",
         )
 
         api_logger.info(
-            f"All pending tasks for implant {id} successfully deleted",
+            f"All pending tasks for implant {uuid} successfully deleted",
             extra={
                 "caller_ip": ip,
             },
@@ -576,9 +588,9 @@ class ImplantTasks(Resource):
 """
 ImplantHistory, for getting task info.
 
-GET /api/v1/{id}/tasks/history - Get a list of stored/historical tasks for the implant (id).
+GET /api/v1/{uuid}/tasks/history - Get a list of stored/historical tasks for the implant (uuid).
 
-GET /api/v1/{id}/tasks/history/{task_id} - Get ONE stored/historical task for the implant (id).
+GET /api/v1/{uuid}/tasks/history/{task_id} - Get ONE stored/historical task for the implant (uuid).
 
 """
 
@@ -587,11 +599,11 @@ class ImplantHistory(Resource):
     @implants_ns.doc(
         summary="Gets ALL history of an implant from the DB.",
         description="Retrieve all tasks for the implant",
-        params={"id": {"description": "Agent ID (64-bit integer)", "in": "path"}},
+        params={"uuid": {"description": "Agent ID (64-bit integer)", "in": "path"}},
         responses={200: "Success", 404: "Not found", 400: "Bad request"},
     )
-    # GET /api/v1/{id}/tasks/history
-    def get(self, id):  # Get history of an implant
+    # GET /api/v1/{uuid}/tasks/history
+    def get(self, uuid):  # Get history of an implant
         """
         [Needs marshalling] Gets ALL history of an implant from the DB.
 
@@ -622,16 +634,17 @@ class ImplantHistory(Resource):
         ip = request.remote_addr
 
         api_logger.info(
-            f"Requesting task history for {id}",
+            f"Requesting task history for {uuid}",
             extra={
                 "caller_ip": ip,
             },
         )
+        check_type(uuid, str, "uuid")
 
         # get data from db
         with get_mysql_session() as session:
             mysql_implant_service = MySQLImplantTaskService(
-                implant_uuid=id, session=session
+                implant_uuid=uuid, session=session
             )
             tasks = mysql_implant_service.get_all_tasks()
 
@@ -735,7 +748,7 @@ class TaskSearch(Resource):
             implant_uuid = implant_object.implant_uuid
 
         # need to get ID from DB
-        data = {"id": implant_uuid}
+        data = {"uuid": implant_uuid}
 
         api_response = APIResponse(
             status="200",
@@ -755,10 +768,10 @@ class TaskSearch(Resource):
 
 # Add the HelloWorld resource to the API
 implants_ns.add_resource(Implants, "/")
-implants_ns.add_resource(Implant, "/<string:id>")
-implants_ns.add_resource(ImplantTask, "/<string:id>/task")
-implants_ns.add_resource(ImplantTasks, "/<string:id>/tasks")
-implants_ns.add_resource(ImplantHistory, "/<string:id>/tasks/history")
+implants_ns.add_resource(Implant, "/<string:uuid>")
+implants_ns.add_resource(ImplantTask, "/<string:uuid>/task")
+implants_ns.add_resource(ImplantTasks, "/<string:uuid>/tasks")
+implants_ns.add_resource(ImplantHistory, "/<string:uuid>/tasks/history")
 
 # search endpoints, maybe move to a new file
 implants_ns.add_resource(ImplantSearch, "/search")

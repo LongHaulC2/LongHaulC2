@@ -10,6 +10,7 @@ from ...instance import api
 from ...listeners.supervisor import start_listener, stop_listener
 from ...modules.mysql_functions import ListenerService
 from ...schemas.listeners import ListenerCreate
+from ...utils.checks import check_type
 from ...utils.response import APIResponse
 
 listener_ns = Namespace("listeners", description="Listener related operations")
@@ -43,10 +44,10 @@ class Listener(Resource):
     @listener_ns.doc(
         summary="Get listener",
         description="Retrieve a single listener by its unique ID.",
-        params={"id": {"description": "Listener ID (uuid)", "in": "path"}},
+        params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
         responses={200: "Success", 404: "Not found"},
     )
-    def get(self, id):  # get one implant
+    def get(self, uuid):  # get one implant
         """
         Gets one listener based on user supplied ID
 
@@ -60,16 +61,17 @@ class Listener(Resource):
         ip = request.remote_addr
 
         api_logger.info(
-            f"Getting implant {id} data",
+            f"Getting implant {uuid} data",
             extra={
                 "caller_ip": ip,
             },
         )
+        check_type(uuid, str, "uuid")
 
         # note, 500's on empty listeners.
         with get_mysql_session() as session:
             listener_service = ListenerService(session)
-            listeners = listener_service.get_by_id(id)
+            listeners = listener_service.get_by_id(uuid)
             # if no listeners
             if listeners == None:
                 data = {}
@@ -87,10 +89,10 @@ class Listener(Resource):
     @listener_ns.doc(
         summary="Stop a listener",
         description="Stops one listener based on user supplied ID",
-        params={"id": {"description": "Listener ID (uuid)", "in": "path"}},
+        params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
         responses={200: "Success", 404: "Not found", 400: "Bad request"},
     )
-    def delete(self, id):  # delete one implant based on ID
+    def delete(self, uuid):  # delete one implant based on ID
         """
         Deletes/Stops one listener based on user supplied ID
 
@@ -101,29 +103,30 @@ class Listener(Resource):
         3. Returns said data in JSON format.
         """
         ip = request.remote_addr
-        # api_logger.info(f"{ip} is deleting implant {id}")
+        # api_logger.info(f"{ip} is deleting implant {uuid}")
 
         api_logger.info(
-            f"Stopping listener {id}",
+            f"Stopping listener {uuid}",
             extra={
                 "caller_ip": ip,
             },
         )
+        check_type(uuid, str, "uuid")
 
         # if successful, remove from db, else, maybe return a warning/degredaded listener state
-        stop_listener(listener_uuid=id)
+        stop_listener(listener_uuid=uuid)
 
         with get_mysql_session() as session:
             listener_service = ListenerService(session)
 
             # next, update listener to be inactive in the DB
-            # listener_service.set_active(id, active=False)
+            # listener_service.set_active(uuid, active=False)
 
             # nuke the record, no need to set to inactive
-            listener_service.delete(id)
+            listener_service.delete(uuid)
 
         api_logger.info(
-            f"Listener {id} deleted successfully",
+            f"Listener {uuid} deleted successfully",
             extra={
                 "caller_ip": ip,
             },
@@ -265,7 +268,7 @@ class Listeners(Resource):
         return api_response.jsonify()
 
 
-listener_ns.add_resource(Listener, "/<string:id>")
+listener_ns.add_resource(Listener, "/<string:uuid>")
 listener_ns.add_resource(Listeners, "/")
 
 api.add_namespace(listener_ns)
