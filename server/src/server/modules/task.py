@@ -15,6 +15,7 @@ from ..db.mysql_connector import get_mysql_session
 from ..modules.mysql_functions import MySQLImplantTaskService
 from ..modules.redis_functions import RedisImplantTaskService
 from ..schemas.implant import Task, TaskDetail
+from ..utils.checks import check_type
 
 
 class TaskService:
@@ -45,7 +46,7 @@ class TaskService:
 
     @staticmethod
     def create_task(
-        task_uuid: uuid7,
+        task_uuid: str,
         implant_uuid: str,
         task_name: str,
         task_args: dict,
@@ -69,6 +70,11 @@ class TaskService:
             A Task dataclass instance , or msgpack-encoded bytes if
             convert_to_msgpack is True.
         """
+        check_type(task_uuid, str, "task_uuid")
+        check_type(implant_uuid, str, "implant_uuid")
+        check_type(task_name, str, "task_name")
+        check_type(task_args, dict, "task_args")
+        check_type(convert_to_msgpack, bool, "convert_to_msgpack")
 
         # using dataclass for sanity here
         task_detail = TaskDetail(taskname=task_name, args=task_args)

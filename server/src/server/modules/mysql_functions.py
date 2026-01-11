@@ -21,6 +21,8 @@ class ImplantService:
         Create a new implant entry.
         """
         server_logger.debug("Creating new implant entry")
+        check_type(data, ImplantCreate, "data")
+
         try:
             implant = Implant(**vars(data))
             self.session.add(implant)
@@ -41,6 +43,8 @@ class ImplantService:
         """
         Retrieve an implant by primary key.
         """
+        check_type(implant_uuid, int, "implant_uuid")
+
         try:
             server_logger.debug(
                 f"Retrieving implant {implant_uuid} from MYSQL Database"
@@ -76,6 +80,10 @@ class ImplantService:
         """
         Update an implant by primary key.
         """
+
+        check_type(implant_uuid, int, "implant_uuid")
+        check_type(data, ImplantUpdate, "data")
+
         server_logger.debug(
             f"Updating implant {implant_uuid} in MYSQL Database with {data}"
         )
@@ -107,6 +115,7 @@ class ImplantService:
         Delete an implant by primary key.
         """
         server_logger.debug(f"Deleting implant {implant_uuid} in MYSQL Database")
+        check_type(implant_uuid, int, "implant_uuid")
 
         try:
             implant = self.get_by_id(implant_uuid)
@@ -140,7 +149,7 @@ class ImplantService:
         :return: A list of implants that match the query.
         :rtype: list[dict[Any, Any]]
         """
-
+        check_type(search_term, str, "search_term")
         query = (
             self.session.query(Implant)
             .filter(
@@ -169,6 +178,9 @@ class ListenerService:
         Create a new listener entry.
         """
         server_logger.debug("Creating new listener entry")
+
+        check_type(data, ListenerCreate, "data")
+
         try:
             listener = Listener(**vars(data))
             self.session.add(listener)
@@ -185,10 +197,12 @@ class ListenerService:
             server_logger.error(f"{self.__class__.__name__} Error: {e}")
             raise
 
-    def get_by_id(self, listener_id: uuid7) -> Listener | None:
+    def get_by_id(self, listener_id: str) -> Listener | None:
         """
         Retrieve an implant by primary key.
         """
+        check_type(listener_id, str, "listener_id")
+
         try:
             server_logger.debug(
                 f"Retrieving listener {listener_id} from MYSQL Database"
@@ -220,13 +234,16 @@ class ListenerService:
             server_logger.error(f"{self.__class__.__name__} Error: {e}")
             raise
 
-    def update(self, listener_id: uuid7, data: ListenerUpdate) -> Listener | None:
+    def update(self, listener_id: str, data: ListenerUpdate) -> Listener | None:
         """
         Update an implant by primary key.
         """
         server_logger.debug(
             f"Updating implant {listener_id} in MYSQL Database with {data}"
         )
+        check_type(listener_id, str, "listener_id")
+        check_type(data, ListenerUpdate, "data")
+
         try:
             listener = self.get_by_id(listener_id)
             if not listener:
@@ -250,10 +267,12 @@ class ListenerService:
             server_logger.error(f"{self.__class__.__name__} Error: {e}")
             raise
 
-    def set_active(self, listener_id: uuid7, active: bool):
+    def set_active(self, listener_id: str, active: bool):
         server_logger.debug(
             f"Setting listener {listener_id} state: active={active} in MYSQL Database"
         )
+        check_type(listener_id, str, "listener_id")
+        check_type(active, bool, "active")
 
         listener = self.get_by_id(listener_id)
         if not listener:
@@ -262,11 +281,12 @@ class ListenerService:
         listener.listener_active = active
         self.session.commit()
 
-    def delete(self, listener_id: uuid7) -> bool:
+    def delete(self, listener_id: str) -> bool:
         """
         Delete an implant by primary key.
         """
         server_logger.debug(f"Deleting listener {listener_id} in MYSQL Database")
+        check_type(listener_id, str, "listener_id")
 
         try:
             listener = self.get_by_id(listener_id)
@@ -330,7 +350,9 @@ class MySQLImplantTaskService:
         self.implant_uuid = implant_uuid
         self.session = session
 
-    def create_entry(self, task_uuid):
+        check_type(implant_uuid, str, "implant_uuid")
+
+    def create_entry(self, task_uuid: str):
         """
         Create an entry for the task in mysql
 

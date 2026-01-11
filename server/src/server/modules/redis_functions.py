@@ -10,6 +10,7 @@ import logging
 import msgpack
 
 from ..db.redis_connector import get_redis_connection
+from ..utils.checks import check_type
 
 
 class RedisImplantTaskService:
@@ -17,17 +18,20 @@ class RedisImplantTaskService:
     An interface for task queueing/dequeueing in redis.
     """
 
-    def __init__(self, agent_id: str):
-        self.agent_id = agent_id
-        self.outbox_key = f"c2:implant:{self.agent_id}:tasks:outbox"
-        self.inbox_key = f"c2:implant:{self.agent_id}:tasks:inbox"
+    def __init__(self, implant_uuid: str):
+        self.implant_uuid = implant_uuid
+        self.outbox_key = f"c2:implant:{self.implant_uuid}:tasks:outbox"
+        self.inbox_key = f"c2:implant:{self.implant_uuid}:tasks:inbox"
         self.redis = get_redis_connection()
+        check_type(implant_uuid, str, "implant_uuid")
 
     def enqueue_task(self, task: Task):
         """Covnerts task to msgpack, then push said task to the agent's queue.
 
         Takes a dataclass of Task
         """
+        check_type(task, Task, "task")
+
         try:
             # get datatclass, convert to dict
             # using as dict as we have a nested dataclass (TaskData), rather than vars(task)
@@ -54,6 +58,8 @@ class RedisImplantTaskService:
 
     def enqueue_response(self, implant_response: bytes):
         """Push a response to the inbox of the client."""
+        check_type(implant_response, bytes, "implant_response")
+
         try:
             self.redis.rpush(self.inbox_key, implant_response)
         except Exception as e:
@@ -92,12 +98,15 @@ class RedisImplantTaskService:
 
     def peek_queue(self, n: int = 10) -> list[bytes]:
         """Peek at the next n tasks (MessagePack bytes)."""
+        check_type(n, int, "n")
+
         return self.redis.lrange(self.outbox_key, 0, n - 1)
 
     def queue_length(self) -> int:
         return self.redis.llen(self.outbox_key)
 
     def set_ttl(self, seconds: int):
+        check_type(seconds, int, "seconds")
         self.redis.expire(self.outbox_key, seconds)
 
     # ---------- DECODED (dict) ----------
@@ -113,4 +122,5 @@ class RedisImplantTaskService:
 
     def peek_queue_dict(self, n: int = 10) -> list[dict]:
         """Peek and decode the next n tasks."""
+        check_type(n, int, "n")
         return [msgpack.unpackb(p, raw=False) for p in self.peek_queue(n)]

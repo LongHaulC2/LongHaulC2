@@ -96,7 +96,7 @@ class ImplantTask(Base):
     # )
 
     def __repr__(self):
-        return f"<AgentTask(id={self.id}, agent_id={self.agent_id}, task_type={self.task_type}, status={self.status})>"
+        return f"<AgentTask(id={self.id}, implant_uuid={self.implant_uuid}, task_type={self.task_type}, status={self.status})>"
 
 
 """
@@ -104,9 +104,9 @@ Usage:
 Session = sessionmaker(bind=engine)
 session = Session()
 
-# Create a new task for a specific agent (agent_id = 1)
+# Create a new task for a specific agent (implant_uuid = 1)
 task1 = AgentTask(
-    agent_id=1,
+    implant_uuid=1,
     task_type="scan",
     status="pending",
     task_request={"scan_details": "scan details here"},

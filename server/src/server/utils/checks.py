@@ -5,7 +5,8 @@ server_logger = logging.getLogger("server")
 
 def check_type(obj, expected_type, var_name="variable"):
     """
-    Dev helper to log type mismatches without stopping execution.
+    A defensive Dev helper to log type mismatches without stopping execution. Makes runtime errors easier
+    to debug
     """
     if not isinstance(obj, expected_type):
         server_logger.warning(
