@@ -10,20 +10,21 @@
       - `{{baseUrl}}/listeners/`
     - [ ] Add new implants to implants db at connect, if they are not added yet (currently a manual process)
 
-      # >> here
-      In progress, but on new implant:
+      <!-- In progress, but on new implant:
          `ValueError: Task with ID 019ba610-8b0a-77bf-9b37-27b288f342a9 not found for agent 019ba610-8afa-7522-962b-bc6488ad60f2.`
 
          I wonder if it's not getting put into mysql fast enough, or if the UUID is not matching the 000... whatever for some reason. It shows up in the DB...
          weird. 
-         FIX: Session mismatch, 2 sessions, that didn't commit. Fixed by passing in session to task service
+         FIX: Session mismatch, 2 sessions, that didn't commit. Fixed by passing in session to task service -->
 
-         # new bug: Redis queue is empty for tasks. Check api logic. 
+      # >> here
+      # [ ] new bug: Redis queue is empty for tasks. Check api logic. 
 
    #### Logging:
-      - Convert everything to structlogger (with binds, etc.) Big tasks
+      # Last, before switching to GUI:
+      - [ ] Convert everything to structlogger (with binds, etc.) Big tasks
 
-      - Add check_type on modules/other server code where applicable
+      - [ ] Add `check_type` on modules/other server code where applicable
 
 # Mal c2:
 

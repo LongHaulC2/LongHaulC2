@@ -1,5 +1,5 @@
 .env
 *.pyc
-*.log
+*.log*
 .hypothesis
 dev_nonpublic/*
