@@ -452,8 +452,9 @@ class ImplantTask(Resource):
                 data={},
             )
 
-        task_service = TaskService(task=task)
-        task_service.push_task()
+        with get_mysql_session() as session:
+            task_service = TaskService(task=task, session=session)
+            task_service.push_task()
 
         task_uuid = task_service.task.task_uuid
 

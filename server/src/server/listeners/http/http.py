@@ -458,6 +458,7 @@ def http_response(data_from_implant):
         When an implant hasn't checked in, go ahead and setup the first "task"
         for it, and do all the necessary registration steps
         """
+        listener_logger.info("New implant connected")
         with get_mysql_session() as session:
             implant_service = ImplantService(session)
             data = ImplantCreate()
@@ -465,7 +466,7 @@ def http_response(data_from_implant):
             implant_uuid = implant_object.implant_uuid
             # Goign to need to send implant_uuid back with first task, so it knows its UUID.  (implant id is in each task already.)
 
-            task_uuid = uuid7()
+            task_uuid = str(uuid7())
             # create task dict
             task = TaskService.create_task(
                 task_uuid=task_uuid,
@@ -476,10 +477,10 @@ def http_response(data_from_implant):
             )
 
             # write task to db, do NOT queue in redis though as we just created it
-            task_service = TaskService(task=task)
+            task_service = TaskService(task=task, session=session)
             task_service._save_to_mysql()
 
-            msgpack_task = task_service.get_as_msgpack()
+        msgpack_task = task_service.get_as_msgpack()
 
     else:
         its = RedisImplantTaskService(implant_uuid)

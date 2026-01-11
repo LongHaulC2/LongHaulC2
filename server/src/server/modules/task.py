@@ -33,8 +33,15 @@ class TaskService:
 
     """
 
-    def __init__(self, task: Task):
+    def __init__(self, task: Task, session):
+        """_summary_
+
+        Args:
+            task (Task): A Task dataclass instance that has the current task in it
+            session (_type_): A session for the MySQL db. Passed in, for consistent session usage (hit a bug where I was re-initing the session and it caused DB errors)
+        """
         self.task = task
+        self.session = session  # mysql session for consistent session useage
 
     @staticmethod
     def create_task(
@@ -105,12 +112,12 @@ class TaskService:
 
         # Log task into mysql
         # create blank row in mysql, get taskID (which mysql generates, sequentially), append to task.
-        with get_mysql_session() as session:
-            mysql_implant_service = MySQLImplantTaskService(
-                implant_uuid=implant_uuid, session=session
-            )
-            mysql_implant_service.create_entry(task_uuid=task_uuid)
-            mysql_implant_service.update_request(task_uuid=task_uuid, request=self.task)
+        # with get_mysql_session() as session:
+        mysql_implant_service = MySQLImplantTaskService(
+            implant_uuid=implant_uuid, session=self.session
+        )
+        mysql_implant_service.create_entry(task_uuid=task_uuid)
+        mysql_implant_service.update_request(task_uuid=task_uuid, request=self.task)
 
     def _save_to_redis(self):
         """Push task to redis"""

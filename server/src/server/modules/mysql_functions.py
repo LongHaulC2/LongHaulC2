@@ -7,6 +7,7 @@ from sqlalchemy import exc, text
 from ..db.mysql_models import Implant, ImplantTask, Listener
 from ..schemas.implant import ImplantCreate, ImplantUpdate, Task
 from ..schemas.listeners import ListenerCreate, ListenerUpdate
+from ..utils.checks import check_type
 
 server_logger = logging.getLogger("server")
 
@@ -333,9 +334,19 @@ class MySQLImplantTaskService:
         """
         Create an entry for the task in mysql
 
+        task_uuid: UUID of task
+
         returns task id
 
         """
+        check_type(task_uuid, str, "task_uuid")
+
+        if not isinstance(task_uuid, str):
+            server_logger.warning(
+                f"Task UUID {task_uuid} is type {type(task_uuid)}, converting to string."
+            )
+            task_uuid = str(task_uuid)
+
         server_logger.info(f"Adding task to MySQL for implant {task_uuid}")
         task = ImplantTask(
             implant_uuid=self.implant_uuid,
@@ -348,17 +359,26 @@ class MySQLImplantTaskService:
         self.session.add(task)
         self.session.commit()
 
-    def update_request(self, task_uuid, request: Task):
+    def update_request(self, task_uuid: str, request: Task):
         """
         Update the task request for the given task ID (key).
 
-        task_uuid: The UUID of the task
+        task_uuid: (string) UUID of the task - Prefferably a string, not a UUID object. The code *does* convert to a str though.
         request: A dataclass instance of Task.
         """
         server_logger.info(f"Updating MySQL task request for implant {task_uuid}")
 
+        check_type(task_uuid, str, "task_uuid")
+        check_type(request, Task, "request")
+
         # convert the request Task object to a dict, recursively.
         data = asdict(request)
+
+        if not isinstance(task_uuid, str):
+            server_logger.warning(
+                f"Task UUID {task_uuid} is type {type(task_uuid)}, converting to string."
+            )
+            task_uuid = str(task_uuid)
 
         # Fetch the task by key
         task = (
@@ -378,15 +398,24 @@ class MySQLImplantTaskService:
                 f"Task with ID {task_uuid} not found for agent {self.implant_uuid}."
             )
 
-    def update_response(self, task_uuid, response: dict):
+    def update_response(self, task_uuid: str, response: dict):
         """
         [Works, but undefined response structure.]
         Update the task response for the given task ID (key).
 
-        task_uuid: UUID of the task to update
+        task_uuid: (string) UUID of the task to update - Prefferably a string, not a UUID object. The code *does* convert to a str though.
         response: The response of the implant. Currently, there is no defined structure/dataclass for responses.
         """
         server_logger.info(f"Updating MySQL task response for implant {task_uuid}")
+
+        check_type(task_uuid, str, "task_uuid")
+        check_type(response, Task, "response")
+
+        if not isinstance(task_uuid, str):
+            server_logger.warning(
+                f"Task UUID {task_uuid} is type {type(task_uuid)}, converting to string."
+            )
+            task_uuid = str(task_uuid)
 
         # Fetch the task by key
         task = (
