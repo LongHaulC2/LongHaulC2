@@ -45,7 +45,13 @@ class Listener(Resource):
         summary="Get listener",
         description="Retrieve a single listener by its unique ID.",
         params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
-        responses={200: "Success", 404: "Not found"},
+        responses={
+            200: "Success",
+            404: "Not found",
+            400: "Bad request",
+            500: "Server Error",
+            405: "Method Not Allowed",
+        },
     )
     def get(self, uuid):  # get one implant
         """
@@ -90,7 +96,13 @@ class Listener(Resource):
         summary="Stop a listener",
         description="Stops one listener based on user supplied ID",
         params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
-        responses={200: "Success", 404: "Not found", 400: "Bad request"},
+        responses={
+            200: "Success",
+            404: "Not found",
+            400: "Bad request",
+            500: "Server Error",
+            405: "Method Not Allowed",
+        },
     )
     def delete(self, uuid):  # delete one implant based on ID
         """
@@ -144,7 +156,13 @@ class Listeners(Resource):
     @listener_ns.doc(
         summary="Get all Listeners",
         description="Retrieve all listeners in the DB.",
-        responses={200: "Success", 404: "Not found", 400: "Bad request"},
+        responses={
+            200: "Success",
+            404: "Not found",
+            400: "Bad request",
+            500: "Server Error",
+            405: "Method Not Allowed",
+        },
     )
     def get(self):
         """
@@ -188,7 +206,13 @@ class Listeners(Resource):
     @listener_ns.doc(
         summary="Spawn a new listener, and Create a new listener entry.",
         description="Create a new listener. Returns an listener ID to use with that listener",
-        responses={200: "Success", 404: "Not found", 400: "Bad request"},
+        responses={
+            200: "Success",
+            404: "Not found",
+            400: "Bad request",
+            500: "Server Error",
+            405: "Method Not Allowed",
+        },
     )
     @listener_ns.expect(listener_spawn_model)
     def post(self):

@@ -2,15 +2,11 @@
  
 ##  server
    # API cleanup:
-      - [ ] Exceptions where needed in logic 
-         - These must bubble up
-
 
    #### Logging:
       # Last, before switching to GUI:
       - [ ] Convert everything to structlogger (with binds, etc.) Big tasks
-
-      - [ ] Add `check_type` on modules/other server code where applicable
+      - [X] Add `check_type` on modules/other server code where applicable
 
 # Mal c2:
 
