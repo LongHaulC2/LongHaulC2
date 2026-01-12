@@ -349,7 +349,15 @@ async def terminal(implant_uuid: str):
     check_type(implant_uuid, str, "implant_uuid")
 
     terminal_prepend = f"{implant_uuid} > "
+
+    """
+    Note: If scroll bar at bottom, this auto updates to new content.  If not, it does not jump to neweset content
+    Seems to be the best of both worlds.
+
+    Does NOT set to bottom on terminal open - need a way to set that still
+    """
     ui_log = ui.log().classes("w-full h-full")
+
     last_uuid = None
 
     with ui.row().classes("w-full items-center"):
@@ -402,6 +410,19 @@ async def terminal(implant_uuid: str):
             "──────────────────────────────────────────────"
         )
         await push_output_to_terminal(msg_for_user)
+
+        # https://github.com/zauberzeug/nicegui/discussions/5268
+        # scrolls ui.log to bottom. Can change "last" to "first" to scroll to top
+        ui.run_javascript(
+            f"""
+            const logElement = document.querySelector('.q-scrollarea__content');
+            if (logElement && logElement.lastElementChild) {{
+                logElement.lastElementChild.scrollIntoView();
+            }}
+            """
+        )
+
+        # scroll  to bottom
         # await push_text_to_terminal(f"Connected to {implant_uuid}")
 
     async def handle_command():
@@ -425,7 +446,9 @@ async def terminal(implant_uuid: str):
             args
         )  # Keeping args joined for now. This lets the task_definitions handle them.
 
-        result_type, result_data = task_tree(command=command, args=args)
+        result_type, result_data = await task_tree(
+            command=command, args=args, implant_uuid=implant_uuid
+        )
 
         # on task, queue task
         if result_type == ResultType.TASK:

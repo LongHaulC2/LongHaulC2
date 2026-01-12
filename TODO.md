@@ -3,12 +3,18 @@
 # GUI:
 
    - [X] Task Enqueuing
-   - [ ] Task Retrieval
+   - [X] Task Retrieval
       - start with polling? do something else later?
       - ex, get all messages since last timestamp retrieval to not overload. 
       > left off workign on the terminal display. 
          - Thoughts: 
             - Maybe switch ID to username, takes up less space
+
+      - [X] Implement history command, a special command, that displays all console history (just calls get_all_history)
+      - [X] Prepend it with ------ * whatever. Warn user post command, that the history may be truncated due to
+            max ui.log output size. 
+
+      - [X] Auto scroll to bottom at term open
 
    >> start here (in gui-cleanup branch)
    # nice to haves:

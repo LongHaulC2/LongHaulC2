@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
 
+from ..modules.api_calls import get_implant_task_history
+
 """
 Testing task definitions here, so there's a structured way of handling tasks.
 
@@ -64,7 +66,17 @@ def get_description_of_dataclasses(dataclasses):
     return descriptions
 
 
-def task_tree(command, args):
+async def task_tree(command, args, implant_uuid):
+    """Task tree for parsing commands, and formatting them.
+
+    Args:
+        command (_type_): _description_
+        args (_type_): _description_
+        implant_uuid (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     match command:
         # special command
         case "help":
@@ -77,9 +89,35 @@ def task_tree(command, args):
             descriptions.insert(0, line)
             descriptions.insert(1, "Help Menu")
             descriptions.insert(2, line)
-            # descriptions[-1](0, line)
 
             return (ResultType.LIST, descriptions)
+
+        case "history":
+            # add a json object for json dump, and a plaintext option (default)  for parsed output
+            # uses this list to pull the docstrings from, and turn into a help menu
+
+            task_history_dict: list = await get_implant_task_history(implant_uuid)
+            task_history_list = task_history_dict.get("data")
+            # add in barriers:
+            line = "-" * 50
+            task_history_list.insert(0, line)
+            task_history_list.insert(1, "Task History")
+            task_history_list.insert(2, line)
+
+            # format options
+            # print(args)
+            # if args[1] == "json":
+            #     return (ResultType.TEXT, "json")
+
+            # get last item,
+            task_history_list.insert(len(task_history_list) + 1, line)
+            task_history_list.insert(
+                len(task_history_list) + 2,
+                "all tasks, some may be truncated due to 1000 line limit of this terminal.",
+            )
+            task_history_list.insert(len(task_history_list) + 3, line)
+
+            return (ResultType.LIST, task_history_list)
 
         case "cmd":
             try:
