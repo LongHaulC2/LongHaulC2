@@ -28,6 +28,12 @@ def setup_menu(title: str):
         ).classes("w-full px-4 text-white").props("flat no-caps")
 
         ui.button(
+            "Listeners",
+            icon="headphones",
+            on_click=lambda: ui.navigate.to("/listeners"),
+        ).classes("w-full px-4 text-white").props("flat no-caps")
+
+        ui.button(
             "Search", icon="search", on_click=lambda: ui.navigate.to("/search")
         ).classes("w-full px-4 text-white").props("flat no-caps")
 

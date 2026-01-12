@@ -406,6 +406,7 @@ async def terminal(implant_uuid: str):
             "   - Re-open the terminal\n"
             "   - Run the `history` command\n"
             "   - Or view the implant page for full context\n"
+            " • FYI - The terminal will auto scroll when the scroll bar is set to the lowest position\n"
             " • Have fun, Don't break anything :)\n"
             "──────────────────────────────────────────────"
         )
@@ -503,7 +504,6 @@ async def terminal(implant_uuid: str):
 
             # push request to term
             if task_request:
-                print(task_request)
                 # get task, and the name
                 taskname = task_request.get("task", {}).get("taskname", "<no-taskname>")
                 # get the args
@@ -540,7 +540,6 @@ async def terminal(implant_uuid: str):
         task_history = await get_implant_task_history_since_uuid(
             implant_uuid, since_task_uuid=last_uuid
         )
-        print(task_history)
         if not task_history:
             # could get noisy running every second
             server_log.info("No task history to display")

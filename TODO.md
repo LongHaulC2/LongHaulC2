@@ -6,7 +6,6 @@
    - [X] Task Retrieval
       - start with polling? do something else later?
       - ex, get all messages since last timestamp retrieval to not overload. 
-      > left off workign on the terminal display. 
          - Thoughts: 
             - Maybe switch ID to username, takes up less space
 
@@ -15,6 +14,7 @@
             max ui.log output size. 
 
       - [X] Auto scroll to bottom at term open
+
 
    >> start here (in gui-cleanup branch)
    # nice to haves:
@@ -28,6 +28,8 @@
             - [X] api_calls and url.py
             - [X] pages
 
+   # here
+   - [ ] Listeners page
    - [ ] Per-Agent page
    - [ ] Fix any tab issues
       - [ ] Closing last tab leaves the tab "open"
