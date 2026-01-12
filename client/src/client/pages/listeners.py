@@ -11,6 +11,8 @@ from client.src.client.modules.api_calls import (
     get_implant_task_history_since_uuid,
     get_listener_data,
     queue_task,
+    start_listener,
+    stop_listener,
     update_implant,
 )
 from client.src.client.modules.task_definitions import ResultType, task_tree
@@ -77,7 +79,7 @@ async def listener_view():
                 icon="add", on_click=lambda: start_listener_dialogue()
             ).props("dense flat round").classes(f"[&_.q-icon]:{ICON_COLOR}"):
                 ui.tooltip("Add listener")
-            with ui.button(icon="stop", on_click=lambda: ...).props(
+            with ui.button(icon="stop", on_click=lambda: stop_listeners()).props(
                 "dense flat round"
             ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
                 ui.tooltip("Stop listener")
@@ -195,72 +197,100 @@ async def listener_view():
     #         ui.notify("Please select an implant to edit its notes")
     #     #
 
-    ui.timer(1, refresh)
+    async def stop_listeners():
+        # get all  selected
+        selected_listeners_uuids = [row["listener_uuid"] for row in table.selected]
 
+        for listener_uuid in selected_listeners_uuids:
+            await stop_listener(listener_uuid)
 
-async def start_listener_dialogue():
+        # call refresh
+        await refresh()
 
-    with ui.dialog() as dialog:
-        with ui.card().classes("w-[600px] max-w-full p-6 space-y-4"):
+    async def start_listener_dialogue():
 
-            # Header
-            ui.label("Spawn a Listener").classes("text-xl font-semibold text-center")
+        with ui.dialog() as dialog:
+            with ui.card().classes("w-[600px] max-w-full p-6 space-y-4"):
 
-            ui.separator()
-
-            # Name + Type (row)
-            with ui.row().classes("w-full gap-4"):
-                listener_name_field = ui.input("Name").classes("flex-1")
-
-                listener_type_field = ui.select(
-                    ["http", "https", "tcp", "udp"],
-                    label="Type",
-                ).classes("flex-1")
-
-            # Host + Port (row)
-            with ui.row().classes("w-full gap-4"):
-                listener_host_field = ui.input("Host").classes("flex-1")
-
-                listener_port_field = (
-                    ui.input("Port").props("type=number").classes("w-32")
+                # Header
+                ui.label("Spawn a Listener").classes(
+                    "text-xl font-semibold text-center"
                 )
 
-            ui.separator()
+                ui.separator()
 
-            # Notes (multiline)
-            listener_notes_field = (
-                ui.textarea("Notes").classes("w-full").props("rows=3")
+                # Name + Type (row)
+                with ui.row().classes("w-full gap-4"):
+                    listener_name_field = ui.input("Name").classes("flex-1")
+
+                    listener_type_field = ui.select(
+                        ["http", "ntp"],
+                        label="Type",
+                    ).classes("flex-1")
+
+                # Host + Port (row)
+                with ui.row().classes("w-full gap-4"):
+                    listener_host_field = ui.input("Host").classes("flex-1")
+
+                    listener_port_field = (
+                        ui.input("Port").props("type=number").classes("w-32")
+                    )
+
+                ui.separator()
+
+                # Notes (multiline)
+                listener_notes_field = (
+                    ui.textarea("Notes").classes("w-full").props("rows=3")
+                )
+
+                # Profile (dropdown or paste)
+                listener_profile_field = ui.select(
+                    ["default", "stealth", "debug"],
+                    label="Profile",
+                    with_input=True,
+                ).classes("w-full")
+
+                ui.separator()
+
+                # Actions
+                with ui.row().classes("w-full justify-end gap-2"):
+                    ui.button("Cancel", on_click=dialog.close).props("flat")
+                    ui.button(
+                        "Spawn Listener",
+                        color="primary",
+                        on_click=lambda: _start_listener(),
+                    )  # on click to new func
+
+        async def _start_listener():
+            # pull values
+            listener_host = listener_host_field.value
+            listener_port = listener_port_field.value
+            listener_type = listener_type_field.value
+            listener_name = listener_name_field.value
+            listener_notes = listener_notes_field.value
+            listener_profile = listener_profile_field.value
+
+            check_type(listener_host, str, "listener_host")
+            check_type(listener_port, int, "listener_port")
+            check_type(listener_type, str, "listener_type")
+            check_type(listener_name, str, "listener_name")
+            check_type(listener_notes, str, "listener_notes")
+            check_type(listener_profile, str, "listener_profile")
+
+            result = await start_listener(
+                listener_host=listener_host,
+                listener_port=int(listener_port),
+                listener_type=listener_type,
+                listener_name=listener_name,
+                listener_notes=listener_notes,
+                listener_profile=listener_profile,
             )
 
-            # Profile (dropdown or paste)
-            listener_profile_field = ui.select(
-                ["default", "stealth", "debug"],
-                label="Profile",
-                with_input=True,
-            ).classes("w-full")
+            # success/fail message
 
-            ui.separator()
+        # send req
 
-            # Actions
-            with ui.row().classes("w-full justify-end gap-2"):
-                ui.button("Cancel", on_click=dialog.close).props("flat")
-                ui.button("Spawn Listener", color="primary")
+        result = await dialog
 
-    # pull values
-    listener_host = listener_host_field.value
-    listener_port = listener_port_field.value
-    listener_type = listener_type_field.value
-    listener_name = listener_name_field.value
-    listener_notes = listener_notes_field.value
-    listener_profile = listener_profile_field.value
-
-    check_type(listener_host, str, "listener_host")
-    check_type(listener_port, int, "listener_port")
-    check_type(listener_type, str, "listener_type")
-    check_type(listener_name, str, "listener_name")
-    check_type(listener_notes, str, "listener_notes")
-    check_type(listener_profile, str, "listener_profile")
-
-    # send req
-
-    result = await dialog
+    # set to every 3 seconds, less load on server.
+    ui.timer(3, refresh)

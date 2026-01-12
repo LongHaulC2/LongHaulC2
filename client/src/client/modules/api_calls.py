@@ -94,7 +94,7 @@ async def get_all_listener_data() -> dict:
 async def get_listener_data(listener_uuid: str) -> dict:
     check_type(listener_uuid, str, "listener_uuid")
 
-    url = generate_url(f"/api/v1/implants/{listener_uuid}")
+    url = generate_url(f"/api/v1/listeners/{listener_uuid}")
 
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(
@@ -104,6 +104,72 @@ async def get_listener_data(listener_uuid: str) -> dict:
 
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
+        data = response.json()
+        return data
+
+
+async def stop_listener(listener_uuid: str) -> dict:
+    check_type(listener_uuid, str, "listener_uuid")
+
+    url = generate_url(f"/api/v1/listeners/{listener_uuid}")
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(
+        method="DELETE", url=url, listener_uuid=listener_uuid
+    )
+    api_log.debug(f"Getting data for listener")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.delete(url)
+        data = response.json()
+        return data
+
+
+async def start_listener(
+    listener_host: str,
+    listener_port: int,
+    listener_type: str,
+    listener_name: str,
+    listener_notes: str,
+    listener_profile: str,
+) -> dict:
+    """
+    Start a listener with the given configuration.
+
+    Returns:
+        dict: status/result payload
+    """
+
+    # --- validate inputs ---
+    check_type(listener_host, str, "listener_host")
+    check_type(listener_port, int, "listener_port")
+    check_type(listener_type, str, "listener_type")
+    check_type(listener_name, str, "listener_name")
+    check_type(listener_notes, str, "listener_notes")
+    check_type(listener_profile, str, "listener_profile")
+
+    listener_request_data = {
+        "listener_host": listener_host,
+        "listener_port": listener_port,
+        "listener_type": listener_type,
+        "listener_name": listener_name,
+        "listener_notes": listener_notes,
+        "listener_profile": listener_profile,
+    }
+
+    # --- normalize / preprocess ---
+    listener_host = listener_host.strip()
+    listener_name = listener_name.strip()
+
+    url = generate_url(f"/api/v1/listeners/")
+
+    # --- core logic placeholder ---
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(method="POST", url=url)
+    api_log.debug(f"Getting data for listener")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, json=listener_request_data)
         data = response.json()
         return data
 
