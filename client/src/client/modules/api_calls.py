@@ -88,8 +88,9 @@ async def get_implant_task_history_since_uuid(
     Ex: /api/v1/implants/019baff9-37fd-759d-8203-a8a5bd505028/tasks/history?since=019baffa-c8c7-76ff-a40d-d2ec6c99306e
 
     """
+    url_params = {"since": since_task_uuid}
     url = generate_url(
-        f"/api/v1/implants/{implant_uuid}/tasks/history?={since_task_uuid}"
+        f"/api/v1/implants/{implant_uuid}/tasks/history", params=url_params
     )
 
     structlog.contextvars.clear_contextvars()

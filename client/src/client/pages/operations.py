@@ -350,6 +350,7 @@ async def terminal(implant_uuid: str):
 
     terminal_prepend = f"{implant_uuid} > "
     ui_log = ui.log().classes("w-full h-full")
+    last_uuid = None
 
     with ui.row().classes("w-full items-center"):
         # This splits 90% of the line into the UI input, and 10% into the send button
@@ -373,36 +374,35 @@ async def terminal(implant_uuid: str):
         if not task_history:
             server_log.info("No task history to display")
             return
-
-        # pull data out
-        data = task_history.get("data") or []
-        if not isinstance(data, list):
+        tasks = task_history.get("data") or []
+        if not isinstance(tasks, list):
             server_log.warning("Task history data is not a list")
             return
 
-        for task in data:
-            if not isinstance(task, dict):
-                continue
+        await add_tasks_to_terminal(tasks)
 
-            # Always coerce None → {}
-            task_request = task.get("task_request") or {}
-            task_response = task.get("task_response") or {}
+        # finally, set last uuid
+        # set this ONCE - only when tab is init'd, so all tasks *past* this get updates from here.
+        nonlocal last_uuid
+        last_item = tasks[-1]
+        last_uuid = last_item.get("task_uuid")
 
-            # skip empty tasks
-            # if not task_request and not task_response:
-            #     continue
-
-            # push request to term
-            if task_request:
-                await push_text_to_terminal(task_request)
-
-            # either print task or print no result
-            if task_response:
-                await push_output_to_terminal(task_response)
-            else:
-                await push_error_to_terminal("No task result")
-
-        await push_text_to_terminal(f"Connected to {implant_uuid}")
+        msg_for_user = (
+            "──────────────────────────────────────────────\n"
+            " Heads Up\n"
+            "──────────────────────────────────────────────\n"
+            " • All prior communications are displayed above\n"
+            " • New commands and responses will appear below\n"
+            "\n"
+            " If anything looks missing:\n"
+            "   - Re-open the terminal\n"
+            "   - Run the `history` command\n"
+            "   - Or view the implant page for full context\n"
+            " • Have fun, Don't break anything :)\n"
+            "──────────────────────────────────────────────"
+        )
+        await push_output_to_terminal(msg_for_user)
+        # await push_text_to_terminal(f"Connected to {implant_uuid}")
 
     async def handle_command():
         # get user input from ui input
@@ -457,4 +457,124 @@ async def terminal(implant_uuid: str):
     async def clear_input():
         ui_user_input.value = ""
 
+    async def add_tasks_to_terminal(task_list: list[dict]):
+        """Adds tasks to the terminal
+
+        Args:
+            task_list: A list of tasks
+        """
+        nonlocal last_uuid
+
+        # pull data out
+        for task in task_list:
+            if not isinstance(task, dict):
+                continue
+
+            # Always coerce None → {}
+            task_request = task.get("task_request") or {}
+            task_response = task.get("task_response") or {}
+
+            # skip empty tasks
+            # if not task_request and not task_response:
+            #     continue
+
+            # push request to term
+            if task_request:
+                print(task_request)
+                # get task, and the name
+                taskname = task_request.get("task", {}).get("taskname", "<no-taskname>")
+                # get the args
+                args = task_response.get("task", {}).get("args", {})
+
+                # Then format the command to look like the input
+                formatted_task_request = taskname
+                if args:
+                    formatted_task_request += " " + " ".join(
+                        f"{k}={v}" for k, v in args.items()
+                    )
+                await push_text_to_terminal(formatted_task_request)
+
+            # either print task or print no result
+            if task_response:
+                await push_output_to_terminal(task_response.get("data", ""))
+                await push_output_to_terminal(" ")  # newline push
+
+            else:
+                await push_error_to_terminal("No task result")
+                await push_output_to_terminal(" ")  # newline push
+
+        # update last uuid to not re-hit it
+        # warning - this will hide old tasks results if they update late
+        # this is probably fine, there's going to be a history command
+        last_item = task_list[-1]
+        last_uuid = last_item.get("task_uuid")
+
+    async def update_terminal():
+        nonlocal last_uuid
+
+        # last uuid is set by setup_terminal
+        # call out to endponit to get all data since this
+        task_history = await get_implant_task_history_since_uuid(
+            implant_uuid, since_task_uuid=last_uuid
+        )
+        print(task_history)
+        if not task_history:
+            # could get noisy running every second
+            server_log.info("No task history to display")
+            return
+
+        tasks = task_history.get("data") or []
+        if not isinstance(tasks, list):
+            server_log.warning("Task history data is not a list")
+            return
+        if not tasks:
+            # no tasks
+            return
+
+        # await add_tasks_to_terminal(tasks)
+        # trying responses only
+        for task in tasks:
+            if not isinstance(task, dict):
+                continue
+
+            # Always coerce None → {}
+            task_request = task.get("task_request") or {}
+            task_response = task.get("task_response") or {}
+
+            # skip empty tasks
+            # if not task_request and not task_response:
+            #     continue
+
+            # push request to term
+            # if task_request:
+            #     print(task_request)
+            #     # get task, and the name
+            #     taskname = task_request.get("task", {}).get("taskname", "<no-taskname>")
+            #     # get the args
+            #     args = task_response.get("task", {}).get("args", {})
+
+            #     # Then format the command to look like the input
+            #     formatted_task_request = taskname
+            #     if args:
+            #         formatted_task_request += " " + " ".join(
+            #             f"{k}={v}" for k, v in args.items()
+            #         )
+            #     await push_text_to_terminal(formatted_task_request)
+
+            # *only* print out a new task result if there is one.
+            if task_response:
+                await push_output_to_terminal(task_response.get("data", ""))
+                await push_output_to_terminal(" ")  # newline push
+
+            # else:
+            #     await push_error_to_terminal("A new task came back, but has no task result")
+            #     await push_output_to_terminal(" ")  # newline push
+
+        # update last uuid to not re-hit it
+        # warning - this will hide old tasks results if they update late
+        # this is probably fine, there's going to be a history command
+        last_item = tasks[-1]
+        last_uuid = last_item.get("task_uuid")
+
     await setup_terminal()
+    ui.timer(1, update_terminal)

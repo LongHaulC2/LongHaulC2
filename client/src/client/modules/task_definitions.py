@@ -86,7 +86,7 @@ def task_tree(command, args):
             return (ResultType.TEXT, data)  # Use Enum for clarity
 
         case _:
-            return (ResultType.TEXT, "Invalid command")  # Or some other response
+            return (ResultType.ERROR, "Invalid command")  # Or some other response
 
 
 @dataclass

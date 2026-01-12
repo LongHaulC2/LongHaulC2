@@ -23,6 +23,8 @@
             - [X] pages
 
    - [ ] Per-Agent page
+   - [ ] Fix any tab issues
+      - [ ] Closing last tab leaves the tab "open"
 
 #  server
    # API cleanup:

