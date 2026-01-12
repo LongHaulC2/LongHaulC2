@@ -75,3 +75,46 @@ async def get_all_implant_data() -> dict:
         response = await client.get(url)
         data = response.json()  # .get("data")
         return data
+
+
+async def get_implant_task_history_since_uuid(
+    implant_uuid: str, since_task_uuid: str
+) -> dict:
+    """Gets list of tasks sinec a specific UUID. This is enabled by UUID7
+
+    Returns:
+        dict: _description_
+
+    Ex: /api/v1/implants/019baff9-37fd-759d-8203-a8a5bd505028/tasks/history?since=019baffa-c8c7-76ff-a40d-d2ec6c99306e
+
+    """
+    url = generate_url(
+        f"/api/v1/implants/{implant_uuid}/tasks/history?={since_task_uuid}"
+    )
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(method="GET", url=url)
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        data = response.json()  # .get("data")
+        return data
+
+
+async def get_implant_task_history(implant_uuid: str) -> dict:
+    """Gets list of all tasks for an implant
+    Returns:
+        dict: _description_
+
+    Ex: /api/v1/implants/019baff9-37fd-759d-8203-a8a5bd505028/tasks/history
+
+    """
+    url = generate_url(f"/api/v1/implants/{implant_uuid}/tasks/history")
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(method="GET", url=url)
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        data = response.json()  # .get("data")
+        return data

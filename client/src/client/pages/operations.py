@@ -7,6 +7,8 @@ from nicegui.events import KeyEventArguments
 from client.src.client.modules.api_calls import (
     get_all_implant_data,
     get_implant_data,
+    get_implant_task_history,
+    get_implant_task_history_since_uuid,
     queue_task,
     update_implant,
 )
@@ -367,6 +369,39 @@ async def terminal(implant_uuid: str):
 
     # Setup message to indicate the terminal is connected
     async def setup_terminal():
+        task_history = await get_implant_task_history(implant_uuid)
+        if not task_history:
+            server_log.info("No task history to display")
+            return
+
+        # pull data out
+        data = task_history.get("data") or []
+        if not isinstance(data, list):
+            server_log.warning("Task history data is not a list")
+            return
+
+        for task in data:
+            if not isinstance(task, dict):
+                continue
+
+            # Always coerce None → {}
+            task_request = task.get("task_request") or {}
+            task_response = task.get("task_response") or {}
+
+            # skip empty tasks
+            # if not task_request and not task_response:
+            #     continue
+
+            # push request to term
+            if task_request:
+                await push_text_to_terminal(task_request)
+
+            # either print task or print no result
+            if task_response:
+                await push_output_to_terminal(task_response)
+            else:
+                await push_error_to_terminal("No task result")
+
         await push_text_to_terminal(f"Connected to {implant_uuid}")
 
     async def handle_command():
@@ -407,7 +442,7 @@ async def terminal(implant_uuid: str):
             await push_error_to_terminal(result_data)
 
     async def push_text_to_terminal(data):
-        ui_log.push(f"{terminal_prepend}{data}")
+        ui_log.push(f"[placeholder timestamp]{terminal_prepend}{data}")
 
     async def push_list_to_terminal(list_data):
         for line in list_data:
@@ -415,6 +450,9 @@ async def terminal(implant_uuid: str):
 
     async def push_error_to_terminal(data):
         ui_log.push(f"[!] {data}", classes="text-orange")
+
+    async def push_output_to_terminal(data):
+        ui_log.push(f"{data}")
 
     async def clear_input():
         ui_user_input.value = ""

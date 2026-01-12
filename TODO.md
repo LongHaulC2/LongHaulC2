@@ -6,7 +6,9 @@
    - [ ] Task Retrieval
       - start with polling? do something else later?
       - ex, get all messages since last timestamp retrieval to not overload. 
-
+      > left off workign on the terminal display. 
+         - Thoughts: 
+            - Maybe switch ID to username, takes up less space
 
    >> start here (in gui-cleanup branch)
    # nice to haves:
