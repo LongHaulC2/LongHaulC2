@@ -2,8 +2,10 @@
  
 # GUI:
 
-   - [ ] Task Enqueuing
+   - [X] Task Enqueuing
    - [ ] Task Retrieval
+      - start with polling? do something else later?
+      - ex, get all messages since last timestamp retrieval to not overload. 
 
 
    >> start here (in gui-cleanup branch)
