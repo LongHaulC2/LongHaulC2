@@ -77,6 +77,37 @@ async def get_all_implant_data() -> dict:
         return data
 
 
+async def get_all_listener_data() -> dict:
+    url = generate_url("/api/v1/listeners/")
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(method="GET", url=url)
+    api_log.debug(f"Getting all listener data")
+
+    # get implants
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        data = response.json()  # .get("data")
+        return data
+
+
+async def get_listener_data(listener_uuid: str) -> dict:
+    check_type(listener_uuid, str, "listener_uuid")
+
+    url = generate_url(f"/api/v1/implants/{listener_uuid}")
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(
+        method="GET", url=url, listener_uuid=listener_uuid
+    )
+    api_log.debug(f"Getting data for listener")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        data = response.json()
+        return data
+
+
 async def get_implant_task_history_since_uuid(
     implant_uuid: str, since_task_uuid: str
 ) -> dict:
