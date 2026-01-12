@@ -3,6 +3,8 @@ import logging
 import structlog
 from yarl import URL
 
+from ..utils.checks import check_type
+
 server_log = logging.getLogger("server")
 
 
@@ -15,7 +17,7 @@ def generate_url(uri: str) -> str:
     :param uri: A uri to convert into a full URL. Ex: "/some/endpoint" OR "some/endpoint/" (leading, and trailing slashes are both okay)
     :type uri: str
     """
-
+    check_type(uri, str, "uri")
     # removes leading slash on URI, which YARL does not like.
     # Ex, if uri == "/some/endpoint", it will convert to this: "some/endpoint"
     if uri.startswith("/"):

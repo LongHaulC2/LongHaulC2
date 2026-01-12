@@ -1,9 +1,14 @@
 from nicegui import ui
 
+from ..utils.checks import check_type
+
 
 async def open_notes_dialog(
-    implant_uuid: int | str, populate_editor_with: str = ""
+    implant_uuid: str | str, populate_editor_with: str = ""
 ) -> str:
+    check_type(implant_uuid, str, "implant_uuid")
+    check_type(populate_editor_with, str, "populate_editor_with")
+
     with ui.dialog() as dialog, ui.card().classes("w-1/2 h-1/2 p-4"):
 
         # Title or header for the editor

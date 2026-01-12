@@ -1,8 +1,12 @@
 from nicegui import ui
+
 from client.src.client.style import *
+
+from ..utils.checks import check_type
 
 
 def setup_menu(title: str):
+    check_type(title, str, "title")
     left_drawer = ui.left_drawer(value=False, elevated=False, bordered=False).classes(
         "bg-grey-100"
     )

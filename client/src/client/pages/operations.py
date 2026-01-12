@@ -24,6 +24,8 @@ from client.src.client.style import (
 )
 from client.src.client.utils.url import generate_url
 
+from ..utils.checks import check_type
+
 server_log = logging.getLogger("server")
 
 server_log.info("Loading /operations page")
@@ -66,7 +68,9 @@ async def operations():
             await terminal_view()
 
 
-async def delete_implant(implant_uuid=int) -> None:
+async def delete_implant(implant_uuid=str) -> None:
+    check_type(implant_uuid, str, "implant_uuid")
+
     # get implants
     async with httpx.AsyncClient() as client:
         url = generate_url(f"/api/v1/implants/{implant_uuid}")
@@ -290,8 +294,11 @@ async def terminal_view():
 
 
 # Global function to add a tab from anywhere
-async def terminal_add_tab(tab_name, implant_uuid):
+async def terminal_add_tab(tab_name: str, implant_uuid: str):
     global tabs, panels, open_tabs
+
+    check_type(tab_name, str, "tab_name")
+    check_type(implant_uuid, str, "implant_uuid")
 
     # already open → switch
     if implant_uuid in open_tabs:
@@ -324,8 +331,10 @@ async def terminal_add_tab(tab_name, implant_uuid):
     panels.set_value(tab_name)
 
 
-async def terminal_close_tab(implant_uuid):
+async def terminal_close_tab(implant_uuid: str):
     global tabs, open_tabs
+
+    check_type(implant_uuid, str, "implant_uuid")
 
     tab_object = open_tabs[implant_uuid]["tab_object"]
     # remove the tab from the tab object
@@ -334,7 +343,9 @@ async def terminal_close_tab(implant_uuid):
     open_tabs.pop(implant_uuid)
 
 
-async def terminal(implant_uuid):
+async def terminal(implant_uuid: str):
+    check_type(implant_uuid, str, "implant_uuid")
+
     terminal_prepend = f"{implant_uuid} > "
     ui_log = ui.log().classes("w-full h-full")
 

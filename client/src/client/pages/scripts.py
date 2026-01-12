@@ -19,6 +19,8 @@ from client.src.client.style import (
 )
 from client.src.client.utils.url import generate_url
 
+from ..utils.checks import check_type
+
 server_log = logging.getLogger("server")
 
 server_log.info("Loading /scripts page")
@@ -98,11 +100,13 @@ async def terminal_setup():
     )
 
 
-async def terminal_add_tab(tab_name):
+async def terminal_add_tab(tab_name: str):
     """
     tab_name: Name of tab to add to the Terminal tab space
     """
     global terminal_tabs_parent, terminal_panels_parent, terminal_open_tabs
+
+    check_type(tab_name, str, "tab_name")
 
     # already open == switch
     if tab_name in terminal_open_tabs:
@@ -145,11 +149,13 @@ async def terminal_add_tab(tab_name):
     terminal_panels_parent.set_value(tab_name)
 
 
-async def terminal_close_tab(tab_name):
+async def terminal_close_tab(tab_name: str):
     """
     tab_name: Name of tab to remove from the terminal tab space
     """
     global terminal_tabs_parent, terminal_panels_parent, terminal_open_tabs
+
+    check_type(tab_name, str, "tab_name")
 
     if tab_name not in ide_open_tabs:
         ui.notify(f"Tab {tab_name} not found")
@@ -177,6 +183,10 @@ async def open_tab_and_execute_script(tab_name: str, script_path: str):
     Executes a python script & spawns a new terminal for it to run in,
     streaming stdout and stderr asynchronously to the terminal log.
     """
+
+    check_type(tab_name, str, "tab_name")
+    check_type(script_path, str, "script_path")
+
     await terminal_add_tab(tab_name)
 
     terminal_log = terminal_open_tabs[tab_name].get("log_object")
@@ -308,6 +318,8 @@ async def create_new_file_dialog(scripts_path):
     Dialog for new file
     """
 
+    check_type(scripts_path, str, "scripts_path")
+
     with ui.dialog() as dialog, ui.card().classes("no-shadow"):
         ui.label("New Script")
         input_file_name = ui.input("Script Name")
@@ -329,10 +341,13 @@ async def create_new_file_dialog(scripts_path):
         dialog.close()
 
 
-async def create_new_file(file_path, file_name):
+async def create_new_file(file_path: str, file_name: str):
     """
     Creates a new file safely by preventing directory traversal.
     """
+    check_type(file_path, str, "file_path")
+    check_type(file_name, str, "file_name")
+
     # dir traversal protection
     base_path = Path(
         file_path
@@ -389,6 +404,9 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str):
     script_output_terminal_tab_name: The name of the terminal that will be used to run the current code in.
 
     """
+
+    check_type(file_path, str, "file_path")
+    check_type(script_output_terminal_tab_name, str, "script_output_terminal_tab_name")
 
     # with open(file_path, "r+") as file:
     #     file_contents = file.read()
@@ -465,6 +483,9 @@ async def ide_add_tab(tab_name: str, script_path: str):
     """
     global ide_tabs_parent, ide_panels_parent, ide_open_tabs
 
+    check_type(tab_name, str, "tab_name")
+    check_type(script_path, str, "script_path")
+
     # already open == switch
     if tab_name in ide_open_tabs:
         ide_panels_parent.set_value(tab_name)
@@ -499,12 +520,14 @@ async def ide_add_tab(tab_name: str, script_path: str):
     ide_panels_parent.set_value(tab_name)
 
 
-async def ide_close_tab(tab_name):
+async def ide_close_tab(tab_name: str):
     """
     tab_name: Name of tab to close in the IDE tab space.
     """
 
     global ide_tabs_parent, ide_panels_parent, ide_open_tabs
+
+    check_type(tab_name, str, "tab_name")
 
     if tab_name not in ide_open_tabs:
         ui.notify(f"Tab {tab_name} not found")

@@ -8,9 +8,15 @@
 
    >> start here (in gui-cleanup branch)
    # nice to haves:
-      - [ ] Logging
-      - [ ] Type checker (check_type) where possible. 
+      - [X] Logging
+         - [X] Switch to structlogger
+            - [X] api_calls and url.py
+            <!-- - [ ] pages -->
+            - [X] utils
 
+      - [X] Type checker (check_type) where possible. 
+            - [X] api_calls and url.py
+            - [X] pages
 
    - [ ] Per-Agent page
 

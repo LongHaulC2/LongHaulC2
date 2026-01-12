@@ -17,6 +17,8 @@ from client.src.client.style import (
 )
 from client.src.client.utils.url import generate_url
 
+from ..utils.checks import check_type
+
 server_log = logging.getLogger("server")
 
 server_log.info("Loading /search page")
@@ -122,6 +124,8 @@ async def implants_list_layout(data: list[dict]):
     """
     Implant table view. Similar to the operations view, with reduced functionality.
     """
+
+    check_type(data, list, "data")
 
     table = (
         ui.table(

@@ -5,12 +5,17 @@ import structlog
 
 from client.src.client.utils.url import generate_url
 
+from ..utils.checks import check_type
+
 server_log = logging.getLogger("server")
 
 api_log = logging.getLogger("api")
 
 
-async def queue_task(implant_uuid: int, task: dict):
+async def queue_task(implant_uuid: str, task: dict):
+    check_type(implant_uuid, str, "implant_uuid")
+    check_type(task, dict, "task")
+
     url = generate_url(f"/api/v1/implants/{implant_uuid}/task")
 
     structlog.contextvars.clear_contextvars()
@@ -24,7 +29,10 @@ async def queue_task(implant_uuid: int, task: dict):
         return response
 
 
-async def update_implant(implant_uuid: int, data: dict):
+async def update_implant(implant_uuid: str, data: dict):
+    check_type(implant_uuid, str, "implant_uuid")
+    check_type(data, dict, "data")
+
     url = generate_url(f"/api/v1/implants/{implant_uuid}")
 
     structlog.contextvars.clear_contextvars()
@@ -38,7 +46,9 @@ async def update_implant(implant_uuid: int, data: dict):
         return response
 
 
-async def get_implant_data(implant_uuid: int) -> dict:
+async def get_implant_data(implant_uuid: str) -> dict:
+    check_type(implant_uuid, str, "implant_uuid")
+
     url = generate_url(f"/api/v1/implants/{implant_uuid}")
 
     structlog.contextvars.clear_contextvars()
