@@ -95,6 +95,20 @@ class ImplantTask(Base):
     #     ),
     # )
 
+    def to_dict(self):
+        """
+        Turns each field into a dict.
+
+        Can then use as such, after querying:
+
+        ```
+            implants = session.query(Implant).all()
+            data = [i.to_dict() for i in implants]
+        ```
+
+        """
+        return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
+
     def __repr__(self):
         return f"<AgentTask(id={self.id}, implant_uuid={self.implant_uuid}, task_type={self.task_type}, status={self.status})>"
 

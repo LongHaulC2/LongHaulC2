@@ -509,3 +509,26 @@ class MySQLImplantTaskService:
         )
 
         self.session.commit()
+
+    def get_tasks_since_previous_uuid_of_implant(
+        self,
+        implant_uuid: str,
+        last_task_uuid: str,
+        # limit=1000,
+    ) -> list:
+        check_type("implant_uuid", str, "implant_uuid")
+        check_type("last_task_uuid", str, "last_task_uuid")
+
+        results = (
+            self.session.query(ImplantTask)
+            .filter(
+                ImplantTask.implant_uuid == implant_uuid,
+                ImplantTask.task_uuid > last_task_uuid,
+            )
+            .order_by(ImplantTask.task_uuid.asc())
+            # .limit(limit)
+            .all()
+        )  # .to_dict()
+
+        # loop over objects (all returns objects) and return dicts
+        return [r.to_dict() for r in results]

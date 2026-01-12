@@ -643,12 +643,21 @@ GET /api/v1/{uuid}/tasks/history - Get a list of stored/historical tasks for the
 GET /api/v1/{uuid}/tasks/history/{task_id} - Get ONE stored/historical task for the implant (uuid).
 
 """
+from flask_restx import reqparse
+
+history_parser = reqparse.RequestParser()
+history_parser.add_argument(
+    "since",
+    type=str,
+    required=False,
+    help="Return tasks with task_uuid greater than this UUIDv7",
+)
 
 
 class ImplantHistory(Resource):
     @implants_ns.doc(
-        summary="Gets ALL history of an implant from the DB.",
-        description="Retrieve all tasks for the implant",
+        summary="Gets task history of implant from the DB.",
+        description="Gets task history of implant from the DB. Provide 'since' parameter, with a uuid, to lookup since a previous uuid7, otherwise all history is returned",
         params={"uuid": {"description": "Agent ID (64-bit integer)", "in": "path"}},
         responses={
             200: "Success",
@@ -658,8 +667,8 @@ class ImplantHistory(Resource):
             405: "Method Not Allowed",
         },
     )
-    # GET /api/v1/{uuid}/tasks/history
-    def get(self, uuid):  # Get history of an implant
+    @implants_ns.expect(history_parser)
+    def get(self, uuid):  # GET /api/v1/{uuid}/tasks/history
         """
         Gets ALL history of an implant from the DB.
 
@@ -689,27 +698,57 @@ class ImplantHistory(Resource):
         """
         ip = request.remote_addr
 
-        api_logger.info(
-            f"Requesting task history for {uuid}",
-            extra={
-                "caller_ip": ip,
-            },
-        )
+        args = history_parser.parse_args()
+        since = args.get("since")
         check_type(uuid, str, "uuid")
 
-        # get data from db
-        with get_mysql_session() as session:
-            mysql_implant_service = MySQLImplantTaskService(
-                implant_uuid=uuid, session=session
-            )
-            tasks = mysql_implant_service.get_all_tasks()
+        #
+        if since:
 
-        api_response = APIResponse(
-            status="200",
-            message="Success",
-            data=tasks,
-        )
-        return api_response.jsonify()
+            api_logger.info(
+                f"Requesting task history since {since} for {uuid}",
+                extra={
+                    "caller_ip": ip,
+                },
+            )
+
+            # get data from db
+            with get_mysql_session() as session:
+                mysql_implant_service = MySQLImplantTaskService(
+                    implant_uuid=uuid, session=session
+                )
+                tasks = mysql_implant_service.get_tasks_since_previous_uuid_of_implant(
+                    implant_uuid=uuid, last_task_uuid=since
+                )
+
+            api_response = APIResponse(
+                status="200",
+                message="Success",
+                data=tasks,
+            )
+            return api_response.jsonify()
+
+        else:
+            api_logger.info(
+                f"Requesting task history for {uuid}",
+                extra={
+                    "caller_ip": ip,
+                },
+            )
+
+            # get data from db
+            with get_mysql_session() as session:
+                mysql_implant_service = MySQLImplantTaskService(
+                    implant_uuid=uuid, session=session
+                )
+                tasks = mysql_implant_service.get_all_tasks()
+
+            api_response = APIResponse(
+                status="200",
+                message="Success",
+                data=tasks,
+            )
+            return api_response.jsonify()
 
 
 # Implant & task Search
