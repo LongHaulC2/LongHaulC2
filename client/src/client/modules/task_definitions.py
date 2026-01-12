@@ -70,7 +70,15 @@ def task_tree(command, args):
         case "help":
             # uses this list to pull the docstrings from, and turn into a help menu
             dataclasses = [Cmd, Powershell]
-            descriptions = get_description_of_dataclasses(dataclasses)
+            descriptions: list = get_description_of_dataclasses(dataclasses)
+
+            # add in barriers:
+            line = "-" * 50
+            descriptions.insert(0, line)
+            descriptions.insert(1, "Help Menu")
+            descriptions.insert(2, line)
+            # descriptions[-1](0, line)
+
             return (ResultType.LIST, descriptions)
 
         case "cmd":
