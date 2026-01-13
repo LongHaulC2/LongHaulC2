@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import Enum
 
 from ..modules.api_calls import get_implant_task_history
@@ -121,11 +121,7 @@ async def task_tree(command, args, implant_uuid):
 
         case "cmd":
             try:
-                task = Cmd(cli=args).to_task()
-                # wrap things onto task - again temp way of doing this
-                task["implant_uuid"] = (
-                    implant_uuid  # task uuid is added on serer side, no need to add
-                )
+                task = Cmd(implant_uuid=implant_uuid, cli=args).to_task()
                 return (ResultType.TASK, task)
             # if not all args are present, or there's a bug, this will bubble up and be put on screen
             except ParseError as e:
@@ -140,11 +136,40 @@ async def task_tree(command, args, implant_uuid):
 
 
 @dataclass
+class TaskDetail:
+    taskname: str
+    args: dict
+
+
+@dataclass
+class Task:
+    # task_uuid: str  # added by server
+    implant_uuid: str
+    task: TaskDetail
+
+
+def create_and_verify_task(implant_uuid: str, task: TaskDetail):
+    """Adds implant uuid to task, making it a "proper" task
+
+    Args:
+        implant_uuid (str): implant uuid
+        task (dict): task dict: `{task: {'taskname':'task', 'args':{...}}}
+
+    Returns:
+        _type_: _description_
+    """
+    t = Task(implant_uuid=implant_uuid, task=task)
+    task_as_dict = asdict(t)
+    return task_as_dict
+
+
+@dataclass
 class Cmd:
     """
     [placeholder command for dev] Run a command on the host via cmd.exe
     """
 
+    implant_uuid: str
     cli: str
 
     def __post_init__(self):
@@ -158,18 +183,14 @@ class Cmd:
     def to_task(self) -> dict:
         """Convert the dataclass to a task style dictionary structure."""
 
-        # temp way of constructing task struct. This is the correct format, but not a super flexible
-        # way of constructing it
-        task_data = {
-            "task": {
-                "taskname": "cmd",
-                "args": {
-                    "cli": self.cli,
-                },
-            }
-        }
+        task_args = {"cli": self.cli}
+        task_detail = TaskDetail(taskname="cmd", args=task_args)
 
-        return task_data
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+        # return task_detail
 
 
 @dataclass
