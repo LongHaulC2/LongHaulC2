@@ -3,3 +3,5 @@
 *.log*
 .hypothesis
 dev_nonpublic/*
+server/src/server/logs/server.log.1
+server/src/server/logs/server.log.2

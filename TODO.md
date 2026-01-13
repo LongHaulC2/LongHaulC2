@@ -21,7 +21,7 @@
          - [ ] Server should say warning if task is invalid format
 
      # > here
-   - [ ] Terminal not updating wiht new output
+   - [X] Terminal not updating wiht new output
    - [ ] Per-Agent page
 
 #  server
