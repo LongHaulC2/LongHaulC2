@@ -48,9 +48,7 @@ async def listeners():
 
     setup_menu("Listeners")
 
-    # ui.label("listeners")
-    with ui.element().classes("h-full w-full"):
-        await listener_view()
+    await listener_view()
 
 
 async def listener_view():
@@ -68,21 +66,29 @@ async def listener_view():
 
     # Setup header
     with ui.row().classes("w-full items-center justify-between"):
-
         # LEFT: title / context
         ui.label("Listeners").classes(f"text-h6 dense {TEXT_COLOR}")
 
-        # RIGHT: action buttons
         with ui.row().classes("items-center q-gutter-xs"):
 
-            with ui.button(
-                icon="add", on_click=lambda: start_listener_dialogue()
-            ).props("dense flat round").classes(f"[&_.q-icon]:{ICON_COLOR}"):
-                ui.tooltip("Add listener")
-            with ui.button(icon="stop", on_click=lambda: stop_listeners()).props(
-                "dense flat round"
-            ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
-                ui.tooltip("Stop listener")
+            # RIGHT: action buttons
+            with ui.row().classes("items-center q-gutter-xs"):
+
+                with ui.button(
+                    icon="add", on_click=lambda: start_listener_dialogue()
+                ).props("dense flat round").classes(f"[&_.q-icon]:{ICON_COLOR}"):
+                    ui.tooltip("Add listener")
+
+                with ui.button(icon="refresh", on_click=lambda: refresh()).props(
+                    "dense flat round"
+                ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
+                    ui.tooltip("Force Refresh listeners table")
+
+                with ui.button(icon="stop", on_click=lambda: stop_listeners()).props(
+                    "dense flat round"
+                ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
+                    ui.tooltip("Stop listener")
+
     ui.separator()
 
     table = (
