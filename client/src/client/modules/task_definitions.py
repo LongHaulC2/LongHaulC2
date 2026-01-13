@@ -39,7 +39,7 @@ class ParseError(Exception):
 
 
 class ResultType(Enum):
-    TASK = "task"  # tasks are sent to server
+    TASK = "task"  # tasks are sent to server - this is a dict of the FULL task
     TEXT = "text"  # text is just dumped on screen
     ERROR = "error"  # errors are dumped on screen, without prepend, in orange/yellow
     LIST = "list"  # Lists, are parsed over and send one entry at a time on screen, with no terminal prepend
@@ -121,7 +121,11 @@ async def task_tree(command, args, implant_uuid):
 
         case "cmd":
             try:
-                task = Cmd(cli=args)
+                task = Cmd(cli=args).to_task()
+                # wrap things onto task - again temp way of doing this
+                task["implant_uuid"] = (
+                    implant_uuid  # task uuid is added on serer side, no need to add
+                )
                 return (ResultType.TASK, task)
             # if not all args are present, or there's a bug, this will bubble up and be put on screen
             except ParseError as e:
@@ -153,12 +157,19 @@ class Cmd:
 
     def to_task(self) -> dict:
         """Convert the dataclass to a task style dictionary structure."""
-        return {
-            "task": "cmd",
-            "data": {
-                "cli": self.cli,
-            },
+
+        # temp way of constructing task struct. This is the correct format, but not a super flexible
+        # way of constructing it
+        task_data = {
+            "task": {
+                "taskname": "cmd",
+                "args": {
+                    "cli": self.cli,
+                },
+            }
         }
+
+        return task_data
 
 
 @dataclass

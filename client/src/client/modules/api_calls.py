@@ -14,6 +14,7 @@ api_log = logging.getLogger("api")
 
 async def queue_task(implant_uuid: str, task: dict):
     check_type(implant_uuid, str, "implant_uuid")
+    # switch task to dataclass
     check_type(task, dict, "task")
 
     url = generate_url(f"/api/v1/implants/{implant_uuid}/task")

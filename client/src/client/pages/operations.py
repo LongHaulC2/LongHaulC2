@@ -453,7 +453,7 @@ async def terminal(implant_uuid: str):
 
         # on task, queue task
         if result_type == ResultType.TASK:
-            await queue_task(implant_uuid=implant_uuid, task=result_data.to_task())
+            await queue_task(implant_uuid=implant_uuid, task=result_data)
 
         # on data, push to screen
         elif result_type == ResultType.TEXT:

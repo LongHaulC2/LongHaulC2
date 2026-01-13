@@ -5,6 +5,7 @@ Tasks are defined in dataclasses in schemas.implant.py
 
 """
 
+import logging
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
@@ -16,6 +17,8 @@ from ..modules.mysql_functions import MySQLImplantTaskService
 from ..modules.redis_functions import RedisImplantTaskService
 from ..schemas.implant import Task, TaskDetail
 from ..utils.checks import check_type
+
+server_logger = logging.getLogger("server")
 
 
 class TaskService:
@@ -108,11 +111,13 @@ class TaskService:
         Args:
             task (Task): An instance of the dataclass "task" which defines the task structure
         """
+        server_logger.debug("Pushing task to redis")
         self._save_to_mysql()
         self._save_to_redis()
 
     def _save_to_mysql(self):
         """Save task to MYSQL"""
+        server_logger.debug("Pushing task to mysql")
         implant_uuid = self.task.implant_uuid
         task_uuid = self.task.task_uuid
 
@@ -127,6 +132,7 @@ class TaskService:
 
     def _save_to_redis(self):
         """Push task to redis"""
+        server_logger.debug("Pushing task to redis")
         implant_uuid = self.task.implant_uuid
 
         task_service = RedisImplantTaskService(implant_uuid)

@@ -2,19 +2,7 @@
  
 # GUI:
 
-   - [X] Task Enqueuing
-   - [X] Task Retrieval
-      - start with polling? do something else later?
-      - ex, get all messages since last timestamp retrieval to not overload. 
-         - Thoughts: 
-            - Maybe switch ID to username, takes up less space
-
-      - [X] Implement history command, a special command, that displays all console history (just calls get_all_history)
-      - [X] Prepend it with ------ * whatever. Warn user post command, that the history may be truncated due to
-            max ui.log output size. 
-
-      - [X] Auto scroll to bottom at term open
-
+   - [ ] tab stuff needs fixing, is broken/frustrating/not opening sometimes
 
    >> start here (in gui-cleanup branch)
    # nice to haves:
@@ -37,6 +25,14 @@
                                           ^^^^
       UnboundLocalError: cannot access local variable 'task' where it is not associated with a value
       ```
+
+      Fixed that - something weird with task not getting to implant. 
+      Looks like something not getting pushed to redis. Potentially time to do the peek, then pop strat for tasks
+
+      # note - the api implentatino part works (with swagger) - maybe the issue is the client. 
+         I wonder if it's using the old task format
+         it is. Fine, whatever, but server can't silently fail on bad task - it should issue a warning. 
+
    - [ ] Per-Agent page
    - [ ] Fix any tab issues
       - [ ] Closing last tab leaves the tab "open"
