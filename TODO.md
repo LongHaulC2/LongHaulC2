@@ -20,9 +20,13 @@
          it is. Fine, whatever, but server can't silently fail on bad task - it should issue a warning. 
          - [ ] Server should say warning if task is invalid format
 
-     # > here
    - [X] Terminal not updating wiht new output
+     # > here - thisisnot needed yet, but would be a nice to have
    - [ ] Per-Agent page
+
+   - [ ] Script page cleanup
+      - [ ] Fix script path not found bug
+      - [ ] Fix script tab bugs
 
 #  server
    # API cleanup:

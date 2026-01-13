@@ -277,6 +277,8 @@ async def file_picker():
     script_path = Path(__file__).resolve().parent.parent / "scripts"
     script_path.mkdir(parents=True, exist_ok=True)
 
+    server_log.info(f"Loading scripts from {str(script_path)}")
+
     with ui.row().classes("items-center w-full justify-between"):
         # Left-aligned label
         ui.label("Scripts").classes("text-xl font-semibold")
@@ -297,25 +299,30 @@ async def file_picker():
     # Prepare files for tree
     tree_items = [
         {
-            "uuid": str(p),
+            "id": str(p),  # have to use ID here, that's wahat nicegui want
             "label": p.name,
             "children": [],  # no children since these are files
         }
         for p in script_path.glob("*")
         if p.is_file()
     ]
+    # print(tree_items)
 
     # Callback to open file
-    async def open_code_file(node):
-        # bug, when tab already open, node value == none, which throws a path error.
-        # this creates an unresponsive click. However, clicking again works normally.
-        file_path = node.value  # found by printing node
-        print(node.value)
+    async def open_code_file(e):
+        file_path = e.value  # ID is stored in value of event
+
+        if not file_path:
+            return
+
         file_name = Path(file_path).name
         await ide_add_tab(tab_name=file_name, script_path=file_path)
 
     # Create the tree
-    ui.tree(nodes=tree_items, on_select=open_code_file).classes("w-full h-full")
+    ui.tree(
+        nodes=tree_items,
+        on_select=open_code_file,
+    ).classes("w-full h-full")
 
 
 async def create_new_file_dialog(scripts_path):
