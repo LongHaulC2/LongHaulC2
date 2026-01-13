@@ -47,6 +47,10 @@ open_tabs = {}
 These allow for `terminal_add_tab`, `terminal_close_tab`, and tracking of current open terminal tabs.
 
 """
+# global tabs for being able to access tab functions & vars without doing some weirder stuff
+tabs = None
+panels = None
+open_tabs = {}
 
 
 @ui.page("/")
@@ -61,6 +65,10 @@ async def operations():
     ui.context.client.content.classes("h-full")
 
     setup_menu("Operations")
+
+    # bug fix - on refresh, clear open tabs in dict, otherwise open tabs has stale tab data
+    global open_tabs
+    open_tabs = {}
 
     with ui.splitter(horizontal=True, value=50).classes("w-full h-full") as splitter:
         with splitter.before:
@@ -275,10 +283,6 @@ async def implant_view():
 # -------------------------------
 # Terminal
 # -------------------------------
-# global tabs for being able to access tab functions & vars without doing some weirder stuff
-tabs = None
-panels = None
-open_tabs = {}
 
 
 # redfined to be accessible anywhere, maek the vars gllobal to this module
@@ -302,47 +306,75 @@ async def terminal_add_tab(tab_name: str, implant_uuid: str):
     check_type(tab_name, str, "tab_name")
     check_type(implant_uuid, str, "implant_uuid")
 
-    # already open → switch
-    if implant_uuid in open_tabs:
-        panels.set_value(open_tabs.get("implant_uuid"))
-        return
+    try:
+        # already open → switch
+        if implant_uuid in open_tabs:
+            server_log.info(f"Tab {implant_uuid} already open")
+            panels.set_value(open_tabs.get("implant_uuid"))
+            return
 
-    # create tab
-    with tabs:
-        # create tab with implant_uuid metadata  for identifying it later
-        with ui.tab(tab_name, label="").classes("p-0 rounded-none") as tab:
-            tab.meta = {"implant_uuid": implant_uuid}
+        # create tab
+        with tabs:
+            # create tab with implant_uuid metadata  for identifying it later
+            with ui.tab(tab_name, label="").classes("p-0 rounded-none") as tab:
+                tab.meta = {"implant_uuid": implant_uuid}
 
-            with ui.row().classes("items-center gap-0"):
-                # implant implant_uuid (could make into ip as well)
-                ui.label(implant_uuid).classes("px-3 py-1 text-sm border-l")
-                # close button
-                ui.button("✕", on_click=lambda e=tab_name: terminal_close_tab(e)).props(
-                    "flat dense"
-                ).classes("w-6 h-full px-0 text-xs rounded-none  border-r")
+                with ui.row().classes("items-center gap-0"):
+                    # implant implant_uuid (could make into ip as well)
+                    ui.label(implant_uuid).classes("px-3 py-1 text-sm border-l")
+                    # close button
+                    ui.button(
+                        "✕",
+                        on_click=lambda e=tab_name: terminal_close_tab(
+                            implant_uuid
+                        ),  # (e)
+                    ).props("flat dense").classes(
+                        "w-6 h-full px-0 text-xs rounded-none  border-r"
+                    )
 
-    # create panel
-    with panels:
-        with ui.tab_panel(tab_name):
-            await terminal(implant_uuid)
+        # create panel
+        # with panels:
+        #     with ui.tab_panel(tab_name):
+        #         await terminal(implant_uuid)
+        with panels:
+            with ui.tab_panel(tab_name) as panel:
+                await terminal(implant_uuid)
 
-    # register specific tab object in tab dict
-    open_tabs[implant_uuid] = {"tab_object": tab}
+        # register specific tab object in tab dict
+        open_tabs[implant_uuid] = {
+            "tab_object": tab,
+            "panel_object": panel,
+        }
 
-    # and switch to it
-    panels.set_value(tab_name)
+        # and switch to it
+        panels.set_value(tab_name)
+    except Exception as e:
+        server_log.error(e)
 
 
 async def terminal_close_tab(implant_uuid: str):
-    global tabs, open_tabs
+    global tabs, panels, open_tabs
 
     check_type(implant_uuid, str, "implant_uuid")
 
-    tab_object = open_tabs[implant_uuid]["tab_object"]
-    # remove the tab from the tab object
-    tabs.remove(tab_object)
-    # remove from dict
-    open_tabs.pop(implant_uuid)
+    try:
+        tab_data = open_tabs.pop(implant_uuid)
+
+        tab = tab_data["tab_object"]
+        panel = tab_data["panel_object"]
+
+        tabs.remove(tab)
+        panels.remove(panel)
+
+        # Optional: switch to another tab if any exist
+        if open_tabs:
+            next_uuid = next(iter(open_tabs))
+            panels.set_value(next_uuid)
+        else:
+            panels.set_value(None)
+
+    except Exception as e:
+        server_log.error(e)
 
 
 async def terminal(implant_uuid: str):
@@ -599,4 +631,4 @@ async def terminal(implant_uuid: str):
         last_uuid = last_item.get("task_uuid")
 
     await setup_terminal()
-    ui.timer(1, update_terminal)
+    timer = ui.timer(1, update_terminal)

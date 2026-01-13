@@ -42,6 +42,11 @@ async def scripts():
     # ui.query(".nicegui-content").classes("p-0 gap-0")
     clear_state()
 
+    # bug fix - on refresh, clear open tabs in dict, otherwise open tabs has stale tab data
+    global terminal_open_tabs, ide_open_tabs
+    terminal_open_tabs = {}
+    ide_open_tabs = {}
+
     setup_menu("Scripts")
     # fugly, but sets up the left right split, as well as a nested top/bottom for the IDE/Terminal split
     with ui.element().classes("w-full h-full"):

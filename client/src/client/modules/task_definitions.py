@@ -190,7 +190,6 @@ class Cmd:
             implant_uuid=self.implant_uuid, task=task_detail
         )
         return final_task
-        # return task_detail
 
 
 @dataclass

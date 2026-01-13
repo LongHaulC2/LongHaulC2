@@ -18,24 +18,18 @@
 
    - [X] Listeners page
    # here
-   - [ ] Bug: Tasks not being enqueued?
-      ```
-      File "/home/ubuntu-dev/LongHaulC2/server/src/server/routes/v1/implant_resource.py", line 505, in post
-         task_service = TaskService(task=task, session=session)
-                                          ^^^^
-      UnboundLocalError: cannot access local variable 'task' where it is not associated with a value
-      ```
-
-      Fixed that - something weird with task not getting to implant. 
-      Looks like something not getting pushed to redis. Potentially time to do the peek, then pop strat for tasks
-
       # note - the api implentatino part works (with swagger) - maybe the issue is the client. 
          I wonder if it's using the old task format
          it is. Fine, whatever, but server can't silently fail on bad task - it should issue a warning. 
+         - [ ] Server should say warning if task is invalid format
 
    - [ ] Per-Agent page
    - [ ] Fix any tab issues
       - [ ] Closing last tab leaves the tab "open"
+      - [X] on refresh, tab won't re-open. Likely that it's still in the list of open tabs
+            Yup:
+               2026-01-13T02:10:32.586622Z [info     ] Tab 019bb4f3-1a7f-744d-9f34-12108c8c225f already open [server]
+            Maybe clear open tabs on refresh/page load
 
 #  server
    # API cleanup:
