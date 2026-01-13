@@ -25,8 +25,14 @@
    - [ ] Per-Agent page
 
    - [ ] Script page cleanup
-      - [ ] Fix script path not found bug
+      - [X] Fix script path not found bug
       - [ ] Fix script tab bugs
+         - [X] IDE fine
+            - [ ] Picky bug: Close script ide, then re-open that same script, have to click 2 times to I think re-update the event.
+             
+         - [X] terminal (upate to new open/close methods)
+            - [X] Works, closing IDE does not close the term. Maybe this is a good way for this....
+
 
 #  server
    # API cleanup:

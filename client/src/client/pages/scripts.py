@@ -162,25 +162,24 @@ async def terminal_close_tab(tab_name: str):
 
     check_type(tab_name, str, "tab_name")
 
-    if tab_name not in ide_open_tabs:
-        ui.notify(f"Tab {tab_name} not found")
-        return
+    try:
+        tab_data = terminal_open_tabs.pop(tab_name)
 
-    # Remove the tab from the tabs object
-    tab_object = terminal_open_tabs[tab_name]["tab_object"]
-    terminal_tabs_parent.remove(tab_object)
+        tab = tab_data["tab_object"]
+        panel = tab_data["panel_object"]
 
-    # Remove the tab panel content & from dict
-    tab_panel = terminal_open_tabs[tab_name].get("panel_object")
-    if tab_panel:
-        terminal_panels_parent.remove(tab_panel)
-    terminal_open_tabs.pop(tab_name)
+        terminal_tabs_parent.remove(tab)
+        terminal_panels_parent.remove(panel)
 
-    # If no tabs left, clear editor area or add aplaceholder when everything is closed
-    if not terminal_open_tabs:
-        ...
-        # with ide_panels_parent:
-        # ui.label("No tabs open").classes("text-center text-grey")
+        # Optional: switch to another tab if any exist
+        if terminal_open_tabs:
+            next_uuid = next(iter(terminal_open_tabs))
+            terminal_panels_parent.set_value(next_uuid)
+        else:
+            terminal_panels_parent.set_value(None)
+
+    except Exception as e:
+        server_log.error(e)
 
 
 async def open_tab_and_execute_script(tab_name: str, script_path: str):
@@ -541,22 +540,21 @@ async def ide_close_tab(tab_name: str):
 
     check_type(tab_name, str, "tab_name")
 
-    if tab_name not in ide_open_tabs:
-        ui.notify(f"Tab {tab_name} not found")
-        return
+    try:
+        tab_data = ide_open_tabs.pop(tab_name)
 
-    # Remove the tab from the tabs object
-    tab_object = ide_open_tabs[tab_name]["tab_object"]
-    ide_tabs_parent.remove(tab_object)
+        tab = tab_data["tab_object"]
+        panel = tab_data["panel_object"]
 
-    # Remove the tab panel content & from dict
-    tab_panel = ide_open_tabs[tab_name].get("panel_object")
-    if tab_panel:
-        ide_panels_parent.remove(tab_panel)
-    ide_open_tabs.pop(tab_name)
+        ide_tabs_parent.remove(tab)
+        ide_panels_parent.remove(panel)
 
-    # If no tabs left, clear editor area or add aplaceholder when everything is closed
-    if not ide_open_tabs:
-        ...
-        # with ide_panels_parent:
-        # ui.label("No tabs open").classes("text-center text-grey")
+        # Optional: switch to another tab if any exist
+        if ide_open_tabs:
+            next_uuid = next(iter(ide_open_tabs))
+            ide_panels_parent.set_value(next_uuid)
+        else:
+            ide_panels_parent.set_value(None)
+
+    except Exception as e:
+        server_log.error(e)
