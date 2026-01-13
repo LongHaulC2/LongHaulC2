@@ -29,7 +29,7 @@
             - [X] pages
 
    # here
-   - [ ] Listeners page
+   - [X] Listeners page
    - [ ] Per-Agent page
    - [ ] Fix any tab issues
       - [ ] Closing last tab leaves the tab "open"

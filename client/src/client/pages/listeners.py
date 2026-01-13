@@ -225,15 +225,27 @@ async def listener_view():
 
                     listener_type_field = ui.select(
                         ["http", "ntp"],
-                        label="Type",
+                        label="Type [only HTTP]",
                     ).classes("flex-1")
 
                 # Host + Port (row)
                 with ui.row().classes("w-full gap-4"):
-                    listener_host_field = ui.input("Host").classes("flex-1")
+                    listener_host_field = ui.input("Host [IP, or DNS Name]").classes(
+                        "flex-1"
+                    )
 
                     listener_port_field = (
-                        ui.input("Port").props("type=number").classes("w-32")
+                        ui.input(
+                            label="Port",
+                            placeholder="1–65535",
+                            validation={
+                                "Port must be a number": lambda v: v.isdigit(),
+                                "Port must be between 1 and 65535": lambda v: v.isdigit()
+                                and 1 <= int(v) <= 65535,
+                            },
+                        )
+                        .props("type=number min=1 max=65535")
+                        .classes("w-32")
                     )
 
                 ui.separator()
@@ -246,7 +258,7 @@ async def listener_view():
                 # Profile (dropdown or paste)
                 listener_profile_field = ui.select(
                     ["default", "stealth", "debug"],
-                    label="Profile",
+                    label="Profile [not implemented]",
                     with_input=True,
                 ).classes("w-full")
 
@@ -285,6 +297,13 @@ async def listener_view():
                 listener_notes=listener_notes,
                 listener_profile=listener_profile,
             )
+
+            if not result:
+                ui.notification("Listener could not be started!", type="negative")
+                return
+            ui.notification("Listener started!", type="positive")
+            # refresh on creation
+            await refresh()
 
             # success/fail message
 
