@@ -2,9 +2,6 @@
  
 # GUI:
 
-   - [ ] tab stuff needs fixing, is broken/frustrating/not opening sometimes
-
-   >> start here (in gui-cleanup branch)
    # nice to haves:
       - [X] Logging
          - [X] Switch to structlogger
@@ -23,13 +20,9 @@
          it is. Fine, whatever, but server can't silently fail on bad task - it should issue a warning. 
          - [ ] Server should say warning if task is invalid format
 
+     # > here
+   - [ ] Terminal not updating wiht new output
    - [ ] Per-Agent page
-   - [ ] Fix any tab issues
-      - [ ] Closing last tab leaves the tab "open"
-      - [X] on refresh, tab won't re-open. Likely that it's still in the list of open tabs
-            Yup:
-               2026-01-13T02:10:32.586622Z [info     ] Tab 019bb4f3-1a7f-744d-9f34-12108c8c225f already open [server]
-            Maybe clear open tabs on refresh/page load
 
 #  server
    # API cleanup:

@@ -564,71 +564,84 @@ async def terminal(implant_uuid: str):
         last_item = task_list[-1]
         last_uuid = last_item.get("task_uuid")
 
+    # async def update_terminal():
+    #     nonlocal last_uuid
+
+    #     # last uuid is set by setup_terminal
+    #     # call out to endponit to get all data since this
+    #     task_history = await get_implant_task_history_since_uuid(
+    #         implant_uuid, since_task_uuid=last_uuid
+    #     )
+    #     if not task_history:
+    #         # could get noisy running every second
+    #         server_log.info("No task history to display")
+    #         return
+
+    #     tasks = task_history.get("data") or []
+    #     if not isinstance(tasks, list):
+    #         server_log.warning("Task history data is not a list")
+    #         return
+    #     if not tasks:
+    #         # no tasks
+    #         return
+
+    #     # await add_tasks_to_terminal(tasks)
+    #     # trying responses only
+    #     for task in tasks:
+    #         if not isinstance(task, dict):
+    #             continue
+
+    #         # Always coerce None → {}
+    #         task_request = task.get("task_request") or {}
+    #         task_response = task.get("task_response") or {}
+
+    #         # *only* print out a new task result if there is one.
+    #         if task_response:
+    #             await push_output_to_terminal(task_response.get("data", ""))
+    #             await push_output_to_terminal(" ")  # newline push
+
+    #     # update last uuid to not re-hit it
+    #     # warning - this will hide old tasks results if they update late
+    #     # this is probably fine, there's going to be a history command
+
+    #     # buuuuug this is updating last_uuid before showing on screen
+    #     last_item = tasks[-1]
+    #     last_uuid = last_item.get("task_uuid")
+
+    #     # if len(tasks) >= 2:
+    #     #     last_uuid = tasks[-2].get("task_uuid")
+    #     # else:
+    #     #     last_uuid = None
+
+    # fixes skipped responses, plus late arriving responses.
     async def update_terminal():
         nonlocal last_uuid
 
-        # last uuid is set by setup_terminal
-        # call out to endponit to get all data since this
         task_history = await get_implant_task_history_since_uuid(
             implant_uuid, since_task_uuid=last_uuid
         )
         if not task_history:
-            # could get noisy running every second
-            server_log.info("No task history to display")
             return
 
         tasks = task_history.get("data") or []
-        if not isinstance(tasks, list):
-            server_log.warning("Task history data is not a list")
-            return
         if not tasks:
-            # no tasks
             return
 
-        # await add_tasks_to_terminal(tasks)
-        # trying responses only
+        new_last_uuid = last_uuid  # cursor candidate
+
         for task in tasks:
             if not isinstance(task, dict):
                 continue
 
-            # Always coerce None → {}
-            task_request = task.get("task_request") or {}
             task_response = task.get("task_response") or {}
 
-            # skip empty tasks
-            # if not task_request and not task_response:
-            #     continue
-
-            # push request to term
-            # if task_request:
-            #     print(task_request)
-            #     # get task, and the name
-            #     taskname = task_request.get("task", {}).get("taskname", "<no-taskname>")
-            #     # get the args
-            #     args = task_response.get("task", {}).get("args", {})
-
-            #     # Then format the command to look like the input
-            #     formatted_task_request = taskname
-            #     if args:
-            #         formatted_task_request += " " + " ".join(
-            #             f"{k}={v}" for k, v in args.items()
-            #         )
-            #     await push_text_to_terminal(formatted_task_request)
-
-            # *only* print out a new task result if there is one.
             if task_response:
                 await push_output_to_terminal(task_response.get("data", ""))
-                await push_output_to_terminal(" ")  # newline push
+                await push_output_to_terminal(" ")
+                new_last_uuid = task.get("task_uuid")
 
-            # else:
-            #     await push_error_to_terminal("A new task came back, but has no task result")
-            #     await push_output_to_terminal(" ")  # newline push
-
-        # update last uuid to not re-hit it
-        # warning - this will hide old tasks results if they update late
-        # this is probably fine, there's going to be a history command
-        last_item = tasks[-1]
-        last_uuid = last_item.get("task_uuid")
+        # advance cursor ONLY to last displayed task
+        last_uuid = new_last_uuid
 
     await setup_terminal()
     timer = ui.timer(1, update_terminal)
