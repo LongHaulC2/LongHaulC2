@@ -493,6 +493,7 @@ class ImplantTask(Resource):
                 message=f"Bad data: {e}",
                 data={},
             )
+            return api_response.jsonify()
         except ValueError as e:
             # This happens if field types are wrong
             api_response = APIResponse(
@@ -500,6 +501,7 @@ class ImplantTask(Resource):
                 message=f"Invalid value: {e}",
                 data={},
             )
+            return api_response.jsonify()
 
         with get_mysql_session() as session:
             task_service = TaskService(task=task, session=session)

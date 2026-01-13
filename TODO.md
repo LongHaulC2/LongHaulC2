@@ -28,8 +28,15 @@
             - [X] api_calls and url.py
             - [X] pages
 
-   # here
    - [X] Listeners page
+   # here
+   - [ ] Bug: Tasks not being enqueued?
+      ```
+      File "/home/ubuntu-dev/LongHaulC2/server/src/server/routes/v1/implant_resource.py", line 505, in post
+         task_service = TaskService(task=task, session=session)
+                                          ^^^^
+      UnboundLocalError: cannot access local variable 'task' where it is not associated with a value
+      ```
    - [ ] Per-Agent page
    - [ ] Fix any tab issues
       - [ ] Closing last tab leaves the tab "open"
