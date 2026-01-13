@@ -267,61 +267,85 @@ async def open_tab_and_execute_script(tab_name: str, script_path: str):
 
 
 # allows for refresh on file creation
+from pathlib import Path
+
+from nicegui import ui
+
+
 @ui.refreshable
 async def file_picker():
     """
     parent file picker for the scripts tab.
     """
-    # Resolve scripts folder
-    script_path = Path(__file__).resolve().parent.parent / "scripts"
+    script_path = Path(__file__).resolve().parent.parent / "user"
     script_path.mkdir(parents=True, exist_ok=True)
 
     server_log.info(f"Loading scripts from {str(script_path)}")
 
     with ui.row().classes("items-center w-full justify-between"):
-        # Left-aligned label
         ui.label("Scripts").classes("text-xl font-semibold")
 
-        # Right-aligned buttons
         with ui.row().classes("justify-end"):
             ui.button(
                 icon="add", on_click=lambda: create_new_file_dialog(script_path)
-            ).props("dense flat round").classes(f"[&_.q-icon]:{ICON_COLOR}").tooltip(
-                "New script"
+            ).props("dense flat round").tooltip("New script").classes(
+                f"[&_.q-icon]:{ICON_COLOR}"
             )
+
             ui.button(icon="refresh", on_click=lambda: file_picker.refresh()).props(
                 "dense flat round"
             ).classes(f"[&_.q-icon]:{ICON_COLOR}").tooltip("Refresh files list")
 
     ui.separator()
 
-    # Prepare files for tree
-    tree_items = [
-        {
-            "id": str(p),  # have to use ID here, that's wahat nicegui want
-            "label": p.name,
-            "children": [],  # no children since these are files
-        }
-        for p in script_path.glob("*")
-        if p.is_file()
-    ]
-    # print(tree_items)
+    # ---- TREE BUILDER ----
+    def build_tree(path: Path):
+        nodes = []
+        for p in sorted(path.iterdir(), key=lambda x: (x.is_file(), x.name.lower())):
+            if p.is_dir():
+                nodes.append(
+                    {
+                        "id": str(p),
+                        "label": p.name,
+                        "children": build_tree(p),
+                    }
+                )
+            else:
+                nodes.append(
+                    {
+                        "id": str(p),
+                        "label": p.name,
+                        "children": [],
+                    }
+                )
+        return nodes
 
-    # Callback to open file
+    tree_items = build_tree(script_path)
+
+    # ---- FILE OPEN CALLBACK ----
     async def open_code_file(e):
-        file_path = e.value  # ID is stored in value of event
+        file_path = Path(e.value)
 
-        if not file_path:
-            return
+        if not file_path.is_file():
+            return  # ignore folder clicks
 
-        file_name = Path(file_path).name
-        await ide_add_tab(tab_name=file_name, script_path=file_path)
+        # if executable, show button, else disable
+        # note - probably a better way to do this,
+        # maybe even passing in a handler class to handle diff files,
+        # but this works for now.
+        if file_path.suffix == ".py":
+            executable = True
+        else:
+            executable = False
 
-    # Create the tree
+        await ide_add_tab(
+            tab_name=file_path.name, script_path=str(file_path), executable=executable
+        )
+
     ui.tree(
         nodes=tree_items,
         on_select=open_code_file,
-    ).classes("w-full h-full")
+    ).classes("w-full h-full").expand()
 
 
 async def create_new_file_dialog(scripts_path):
@@ -405,7 +429,9 @@ async def ide_setup():
     )
 
 
-async def code_editor(file_path: str, script_output_terminal_tab_name: str):
+async def code_editor(
+    file_path: str, script_output_terminal_tab_name: str, executable=False
+):
     """
     A code editor window that contains a ui.codemirror object, and other functionality for the editor
 
@@ -414,6 +440,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str):
 
     script_output_terminal_tab_name: The name of the terminal that will be used to run the current code in.
 
+    executable= Whether to show the play button (aka run a py file)
     """
 
     check_type(file_path, str, "file_path")
@@ -451,23 +478,24 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str):
         # Right panel: vertical buttons
         with splitter.after:
             with ui.column().classes("h-full gap-1 justify-start items-center"):
-                ui.button(
-                    icon="play_arrow",
-                    on_click=lambda: open_tab_and_execute_script(
-                        script_output_terminal_tab_name, script_path=file_path
-                    ),
-                ).props("dense flat round").classes(f"[&_.q-icon]:{ICON_COLOR}")
-                ui.tooltip("Run script")
+                if executable:
+                    ui.button(
+                        icon="play_arrow",
+                        on_click=lambda: open_tab_and_execute_script(
+                            script_output_terminal_tab_name, script_path=file_path
+                        ),
+                    ).props("dense flat round").classes(f"[&_.q-icon]:{ICON_COLOR}")
+                    ui.tooltip("Run script")
 
-                ui.button(
-                    icon="stop",
-                    on_click=lambda: ...,
-                ).props(
-                    "dense flat round"
-                ).classes(f"disabled").props("color=negative")
-                ui.tooltip("Stop script")
+                    ui.button(
+                        icon="stop",
+                        on_click=lambda: ...,
+                    ).props(
+                        "dense flat round"
+                    ).classes(f"disabled").props("color=negative")
+                    ui.tooltip("Stop script")
 
-                ui.separator()
+                    ui.separator()
 
                 ui.button(
                     icon="save",
@@ -487,7 +515,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str):
 
 
 # Global function to add a tab from anywhere
-async def ide_add_tab(tab_name: str, script_path: str):
+async def ide_add_tab(tab_name: str, script_path: str, executable=False):
     """
     tab_name: Name of tab to add to the IDE tab space
     script_path: Path of the script that will be opened in the IDE tab
@@ -519,7 +547,7 @@ async def ide_add_tab(tab_name: str, script_path: str):
     with ide_panels_parent:
         with ui.tab_panel(tab_name) as panel:
             # use tab name as same name for process tab.
-            await code_editor(script_path, tab_name)
+            await code_editor(script_path, tab_name, executable=executable)
 
     # Store both objects in the open tabs dict
     ide_open_tabs[tab_name] = {

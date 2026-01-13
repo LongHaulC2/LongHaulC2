@@ -2,36 +2,12 @@
  
 # GUI:
 
-   # nice to haves:
-      - [X] Logging
-         - [X] Switch to structlogger
-            - [X] api_calls and url.py
-            <!-- - [ ] pages -->
-            - [X] utils
 
-      - [X] Type checker (check_type) where possible. 
-            - [X] api_calls and url.py
-            - [X] pages
+   - [ ] Server should say warning if task is invalid format
 
-   - [X] Listeners page
-   # here
-      # note - the api implentatino part works (with swagger) - maybe the issue is the client. 
-         I wonder if it's using the old task format
-         it is. Fine, whatever, but server can't silently fail on bad task - it should issue a warning. 
-         - [ ] Server should say warning if task is invalid format
-
-   - [X] Terminal not updating wiht new output
      # > here - thisisnot needed yet, but would be a nice to have
    - [ ] Per-Agent page
 
-   - [ ] Script page cleanup
-      - [X] Fix script path not found bug
-      - [ ] Fix script tab bugs
-         - [X] IDE fine
-            - [ ] Picky bug: Close script ide, then re-open that same script, have to click 2 times to I think re-update the event.
-             
-         - [X] terminal (upate to new open/close methods)
-            - [X] Works, closing IDE does not close the term. Maybe this is a good way for this....
 
 
 #  server
@@ -73,6 +49,10 @@
 
  - [ ] Implant
    - not implementing implant specific options. Sticking to response/network shaping options
+
+Proper handling of malc2 for listeners, on 
+GUI and server side
+
 
 # Task Formatting (for reference):
 
