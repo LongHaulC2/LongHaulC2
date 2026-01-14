@@ -34,7 +34,7 @@ listener_spawn_model = api.model(
         "listener_notes": fields.String(required=False, description="Listener notes"),
         "listener_profile": fields.String(
             required=False,
-            description="Listener malleable c2 profile [not implemented yet]",
+            description="Listener malleable c2 profile",
         ),
     },
 )
