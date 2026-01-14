@@ -124,14 +124,14 @@ async def implants_list_layout(data: list[dict]):
     """
     Implant table view. Similar to the operations view, with reduced functionality.
     """
-
+    print(data)
     check_type(data, list, "data")
 
     table = (
         ui.table(
             columns=[],  # filled later
             rows=[],
-            row_key="uuid",
+            row_key="implant_uuid",
             # selection="multiple",  # no selection, no use here currently.
             # on_select=lambda e: ui.notify(f"selected: {e.selection}"),
             pagination=100,
@@ -183,4 +183,61 @@ async def implants_list_layout(data: list[dict]):
 
 
 async def tasks_list_layout(data):
-    print(data)
+    check_type(data, list, "data")
+
+    table = (
+        ui.table(
+            columns=[],  # filled later
+            rows=[],
+            row_key="task_uuid",
+            # selection="multiple",  # no selection, no use here currently.
+            # on_select=lambda e: ui.notify(f"selected: {e.selection}"),
+            pagination=100,
+        )
+        .classes(f"w-full no-shadow {TEXT_COLOR}")
+        .props("dense virtual-scroll")
+        # virtual scroll only renders items on screen. Helpful when a large amount of items exist in the table.")
+    )
+
+    # if no search results, DO NOT continue with dynamic generation of table
+    # This *will* show an empty table. Move above the table def to not do that.
+    if data == None or data == []:
+        return
+
+    # if not table.columns:
+    first_row = data[0]
+    table.columns = [
+        {
+            "name": key,
+            "label": key.replace("_", " ").title(),
+            "field": key,
+            "sortable": True,
+            "align": "left",
+        }
+        for key in first_row.keys()
+        # exclude these, these are json reps of the responses. text version is stored in *_text, ex: task_response_text.
+        # These show up blank in the table.
+        if key not in ["task_request", "task_response"]
+    ]
+
+    # https://nicegui.io/documentation/table#table_cells_with_html
+    # adding HTML rendering in.
+    # Slightly diff than example, but still renders correctly. Also, only adding on AFTER initilization, otherwise
+    # there's an error about the notes row not existing (which is expected with dynamic row generation)
+    # ALSO: <div style="max-height: 20px; max-width: 300px; overflow: hidden;">  keeps the row a max size to not blow up the screen
+    # this is slightly bigger  than the operations tab, for easier viewing
+    table.add_slot(
+        "body-cell-notes",
+        """
+            <q-td :props="props">
+                <div style="max-height: 20px; max-width: 300px; overflow: hidden; word-wrap: break-word; white-space: normal;"> 
+                    <!-- <span v-html="props.row.notes"></span> -->
+                    <!-- v-if only applies if the row/data actually exists, which saves some JS work -->
+                    <span v-if="props.row.notes" v-html="props.row.notes"></span>
+            </q-td>
+        """,
+    )
+
+    # finally, Update table rows
+    table.rows = data
+    table.update()
