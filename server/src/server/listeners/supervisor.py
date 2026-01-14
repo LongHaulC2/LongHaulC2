@@ -40,7 +40,7 @@ def start_listener(
                         "listener_uuid": listener_data.listener_uuid,
                         "listener_host": listener_data.listener_host,
                         "listener_port": listener_data.listener_port,
-                        "listener_profile": listener_data.listener_profile,
+                        "listener_profile_contents": listener_data.listener_profile_contents,
                     },
                     daemon=True,  # shuts down listeners at program exit.
                 )

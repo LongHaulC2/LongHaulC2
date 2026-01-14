@@ -132,7 +132,8 @@ async def start_listener(
     listener_type: str,
     listener_name: str,
     listener_notes: str,
-    listener_profile: str,
+    listener_profile_name: str,
+    listener_profile_contents: str,
 ) -> dict:
     """
     Start a listener with the given configuration.
@@ -147,7 +148,8 @@ async def start_listener(
     check_type(listener_type, str, "listener_type")
     check_type(listener_name, str, "listener_name")
     check_type(listener_notes, str, "listener_notes")
-    check_type(listener_profile, str, "listener_profile")
+    check_type(listener_profile_name, str, "listener_profile_name")
+    check_type(listener_profile_contents, str, "listener_profile_contents")
 
     listener_request_data = {
         "listener_host": listener_host,
@@ -155,7 +157,8 @@ async def start_listener(
         "listener_type": listener_type,
         "listener_name": listener_name,
         "listener_notes": listener_notes,
-        "listener_profile": listener_profile,
+        "listener_profile_name": listener_profile_name,
+        "listener_profile_contents": listener_profile_contents,
     }
 
     # --- normalize / preprocess ---

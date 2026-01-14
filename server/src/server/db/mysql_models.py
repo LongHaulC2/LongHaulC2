@@ -151,7 +151,9 @@ class Listener(Base):
     listener_notes = Column(Text)
 
     listener_active = Column(Boolean)
-    listener_profile = Column(Text)  # FULL malleablec2 profile
+
+    listener_profile_name = Column(Text)  # Name of Malleable C2 profile
+    listener_profile_contents = Column(Text)  # FULL malleablec2 profile
 
     # Adding UniqueConstraint to enforce unique combination of listener_host and listener_port
     __table_args__ = (

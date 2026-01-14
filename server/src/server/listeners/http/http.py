@@ -11,11 +11,14 @@ codes used.
 204: No content, things worked but nothign for you
 400/404: requester fucked something up, go away/try again later
 500: something went wrong
+
+https://pypi.org/project/pyMalleableProfileParser/0.3/
 """
 
 import logging
 import re
 import sys
+import tempfile
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -56,7 +59,7 @@ def run(
     listener_uuid: str,
     listener_port: int,
     listener_host: str,
-    listener_profile: str = None,
+    listener_profile_contents: str,
 ):
     """The entrypoint for the listener
 
@@ -69,10 +72,18 @@ def run(
     check_type(listener_uuid, str, "listener_uuid")
     check_type(listener_port, int, "listener_port")
     check_type(listener_host, str, "listener_host")
-    check_type(listener_profile, str, "listener_profile")
+    check_type(listener_profile_contents, str, "listener_profile")
 
     # placeholder
-    mp = MalleableProfile(profile="/home/ubuntu-dev/LongHaulC2/webbug_getonly.profile")
+    # listener_profile_contents = StringIO(listener_profile_contents)
+    # mp = MalleableProfile.from_string(listener_profile_contents)
+
+    # tldr from_string doesn't work... so tempfile
+
+    with tempfile.NamedTemporaryFile("w+", suffix=".profile") as tmp_file:
+        tmp_file.write(listener_profile_contents)
+        tmp_file.flush()
+        mp = MalleableProfile(profile=tmp_file.name)
 
     # structlog: Bind global context for this listener process
     structlog.contextvars.bind_contextvars(listener_uuid=listener_uuid)

@@ -288,6 +288,8 @@ async def listener_view():
             listener_type = listener_type_field.value
             listener_name = listener_name_field.value
             listener_notes = listener_notes_field.value
+            listener_profile_name = listener_profile_field.value
+
             # listener_profile = listener_profile_field.value
             # grab contents to send over
             # kinda jank
@@ -297,15 +299,15 @@ async def listener_view():
                 / "profiles"
                 / str(listener_profile_field.value)
             )
-            listener_profile = get_malleable_profile_content(file_path)
-            print(listener_profile)
+            listener_profile_contents = get_malleable_profile_content(file_path)
 
             check_type(listener_host, str, "listener_host")
             check_type(listener_port, int, "listener_port")
             check_type(listener_type, str, "listener_type")
             check_type(listener_name, str, "listener_name")
             check_type(listener_notes, str, "listener_notes")
-            check_type(listener_profile, str, "listener_profile")
+            check_type(listener_profile_name, str, "listener_profile")
+            check_type(listener_profile_contents, str, "listener_profile")
 
             result = await start_listener(
                 listener_host=listener_host,
@@ -313,7 +315,8 @@ async def listener_view():
                 listener_type=listener_type,
                 listener_name=listener_name,
                 listener_notes=listener_notes,
-                listener_profile=listener_profile,
+                listener_profile_name=listener_profile_name,
+                listener_profile_contents=listener_profile_contents,
             )
 
             if not result:
