@@ -53,6 +53,7 @@
 Proper handling of malc2 for listeners, on 
 GUI and server side
 
+ - cleanup this, it's pertty messy
 
 # Task Formatting (for reference):
 

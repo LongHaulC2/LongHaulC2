@@ -74,12 +74,12 @@ def run(
     check_type(listener_host, str, "listener_host")
     check_type(listener_profile_contents, str, "listener_profile")
 
-    # placeholder
-    # listener_profile_contents = StringIO(listener_profile_contents)
-    # mp = MalleableProfile.from_string(listener_profile_contents)
+    """
+    Quick explanation, mp takes a file, not a string (it has a from_string method... but it wasn't working)
+    So, tempfile on the host, then pass that into the mp parser. Whatever, it works well enough. 
 
-    # tldr from_string doesn't work... so tempfile
-
+    Tried StringIO, didn't work either
+    """
     with tempfile.NamedTemporaryFile("w+", suffix=".profile") as tmp_file:
         tmp_file.write(listener_profile_contents)
         tmp_file.flush()
@@ -95,6 +95,7 @@ def run(
     #     redoc_url=None,
     #     openapi_url=None,
     # )
+
     app = FastAPI(
         title="LongHaul C2 HTTP Listener",
         description="Malleable C2 defined Listener endpoints",

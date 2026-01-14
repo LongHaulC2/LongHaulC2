@@ -130,6 +130,8 @@ async def listener_view():
                     "align": "left",
                 }
                 for key in keys
+                # EXCLUDE contents, it blows up the table
+                if key != "listener_profile_contents"
             ]
             # https://nicegui.io/documentation/table#table_cells_with_html
             # adding HTML rendering in.
@@ -282,6 +284,20 @@ async def listener_view():
                     )  # on click to new func
 
         async def _start_listener():
+            # listener_profile = listener_profile_field.value
+            # grab contents of the file to send over
+            file_path = (
+                Path(__file__).resolve().parent.parent
+                / "user"
+                / "profiles"
+                / str(listener_profile_field.value)
+            )
+
+            if not file_path:
+                server_log.warning(
+                    f"Malleable C2 Profile does not exist at {file_path}"
+                )
+
             # pull values
             listener_host = listener_host_field.value
             listener_port = listener_port_field.value
@@ -289,16 +305,6 @@ async def listener_view():
             listener_name = listener_name_field.value
             listener_notes = listener_notes_field.value
             listener_profile_name = listener_profile_field.value
-
-            # listener_profile = listener_profile_field.value
-            # grab contents to send over
-            # kinda jank
-            file_path = (
-                Path(__file__).resolve().parent.parent
-                / "user"
-                / "profiles"
-                / str(listener_profile_field.value)
-            )
             listener_profile_contents = get_malleable_profile_content(file_path)
 
             check_type(listener_host, str, "listener_host")
@@ -325,10 +331,6 @@ async def listener_view():
             ui.notification("Listener started!", type="positive")
             # refresh on creation
             await refresh()
-
-            # success/fail message
-
-        # send req
 
         result = await dialog
 

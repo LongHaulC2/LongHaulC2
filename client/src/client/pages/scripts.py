@@ -448,12 +448,59 @@ async def code_editor(
 
     # with open(file_path, "r+") as file:
     #     file_contents = file.read()
-    async def save_to_file():
-        data = editor.value
-        with open(file_path, "w") as file:
-            file.write(data)
 
-        ui.notify("File saved successfully")
+    async def save_to_file():
+        file = Path(file_path)
+
+        with ui.dialog() as dialog:
+            with ui.card().classes("w-96"):
+                ui.label("Save As").classes("text-lg font-semibold")
+
+                file_name_input = (
+                    ui.input(
+                        label="File name",
+                        value=file.name,
+                    )
+                    .props("outlined dense")
+                    .classes("w-full")
+                )
+
+                ui.label(f"Location: {file.parent}").classes(
+                    "text-xs text-gray-500 mt-1"
+                )
+
+                ui.separator()
+
+                with ui.row().classes("w-full justify-end gap-2"):
+                    ui.button(
+                        "Cancel",
+                        icon="close",
+                        on_click=dialog.close,
+                    ).props("flat")
+
+                    def on_save_click():
+                        name = file_name_input.value.strip()
+                        if not name:
+                            ui.notify("File name cannot be empty", type="warning")
+                            return
+
+                        new_path = file.parent / name
+                        data = editor.value
+
+                        with open(new_path, "w") as f:
+                            f.write(data)
+
+                        ui.notify("File saved successfully", type="positive")
+                        dialog.close()
+                        file_picker.refresh()
+
+                    ui.button(
+                        "Save",
+                        icon="save",
+                        on_click=on_save_click,
+                    ).props("unelevated color=primary")
+
+        dialog.open()
 
     async def load_file():
         with open(file_path, "r+") as file:
@@ -498,7 +545,7 @@ async def code_editor(
                     ui.separator()
 
                 ui.button(
-                    icon="save",
+                    icon="save_as",
                     on_click=lambda: save_to_file(),
                 ).props(
                     "dense flat round"
