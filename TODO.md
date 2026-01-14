@@ -2,12 +2,17 @@
  
 # GUI:
 
+   >> here
+   - [ ] Last minute GUI cleanup things (go test)
+      - [X] Implant Search
+      - [ ] Task Search (use dedicated endpoint like implant search, rather than a get all tasks)
 
-   - [ ] Server should say warning if task is invalid format
+      See if possible to do more string matching that isn't like 3 characters min
 
-     # > here - thisisnot needed yet, but would be a nice to have
+   <!-- - [ ] Server should say warning if task is invalid format -->
+
+     # this is not needed yet, but would be a nice to have
    - [ ] Per-Agent page
-
 
 
 #  server
@@ -50,10 +55,9 @@
  - [ ] Implant
    - not implementing implant specific options. Sticking to response/network shaping options
 
-Proper handling of malc2 for listeners, on 
-GUI and server side
+# Implant:
 
- - cleanup this, it's pertty messy
+
 
 # Task Formatting (for reference):
 
