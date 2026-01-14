@@ -2,8 +2,7 @@
  
 # GUI:
 
-   >> here
-   - [ ] Last minute GUI cleanup things (go test)
+   - [X] Last minute GUI cleanup things (go test)
       - [X] Implant Search
       - [X] Task Search (use dedicated endpoint like implant search, rather than a get all tasks)
 
@@ -57,7 +56,11 @@
    - not implementing implant specific options. Sticking to response/network shaping options
 
 # Implant:
-
+ - Reqs:
+   - Windows:
+      - Statically compiled
+      - DLL Based (windows)
+      
 
 
 # Task Formatting (for reference):
