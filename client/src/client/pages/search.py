@@ -15,6 +15,7 @@ from client.src.client.style import (
     NAVBAR_COLOR,
     TEXT_COLOR,
 )
+from client.src.client.utils.helpers import get_timestamp_from_uuid7
 from client.src.client.utils.url import generate_url
 
 from ..utils.checks import check_type
@@ -124,7 +125,6 @@ async def implants_list_layout(data: list[dict]):
     """
     Implant table view. Similar to the operations view, with reduced functionality.
     """
-    print(data)
     check_type(data, list, "data")
 
     table = (
@@ -218,7 +218,25 @@ async def tasks_list_layout(data):
         # exclude these, these are json reps of the responses. text version is stored in *_text, ex: task_response_text.
         # These show up blank in the table.
         if key not in ["task_request", "task_response"]
+        # convert impalnt_uuid to timestamp with get_timestamp_from_uuid7, and add to table
     ]
+
+    # optional for later.
+    # Convert `implant_uuid` to timestamp using `get_timestamp_from_uuid7`
+    # and add it as a new column to the table
+    # if "task_uuid" in first_row:
+    #     timestamp_column = {
+    #         "name": "task_timestamp",
+    #         "label": "Task Queue Timestamp",
+    #         "field": "task_queue_timestamp",
+    #         "sortable": True,
+    #         "align": "left",
+    #     }
+    #     table.columns.append(timestamp_column)
+
+    #     # Add the timestamp to each row in the data (using the `get_timestamp_from_uuid7` function)
+    #     for row in data:
+    #         row["task_timestamp"] = get_timestamp_from_uuid7(row["task_uuid"])
 
     # https://nicegui.io/documentation/table#table_cells_with_html
     # adding HTML rendering in.

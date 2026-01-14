@@ -331,7 +331,7 @@ class MySQLSearchService:
             self.session.query(Implant)
             .filter(
                 text(
-                    "MATCH(external_ip, internal_ip, listener, user, system_hostname, notes, process, arch) AGAINST(:term IN NATURAL LANGUAGE MODE)"
+                    "MATCH(external_ip, internal_ip, listener, user, system_hostname, notes, process, arch, implant_uuid) AGAINST(:term IN NATURAL LANGUAGE MODE)"
                 )
             )
             .params(term=search_term)
@@ -366,7 +366,7 @@ class MySQLSearchService:
             self.session.query(ImplantTask)
             .filter(
                 text(
-                    "MATCH(task_request_text, task_response_text, task_uuid) AGAINST(:term IN NATURAL LANGUAGE MODE)"
+                    "MATCH(task_request_text, task_response_text, task_uuid, implant_uuid) AGAINST(:term IN NATURAL LANGUAGE MODE)"
                 )
             )
             .params(term=search_term)

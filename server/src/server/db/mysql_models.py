@@ -42,6 +42,7 @@ class Implant(Base):
     __table_args__ = (
         Index(
             "fulltext_index",
+            "implant_uuid",
             "external_ip",
             "internal_ip",
             "listener",
@@ -99,6 +100,7 @@ class ImplantTask(Base):
             "task_request_text",
             "task_response_text",
             "task_uuid",
+            "implant_uuid",  # search by implant, found it useful
             mysql_prefix="FULLTEXT",  # MySQL-specific
         ),
     )
