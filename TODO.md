@@ -5,9 +5,10 @@
    >> here
    - [ ] Last minute GUI cleanup things (go test)
       - [X] Implant Search
-      - [ ] Task Search (use dedicated endpoint like implant search, rather than a get all tasks)
+      - [X] Task Search (use dedicated endpoint like implant search, rather than a get all tasks)
 
       See if possible to do more string matching that isn't like 3 characters min
+         - it is but is a problem for later
 
    <!-- - [ ] Server should say warning if task is invalid format -->
 
