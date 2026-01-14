@@ -466,7 +466,7 @@ async def code_editor(
 
     file_contents = await load_file()
 
-    with ui.splitter(value=98, limits=(98, 98)).classes("w-full h-full") as splitter:
+    with ui.splitter(value=98, limits=(90, 98)).classes("w-full h-full") as splitter:
         # Left panel: editor
         with splitter.before:
             editor = ui.codemirror(

@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import httpx
 from nicegui import ui
@@ -262,8 +263,9 @@ async def listener_view():
                 )
 
                 # Profile (dropdown or paste)
+                # get list of listener options here
                 listener_profile_field = ui.select(
-                    ["default", "stealth", "debug"],
+                    get_malleable_profiles_list(),
                     label="Profile [not implemented]",
                     with_input=True,
                 ).classes("w-full")
@@ -286,7 +288,17 @@ async def listener_view():
             listener_type = listener_type_field.value
             listener_name = listener_name_field.value
             listener_notes = listener_notes_field.value
-            listener_profile = listener_profile_field.value
+            # listener_profile = listener_profile_field.value
+            # grab contents to send over
+            # kinda jank
+            file_path = (
+                Path(__file__).resolve().parent.parent
+                / "user"
+                / "profiles"
+                / str(listener_profile_field.value)
+            )
+            listener_profile = get_malleable_profile_content(file_path)
+            print(listener_profile)
 
             check_type(listener_host, str, "listener_host")
             check_type(listener_port, int, "listener_port")
@@ -319,3 +331,29 @@ async def listener_view():
 
     # set to every 3 seconds, less load on server.
     ui.timer(3, refresh)
+
+
+def get_malleable_profiles_list() -> list:
+    try:
+        script_path = Path(__file__).resolve().parent.parent / "user" / "profiles"
+        script_path.mkdir(parents=True, exist_ok=True)
+        list_of_mc2_profiles = sorted(
+            (p.name for p in script_path.iterdir() if p.is_file()),
+            key=str.lower,
+        )
+
+        return list_of_mc2_profiles
+
+    except Exception as e:
+        server_log.error(e)
+        return []
+
+
+def get_malleable_profile_content(file_path) -> str:
+    try:
+        with open(file_path, "r") as file:
+            return file.read()
+
+    except Exception as e:
+        server_log.error(e)
+        return ""
