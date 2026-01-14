@@ -60,6 +60,15 @@
    - Windows:
       - Statically compiled
       - DLL Based (windows)
+      - CMAKE based
+
+   ## Plan:
+      - [ ] Test messagpack
+      - [ ] Test libcurl for HTTP
+         - maybe just use winhttp (start with winINet, for quicker dev, re-evaluate later)
+            - https://learn.microsoft.com/en-us/cpp/mfc/wininet-basics?view=msvc-170
+
+      - [ ] Decide project structure (folder struct, etc)
       
 
 
