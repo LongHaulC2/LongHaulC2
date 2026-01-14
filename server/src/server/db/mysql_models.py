@@ -4,6 +4,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     Column,
+    Computed,
     Index,
     Integer,
     String,
@@ -71,46 +72,42 @@ class Implant(Base):
 class ImplantTask(Base):
     __tablename__ = "implant_tasks"
 
-    # Primary key for the table
-    # implant_uuid = Column(BigInteger, nullable=False)  # Links task to an agent
     implant_uuid = Column(String(36))
     task_uuid = Column(String(36), primary_key=True)
-
-    # Columns for task request and response stored as JSON
     task_request = Column(JSON, nullable=True)  # Task request data (dynamic JSON)
     task_response = Column(JSON, nullable=True)  # Task response data (dynamic JSON)
 
-    # Task type (e.g., 'scan', 'update') and task status (e.g., 'pending', 'completed')
-    # task_type = Column(String(255), nullable=True)
+    # addtl options to consider later:
+    # task status (e.g., 'pending', 'completed')
     # status = Column(String(100), nullable=True)
-    # due_date = Column(DateTime, nullable=True)  # Task due date, if relevant
 
-    # __table_args__ = (
-    #     Index(
-    #         "fulltext_index",
-    #         "task_request",
-    #         "task_response",
-    #         "task_uuid",
-    #         mysql_prefix="FULLTEXT",
-    #     ),
-    # )
+    # Add generated columns for full-text indexing because json can't be indexed by itself
+    task_request_text = Column(
+        String(255),
+        Computed("JSON_UNQUOTE(JSON_EXTRACT(task_request, '$'))", persisted=True),
+        nullable=True,
+    )
+    task_response_text = Column(
+        String(255),
+        Computed("JSON_UNQUOTE(JSON_EXTRACT(task_response, '$'))", persisted=True),
+        nullable=True,
+    )
+    # Add a full-text index on task_request, task_response, and task_uuid
+    __table_args__ = (
+        Index(
+            "fulltext_index",
+            "task_request_text",
+            "task_response_text",
+            "task_uuid",
+            mysql_prefix="FULLTEXT",  # MySQL-specific
+        ),
+    )
 
     def to_dict(self):
         """
         Turns each field into a dict.
-
-        Can then use as such, after querying:
-
-        ```
-            implants = session.query(Implant).all()
-            data = [i.to_dict() for i in implants]
-        ```
-
         """
         return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
-
-    def __repr__(self):
-        return f"<AgentTask(id={self.id}, implant_uuid={self.implant_uuid}, task_type={self.task_type}, status={self.status})>"
 
 
 """

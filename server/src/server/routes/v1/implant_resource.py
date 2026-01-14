@@ -7,7 +7,11 @@ from flask_restx import Namespace, Resource, fields
 
 from ...db.mysql_connector import get_mysql_session
 from ...instance import api
-from ...modules.mysql_functions import ImplantService, MySQLImplantTaskService
+from ...modules.mysql_functions import (
+    ImplantService,
+    MySQLImplantTaskService,
+    MySQLSearchService,
+)
 from ...modules.redis_functions import RedisImplantTaskService
 from ...modules.task import TaskService
 from ...schemas.implant import *
@@ -758,7 +762,6 @@ class ImplantHistory(Resource):
 
 # POST /api/v1/search/implants
 class ImplantSearch(Resource):
-    # create an implant in DB
     @implants_ns.doc(
         summary="Search for an implant with fields that match the supplied term.",
         description="Search for an implant with fields that match the supplied term. Returns a list of dicts, with implants that have said term in them.",
@@ -805,8 +808,8 @@ class ImplantSearch(Resource):
 
         # get a seession
         with get_mysql_session() as session:
-            implant_service = ImplantService(session)
-            search_results = implant_service.search(
+            implant_service = MySQLSearchService(session)
+            search_results = implant_service.search_implants(
                 search_term=implant_data.search_term
             )
 
@@ -821,10 +824,9 @@ class ImplantSearch(Resource):
 
 # not implemented
 class TaskSearch(Resource):
-    # create an implant in DB
     @implants_ns.doc(
-        summary="Create a new implant entry.",
-        description="Create a new implant entry. Returns an Implant ID to use with that implant",
+        summary="Search for an task with fields that match the supplied term.",
+        description="Search for an implant with fields that match the supplied term. Returns a list of dicts, with implants that have said term in them.",
         responses={
             200: "Success",
             404: "Not found",
@@ -833,17 +835,34 @@ class TaskSearch(Resource):
             405: "Method Not Allowed",
         },
     )
+    @implants_ns.expect(search_model)
     def post(self):
         """
-        [Not Implemented]
-
-        Search for a Task / Task Response
+        Search for an task with fields that match the supplied term. Returns a list of dicts, with implants that have said term in them.
         """
         ip = request.remote_addr
-        # api_logger.info(f"{ip} created an implant")
+
+        # create dataclass from passed in data.
+        try:
+            search_data = Search(**api.payload)
+
+        except TypeError as e:
+            # This happens if api.payload has missing or extra fields
+            api_response = APIResponse(
+                status="400",
+                message=f"Bad data: {e}",
+                data={},
+            )
+        except ValueError as e:
+            # This happens if field types are wrong
+            api_response = APIResponse(
+                status="400",
+                message=f"Invalid value: {e}",
+                data={},
+            )
 
         api_logger.info(
-            "Creating an implant",
+            f"Searching implants with term: {search_data.search_term}",
             extra={
                 "caller_ip": ip,
             },
@@ -851,26 +870,15 @@ class TaskSearch(Resource):
 
         # get a seession
         with get_mysql_session() as session:
-            implant_service = ImplantService(session)
-            # data = ImplantCreate(notes="TESTNOTES")
-            data = ImplantCreate()
-            implant_object = implant_service.create(data)
-            implant_uuid = implant_object.implant_uuid
-
-        # need to get ID from DB
-        data = {"uuid": implant_uuid}
+            implant_service = MySQLSearchService(session)
+            search_results = implant_service.search_tasks(
+                search_term=search_data.search_term
+            )
 
         api_response = APIResponse(
             status="200",
-            message=f"Implant {implant_uuid} created",
-            data=data,
-        )
-
-        api_logger.info(
-            f"Implant {implant_uuid} created",
-            extra={
-                "caller_ip": ip,
-            },
+            message="Success",
+            data=search_results,
         )
 
         return api_response.jsonify()

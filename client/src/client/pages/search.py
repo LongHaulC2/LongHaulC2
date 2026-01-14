@@ -182,4 +182,5 @@ async def implants_list_layout(data: list[dict]):
     table.update()
 
 
-async def tasks_list_layout(data): ...
+async def tasks_list_layout(data):
+    print(data)
