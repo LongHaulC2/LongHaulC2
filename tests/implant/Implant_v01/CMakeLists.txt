@@ -12,7 +12,7 @@ endif()
 project ("Implant_v01")
 
 # Add source to this project's executable.
-add_executable (Implant_v01 "Implant_v01.cpp" "Implant_v01.h" "systems/memtrack.cpp" "protocols/http/http.cpp" "control/settings/settings.cpp")
+add_executable (Implant_v01 "Implant_v01.cpp" "Implant_v01.h" "systems/memtrack.cpp" "protocols/http_wininet/http.cpp" "control/settings/settings.cpp" "protocols/http_wininet/http.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Implant_v01 PROPERTY CXX_STANDARD 20)
