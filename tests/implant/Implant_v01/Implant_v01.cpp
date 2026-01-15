@@ -1,9 +1,40 @@
 ﻿// Implant_v01.cpp : Defines the entry point for the application.
 //
+
+/*
+ * ======================================================================================
+ * C++ VARIABLE NAMING CHEATSHEET/Standard
+ * ======================================================================================
+ * * 1. LOCAL VARIABLES/Funcs
+ * ------------------
+ * Google/STL Style : snake_case        (e.g., buffer_size, retry_count)
+ * * 2. CLASS MEMBER VARIABLES
+ * -------------------------
+ * Google Style     : snake_case_       (e.g., buffer_size_, is_connected_)
+ * * 3. POINTERS & HANDLES (Common in WinAPI/Malware Dev)
+ * ----------------------------------------------------
+ * pVariable        : Pointer           (e.g., pBuffer, pContext)
+ * ppVariable       : Pointer to Ptr    (e.g., ppOutput)
+ * hVariable        : Handle            (e.g., hProcess, hFile)
+ * szVariable       : String (Zero term)(e.g., szTargetIp)
+ * lpVariable       : Long Pointer      (e.g., lpPayload)
+ * * 4. GLOBALS & STATICS
+ * --------------------
+ * Global           : g_camelCase       (e.g., g_configManager)
+ * Static Member    : s_camelCase       (e.g., s_instanceCount)
+ * * 5. CONSTANTS & MACROS
+ * ---------------------
+ * Constants        : kPascalCase       (e.g., kMaxRetries)
+ * Macros           : SCREAMING_SNAKE   (e.g., MAX_BUFFER_SIZE, ENABLE_DEBUG)
+ * * ======================================================================================
+ */
+
 #include <iostream>
 
 #include "Implant_v01.h"
+#include "tests/test.h"
 #include "lifecycle/register.h"
+
 
 int temp_loop() {
     while (1) {
@@ -25,6 +56,7 @@ int temp_loop() {
 #include <vector>
 #include <map>
 #include "protocols/msgpack23/msgpack23.h"
+#include "data/msgpack/msgpack.h"
 
 int test_pack() {
     std::map<std::string, int> const original{ {"apple", 1}, {"banana", 2} };
@@ -45,9 +77,9 @@ int test_pack() {
 int main()
 {
     std::cout << "hello" << std::endl;
-    //register_implant();
-    test_pack();
-    //loop
+
+    //for debugging/sanity check, run all tests first. Remove for production use.
+    test();
 
     return 0;
 }
