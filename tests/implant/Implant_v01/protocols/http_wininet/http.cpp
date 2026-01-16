@@ -6,7 +6,7 @@
 #pragma comment(lib, "wininet.lib")
 
 
-bool HTTP_GET(std::vector<std::wstring>& headers, std::vector<char>& response) {
+bool HTTP_GET(std::vector<std::wstring>& headers, std::vector<uint8_t>& response) {
     // 1. Initialize
     //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-internetopenw
     HINTERNET hInternet = InternetOpenW(
@@ -65,7 +65,7 @@ bool HTTP_GET(std::vector<std::wstring>& headers, std::vector<char>& response) {
     }
 
     // 6. Read Response
-    char tempBuffer[4096];
+    uint8_t tempBuffer[4096];
     DWORD bytesRead;
     while (InternetReadFile(hRequest, tempBuffer, sizeof(tempBuffer), &bytesRead) && bytesRead > 0) {
         response.insert(response.end(), tempBuffer, tempBuffer + bytesRead);

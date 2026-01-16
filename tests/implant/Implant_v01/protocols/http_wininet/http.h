@@ -12,4 +12,4 @@
  * @param (out) response: A vector that the response from the server is stored in.
  * @returns BOOL: True for success, else fail
  */
-bool HTTP_GET(std::vector<std::wstring>& headers, std::vector<char>& response);
+bool HTTP_GET(std::vector<std::wstring>& headers, std::vector<uint8_t>& response);

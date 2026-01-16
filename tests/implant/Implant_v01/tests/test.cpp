@@ -18,7 +18,7 @@ void test_create_metadata() {
 
     std::map<std::string, std::string> fake_metadata;
     fake_metadata["some_value"] = "urmom";
-    std::vector<unsigned char> packed_metadata;
+    std::vector<unsigned char> packed_metadata; //does this nee dto be uin8_t
 
     create_metadata(fake_metadata, packed_metadata);
 

