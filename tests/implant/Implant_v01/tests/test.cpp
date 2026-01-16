@@ -5,34 +5,53 @@
 #include <cassert>
 #define TEST(name) std::cout << "[*] Testing: " << name << "..." << std::endl;
 
-
 #include "../data/msgpack/msgpack.h"
-#include "../protocols/msgpack23/msgpack23.h"
+#include "../protocols/json/json.h"
+
 void test_create_metadata() {
     TEST("create_metadata");
 
-    //pack 
     std::map<std::string, std::string> fake_metadata;
     fake_metadata["some_value"] = "urmom";
     std::vector<unsigned char> packed_metadata;
 
-    //function used to pack it
     create_metadata(fake_metadata, packed_metadata);
 
-    //unpack that data now
-    std::map<std::string, std::string> unpacked_metadata;
-    msgpack23::Unpacker unpacker{ packed_metadata };
-    unpacker(unpacked_metadata);
+    // 3. Unpack & check that data using nlohmann/json
+    // We use from_msgpack to verify the bytes were written correctly
+    nlohmann::json unpacked_json = nlohmann::json::from_msgpack(packed_metadata);
 
-    for (auto const& [key, value] : unpacked_metadata) {
+    for (auto& [key, value] : unpacked_json.items()) {
         std::cout << key << ": " << value << '\n';
     }
 
-    assert(unpacked_metadata["some_value"] == "urmom");
+    assert(unpacked_json["some_value"] == "urmom");
     std::cout << "    -> PASSED" << std::endl;
 }
 
-void test() {
+void test_decode_msgpack_task() {
+    TEST("decode_msgpack_task");
+
+    // [dict -> msgpack -> hex] 
+    // {"task_uuid": "some_uuid", "implant_uuid": "intended_target", "task":{"taskname":"somename", "args":{"arg1":"value1"}}}
+    std::vector<uint8_t> task_as_msgpack_bytes = { 0x83,0xa9,0x74,0x61,0x73,0x6b,0x5f,0x75,0x75,0x69,0x64,0xa9,0x73,0x6f,0x6d,0x65,0x5f,0x75,0x75,0x69,0x64,0xac,0x69,0x6d,0x70,0x6c,0x61,0x6e,0x74,0x5f,0x75,0x75,0x69,0x64,0xaf,0x69,0x6e,0x74,0x65,0x6e,0x64,0x65,0x64,0x5f,0x74,0x61,0x72,0x67,0x65,0x74,0xa4,0x74,0x61,0x73,0x6b,0x82,0xa8,0x74,0x61,0x73,0x6b,0x6e,0x61,0x6d,0x65,0xa8,0x73,0x6f,0x6d,0x65,0x6e,0x61,0x6d,0x65,0xa4,0x61,0x72,0x67,0x73,0x81,0xa4,0x61,0x72,0x67,0x31,0xa6,0x76,0x61,0x6c,0x75,0x65,0x31 };
+
+    nlohmann::json task_json = decode_msgpack_task(task_as_msgpack_bytes);
+
+    for (auto& [key, value] : task_json.items()) {
+        // .dump() prints the string representation of complex objects (like the nested task)
+        std::cout << key << ": " << value.dump() << '\n';
+    }
+
+    assert(task_json["task_uuid"] == "some_uuid");
+    assert(task_json["implant_uuid"] == "intended_target");
+    assert(task_json["task"]["taskname"] == "somename");
+
+    std::cout << "    -> PASSED" << std::endl;
+}
+
+void test_all() {
     test_create_metadata();
+    test_decode_msgpack_task();
 }
 

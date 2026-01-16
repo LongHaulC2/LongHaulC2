@@ -50,36 +50,13 @@ int temp_loop() {
     }
 }
 
-#include <iostream>
-#include <iterator>
-#include <utility>
-#include <vector>
-#include <map>
-#include "protocols/msgpack23/msgpack23.h"
-#include "data/msgpack/msgpack.h"
-
-int test_pack() {
-    std::map<std::string, int> const original{ {"apple", 1}, {"banana", 2} };
-
-    std::vector<unsigned char> data{};
-    msgpack23::Packer packer{ std::back_inserter(data) };
-    packer(original);
-
-    std::map<std::string, int> unpacked;
-    msgpack23::Unpacker unpacker{ data };
-    unpacker(unpacked);
-
-    for (auto const& [key, value] : unpacked) {
-        std::cout << key << ": " << value << '\n';
-    }
-}
 
 int main()
 {
     std::cout << "hello" << std::endl;
 
     //for debugging/sanity check, run all tests first. Remove for production use.
-    test();
+    test_all();
 
     return 0;
 }
