@@ -84,10 +84,10 @@
       
    # Next Steps:
  - [ ] Setup encoder funcs, and tests. (note - have them be pass by ref, and modify data directly, way easier to do something like `b64_decode(data); b64_decode(data); b64_decode(data);`)
-    - [ ] b64 encode
-    - [ ] b64 decode
-    - [ ] b64 url encode
-    - [ ] b64 url decode
+    - [X] b64 encode
+    - [X] b64 decode
+    - [X] b64 url encode
+    - [X] b64 url decode
  - [ ] Implement a hardcoded implant loop based on current malc2 prof.
     - [ ] Register
     - [ ] Get Task

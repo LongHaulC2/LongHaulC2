@@ -58,6 +58,8 @@ void base64_encode_inplace(std::string& data) {
     data = base64_encode(data, false);
 }
 
+
+
 void base64_decode_inplace(std::string& data) {
     data = base64_decode(data, false);
 }

