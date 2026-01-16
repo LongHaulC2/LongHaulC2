@@ -3,12 +3,16 @@
 #include <vector>
 #include <map>
 #include <cassert>
+#include <string>
+#include <stdexcept>
+
 #define TEST(name) std::cout << "[*] Testing: " << name << "..." << std::endl;
 #define OVERLOAD(name) std::cout << "[>] Overload: " << name << "..." << std::endl;
 
 #include "../data/msgpack/msgpack.h"
 #include "../protocols/json/json.h"
-
+#include "../protocols/base64/base64.h"
+#include "../data/transforms/transforms.h"
 void test_create_metadata() {
     TEST("create_metadata");
 
@@ -95,9 +99,157 @@ void test_create_task_response() {
     std::cout << "    -> PASSED" << std::endl;
 }
 
+
+/*
+================================
+Transform Tests
+================================
+*/
+void test_transform_prepend_append() {
+    TEST("transform_prepend & transform_append (In-Place)");
+
+    // --- PREPEND ---
+    std::string data = "World";
+    std::string prefix = "Hello ";
+
+    // 1. Transform
+    transform_prepend(data, prefix);
+    assert(data == "Hello World");
+
+    // 2. Undo
+    undo_transform_prepend(data, prefix);
+    assert(data == "World");
+
+    // 3. Error Case (Undo too much)
+    std::string short_data = "Hi";
+    try {
+        undo_transform_prepend(short_data, "LongPrefix");
+        std::cerr << "(!) Failed to catch prepend underflow exception\n";
+        assert(false);
+    }
+    catch (...) {
+        // Expected
+    }
+
+
+    // --- APPEND ---
+    std::string data2 = "Hello";
+    std::string suffix = " World";
+
+    // 1. Transform
+    transform_append(data2, suffix);
+    assert(data2 == "Hello World");
+
+    // 2. Undo
+    undo_transform_append(data2, suffix);
+    assert(data2 == "Hello");
+
+    std::cout << "    -> PASSED" << std::endl;
+}
+
+void test_transform_xor() {
+    TEST("transform_xor (In-Place)");
+
+    std::string data = "AAAA"; // 0x41 0x41 0x41 0x41
+    // Key: 0x01, 0x02
+    // Expected: 0x40 ('@'), 0x43 ('C'), 0x40 ('@'), 0x43 ('C')
+    std::string key = "\x01\x02";
+
+    // 1. Encrypt
+    xor_mask(data, key);
+    assert(data == "@C@C");
+
+    // 2. Decrypt (XOR is symmetric)
+    xor_mask(data, key);
+    assert(data == "AAAA");
+
+    std::cout << "    -> PASSED" << std::endl;
+}
+
+void test_transform_base64() {
+    TEST("transform_base64 & base64url (In-Place)");
+
+    // --- STANDARD BASE64 ---
+    std::string raw = "hello world";
+
+    // 1. Encode
+    base64_encode_inplace(raw);
+    // "hello world" -> "aGVsbG8gd29ybGQ="
+    assert(raw == "aGVsbG8gd29ybGQ=");
+
+    // 2. Decode
+    base64_decode_inplace(raw);
+    assert(raw == "hello world");
+
+
+    // --- BASE64 URL ---
+    // We need a test case that produces '+' or '/' to verify the URL-safe swap.
+    // Binary sequence: 0xFB (11111011) -> First 6 bits are 111110 (62) -> '+' in std, '-' in URL
+    std::string tricky_bin;
+    tricky_bin.push_back((char)0xFB);
+    tricky_bin.push_back((char)0xF0);
+
+    // 1. Encode URL
+    base64url_encode_inplace(tricky_bin);
+    // Standard would be: "+/A="
+    // URL should be: "-_A" (No padding, swapped chars)
+    assert(raw.find('=') == std::string::npos); // Should have no padding
+    assert(raw.find('+') == std::string::npos); // Should not have +
+
+    // 2. Decode URL
+    base64url_decode_inplace(tricky_bin);
+
+    // Verify byte content matches original
+    assert(tricky_bin.size() == 2);
+    assert((unsigned char)tricky_bin[0] == 0xFB);
+    assert((unsigned char)tricky_bin[1] == 0xF0);
+
+    std::cout << "    -> PASSED" << std::endl;
+}
+
+void test_transform_netbios() {
+    TEST("transform_netbios (lowercase & uppercase)");
+
+    // --- NetBIOS (lowercase 'a') ---
+    // 'A' is 0x41. High nibble 4, Low nibble 1.
+    // 'a' + 4 = 'e'. 'a' + 1 = 'b'. Result "eb"
+    std::string data = "A";
+
+    // 1. Encode
+    netbios_encode(data);
+    assert(data == "eb");
+
+    // 2. Decode
+    netbios_decode(data);
+    assert(data == "A");
+
+
+    // --- NetBIOSU (uppercase 'A') ---
+    // 'A' is 0x41. High 4, Low 1.
+    // 'A' + 4 = 'E'. 'A' + 1 = 'B'. Result "EB"
+    std::string data2 = "A";
+
+    // 1. Encode
+    netbiosu_encode(data2);
+    assert(data2 == "EB");
+
+    // 2. Decode
+    netbiosu_decode(data2);
+    assert(data2 == "A");
+
+    std::cout << "    -> PASSED" << std::endl;
+}
+
+
 void test_all() {
+    //msgpack/data
     test_create_metadata();
     test_decode_msgpack_task();
     test_create_task_response();
+    //transforms
+    test_transform_prepend_append();
+    test_transform_xor();
+    test_transform_base64();
+    test_transform_netbios();
 }
 
