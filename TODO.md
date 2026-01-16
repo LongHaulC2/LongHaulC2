@@ -90,11 +90,12 @@
     - [X] b64 url decode
  - [ ] Implement a hardcoded implant loop based on current malc2 prof.
     - [X] Register
-    - [ ] Get Task
+    - [X] Get Task
     - [ ] (fake) process
-    - [ ] Post Task
+    - [ ] Post Task > not posting anythign back seemingly, or somethign is goign wrong. post is erroring out somehwere. missing req data.
+    - [ ] Harden functions with checks.
 
-    # interesting bug: If no task queued, crash. Likely missing a field or soemthing in msgpack response? Works fine on pre-exsting uuid, but new uuid casuses crash
+   
 
 # Task Formatting (for reference):
 
