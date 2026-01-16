@@ -58,18 +58,37 @@
 # Implant:
  - Reqs:
    - Windows:
-      - Statically compiled
-      - DLL Based (windows)
-      - CMAKE based
+      - [ ] Statically compiled
+      - [ ] DLL Based (windows)
+      - [x] CMAKE based
 
    ## Plan:
-      - [ ] Test messagpack
-      - [ ] Test libcurl for HTTP
-         - maybe just use winhttp (start with winINet, for quicker dev, re-evaluate later)
+      - [x] Test messagpack
+      - [x] Test libcurl for HTTP
+         - [x] maybe just use winhttp (start with winINet, for quicker dev, re-evaluate later)
             - https://learn.microsoft.com/en-us/cpp/mfc/wininet-basics?view=msvc-170
 
-      - [ ] Decide project structure (folder struct, etc)
+      - [x] Decide project structure (folder struct, etc)
+  
+   # Commands list:
+      - cd (SetCurrentDirectoryA(path);): sets cwd of whole program
+
+   # Structure:
+      - [ ] encoders.cpp: Has stuff for malleable c2 (b64 de/en, b64url de/en, netbios de/en)
+      - [ ] metadata.cpp: Metadata gathering (Have this early on, should be good to implement/define some things)
+
+   # advanced/sytems I'll need:
+      - Memory tracking System (every malloc, etc) store memory address, size, etc. Will be useful for later addons
+            Ex: mem encryption of blocks, wiping of data from mem (free doesn't delete/overwrite )
+
       
+   # Next Steps:
+ - [ ] Setup encoder funcs, and tests. (note - have them be pass by ref, and modify data directly, way easier to do something like `b64_decode(data); b64_decode(data); b64_decode(data);`)
+ - [ ] Implement a hardcoded implant loop based on current malc2 prof.
+    - [ ] Register
+    - [ ] Get Task
+    - [ ] (fake) process
+    - [ ] Post Task
 
 
 # Task Formatting (for reference):
