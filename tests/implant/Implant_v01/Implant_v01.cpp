@@ -60,7 +60,7 @@ int temp_loop() {
             std::cout << "Received Task: " << task_uuid << std::endl;
 
             // Execute Actions
-            std::string text_data = "output from command execution";
+            std::string text_data = "If you see this it means the implant is talking to you";
 
             // Prepare Response
             std::vector<uint8_t> task_response_as_msgpack;

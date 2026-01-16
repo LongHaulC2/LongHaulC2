@@ -92,10 +92,22 @@
     - [X] Register
     - [X] Get Task
     - [ ] (fake) process
-    - [ ] Post Task > not posting anythign back seemingly, or somethign is goign wrong. post is erroring out somehwere. missing req data.
+    - [X] Post Task > not posting anythign back seemingly, or somethign is goign wrong. post is erroring out somehwere. missing req data.
     - [ ] Harden functions with checks.
 
-   
+   - [ ] Figure out param field
+          [go with this, is a better idea]
+        - idea 1: Create an entirely seperate function with a "param" input (vector of strs) that auto adds params onto the request (stamped in at build)
+
+ # Stamping in/templating:
+    - Need:
+        Everything except uri:
+        - [ ] HTTP_GET/HTTP_POST (template, copy in values where needed)
+        uri:
+        - [ ] HTTP_GET/HTTP_POST (template, copy in values where needed, and add logic for adding params on post)
+
+    - [ ] get/post generics, suited for each listener type
+    - [ ] register generics, suited for each listener type
 
 # Task Formatting (for reference):
 
