@@ -9,7 +9,7 @@ from .db.redis_connector import get_redis_connection
 from .instance import api, app, env_config
 from .listeners.watchdog import start_watchdog
 from .log import *
-from .modules.task_batch_job import start_task_batch_job
+from .modules.task.task_batch_job import start_task_batch_job
 
 server_logger = logging.getLogger("server")
 api_logger = logging.getLogger("api")

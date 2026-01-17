@@ -2,9 +2,9 @@ import logging
 import threading
 import time
 
-from ..db.mysql_connector import get_mysql_session
-from .mysql_functions import ImplantService, MySQLImplantTaskService
-from .redis_functions import RedisImplantTaskService
+from ...db.mysql_connector import get_mysql_session
+from ..mysql_functions import ImplantService, MySQLImplantTaskService
+from ..redis_functions import RedisImplantTaskService
 
 server_logger = logging.getLogger("server")
 

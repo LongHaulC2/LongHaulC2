@@ -13,7 +13,7 @@ from ...modules.mysql_functions import (
     MySQLSearchService,
 )
 from ...modules.redis_functions import RedisImplantTaskService
-from ...modules.task import TaskService
+from ...modules.task.task import TaskService
 from ...schemas.implant import *
 from ...utils.checks import check_type
 from ...utils.response import APIResponse

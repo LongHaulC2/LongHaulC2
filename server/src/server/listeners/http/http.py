@@ -37,7 +37,7 @@ from yarl import URL
 from ...db.mysql_connector import get_mysql_session
 from ...modules.mysql_functions import ImplantService
 from ...modules.redis_functions import RedisImplantTaskService
-from ...modules.task import MetadataService, TaskService
+from ...modules.task.task import MetadataService, TaskService
 from ...schemas.implant import ImplantCreate, ImplantMetadata, ImplantUpdate
 from ...utils.checks import check_type
 from ..malc2 import (
