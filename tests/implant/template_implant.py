@@ -47,7 +47,7 @@ with open(str(TEMPLATE_DIR / "wininet_http_get.j2"), "r") as http_get_file:
     # settings here
     context = {
         "client_metadata_http_header": True,
-        
+
         "client_metadata_header": "utmcc",
 
         "client_metadata_http_print": None

