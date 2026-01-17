@@ -65,6 +65,14 @@ def create_implant(malleable_c2_path, listener_type):
 
 def _create_implant(output_dir: Path, malleable_c2_path, listener_type):
 
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(
+        output_dir=output_dir,
+        malleable_c2_path=malleable_c2_path,
+        listener_type=listener_type,
+    )
+    server_logger.debug("_create_implant")
+
     # 1. Get the shared context (Data usually needed by ALL files)
     # global_context = get_context(malleable_c2_path)
 
@@ -119,18 +127,30 @@ def _create_implant(output_dir: Path, malleable_c2_path, listener_type):
 
     # 3. Execution Loop
     # Iterate over the dict and build everything
-    print(f"[*] Building implant for {listener_type}...")
-
-    print(files_to_render)
+    server_logger.debug(f"Building implant")
+    server_logger.debug(f"Rendering files: {files_to_render}")
 
     for out_file, template_file in files_to_render.items():
         render_file(str(template_file), out_file, global_context)
 
 
 def render_file(template_file: str, output_path: Path, context: dict):
+    """Render a file based on the template provided
+
+    Args:
+        template_file (str): Path to template file
+        output_path (Path): where to store template output
+        context (dict): context to fill in template with
+
+    Raises:
+        e: error
     """
-    Generic function to render a single file.
-    """
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(
+        template=str(template_file), output_path=str(output_path), context=context
+    )
+    server_logger.debug("Rendering file")
+
     try:
         # Load by name
         template = env.get_template(template_file)
@@ -142,40 +162,24 @@ def render_file(template_file: str, output_path: Path, context: dict):
         with open(output_path, "w") as f:
             f.write(rendered_code)
 
-        print(f"[+] Rendered: {output_path}")
+        server_logger.debug(f"Rendered successfully")
 
     except Exception as e:
-        print(f"[!] Error rendering {template_file}: {e}")
+        server_logger.error(f"Error rendering: {e}")
         raise e
-
-
-def format(jinja_template: Path, output_file: Path, context):
-    ...
-
-    with open(str(TEMPLATE_DIR / jinja_template), "r") as template_file:
-        # settings here
-        context = {
-            "client_metadata_http_header": True,
-            "client_metadata_header": "utmcc",
-            "client_metadata_http_print": None,
-        }
-
-        t = template_file.read()
-        template = env.from_string(t)
-        # can also use env.get_tempalte for a file
-        rendered_code = template.render(**context)
-
-        with open(str(output_file), "w") as output:
-            output.write(rendered_code)
 
 
 def copy_file(source: Path, dest: Path):
     """
     Copies a file from source to dest, ensuring the destination directory exists.
     """
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(source=source, dest=dest)
+    server_logger.debug(f"Copying file")
+
     # 1. Sanity Check
     if not source.exists():
-        print(f"[!] Error: Source file missing: {source}")
+        server_logger.error(f"Error: Source file missing: {source}")
         return
 
     # 2. Create the folder structure if it doesn't exist
@@ -185,10 +189,10 @@ def copy_file(source: Path, dest: Path):
     try:
         # 3. Copy (copy2 preserves metadata like timestamps)
         shutil.copy2(source, dest)
-        print(f"[+] Copied: {source.name} -> {dest}")
+        server_logger.info(f"Copied: {source.name} -> {dest}")
 
     except Exception as e:
-        print(f"[!] Failed to copy {source}: {e}")
+        server_logger.error(f"[!] Failed to copy {source}: {e}")
         raise e
 
 
