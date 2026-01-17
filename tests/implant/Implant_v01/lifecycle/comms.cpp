@@ -59,6 +59,8 @@ nlohmann::json get(std::string implant_uuid) {
     return nullptr;
 }
 
+
+
 int post(std::string implant_uuid, std::string output_data, std::string task_uuid) {
     std::vector<uint8_t> task_response_msgpack;
 

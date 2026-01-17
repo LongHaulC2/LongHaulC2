@@ -1,5 +1,11 @@
 ## Planning:
  
+# Road to beta:
+ - [ ] API Auth
+ - [ ] Implant Encryption
+ - [ ] Listener Restarts
+ - [ ] Implant Build Path
+
 # GUI:
 
    - [X] Last minute GUI cleanup things (go test)
@@ -100,6 +106,9 @@
         - idea 1: Create an entirely seperate function with a "param" input (vector of strs) that auto adds params onto the request (stamped in at build)
 
  # Stamping in/templating:
+    Goal: Only touch comms functions, make everything as generic as possible to "just work"/follow a schema. AKA, if you have an http implant vs ntp, the only thing that changes
+        are the protocol calls (ex, for ntp, call get() -> ntp_get(), for http, call get() -> http_get())
+
     - Need:
         Everything except uri:
         - [ ] HTTP_GET/HTTP_POST (template, copy in values where needed)
@@ -108,6 +117,11 @@
 
     - [ ] get/post generics, suited for each listener type
     - [ ] register generics, suited for each listener type
+
+    Step 1: Python logic for which options, files needed etc.
+    2. Format code blocks with data  (callback, transforms, etc)
+    3. Paste into build files
+
 
 # Task Formatting (for reference):
 
