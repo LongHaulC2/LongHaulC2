@@ -1,7 +1,9 @@
+import logging
 import shutil
 import tempfile
 from pathlib import Path
 
+import structlog
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from mpp import *
 
@@ -33,23 +35,30 @@ env = Environment(
 
 import functools
 
+server_logger = logging.getLogger("server")
+
 
 def create_implant(malleable_c2_path, listener_type):
 
     # temp overwrite for mallc2
-    mc2_path = str(Path("/home/ubuntu-dev/LongHaulC2/tests/profiles/webbug.profile"))
+    mc2_path = Path("/home/ubuntu-dev/LongHaulC2/tests/profiles/webbug.profile")
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(
+        listener_type=listener_type, malleable_c2=mc2_path.name
+    )
+    server_logger.info("Generating implant")
 
     # The directory is created when entering the block
     with tempfile.TemporaryDirectory(delete=False) as tmp_dir:
-        print(f"Creating implant at: {tmp_dir}")
-
+        server_logger.debug(f"Creating implant at {tmp_dir}")
         # creat base implant structure
         copy_base_structure(source_dir=IMPLANT_BASE, dest_dir=Path(tmp_dir).resolve())
 
         # print(f"File created: {temp_file}")
         _create_implant(
             output_dir=Path(tmp_dir).resolve(),
-            malleable_c2_path=mc2_path,
+            malleable_c2_path=str(mc2_path),
             listener_type=listener_type,
         )
 
@@ -90,14 +99,14 @@ def _create_implant(output_dir: Path, malleable_c2_path, listener_type):
             # copy_file(comms_h_og, comms_h_dest)
 
             # render and save to http.cpp... (this is the lib implemetnation for http)
-            # files_to_render[output_dir / "protocols/http_wininet/http.cpp"] = (
-            #     "wininet_http.j2"
-            # )
+            files_to_render[output_dir / "protocols/http_wininet/http.cpp"] = (
+                "wininet_http.j2"
+            )
 
             # render and save to register.cpp... (this is the high level implemetnation for register)
-            # files_to_render[output_dir / "lifecycle/register.cpp"] = (
-            #     "wininet_register_http.j2"
-            # )
+            files_to_render[output_dir / "lifecycle/register.cpp"] = (
+                "wininet_register_http.j2"
+            )
 
         # case "smb_named_pipe":
         #     global_context["protocol"] = "SMB"
@@ -188,11 +197,15 @@ def copy_base_structure(source_dir: Path, dest_dir: Path):
     Recursively copies the entire folder structure from source to dest.
     If dest_dir already exists, it merges/overwrites thanks to dirs_exist_ok=True.
     """
-    if not source_dir.exists():
-        print(f"[!] Base structure missing: {source_dir}")
-        return
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(
+        source_dir=str(source_dir), dest_dir=str(dest_dir)
+    )
+    server_logger.debug("Copying base structure into temp directory")
 
-    print(f"[*] Copying base structure: {source_dir} -> {dest_dir}")
+    if not source_dir.exists():
+        server_logger.error(f"[!] Base structure missing: {source_dir}")
+        return
 
     try:
         shutil.copytree(
@@ -201,7 +214,7 @@ def copy_base_structure(source_dir: Path, dest_dir: Path):
             dirs_exist_ok=True,
         )
     except Exception as e:
-        print(f"[!] Error copying base: {e}")
+        server_logger.error(f"Error copying base structure")
         raise e
 
 
@@ -210,21 +223,20 @@ from ...listeners.malc2 import *
 
 def http_wininet_context(malleable_c2_str):
     """
-    Function for specific http_wininet replacements
-    """
+    http_wininet function for getting needed keys from malleable c2.
+
 
     """
-    Gets malleablec2 data from malleablce2 and reutnrs as a big dict?
-
-    :param malleable_c2: Description
-    """
-
     """
     Quick explanation, mp takes a file, not a string (it has a from_string method... but it wasn't working)
     So, tempfile on the host, then pass that into the mp parser. Whatever, it works well enough. 
 
     Tried StringIO, didn't work either
     """
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(malleable_c2=Path(malleable_c2_str).name)
+    server_logger.debug(f"Gathering data from Malleable C2 profile")
+
     # temp read it
     with open(malleable_c2_str, "r") as file:
         f = file.read()
@@ -238,11 +250,32 @@ def http_wininet_context(malleable_c2_str):
 
         # alllll options here.
 
+    server_logger.info(f"Generating context for implant build")
+
     context = {}
+
+    # =======================
+    # Misc
+    # =======================
+    context["http_user_agent"] = "NOTIMPLEMENTED_USERAGENT"  # from malc2
+    context["callback_host"] = "NOTIMPLEMENTED_CALLBACKHOST"  # from funcitno
+    context["callback_port"] = "NOTIMPLEMENTED_CALLBACKPORT"  # from function
 
     # =======================
     # HTTP_GET options
     # =======================
+    # init keys
+    context["http_get_uri"] = None
+    context["http_get_verb"] = "GET"  # default to get
+
+    context["http_client_metadata_transforms"] = []
+    context["http_get_client_metadata_terminator"] = None
+    context["http_get_client_metadata_terminator_value"] = None
+
+    context["http_get_server_output_transforms"] = []
+    context["http_client_metadata_terminator"] = None
+    context["http_client_metadata_terminator_value"] = None
+
     hce = HttpGetBlockClientParser(mp.http_get.client)
     # start with URI
     context["http_get_uri"] = mp.http_get.uri.value
@@ -252,10 +285,6 @@ def http_wininet_context(malleable_c2_str):
 
     # [list] get metadata tranforms (exclude final statement)
     context["http_client_metadata_transforms"] = []
-
-    # init to none
-    context["http_get_client_metadata_terminator"] = None
-    context["http_get_client_metadata_terminator_value"] = None
 
     # get where to store metadata
     terminator_type, terminator_value = hce.get_metadata_terminator()
@@ -275,19 +304,15 @@ def http_wininet_context(malleable_c2_str):
     # [list] get metadata tranforms (exclude final statement)
     context["http_get_server_output_transforms"] = []
 
-    # init to none
-    context["http_client_metadata_terminator"] = None
-    context["http_client_metadata_terminator_value"] = None
-
     # get where to store output (task)
     terminator_type, terminator_value = hce.get_output_terminator()
     match terminator_type:
         case "header":
-            context["http_client_metadata_terminator"] = "header"
-            context["http_client_metadata_terminator_value"] = terminator_value
+            context["http_get_client_output_terminator"] = "header"
+            context["http_get_client_output_terminator_value"] = terminator_value
 
         case "print":
-            context["http_client_metadata_terminator"] = "print"
+            context["http_get_client_output_terminator"] = "print"
             # no value, print goes straight to body
             # context["http_client_metadata_terminator_value"] = terminator_value
 
@@ -298,7 +323,17 @@ def http_wininet_context(malleable_c2_str):
     # HTTP_POST options
     # =======================
     # client options
-    # ...
+    context["http_post_verb"] = "POST"  # default to post
+    context["http_post_uri"] = None
+
+    # Init options so they don't get forgotten
+    # set these to none initially, for jinja purposes
+    context["http_post_client_id_terminator"] = None
+    context["http_post_client_id_terminator_value"] = None
+
+    # set to none to init
+    context["http_post_client_output_terminator"] = None
+    context["http_post_client_output_terminator_value"] = None
 
     # server options
     hce = HttpPostBlockClientParser(mp.http_post.client)
@@ -310,11 +345,6 @@ def http_wininet_context(malleable_c2_str):
 
     # get where to store id (task)
     terminator_type, terminator_value = hce.get_id_terminator()
-
-    # set these to none initially, for jinja purposes
-    context["http_post_client_id_terminator"] = None
-    context["http_post_client_id_terminator_value"] = None
-
     match terminator_type:
         case "header":
             context["http_post_client_id_terminator"] = "header"
@@ -327,10 +357,6 @@ def http_wininet_context(malleable_c2_str):
 
     # [list] get transforms for data coming back in
     context["http_post_client_output_transforms"] = []
-
-    # set to none to init
-    context["http_post_client_output_terminator"] = None
-    context["http_post_client_output_terminator_value"] = None
 
     # get where to post data back to
     terminator_type, terminator_value = hce.get_output_terminator()

