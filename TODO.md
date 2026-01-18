@@ -128,8 +128,8 @@
 
    >> here
    Left off: 
-      Working on jinja templating. 
-
+      Working on jinja templating.
+      - [ ] Make http_wininet_context into its own file, break up/clean up, and import into build.py
       - [ ] Make sure transform_?.jinja match c++ function calls
       - [ ] Do basic compilation checks (copy paste into visual studio) to make sure generation is okay
 

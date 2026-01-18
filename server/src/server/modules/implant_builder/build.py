@@ -236,6 +236,8 @@ def copy_base_structure(source_dir: Path, dest_dir: Path):
         raise e
 
 
+# code cleanup - break into helpers, etc. add one func for http_post, one for http_get
+# then move into its own file and call in create implant switch case
 def http_wininet_context(malleable_c2_str, callback_host, callback_port):
     """
     http_wininet function for getting needed keys from malleable c2.
