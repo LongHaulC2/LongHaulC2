@@ -1,5 +1,5 @@
 [# 
-transforms.jinja 
+transforms.j2 
 
 A macro for inserting the transforms into the code
 
@@ -33,15 +33,16 @@ Note: Make sure code inserts are accurate to c++ funcs
     // [Transform] Prepend Data
     //payload = "[[ val ]]" + payload;
     transform_prepend(payload, "[[ val ]]");
+[%- endmacro %]
 
 [% macro trans_netbios(val) -%]
     // [Transform] netbios conversion
     netbios_encode(payload);
+[%- endmacro %]
 
 [% macro trans_netbiosu(val) -%]
     // [Transform] netbiosu conversion
     netbiosu_encode(payload);
-
 [%- endmacro %]
 
 [# --- THE DISPATCHER --- #]

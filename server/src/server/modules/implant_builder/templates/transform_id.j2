@@ -1,5 +1,5 @@
 [# 
-transforms.jinja 
+transforms.j2 
 
 A macro for inserting the transforms into the code
 
@@ -7,49 +7,49 @@ this is super awesome and makes these transforms way easier
 
 Note: Make sure code inserts are accurate to c++ funcs
 
-This file uses "metadata" instead of "payload"
-
+This file uses "id" instead of "payload"
 #]
 
 [% macro trans_base64() -%]
     // [Transform] Base64 Encode
-    base64_encode_inplace(metadata);
+    base64_encode_inplace(id);
 [%- endmacro %]
 
 [% macro trans_base64url() -%]
     // [Transform] Base64 URL Encode
-    base64url_encode_inplace(metadata);
+    base64url_encode_inplace(id);
 [%- endmacro %]
 
 [% macro trans_mask() -%]
     // [Transform] XOR Masking
-    xor_mask(metadata);
+    xor_mask(id);
 [%- endmacro %]
 
 [% macro trans_append(val) -%]
     // [Transform] Append Data
-    //metadata += "[[ val ]]";
-    transform_append(metadata, "[[ val ]]");
+    //id += "[[ val ]]";
+    transform_append(id, "[[ val ]]");
 [%- endmacro %]
 
 [% macro trans_prepend(val) -%]
     // [Transform] Prepend Data
-    //metadata = "[[ val ]]" + metadata;
-    transform_prepend(metadata, "[[ val ]]");
+    //id = "[[ val ]]" + id;
+    transform_prepend(id, "[[ val ]]");
+[%- endmacro %]
 
 [% macro trans_netbios(val) -%]
     // [Transform] netbios conversion
-    netbios_encode(metadata);
+    netbios_encode(id);
+[%- endmacro %]
 
 [% macro trans_netbiosu(val) -%]
     // [Transform] netbiosu conversion
-    netbiosu_encode(metadata);
-
+    netbiosu_encode(id);
 [%- endmacro %]
 
 [# --- THE DISPATCHER --- #]
 [# This logic acts as the switch statement #]
-[% macro render_transform_metadata(transform_object) -%]
+[% macro render_transform_id(transform_object) -%]
     [% if transform_object.statement == 'base64' %]
         [[ trans_base64() ]]
         
@@ -64,7 +64,7 @@ This file uses "metadata" instead of "payload"
         
     [% elif transform_object.statement == 'prepend' %]
         [[ trans_prepend(transform_object.value) ]]
-
+        
     [% elif transform_object.statement == 'netbios' %]
         [[ trans_netbios(transform_object.value) ]]
         

@@ -26,6 +26,8 @@ http-get {
 		header "Content-Type" "image/gif";
 
 		output {
+            append "urmom";
+            base64url;
 			print;
 		}
 	}

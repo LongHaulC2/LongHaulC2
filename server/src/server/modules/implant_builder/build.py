@@ -98,8 +98,8 @@ def _create_implant(
     files_to_render = {}
 
     # A. Always include Core files (Tasking, Config, Main)
-    # files_to_render[OUTPUT_DIR / "core/tasking.cpp"] = "core/tasking.cpp.jinja"
-    # files_to_render[OUTPUT_DIR / "main.cpp"] = "core/main.cpp.jinja"
+    # files_to_render[OUTPUT_DIR / "core/tasking.cpp"] = "core/tasking.cpp.j2"
+    # files_to_render[OUTPUT_DIR / "main.cpp"] = "core/main.cpp.j2"
 
     # copy listener base to temp dir
 
@@ -133,7 +133,7 @@ def _create_implant(
         # case "smb_named_pipe":
         #     global_context["protocol"] = "SMB"
         #     files_to_render[OUTPUT_DIR / "comms/transport.cpp"] = (
-        #         "protocols/smb/pipe.cpp.jinja"
+        #         "protocols/smb/pipe.cpp.j2"
         #     )
 
         case _:
@@ -285,10 +285,12 @@ def http_wininet_context(malleable_c2_str, callback_host, callback_port):
     context["http_get_verb"] = None
     context["http_get_uri"] = None
 
+    # get client options
     context["http_get_client_metadata_transforms_list"] = []
     context["http_get_client_metadata_terminator"] = None
     context["http_get_client_metadata_terminator_value"] = None
 
+    # get server options
     context["http_get_server_output_transforms_list"] = []
     context["http_client_metadata_terminator"] = None
     context["http_client_metadata_terminator_value"] = None
@@ -327,11 +329,15 @@ def http_wininet_context(malleable_c2_str, callback_host, callback_port):
     # now onto blocks...
     # get client parameters/headers to add on, etc.
 
-    # http-get -> server -> output transforms
-    # get get server output transforms, do NOT reverse, implant goes top to bottom.
+    # http-get -> server -> output transforms (reversed)
+    # get get server output transforms.
     context["http_get_server_output_transforms_list"] = (
-        hce.get_server_output_transforms_list()
+        # This is being stamped into the client, REVERSE these, as
+        # the client will be recieveing the data after transforms by server
+        reversed(hce.get_server_output_transforms_list())
+        # note, use reversed, not .reverse, as .reverse returns none and causes a nonetype bug.
     )
+    print(context["http_get_server_output_transforms_list"])
 
     # get where to store output (task)
     terminator_type, terminator_value = hce.get_output_terminator()

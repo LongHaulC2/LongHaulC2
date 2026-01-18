@@ -1,11 +1,11 @@
 [# 
-transforms_reverse.jinja
+transforms_reverse.j2
 
 Reverse / undo versions of metadata transforms
 
 IMPORTANT:
 - These macros assume transforms are applied in reverse order (aka, pass in list.reverse())
-- This file undoes what transforms.jinja applies
+- This file undoes what transforms.j2 applies
 #]
 
 [% macro rev_base64() -%]

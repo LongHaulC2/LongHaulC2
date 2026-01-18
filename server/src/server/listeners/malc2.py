@@ -222,10 +222,13 @@ class HttpGetBlockServerParser:
         Get a list of the transforms (ex, prepend, base64, etc)
 
         """
-        # problllem, some keys have value some dont. probnably need addl logic for
-        # if value, put in
-        output = self.server.metadata
-        return output.data[:-1] if output and output.data else []
+        output = self.server.output
+        print("OUTPUT DATA")
+        print(output.data)
+        print(output)
+        output_list = output.data[:-1] if output and output.data else []
+        print(output_list)
+        return output_list
 
 
 """
