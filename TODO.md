@@ -141,7 +141,10 @@
 
          - Keep in mind the reverse steps macros, make a reverse set of macros for reversing.
             Name it "render_reverse_transform_metadata(object)
-            - [ ] Reverse are there, need to use where to reverse (ex, data coming back from server)
+            - [X] Reverse are there, need to use where to reverse (ex, data coming back from server)
+               - Just http-get.server has this at the moment, as that's where tasks are retrieved from.
+               - This could, and probably should be added onto http-post server output, but it doesn't matter too much, as 
+                  no meaningful data is transfered on that channel afaik. (some profiles do use it for some seemingly blank data)
 
       - [ ] Do basic compilation checks (copy paste into visual studio) to make sure generation is okay
 

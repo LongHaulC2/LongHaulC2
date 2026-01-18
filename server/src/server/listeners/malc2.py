@@ -223,11 +223,7 @@ class HttpGetBlockServerParser:
 
         """
         output = self.server.output
-        print("OUTPUT DATA")
-        print(output.data)
-        print(output)
         output_list = output.data[:-1] if output and output.data else []
-        print(output_list)
         return output_list
 
 
