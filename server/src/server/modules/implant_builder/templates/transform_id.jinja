@@ -12,12 +12,12 @@ This file uses "id" instead of "payload"
 
 [% macro trans_base64() -%]
     // [Transform] Base64 Encode
-    base64_encode(id);
+    base64_encode_inplace(id);
 [%- endmacro %]
 
 [% macro trans_base64url() -%]
     // [Transform] Base64 URL Encode
-    base64_url_encode(id);
+    base64url_encode_inplace(id);
 [%- endmacro %]
 
 [% macro trans_mask() -%]
@@ -27,12 +27,22 @@ This file uses "id" instead of "payload"
 
 [% macro trans_append(val) -%]
     // [Transform] Append Data
-    id += "[[ val ]]";
-[%- endmacro %]
+    //id += "[[ val ]]";
+    transform_append(id, "[[ val ]]");
 
 [% macro trans_prepend(val) -%]
     // [Transform] Prepend Data
-    id = "[[ val ]]" + id;
+    //id = "[[ val ]]" + id;
+    transform_prepend(id, "[[ val ]]");
+
+[% macro trans_netbios(val) -%]
+    // [Transform] netbios conversion
+    netbios_encode(id);
+
+[% macro trans_netbiosu(val) -%]
+    // [Transform] netbiosu conversion
+    netbiosu_encode(id);
+
 [%- endmacro %]
 
 [# --- THE DISPATCHER --- #]
@@ -53,5 +63,11 @@ This file uses "id" instead of "payload"
     [% elif transform_object.statement == 'prepend' %]
         [[ trans_prepend(transform_object.value) ]]
         
+    [% elif transform_object.statement == 'netbios' %]
+        [[ trans_netbios(transform_object.value) ]]
+        
+    [% elif transform_object.statement == 'netbiosu' %]
+        [[ trans_netbiosu(transform_object.value) ]]
+
     [% endif %]
 [%- endmacro %]

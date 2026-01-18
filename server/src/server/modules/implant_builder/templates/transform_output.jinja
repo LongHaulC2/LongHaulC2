@@ -10,12 +10,12 @@ Note: Make sure code inserts are accurate to c++ funcs
 
 [% macro trans_base64() -%]
     // [Transform] Base64 Encode
-    base64_encode(payload);
+    base64_encode_inplace(payload);
 [%- endmacro %]
 
 [% macro trans_base64url() -%]
     // [Transform] Base64 URL Encode
-    base64_url_encode(payload);
+    base64url_encode_inplace(payload);
 [%- endmacro %]
 
 [% macro trans_mask() -%]
@@ -25,12 +25,23 @@ Note: Make sure code inserts are accurate to c++ funcs
 
 [% macro trans_append(val) -%]
     // [Transform] Append Data
-    payload += "[[ val ]]";
+    //payload += "[[ val ]]";
+    transform_append(payload, "[[ val ]]");
 [%- endmacro %]
 
 [% macro trans_prepend(val) -%]
     // [Transform] Prepend Data
-    payload = "[[ val ]]" + payload;
+    //payload = "[[ val ]]" + payload;
+    transform_prepend(payload, "[[ val ]]");
+
+[% macro trans_netbios(val) -%]
+    // [Transform] netbios conversion
+    netbios_encode(payload);
+
+[% macro trans_netbiosu(val) -%]
+    // [Transform] netbiosu conversion
+    netbiosu_encode(payload);
+
 [%- endmacro %]
 
 [# --- THE DISPATCHER --- #]
@@ -51,5 +62,12 @@ Note: Make sure code inserts are accurate to c++ funcs
     [% elif transform_object.statement == 'prepend' %]
         [[ trans_prepend(transform_object.value) ]]
         
+    [% elif transform_object.statement == 'netbios' %]
+        [[ trans_netbios(transform_object.value) ]]
+        
+    [% elif transform_object.statement == 'netbiosu' %]
+        [[ trans_netbiosu(transform_object.value) ]]
+        
+
     [% endif %]
 [%- endmacro %]

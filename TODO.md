@@ -130,7 +130,19 @@
    Left off: 
       Working on jinja templating.
       - [ ] Make http_wininet_context into its own file, break up/clean up, and import into build.py
-      - [ ] Make sure transform_?.jinja match c++ function calls
+      - [>] Make sure transform_?.jinja match c++ function calls
+         - [X] base64
+         - [X] base64url
+         - [X] append
+         - [X] prepend
+         - [ ] xor (still not sure about how the key works/where to get it from. 
+         - [X] netbios
+         - [X] netbiosu
+
+         - Keep in mind the reverse steps macros, make a reverse set of macros for reversing.
+            Name it "render_reverse_transform_metadata(object)
+            - [ ] Reverse are there, need to use where to reverse (ex, data coming back from server)
+            
       - [ ] Do basic compilation checks (copy paste into visual studio) to make sure generation is okay
 
 Just remember, block == sender (ex, client, means sent from client). Transformations are top down

@@ -1,0 +1,73 @@
+[# 
+transforms_reverse.jinja
+
+Reverse / undo versions of metadata transforms
+
+IMPORTANT:
+- These macros assume transforms are applied in reverse order (aka, pass in list.reverse())
+- This file undoes what transforms.jinja applies
+#]
+
+[% macro rev_base64() -%]
+    // [Reverse Transform] Base64 Decode
+    base64_decode_inplace(metadata);
+[%- endmacro %]
+
+[% macro rev_base64url() -%]
+    // [Reverse Transform] Base64 URL Decode
+    base64url_decode_inplace(metadata);
+[%- endmacro %]
+
+[% macro rev_mask() -%]
+    // [Reverse Transform] XOR Mask (same op reverses)
+    xor_mask(metadata);
+[%- endmacro %]
+
+[% macro rev_append(val) -%]
+    // [Reverse Transform] Undo Append
+    undo_transform_append(metadata, "[[ val ]]");
+[%- endmacro %]
+
+[% macro rev_prepend(val) -%]
+    // [Reverse Transform] Undo Prepend
+    undo_transform_prepend(metadata, "[[ val ]]");
+[%- endmacro %]
+
+[% macro rev_netbios() -%]
+    // [Reverse Transform] NetBIOS Decode
+    netbios_decode(metadata);
+[%- endmacro %]
+
+[% macro rev_netbiosu() -%]
+    // [Reverse Transform] NetBIOSu Decode
+    netbiosu_decode(metadata);
+[%- endmacro %]
+
+[# --- THE REVERSE DISPATCHER --- #]
+[# Acts like a reverse switch statement #]
+[% macro render_reverse_transform_metadata(transform_object) -%]
+
+    [% if transform_object.statement == 'base64' %]
+        [[ rev_base64() ]]
+
+    [% elif transform_object.statement == 'base64url' %]
+        [[ rev_base64url() ]]
+
+    [% elif transform_object.statement == 'mask' %]
+        [[ rev_mask() ]]
+
+    [% elif transform_object.statement == 'append' %]
+        [[ rev_append(transform_object.value) ]]
+
+    [% elif transform_object.statement == 'prepend' %]
+        [[ rev_prepend(transform_object.value) ]]
+
+    [% elif transform_object.statement == 'netbios' %]
+        [[ rev_netbios() ]]
+
+    [% elif transform_object.statement == 'netbiosu' %]
+        [[ rev_netbiosu() ]]
+
+    [% endif %]
+
+[%- endmacro %]

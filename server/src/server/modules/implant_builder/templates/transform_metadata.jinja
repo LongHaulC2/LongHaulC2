@@ -13,12 +13,12 @@ This file uses "metadata" instead of "payload"
 
 [% macro trans_base64() -%]
     // [Transform] Base64 Encode
-    base64_encode(metadata);
+    base64_encode_inplace(metadata);
 [%- endmacro %]
 
 [% macro trans_base64url() -%]
     // [Transform] Base64 URL Encode
-    base64_url_encode(metadata);
+    base64url_encode_inplace(metadata);
 [%- endmacro %]
 
 [% macro trans_mask() -%]
@@ -28,12 +28,23 @@ This file uses "metadata" instead of "payload"
 
 [% macro trans_append(val) -%]
     // [Transform] Append Data
-    metadata += "[[ val ]]";
+    //metadata += "[[ val ]]";
+    transform_append(metadata, "[[ val ]]");
 [%- endmacro %]
 
 [% macro trans_prepend(val) -%]
     // [Transform] Prepend Data
-    metadata = "[[ val ]]" + metadata;
+    //metadata = "[[ val ]]" + metadata;
+    transform_prepend(metadata, "[[ val ]]");
+
+[% macro trans_netbios(val) -%]
+    // [Transform] netbios conversion
+    netbios_encode(metadata);
+
+[% macro trans_netbiosu(val) -%]
+    // [Transform] netbiosu conversion
+    netbiosu_encode(metadata);
+
 [%- endmacro %]
 
 [# --- THE DISPATCHER --- #]
@@ -53,6 +64,12 @@ This file uses "metadata" instead of "payload"
         
     [% elif transform_object.statement == 'prepend' %]
         [[ trans_prepend(transform_object.value) ]]
+
+    [% elif transform_object.statement == 'netbios' %]
+        [[ trans_netbios(transform_object.value) ]]
         
+    [% elif transform_object.statement == 'netbiosu' %]
+        [[ trans_netbiosu(transform_object.value) ]]
+
     [% endif %]
 [%- endmacro %]
