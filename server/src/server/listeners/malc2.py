@@ -514,7 +514,7 @@ class HttpPostBlockClientParser:
             name = stmt.statement
             value = stmt.value
 
-            print(self.client.id.data)
+            # print(self.client.id.data)
 
             # header and parameter are in  KEY wtf
             # [Statement(statement=base64url, value=""), Statement(statement=header, key="utmcc", value="")]

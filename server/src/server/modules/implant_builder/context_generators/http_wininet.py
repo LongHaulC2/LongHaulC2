@@ -41,7 +41,7 @@ def generate_http_wininet_context(
     context.update(_extract_http_post_options(profile))
 
     # Debug output for verification
-    server_logger.debug(f"Context generation complete: {context.keys()}")
+    server_logger.debug(f"Context generation complete")
 
     return context
 
@@ -82,7 +82,7 @@ def _extract_http_get_options(profile: MalleableProfile) -> dict:
     structlog.contextvars.bind_contextvars(section="http_get")
     server_logger.debug("Extracting HTTP GET options")
 
-    ctx = {
+    context_dict = {
         "http_get_verb": None,
         "http_get_uri": None,
         "http_get_client_metadata_transforms_list": [],
@@ -97,22 +97,22 @@ def _extract_http_get_options(profile: MalleableProfile) -> dict:
     client_parser = HttpGetBlockClientParser(profile.http_get.client)
 
     # URI
-    ctx["http_get_uri"] = profile.http_get.uri.value
+    context_dict["http_get_uri"] = profile.http_get.uri.value
 
     # Verb (Default to GET if missing)
     verb = getattr(profile.http_get, "verb", None)
-    ctx["http_get_verb"] = verb.value if verb is not None else "GET"
+    context_dict["http_get_verb"] = verb.value if verb is not None else "GET"
 
     # Transforms (Client Metadata)
-    ctx["http_get_client_metadata_transforms_list"] = (
+    context_dict["http_get_client_metadata_transforms_list"] = (
         client_parser.get_client_metadata_transforms_list()
     )
 
     # Terminator (Where to store metadata)
     term_type, term_value = client_parser.get_metadata_terminator()
     if term_type == "header":
-        ctx["http_get_client_metadata_terminator"] = "header"
-        ctx["http_get_client_metadata_terminator_value"] = term_value
+        context_dict["http_get_client_metadata_terminator"] = "header"
+        context_dict["http_get_client_metadata_terminator_value"] = term_value
     # Add other cases (uri, etc) here as needed
 
     # --- Server Configuration ---
@@ -120,7 +120,7 @@ def _extract_http_get_options(profile: MalleableProfile) -> dict:
 
     # Transforms (Server Output)
     # Note: Reversed because the implant must undo what the server did
-    ctx["http_get_server_output_transforms_list"] = list(
+    context_dict["http_get_server_output_transforms_list"] = list(
         # don't use .reverse cuz that returns none
         reversed(server_parser.get_server_output_transforms_list())
     )
@@ -129,12 +129,12 @@ def _extract_http_get_options(profile: MalleableProfile) -> dict:
     out_type, out_value = server_parser.get_output_terminator()
     match out_type:
         case "header":
-            ctx["http_get_client_output_terminator"] = "header"
-            ctx["http_get_client_output_terminator_value"] = out_value
+            context_dict["http_get_client_output_terminator"] = "header"
+            context_dict["http_get_client_output_terminator_value"] = out_value
         case "print":
-            ctx["http_get_client_output_terminator"] = "print"
+            context_dict["http_get_client_output_terminator"] = "print"
 
-    return ctx
+    return context_dict
 
 
 def _extract_http_post_options(profile: MalleableProfile) -> dict:
@@ -142,7 +142,7 @@ def _extract_http_post_options(profile: MalleableProfile) -> dict:
     structlog.contextvars.bind_contextvars(section="http_post")
     server_logger.debug("Extracting HTTP POST options")
 
-    ctx = {
+    context_dict = {
         "http_post_verb": None,
         "http_post_uri": None,
         "http_post_client_id_transforms_list": [],
@@ -157,14 +157,14 @@ def _extract_http_post_options(profile: MalleableProfile) -> dict:
     client_parser = HttpPostBlockClientParser(profile.http_post.client)
 
     # URI
-    ctx["http_post_uri"] = profile.http_post.uri.value
+    context_dict["http_post_uri"] = profile.http_post.uri.value
 
     # Verb (Default to POST if missing)
     verb = getattr(profile.http_post, "verb", None)
-    ctx["http_post_verb"] = verb.value if verb is not None else "POST"
+    context_dict["http_post_verb"] = verb.value if verb is not None else "POST"
 
     # Transforms (Client ID)
-    ctx["http_post_client_id_transforms_list"] = (
+    context_dict["http_post_client_id_transforms_list"] = (
         client_parser.post_client_id_transforms_list()
     )
 
@@ -172,13 +172,13 @@ def _extract_http_post_options(profile: MalleableProfile) -> dict:
     id_term_type, id_term_value = client_parser.get_id_terminator()
     match id_term_type:
         case "header":
-            ctx["http_post_client_id_terminator"] = "header"
-            ctx["http_post_client_id_terminator_value"] = id_term_value
+            context_dict["http_post_client_id_terminator"] = "header"
+            context_dict["http_post_client_id_terminator_value"] = id_term_value
         case "print":
-            ctx["http_post_client_id_terminator"] = "print"
+            context_dict["http_post_client_id_terminator"] = "print"
 
     # Transforms (Client Output)
-    ctx["http_post_client_output_transforms_list"] = (
+    context_dict["http_post_client_output_transforms_list"] = (
         client_parser.post_client_output_transforms_list()
     )
 
@@ -186,9 +186,9 @@ def _extract_http_post_options(profile: MalleableProfile) -> dict:
     out_term_type, out_term_value = client_parser.get_output_terminator()
     match out_term_type:
         case "header":
-            ctx["http_post_client_output_terminator"] = "header"
-            ctx["http_post_client_output_terminator_value"] = out_term_value
+            context_dict["http_post_client_output_terminator"] = "header"
+            context_dict["http_post_client_output_terminator_value"] = out_term_value
         case "print":
-            ctx["http_post_client_output_terminator"] = "print"
+            context_dict["http_post_client_output_terminator"] = "print"
 
-    return ctx
+    return context_dict

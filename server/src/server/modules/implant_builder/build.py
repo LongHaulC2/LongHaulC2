@@ -80,12 +80,11 @@ def _create_implant(
     )
     server_logger.debug("_create_implant")
 
-    # 1. Get the shared context (Data usually needed by ALL files)
-    # global_context = get_context(malleable_c2_path)
-
+    # 1. Generate the shared context (Data usually needed by ALL files)
+    # these are the keys that get plugged into the templates
+    # one per listener type for explicitness/control
     match listener_type:
         case "http_wininet":
-            # temp hardcode fro http listener
             global_context = generate_http_wininet_context(
                 malleable_c2_path, callback_host, callback_port
             )
@@ -98,28 +97,13 @@ def _create_implant(
     # Structure: "Destination Path" : "Source Template"
     files_to_render = {}
 
-    # A. Always include Core files (Tasking, Config, Main)
-    # files_to_render[OUTPUT_DIR / "core/tasking.cpp"] = "core/tasking.cpp.j2"
-    # files_to_render[OUTPUT_DIR / "main.cpp"] = "core/main.cpp.j2"
-
-    # copy listener base to temp dir
-
     # Add Listener Specific files
     match listener_type:
         case "http_wininet":
-            # need to edit to...
-            # 1. render comms template with stuff
-            # 2. write to comms.cpp
-            # get/post
-
             # render and save to comms.cpp... (high level http funcsd)
             files_to_render[output_dir / "lifecycle/comms.cpp"] = (
                 "wininet_comms_http.j2"  # no need to prefix, already searching in templates dir
             )
-            # copy in .h from template to new dir - note, it's already there from original copy s o maybe this is not needed atm if functions don't change.
-            # comms_h_og = Path(IMPLANT_BASE / "lifecycle" / "comms.h")
-            # comms_h_dest = Path(output_dir / "lifecycle" / "comms.h")
-            # copy_file(comms_h_og, comms_h_dest)
 
             # render and save to http.cpp... (this is the lib implemetnation for http)
             files_to_render[output_dir / "protocols/http_wininet/http.cpp"] = (
@@ -142,7 +126,7 @@ def _create_implant(
 
     # 3. Execution Loop
     # Iterate over the dict and build everything
-    server_logger.debug(f"Building implant")
+    server_logger.info(f"Rendering Implant Files")
     server_logger.debug(f"Rendering files: {files_to_render}")
 
     for out_file, template_file in files_to_render.items():
