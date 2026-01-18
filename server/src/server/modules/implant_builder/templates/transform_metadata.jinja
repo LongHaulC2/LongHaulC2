@@ -1,0 +1,58 @@
+[# 
+transforms.jinja 
+
+A macro for inserting the transforms into the code
+
+this is super awesome and makes these transforms way easier
+
+Note: Make sure code inserts are accurate to c++ funcs
+
+This file uses "metadata" instead of "payload"
+
+#]
+
+[% macro trans_base64() -%]
+    // [Transform] Base64 Encode
+    base64_encode(metadata);
+[%- endmacro %]
+
+[% macro trans_base64url() -%]
+    // [Transform] Base64 URL Encode
+    base64_url_encode(metadata);
+[%- endmacro %]
+
+[% macro trans_mask() -%]
+    // [Transform] XOR Masking
+    xor_mask(metadata);
+[%- endmacro %]
+
+[% macro trans_append(val) -%]
+    // [Transform] Append Data
+    metadata += "[[ val ]]";
+[%- endmacro %]
+
+[% macro trans_prepend(val) -%]
+    // [Transform] Prepend Data
+    metadata = "[[ val ]]" + metadata;
+[%- endmacro %]
+
+[# --- THE DISPATCHER --- #]
+[# This logic acts as the switch statement #]
+[% macro render_transform_metadata(transform_object) -%]
+    [% if transform_object.statement == 'base64' %]
+        [[ trans_base64() ]]
+        
+    [% elif transform_object.statement == 'base64url' %]
+        [[ trans_base64url() ]]
+        
+    [% elif transform_object.statement == 'mask' %]
+        [[ trans_mask() ]]
+        
+    [% elif transform_object.statement == 'append' %]
+        [[ trans_append(transform_object.value) ]]
+        
+    [% elif transform_object.statement == 'prepend' %]
+        [[ trans_prepend(transform_object.value) ]]
+        
+    [% endif %]
+[%- endmacro %]

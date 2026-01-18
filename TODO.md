@@ -116,6 +116,9 @@
 
     Misc:
         - [ ] Implement Transforms
+            - [X] C++
+            - [X] Python
+        - [ ] Implement parameters/things in client block
             - [ ] C++
             - [ ] Python
         - [ ] Implement Other terminators
@@ -123,6 +126,15 @@
             - [ ] Python
         - [ ] Compile
 
+   >> here
+   Left off: 
+      Working on jinja templating. 
+
+      - [ ] Make sure transform_?.jinja match c++ function calls
+      - [ ] Do basic compilation checks (copy paste into visual studio) to make sure generation is okay
+
+Just remember, block == sender (ex, client, means sent from client). Transformations are top down
+from the sender. 
 
 
 # Task Formatting (for reference):

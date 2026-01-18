@@ -283,11 +283,11 @@ def http_wininet_context(malleable_c2_str, callback_host, callback_port):
     context["http_get_verb"] = None
     context["http_get_uri"] = None
 
-    context["http_client_metadata_transforms"] = []
+    context["http_get_client_metadata_transforms_list"] = []
     context["http_get_client_metadata_terminator"] = None
     context["http_get_client_metadata_terminator_value"] = None
 
-    context["http_get_server_output_transforms"] = []
+    context["http_get_server_output_transforms_list"] = []
     context["http_client_metadata_terminator"] = None
     context["http_client_metadata_terminator_value"] = None
 
@@ -299,11 +299,16 @@ def http_wininet_context(malleable_c2_str, callback_host, callback_port):
     verb = getattr(mp.http_get, "verb", None)
     context["http_get_verb"] = verb.value if verb is not None else "GET"
 
+    # http-get -> client -> metadata transforms
+    # get transforms, do NOT reverse, implant goes top to bottom.
+    context["http_get_client_metadata_transforms_list"] = (
+        hce.get_client_metadata_transforms_list()
+    )
+    # print("TRANSFORMS")
+    # print(transforms)
+
     # now onto blocks...
     # get client parameters/headers to add on, etc.
-
-    # [list] get metadata tranforms (exclude final statement)
-    context["http_client_metadata_transforms"] = []
 
     # get where to store metadata
     terminator_type, terminator_value = hce.get_metadata_terminator()
@@ -320,8 +325,11 @@ def http_wininet_context(malleable_c2_str, callback_host, callback_port):
     # now onto blocks...
     # get client parameters/headers to add on, etc.
 
-    # [list] get metadata tranforms (exclude final statement)
-    context["http_get_server_output_transforms"] = []
+    # http-get -> server -> output transforms
+    # get get server output transforms, do NOT reverse, implant goes top to bottom.
+    context["http_get_server_output_transforms_list"] = (
+        hce.get_server_output_transforms_list()
+    )
 
     # get where to store output (task)
     terminator_type, terminator_value = hce.get_output_terminator()
@@ -347,10 +355,12 @@ def http_wininet_context(malleable_c2_str, callback_host, callback_port):
 
     # Init options so they don't get forgotten
     # set these to none initially, for jinja purposes
+    context["http_post_client_id_transforms_list"] = []
     context["http_post_client_id_terminator"] = None
     context["http_post_client_id_terminator_value"] = None
 
     # set to none to init
+    context["http_post_client_output_transforms_list"] = []
     context["http_post_client_output_terminator"] = None
     context["http_post_client_output_terminator_value"] = None
 
@@ -363,8 +373,11 @@ def http_wininet_context(malleable_c2_str, callback_host, callback_port):
     verb = getattr(mp.http_post, "verb", None)
     context["http_post_verb"] = verb.value if verb is not None else "POST"
 
+    # http-post -> client -> id
     # [list] get transforms for id coming back in
-    context["http_post_client_id_transforms"] = []
+    context["http_post_client_id_transforms_list"] = (
+        hce.post_client_id_transforms_list()
+    )
 
     # get where to store id (task)
     terminator_type, terminator_value = hce.get_id_terminator()
@@ -378,8 +391,13 @@ def http_wininet_context(malleable_c2_str, callback_host, callback_port):
             # no value, print goes straight to body
             # context["http_client_metadata_terminator_value"] = terminator_value
 
-    # [list] get transforms for data coming back in
-    context["http_post_client_output_transforms"] = []
+    # http-post -> client -> output
+    # [list] get transforms for id coming back in
+    context["http_post_client_output_transforms_list"] = (
+        hce.post_client_output_transforms_list()
+    )
+
+    # no need for http-post server block output afaik, that just prints/has a blank response
 
     # get where to post data back to
     terminator_type, terminator_value = hce.get_output_terminator()

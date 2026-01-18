@@ -217,6 +217,16 @@ class HttpGetBlockServerParser:
 
         return data
 
+    def get_server_output_transforms_list(self):
+        """
+        Get a list of the transforms (ex, prepend, base64, etc)
+
+        """
+        # problllem, some keys have value some dont. probnably need addl logic for
+        # if value, put in
+        output = self.server.metadata
+        return output.data[:-1] if output and output.data else []
+
 
 """
     # client -> serer
@@ -343,6 +353,24 @@ class HttpGetBlockClientParser:
             server_logger.debug("Data after %s: %r", name, data)
 
         return data
+
+    # def get_client_output_transforms_list(self):
+    #     """
+    #     Get a list of the transforms (ex, prepend, base64, etc)
+
+    #     """
+    #     output = self.client.client.output
+    #     return output.data[:-1] if output and output.data else []
+
+    def get_client_metadata_transforms_list(self):
+        """
+        Get a list of the transforms (ex, prepend, base64, etc)
+
+        """
+        # problllem, some keys have value some dont. probnably need addl logic for
+        # if value, put in
+        output = self.client.metadata
+        return output.data[:-1] if output and output.data else []
 
 
 # post block has a few differneces,so this accounts for that
@@ -541,6 +569,22 @@ class HttpPostBlockClientParser:
             server_logger.debug("Data after %s: %r", name, data)
 
         return data
+
+    def post_client_id_transforms_list(self):
+        """
+        Get a list of the transforms (ex, prepend, base64, etc)
+
+        """
+        output = self.client.id
+        return output.data[:-1] if output and output.data else []
+
+    def post_client_output_transforms_list(self):
+        """
+        Get a list of the transforms (ex, prepend, base64, etc)
+
+        """
+        output = self.client.output
+        return output.data[:-1] if output and output.data else []
 
 
 # other parsers here too...

