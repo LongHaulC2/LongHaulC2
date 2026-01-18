@@ -7,6 +7,8 @@ import structlog
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from mpp import *
 
+from ...listeners.malc2 import *
+
 # OUTPUT_DIR = Path("./templates/output")
 IMPLANT_BASE = (
     # this file, up one dir, to implant_base
@@ -38,7 +40,7 @@ import functools
 server_logger = logging.getLogger("server")
 
 
-def create_implant(malleable_c2_path, listener_type):
+def create_implant(malleable_c2_path, listener_type, callback_host, callback_port=0):
 
     # temp overwrite for mallc2
     mc2_path = Path("/home/ubuntu-dev/LongHaulC2/tests/profiles/webbug.profile")
@@ -60,10 +62,14 @@ def create_implant(malleable_c2_path, listener_type):
             output_dir=Path(tmp_dir).resolve(),
             malleable_c2_path=str(mc2_path),
             listener_type=listener_type,
+            callback_host=callback_host,
+            callback_port=callback_port,
         )
 
 
-def _create_implant(output_dir: Path, malleable_c2_path, listener_type):
+def _create_implant(
+    output_dir: Path, malleable_c2_path, listener_type, callback_host, callback_port
+):
 
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(
@@ -76,8 +82,16 @@ def _create_implant(output_dir: Path, malleable_c2_path, listener_type):
     # 1. Get the shared context (Data usually needed by ALL files)
     # global_context = get_context(malleable_c2_path)
 
-    # temp hardcode fro http listener
-    global_context = http_wininet_context(malleable_c2_path)
+    match listener_type:
+        case "http_wininet":
+            # temp hardcode fro http listener
+            global_context = http_wininet_context(
+                malleable_c2_path, callback_host, callback_port
+            )
+
+        case _:
+            server_logger.error(f"Invalid listener type: {listener_type}")
+            return
 
     # 2. Define the File Map
     # Structure: "Destination Path" : "Source Template"
@@ -222,10 +236,7 @@ def copy_base_structure(source_dir: Path, dest_dir: Path):
         raise e
 
 
-from ...listeners.malc2 import *
-
-
-def http_wininet_context(malleable_c2_str):
+def http_wininet_context(malleable_c2_str, callback_host, callback_port):
     """
     http_wininet function for getting needed keys from malleable c2.
 
@@ -252,7 +263,7 @@ def http_wininet_context(malleable_c2_str):
 
         # could also include the malleable c2 file in the code dir and read it from there
 
-        # alllll options here.
+    print(mp.profile)
 
     server_logger.info(f"Generating context for implant build")
 
@@ -261,16 +272,16 @@ def http_wininet_context(malleable_c2_str):
     # =======================
     # Misc
     # =======================
-    context["http_user_agent"] = "NOTIMPLEMENTED_USERAGENT"  # from malc2
-    context["callback_host"] = "NOTIMPLEMENTED_CALLBACKHOST"  # from funcitno
-    context["callback_port"] = "NOTIMPLEMENTED_CALLBACKPORT"  # from function
+    context["http_user_agent"] = mp.profile.get("useragent", None)
+    context["callback_host"] = callback_host  # from funcitno
+    context["callback_port"] = callback_port  # from function
 
     # =======================
     # HTTP_GET options
     # =======================
     # init keys
+    context["http_get_verb"] = None
     context["http_get_uri"] = None
-    context["http_get_verb"] = "GET"  # default to get
 
     context["http_client_metadata_transforms"] = []
     context["http_get_client_metadata_terminator"] = None
@@ -283,6 +294,10 @@ def http_wininet_context(malleable_c2_str):
     hce = HttpGetBlockClientParser(mp.http_get.client)
     # start with URI
     context["http_get_uri"] = mp.http_get.uri.value
+
+    # verb could be none, so we have to check if it exists and if not, GET
+    verb = getattr(mp.http_get, "verb", None)
+    context["http_get_verb"] = verb.value if verb is not None else "GET"
 
     # now onto blocks...
     # get client parameters/headers to add on, etc.
@@ -327,7 +342,7 @@ def http_wininet_context(malleable_c2_str):
     # HTTP_POST options
     # =======================
     # client options
-    context["http_post_verb"] = "POST"  # default to post
+    context["http_post_verb"] = None
     context["http_post_uri"] = None
 
     # Init options so they don't get forgotten
@@ -341,8 +356,12 @@ def http_wininet_context(malleable_c2_str):
 
     # server options
     hce = HttpPostBlockClientParser(mp.http_post.client)
-    # now onto blocks...
-    # get client parameters/headers to add on, etc.
+    # start with URI
+    context["http_post_uri"] = mp.http_post.uri.value
+
+    # verb could be none, so we have to check if it exists and if not, POST
+    verb = getattr(mp.http_post, "verb", None)
+    context["http_post_verb"] = verb.value if verb is not None else "POST"
 
     # [list] get transforms for id coming back in
     context["http_post_client_id_transforms"] = []
@@ -379,95 +398,7 @@ def http_wininet_context(malleable_c2_str):
         # case "uri":
         #     ...
 
-    """
-    Naming convention, key, but with _ instead of .
-
-    """
-    # context = {
-    #     # Returns "value" or None.
-    #     # client
-    #     "http_get_client_metadata_header": get(mp, "http_get.client.metadata.header"),
-    #     # server
-    #     "http_post_server_id_header": get(mp, "http_post.server.id.header"),
-    #     "http_post_server_output_header": get(mp, "http_post.server.output.header"),
-    #     # # Works for deeper nested stuff
-    #     # "session_id":      get(mp, "http_get.client.id.parameter"),
-    #     # # Works for top level
-    #     # "jitter":          get(mp, "jitter"),
-    #     # # Handles missing stuff gracefully (returns None)
-    #     # "does_not_exist":  get(mp, "http_get.client.fake_block.garbage")
-    # }
-
     for i, j in context.items():
         print(f"{i}:{j}")
 
     return context
-
-    ...
-
-
-def get_context(malleable_c2_str):
-    """
-    Gets malleablec2 data from malleablce2 and reutnrs as a big dict?
-
-    :param malleable_c2: Description
-    """
-
-    """
-    Quick explanation, mp takes a file, not a string (it has a from_string method... but it wasn't working)
-    So, tempfile on the host, then pass that into the mp parser. Whatever, it works well enough. 
-
-    Tried StringIO, didn't work either
-    """
-    # temp read it
-    with open(malleable_c2_str, "r") as file:
-        f = file.read()
-
-    with tempfile.NamedTemporaryFile("w+", suffix=".profile") as tmp_file:
-        tmp_file.write(f)
-        tmp_file.flush()
-        mp = MalleableProfile(profile=tmp_file.name)
-
-        # could also include the malleable c2 file in the code dir and read it from there
-
-        # alllll options here.
-
-    """
-    Naming convention, key, but with _ instead of .
-
-    """
-    context = {
-        # Returns "value" or None.
-        # client
-        "http_get_client_metadata_header": get(mp, "http_get.client.metadata.header"),
-        # server
-        "http_post_server_id_header": get(mp, "http_post.server.id.header"),
-        "http_post_server_output_header": get(mp, "http_post.server.output.header"),
-        # # Works for deeper nested stuff
-        # "session_id":      get(mp, "http_get.client.id.parameter"),
-        # # Works for top level
-        # "jitter":          get(mp, "jitter"),
-        # # Handles missing stuff gracefully (returns None)
-        # "does_not_exist":  get(mp, "http_get.client.fake_block.garbage")
-    }
-
-    for i, j in context.items():
-        print(f"{i}:{j}")
-
-    return context
-
-
-# helper for mc2
-def get(obj, path):
-    """
-    Safely digs into mp.http_get.client...
-    Returns the value if found, or None if any step fails.
-    """
-    try:
-        # 1. Walk down the dot path (e.g. "http_get.client.metadata")
-        val = functools.reduce(getattr, path.split("."), obj)
-
-        # 2. If it's an Option/Statement object, return .value. Otherwise return the object.
-        return val.value if hasattr(val, "value") else val
-    except AttributeError:
-        return None
