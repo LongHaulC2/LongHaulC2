@@ -115,7 +115,7 @@ uninstall:
 	-rm .env
 
 
-.PHONY: docker
+.PHONY: create_docker_images
 create_docker_images:
 	@echo "=================================================="
 	@echo "Creating docker images"
@@ -123,7 +123,9 @@ create_docker_images:
 	@for d in $(DOCKER_DIR)/*; do \
 		if [ -d "$$d" ]; then \
 			img_name=$$(basename $$d); \
+			echo "=================================================="; \
 			echo "Building $$img_name from $$d"; \
+			echo "=================================================="; \
 			sudo docker build --pull --no-cache -t $$img_name:latest $$d; \
 		fi \
 	done
