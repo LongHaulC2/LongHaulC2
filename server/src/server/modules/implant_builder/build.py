@@ -251,6 +251,9 @@ def copy_base_structure(source_dir: Path, dest_dir: Path):
 
 
 def docker_build_implant(source_code_dir: Path):
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(source_dir=str(source_code_dir))
+
     import docker
 
     client = docker.from_env()
@@ -258,18 +261,21 @@ def docker_build_implant(source_code_dir: Path):
     source_dir = str(source_code_dir.resolve())
     out_dir = str(source_code_dir.resolve() / "output")
 
-    print(source_dir)
-    print(out_dir)
+    server_logger.info(f"Build configuration - Source: {source_dir}")
+    server_logger.info(f"Build configuration - Output: {out_dir}")
 
     # The shell command to run inside the container:
-    # 1. cmake -S /source -B /build  -> Generate Makefiles from /source into /build
-    # 2. cmake --build /build        -> Compile the code
+    # 1. ls -R /source               -> Debug file placement
+    # 2. cmake -S /source -B /build  -> Generate Makefiles
+    # 3. cmake --build /build        -> Compile
     build_cmd = "bash -c 'ls -R /source && cmake -S /source -B /build -DCMAKE_BUILD_TYPE=Release && cmake --build /build -- -j$(nproc)'"
+
+    server_logger.info("Spinning up ephemeral container (win_x64)...")
 
     # ephemeral container build
     container = client.containers.run(
         "win_x64",
-        command=build_cmd,  # "ls -lsa /source",
+        command=build_cmd,
         volumes={
             # note- key is on host, bind is in container
             source_dir: {
@@ -279,18 +285,31 @@ def docker_build_implant(source_code_dir: Path):
             out_dir: {
                 "bind": "/output",
                 "mode": "rw",
-            },  # temp dir ccreated b4, binary is read out of here.
+            },  # temp dir created b4, binary is read out of here.
         },
-        # detacehs and nukes the container after build
+        # detaches and nukes the container after build. off for debugging for now
         # remove=True,
         detach=True,
     )
-    container.wait()
 
-    # view mounts
-    # print(container.attrs['Mounts'])
+    server_logger.info(
+        f"Container {container.short_id} started. Waiting for build to finish..."
+    )
+
+    # Block and wait for result
+    result = container.wait()
+    exit_code = result.get("StatusCode", -1)
 
     # Get logs (stdout + stderr)
-    logs = container.logs()  # returns bytes
-    print("DOCKER LOGS")
-    print(logs.decode())
+    logs = container.logs().decode()
+
+    if exit_code == 0:
+        server_logger.info("Docker build completed successfully.")
+        # Log full output at debug level to keep main logs clean, unless you want it always visible
+        # server_logger.debug(f"DOCKER LOGS:\n{logs}")
+    else:
+        server_logger.error(f"Docker build failed with exit code {exit_code}.")
+        # server_logger.error(f"DOCKER LOGS:\n{logs}")
+
+    # clean up container object reference (optional if remove=True is uncommented above)
+    # container.remove()
