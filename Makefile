@@ -117,6 +117,9 @@ uninstall:
 
 .PHONY: create_docker_images
 create_docker_images:
+	sudo groupadd docker
+	sudo usermod -aG docker $USER
+	
 	@echo "=================================================="
 	@echo "Creating docker images"
 	@echo "=================================================="

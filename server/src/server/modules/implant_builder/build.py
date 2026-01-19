@@ -49,10 +49,27 @@ def build_implant(listener_uuid):
     listener_uuid (this will extract malleablec2, callback_host, callback_port, and listener type)
 
     """
-    return
+
+    # lookup listener data
+
+    # temp
+    mc2_path = Path("/home/ubuntu-dev/LongHaulC2/tests/profiles/webbug.profile")
+    build_dir = create_implant(
+        malleable_c2_path=mc2_path,
+        listener_type="http_wininet",
+        callback_host="0.0.0.0",
+        callback_port=9010,
+    )
+    docker_build_implant(build_dir)
+
+    # get built implant
+
+    # write to db
 
 
-def create_implant(malleable_c2_path, listener_type, callback_host, callback_port=0):
+def create_implant(
+    malleable_c2_path, listener_type, callback_host, callback_port=0
+) -> Path:
 
     # temp overwrite for mallc2
     mc2_path = Path("/home/ubuntu-dev/LongHaulC2/tests/profiles/webbug.profile")
@@ -77,6 +94,7 @@ def create_implant(malleable_c2_path, listener_type, callback_host, callback_por
             callback_host=callback_host,
             callback_port=callback_port,
         )
+    return Path(tmp_dir)
 
 
 def _create_implant(
@@ -230,3 +248,49 @@ def copy_base_structure(source_dir: Path, dest_dir: Path):
     except Exception as e:
         server_logger.error(f"Error copying base structure")
         raise e
+
+
+def docker_build_implant(source_code_dir: Path):
+    import docker
+
+    client = docker.from_env()
+
+    source_dir = str(source_code_dir.resolve())
+    out_dir = str(source_code_dir.resolve() / "output")
+
+    print(source_dir)
+    print(out_dir)
+
+    # The shell command to run inside the container:
+    # 1. cmake -S /source -B /build  -> Generate Makefiles from /source into /build
+    # 2. cmake --build /build        -> Compile the code
+    build_cmd = "bash -c 'ls -R /source && cmake -S /source -B /build -DCMAKE_BUILD_TYPE=Release && cmake --build /build -- -j$(nproc); ls -lsa /source/build'"
+
+    # ephemeral container build
+    container = client.containers.run(
+        "win_x64",
+        command=build_cmd,  # "ls -lsa /source",
+        volumes={
+            # note- key is on host, bind is in container
+            source_dir: {
+                "bind": "/source",
+                "mode": "rw",
+            },  # temp dir where code is generated
+            out_dir: {
+                "bind": "/output",
+                "mode": "rw",
+            },  # temp dir ccreated b4, binary is read out of here.
+        },
+        # detacehs and nukes the container after build
+        # remove=True,
+        detach=True,
+    )
+    container.wait()
+
+    # view mounts
+    # print(container.attrs['Mounts'])
+
+    # Get logs (stdout + stderr)
+    logs = container.logs()  # returns bytes
+    print("DOCKER LOGS")
+    print(logs.decode())

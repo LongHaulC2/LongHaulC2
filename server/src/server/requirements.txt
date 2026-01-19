@@ -13,3 +13,4 @@ uvicorn
 structlog
 concurrent-log-handler
 requests
+docker
