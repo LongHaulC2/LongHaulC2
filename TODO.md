@@ -154,28 +154,10 @@
             Volumes, source is temp dir where code is generated, then out to another temp. Binary is then read from out temp, and stored in SQL with relevant data. 
 
          Ex: (no more boilerplate yay)
-         ```
-         import docker
 
-         client = docker.from_env()
-
-         # ephemeral container build
-         container = client.containers.run(
-            "windows_build_image",
-            command="powershell -Command ./build.ps1",
-            volumes={
-               "./source": {"bind": "C:/src", "mode": "rw"}, # temp dir where code is generated
-               "./output": {"bind": "C:/out", "mode": "rw"} # temp dir ccreated b4, binary is read out of here.
-            },
-            remove=True,
-            detach=True
-         )
-
-         # wait and get logs
-         container.wait()
-         print(container.logs().decode())
-         ```
-
+         # > here
+         - [ ] Fix implant to let it compile
+         - [ ] test compile
 
 
       - [ ] Do basic compilation checks (copy paste into visual studio) to make sure generation is okay

