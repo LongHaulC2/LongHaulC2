@@ -57,6 +57,7 @@ def parse_args():
 
 
 # setup the routes
+from .routes.v1.build_resource import *
 from .routes.v1.implant_resource import *
 from .routes.v1.listener_resource import *
 

@@ -129,13 +129,13 @@
    >> here
    Left off: 
       Working on jinja templating.
-      - [ ] Make http_wininet_context into its own file, break up/clean up, and import into build.py
+      - [X] Make http_wininet_context into its own file, break up/clean up, and import into build.py
       - [>] Make sure transform_?.j2 match c++ function calls
          - [X] base64
          - [X] base64url
          - [X] append
          - [X] prepend
-         - [ ] xor (still not sure about how the key works/where to get it from. 
+         - [ ] xor (still not sure about how the key works/where to get it from. Maybe generate on client side, OR pass in from server, in metadata/register)
          - [X] netbios
          - [X] netbiosu
 
@@ -146,7 +146,14 @@
                - This could, and probably should be added onto http-post server output, but it doesn't matter too much, as 
                   no meaningful data is transfered on that channel afaik. (some profiles do use it for some seemingly blank data)
 
+
+
       - [ ] Do basic compilation checks (copy paste into visual studio) to make sure generation is okay
+
+      - [ ] API: hook up funcs to api
+         - [X] build entry in build.py
+         - [X] Skeleton of API structure
+
 
 Just remember, block == sender (ex, client, means sent from client). Transformations are top down
 from the sender. 

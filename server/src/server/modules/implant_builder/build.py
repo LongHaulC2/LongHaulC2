@@ -41,6 +41,17 @@ import functools
 server_logger = logging.getLogger("server")
 
 
+def build_implant(listener_uuid):
+    """
+    Function to call to build implant. API calls this.
+
+    Need:
+    listener_uuid (this will extract malleablec2, callback_host, callback_port, and listener type)
+
+    """
+    return
+
+
 def create_implant(malleable_c2_path, listener_type, callback_host, callback_port=0):
 
     # temp overwrite for mallc2
