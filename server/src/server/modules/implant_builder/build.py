@@ -268,7 +268,8 @@ def docker_build_implant(source_code_dir: Path):
     # 1. ls -R /source               -> Debug file placement
     # 2. cmake -S /source -B /build  -> Generate Makefiles
     # 3. cmake --build /build        -> Compile
-    build_cmd = "bash -c 'ls -R /source && cmake -S /source -B /build -DCMAKE_BUILD_TYPE=Release && cmake --build /build -- -j$(nproc)'"
+    # to show all files; ls -R /source &&
+    build_cmd = "bash -c 'cmake -S /source -B /build -DCMAKE_BUILD_TYPE=Release && cmake --build /build -- -j$(nproc)'"
 
     server_logger.info("Spinning up ephemeral container (win_x64)...")
 
@@ -306,10 +307,10 @@ def docker_build_implant(source_code_dir: Path):
     if exit_code == 0:
         server_logger.info("Docker build completed successfully.")
         # Log full output at debug level to keep main logs clean, unless you want it always visible
-        # server_logger.debug(f"DOCKER LOGS:\n{logs}")
+        server_logger.debug(f"DOCKER LOGS:\n{logs}")
     else:
         server_logger.error(f"Docker build failed with exit code {exit_code}.")
-        # server_logger.error(f"DOCKER LOGS:\n{logs}")
+        server_logger.error(f"DOCKER LOGS:\n{logs}")
 
     # clean up container object reference (optional if remove=True is uncommented above)
     # container.remove()

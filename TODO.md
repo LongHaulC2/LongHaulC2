@@ -157,6 +157,7 @@
 
          # > here
          - [ ] Fix implant to let it compile
+            Use conversions between vector<uint8_t> and std::string - do this in visual studio then copy in
          - [ ] test compile
 
 
