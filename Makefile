@@ -3,6 +3,7 @@
 #all: myapp
 
 VENV_PATH ?= ./venv
+DOCKER_DIR := setup/docker_images
 
 # creds
 MYSQL_ROOT_PASSWORD ?= P@ssw0rd1!
@@ -11,6 +12,8 @@ REDIS_USER ?= default
 REDIS_PASSWORD ?= P@ssw0rd1!
 # can specify creds manually with:
 #make install MYSQL_ROOT_PASSWORD=SuperSecure123
+
+
 
 install:
 	@echo "=================================================="
@@ -35,6 +38,11 @@ install:
 	@echo "Redis insights is on, Access at <IP>:8001"
 	#8001: Redis Insight. Enabled for dev, can disable/put on localhost for prod.
 	sudo docker run -d --name C2_redis-stack -p 127.0.0.1:6379:6379 -p 0.0.0.0:8001:8001 -e REDIS_ARGS="--requirepass $(REDIS_PASSWORD)" redis/redis-stack:latest
+
+	@echo "=================================================="
+	@echo "Creating docker images for cross compilation"
+	@echo "=================================================="
+	$(MAKE) create_docker_images
 
 	@echo "=================================================="
 	@echo "Creating virtualenv @ $(VENV_PATH)"
@@ -105,6 +113,21 @@ uninstall:
 
 	@echo "Removing .env"
 	-rm .env
+
+
+.PHONY: docker
+create_docker_images:
+	@echo "=================================================="
+	@echo "Creating docker images"
+	@echo "=================================================="
+	@for d in $(DOCKER_DIR)/*; do \
+		if [ -d "$$d" ]; then \
+			img_name=$$(basename $$d); \
+			echo "Building $$img_name from $$d"; \
+			sudo docker build --pull --no-cache -t $$img_name:latest $$d; \
+		fi \
+	done
+
 
 clean:
 	#rm -f myapp
