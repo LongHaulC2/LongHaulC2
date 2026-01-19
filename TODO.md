@@ -146,6 +146,36 @@
                - This could, and probably should be added onto http-post server output, but it doesn't matter too much, as 
                   no meaningful data is transfered on that channel afaik. (some profiles do use it for some seemingly blank data)
 
+      - [ ] Plan and build out the actual build process
+         - Docker based build system would be nice, takes longer and is a PITA. 
+         Aparently docker lib is better now.
+         Steps:
+            1 docker container per compile
+            Volumes, source is temp dir where code is generated, then out to another temp. Binary is then read from out temp, and stored in SQL with relevant data. 
+
+         Ex: (no more boilerplate yay)
+         ```
+         import docker
+
+         client = docker.from_env()
+
+         # ephemeral container build
+         container = client.containers.run(
+            "windows_build_image",
+            command="powershell -Command ./build.ps1",
+            volumes={
+               "./source": {"bind": "C:/src", "mode": "rw"}, # temp dir where code is generated
+               "./output": {"bind": "C:/out", "mode": "rw"} # temp dir ccreated b4, binary is read out of here.
+            },
+            remove=True,
+            detach=True
+         )
+
+         # wait and get logs
+         container.wait()
+         print(container.logs().decode())
+         ```
+
 
 
       - [ ] Do basic compilation checks (copy paste into visual studio) to make sure generation is okay
