@@ -19,8 +19,6 @@ from client.src.client.modules.api_calls import (
 from client.src.client.modules.task_definitions import ResultType, task_tree
 from client.src.client.pages.menu import setup_menu
 from client.src.client.pages.notes import open_notes_dialog
-
-# from client.src.client.pages.menu import setup_menu
 from client.src.client.style import (
     BUTTON_COLOR,
     HIGHLIGHT_COLOR,
@@ -39,13 +37,11 @@ server_log.info("Loading /listeners page")
 
 @ui.page("/listeners")
 async def listeners():
-    # HEY- readme: This is a hack to get the page full screen (and make h-full work). It should also allow for things like headers to fit without adjusting it manually
-    # see the link below.
-    # https://github.com/zauberzeug/nicegui/discussions/4049
+    # 1. Full Screen Layout Setup
+    ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
     )
-    ui.context.client.content.classes("h-full")
 
     setup_menu("Listeners")
 
@@ -55,60 +51,73 @@ async def listeners():
 async def listener_view():
     """
     Listener View
-
-    Creates the table for on screen, initially blank.
-
-    Then, every 1 seconds, gets the new API data, and udpates the table based on it.
     """
-
-    # Keep track of previous implant IDs
+    # Keep track of state
     previous_ids = set()
-    table_initialized = False  # track if table columns are already built. Solves the bug of saying that every implant in the table is a new connection
+    table_initialized = False
 
-    # Setup header
-    with ui.row().classes("w-full items-center justify-between"):
-        # LEFT: title / context
-        ui.label("Listeners").classes(f"text-h6 dense {TEXT_COLOR}")
+    # --- MAIN GLASS PANEL ---
+    # Using 'tech-glass-panel' from CSS to handle the visuals (Glass/Border/Shadow)
+    with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
 
-        with ui.row().classes("items-center q-gutter-xs"):
+        # --- HEADER BAR ---
+        # Matches Payloads style
+        with ui.row().classes("w-full items-center justify-between tech-header-bar"):
 
-            # RIGHT: action buttons
-            with ui.row().classes("items-center q-gutter-xs"):
+            # Left: Title
+            with ui.row().classes("items-center gap-3"):
+                ui.icon("rss_feed", color="emerald-500").classes("text-xl")
+                ui.label("LISTENERS //").classes("tech-label-title")
 
-                with ui.button(
-                    icon="add", on_click=lambda: start_listener_dialogue()
-                ).props("dense flat round").classes(f"[&_.q-icon]:{ICON_COLOR}"):
-                    ui.tooltip("Add listener")
+            # Right: Controls
+            with ui.row().classes("items-center gap-2"):
 
-                with ui.button(icon="refresh", on_click=lambda: refresh()).props(
-                    "dense flat round"
-                ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
-                    ui.tooltip("Force Refresh listeners table")
+                # ADD BUTTON
+                with ui.button(on_click=start_listener_dialogue).classes(
+                    "tech-btn-action px-3"
+                ).props("flat no-caps dense"):
+                    ui.icon("add", size="xs").classes("mr-2")
+                    ui.label("NEW").classes("text-xs font-bold tracking-wide")
+                    ui.tooltip("Spawn new listener")
 
-                with ui.button(icon="stop", on_click=lambda: stop_listeners()).props(
-                    "dense flat round"
-                ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
-                    ui.tooltip("Stop listener")
+                # REFRESH
+                ui.button(icon="refresh", on_click=lambda: refresh()).props(
+                    "dense flat size=sm"
+                ).classes("tech-btn-ghost").tooltip("Force Refresh")
 
-    ui.separator()
+                # STOP
+                ui.button(icon="stop", on_click=lambda: stop_listeners()).props(
+                    "dense flat size=sm"
+                ).classes("text-red-400 hover:text-red-200 transition-colors").tooltip(
+                    "Stop Selected Listeners"
+                )
 
-    table = (
-        ui.table(
-            columns=[],  # filled later
-            rows=[],
-            row_key="listener_uuid",
-            selection="multiple",
-            # on_select=lambda e: ui.notify(f"selected: {e.selection}"),
-            pagination=100,
-        )
-        .classes(f"w-full no-shadow {TEXT_COLOR}")
-        .props("dense virtual-scroll")
-        # virtual scroll only renders items on screen. Helpful when a large amount of items exist in the table.
-    )
+        # --- TABLE AREA ---
+        # Fills remaining height, no padding around table so it hits the edges
+        with ui.column().classes("w-full flex-grow relative overflow-hidden"):
+
+            table = (
+                ui.table(
+                    columns=[],  # filled later
+                    rows=[],
+                    row_key="listener_uuid",
+                    selection="multiple",
+                    pagination=100,
+                )
+                # TABLE STYLING:
+                # bg-transparent: Blends into the main glass panel
+                # no-shadow: Removes card look
+                # text-neutral-300: Ensures text is readable on dark bg
+                .classes(
+                    "w-full h-full no-shadow bg-transparent text-neutral-300"
+                ).props("dense flat virtual-scroll square")
+            )
+
+    # --- LOGIC ---
 
     async def refresh():
-        nonlocal previous_ids  # use the variable above that's in the implant_view scope, to track listener_uuid's between calls
-        nonlocal table_initialized  # track if table columns are already built. Solves the bug of saying that every implant in the table is a new connection
+        nonlocal previous_ids
+        nonlocal table_initialized
 
         data = await get_all_listener_data()
         data = data.get("data")
@@ -118,8 +127,6 @@ async def listener_view():
 
         # Build columns only once
         if not table_initialized:
-            # using tuple as rows are NOT re-created/edit
-            # previous iterations used a list derived from the inital row
             keys = tuple(data[0].keys())
             table.columns = [
                 {
@@ -130,94 +137,59 @@ async def listener_view():
                     "align": "left",
                 }
                 for key in keys
-                # EXCLUDE contents, it blows up the table
-                if key != "listener_profile_contents"
+                if key != "listener_profile_contents"  # Exclude large content
             ]
-            # https://nicegui.io/documentation/table#table_cells_with_html
-            # adding HTML rendering in.
-            # Slightly diff than example, but still renders correctly. Also, only adding on AFTER initilization, otherwise
-            # there's an error about the notes row not existing (which is expected with dynamic row generation)
-            # ALSO: <div style="max-height: 20px; max-width: 300px; overflow: hidden;">  keeps the row a max size to not blow up the screen
+
+            # HTML Rendering Slot for Notes
             table.add_slot(
                 "body-cell-notes",
                 """
                 <q-td :props="props">
-                    <div style="max-height: 20px; max-width: 300px; overflow: hidden; word-wrap: break-word; white-space: normal;"> 
-                        <!-- <span v-html="props.row.notes"></span> -->
-                        <!-- v-if only applies if the row/data actually exists, which saves some JS work -->
+                    <div style="max-height: 20px; max-width: 300px; overflow: hidden; word-wrap: break-word; white-space: normal;" class="opacity-70 text-xs font-mono"> 
                         <span v-if="props.row.notes" v-html="props.row.notes"></span>
+                    </div>
                 </q-td>
                 """,
             )
 
-            table_initialized = True  # mark table as initialized, meaning the first time setup is done & basic data is loaded in.
+            # Custom Header Styling (Tech Look) to match the dark theme
+            table.add_slot(
+                "header",
+                r"""
+                <q-tr :props="props" class="bg-white/5 text-neutral-400 uppercase text-xs tracking-wider border-b border-white/10">
+                    <q-th auto-width />
+                    <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                        {{ col.label }}
+                    </q-th>
+                </q-tr>
+            """,
+            )
 
-        # Update table rows
+            table_initialized = True
+
         table.rows = data
         table.update()
 
-    async def action_delete_rows():
-        ids = [row["listener_uuid"] for row in table.selected]
-
-        if not ids:
-            ui.notify("No rows selected", color="warning")
-            return
-
-        for listener_uuid in ids:
-            # do request
-            await delete_implant(listener_uuid=listener_uuid)
-
-            # bug, rows are still "checked" after deleting
-
-    # async def handle_notes():
-    #     # get all selected
-    #     ids = [row["llistener_uuid"] for row in table.selected]
-    #     # if selected = 1, pull up notes from that agent and populate editor with them
-
-    #     if len(ids) == 1:
-    #         listener_uuid = ids[0]
-    #         # lookup server value of notes, NOT what's currently in the table. Server is source of truth
-    #         implant_data = await get_list(listener_uuid=listener_uuid)
-    #         implant_notes = implant_data.get("data", {}).get("notes")
-
-    #         # get notes from dialog
-    #         notes = await open_notes_dialog(
-    #             implant_uuid == f"ID: {listener_uuid}",
-    #             populate_editor_with=implant_notes,
-    #         )
-
-    #         data = {"notes": notes}
-    #         # post to update implant
-    #         # NOT IMPLEMENTED YET
-    #         await update_implant(listener_uuid=listener_uuid, data=data)
-
-    #     elif len(ids) > 1:
-    #         notes = await open_notes_dialog(
-    #             listener_uuid=f"Editing {len(ids)} implants notes"
-    #         )
-    #         # ui.notify(notes)
-    #         # post to update all the implants
-    #         data = {"notes": notes}
-
-    #         for listener_uuid in ids:
-    #             await update_implant(listener_uuid=listener_uuid, data=data)
-
-    #     else:
-    #         ui.notify("Please select an implant to edit its notes")
-    #     #
-
     async def stop_listeners():
-        # get all  selected
         selected_listeners_uuids = [row["listener_uuid"] for row in table.selected]
+        if not selected_listeners_uuids:
+            ui.notify("No listeners selected", type="warning", color="orange-9")
+            return
 
         for listener_uuid in selected_listeners_uuids:
             await stop_listener(listener_uuid)
 
-        # call refresh
         await refresh()
+        ui.notify(
+            f"Stopped {len(selected_listeners_uuids)} listeners",
+            type="info",
+            color="grey-8",
+        )
 
-    # set to every 3 seconds, less load on server.
+    # Start Timer
     ui.timer(3, refresh)
+    # Initial load
+    await refresh()
 
 
 async def start_listener_dialogue():
@@ -231,10 +203,7 @@ async def start_listener_dialogue():
         )
 
         if not file_path.exists():
-            ui.notify(
-                f"Malleable profile not found: {file_path.name}",
-                type="warning",
-            )
+            ui.notify(f"Malleable profile not found: {file_path.name}", type="warning")
             return
 
         listener_host = listener_host_field.value
@@ -245,9 +214,8 @@ async def start_listener_dialogue():
         listener_profile_name = listener_profile_field.value
         listener_profile_contents = get_malleable_profile_content(file_path)
 
-        # basic validation
         if not all([listener_host, listener_port, listener_type, listener_name]):
-            ui.notify("Please fill in all required fields", type="warning")
+            ui.notify("Missing required fields", type="warning", color="orange-9")
             return
 
         dialog_spinner.visible = True
@@ -265,102 +233,104 @@ async def start_listener_dialogue():
         dialog_spinner.visible = False
 
         if not result:
-            ui.notify("Listener could not be started", type="negative")
+            ui.notify("Failed to start listener", type="negative")
             return
 
-        ui.notify("Listener started successfully", type="positive")
+        ui.notify("Listener started successfully", type="positive", color="emerald-9")
         dialog.close()
-        # await refresh()
 
-    with ui.dialog() as dialog:
-        with ui.card().classes("w-[600px] max-w-full p-6 space-y-4 rounded-xl"):
+    # --- TECH DIALOG ---
+    # Using 'tech-dialog' class for styling
+    with ui.dialog() as dialog, ui.card().classes(
+        "tech-dialog w-[600px] p-0 rounded overflow-hidden"
+    ):
 
-            # Header
-            ui.label("Spawn Listener").classes("text-xl font-semibold text-center")
-            ui.label("Create and start a new C2 listener").classes(
-                "text-sm text-gray-500 text-center"
+        # Header
+        with ui.row().classes(
+            "w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"
+        ):
+            with ui.row().classes("gap-2 items-center"):
+                ui.icon("rocket_launch", color="emerald-500")
+                ui.label("SPAWN_LISTENER").classes(
+                    "text-sm font-bold tracking-widest text-emerald-500 font-mono"
+                )
+            ui.button(icon="close", on_click=dialog.close).props(
+                "dense flat size=sm color=grey"
             )
 
-            ui.separator()
+        # Body
+        with ui.column().classes("p-6 gap-6 w-full"):
 
-            # Name + Type
+            # Name & Type
             with ui.row().classes("w-full gap-4"):
                 listener_name_field = (
-                    ui.input("Name").props("outlined dense").classes("flex-1")
+                    ui.input("NAME")
+                    .props("outlined dense dark color=emerald")
+                    .classes("flex-1")
                 )
-
                 listener_type_field = (
-                    ui.select(
-                        ["http", "ntp"],
-                        label="Type",
-                        value="http",
-                    )
-                    .props("outlined dense")
+                    ui.select(["http", "ntp"], label="TYPE", value="http")
+                    .props("outlined dense dark color=emerald options-dense")
                     .classes("flex-1")
                 )
 
-            # Host + Port
+            # Host & Port
             with ui.row().classes("w-full gap-4"):
                 listener_host_field = (
-                    ui.input("Host").props("outlined dense").classes("flex-1")
+                    ui.input("HOST")
+                    .props("outlined dense dark color=emerald")
+                    .classes("flex-1")
                 )
                 with listener_host_field:
-                    ui.tooltip(
-                        "Put the external IP or hostname the implant should connect back to. "
-                        "This must be reachable by the target. Do NOT use 0.0.0.0. - implant will call out to nothing"
-                    )
+                    ui.tooltip("External IP/Hostname. Do NOT use 0.0.0.0")
+
                 listener_port_field = (
                     ui.input(
-                        label="Port",
+                        label="PORT",
                         placeholder="1–65535",
                         validation={
-                            "Must be a number": lambda v: v.isdigit(),
-                            "Must be 1–65535": lambda v: v.isdigit()
-                            and 1 <= int(v) <= 65535,
+                            "Invalid": lambda v: v.isdigit() and 1 <= int(v) <= 65535,
                         },
                     )
-                    .props("outlined dense type=number min=1 max=65535")
+                    .props(
+                        "outlined dense dark type=number min=1 max=65535 color=emerald"
+                    )
                     .classes("w-32")
                 )
 
             # Notes
             listener_notes_field = (
-                ui.textarea("Notes [expands if you hit enter]")
-                .props("outlined autogrow")
-                .classes("w-full flex")
+                ui.textarea("NOTES")
+                .props("outlined autogrow dark color=emerald")
+                .classes("w-full")
             )
-            ui.separator()
 
             # Profile
             listener_profile_field = (
                 ui.select(
                     get_malleable_profiles_list(),
-                    label="Malleable C2 Profile",
+                    label="C2 PROFILE",
                     with_input=True,
                 )
-                .props("outlined dense")
+                .props("outlined dense dark color=emerald options-dense")
                 .classes("w-full")
             )
 
-            ui.separator()
-
-            # Spinner (hidden by default)
+        # Footer
+        with ui.row().classes(
+            "w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"
+        ):
+            # Spinner
             dialog_spinner = ui.spinner(size="sm")
             dialog_spinner.visible = False
 
-            # Actions
-            with ui.row().classes("w-full justify-end gap-2"):
-                ui.button(
-                    "Cancel",
-                    icon="close",
-                    on_click=dialog.close,
-                ).props("flat")
+            ui.button("CANCEL", on_click=dialog.close).props(
+                "flat dense color=grey no-caps"
+            )
 
-                ui.button(
-                    "Spawn Listener",
-                    icon="rocket_launch",
-                    on_click=_start_listener,
-                ).props("unelevated color=primary")
+            ui.button("INITIALIZE", on_click=_start_listener).props(
+                "unelevated dense color=emerald text-color=white no-caps"
+            ).classes("font-bold tracking-wide")
 
     dialog.open()
 
@@ -373,9 +343,7 @@ def get_malleable_profiles_list() -> list:
             (p.name for p in script_path.iterdir() if p.is_file()),
             key=str.lower,
         )
-
         return list_of_mc2_profiles
-
     except Exception as e:
         server_log.error(e)
         return []
@@ -385,7 +353,6 @@ def get_malleable_profile_content(file_path) -> str:
     try:
         with open(file_path, "r") as file:
             return file.read()
-
     except Exception as e:
         server_log.error(e)
         return ""
