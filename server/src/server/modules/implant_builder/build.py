@@ -1,3 +1,4 @@
+import functools
 import logging
 import shutil
 import tempfile
@@ -38,12 +39,11 @@ env = Environment(
     undefined=StrictUndefined,  # Fail fast if a var is missing
 )
 
-import functools
 
 server_logger = logging.getLogger("server")
 
 
-def build_implant(listener_uuid):
+def build_implant(listener_uuid, variant):
     """
     Function to call to build implant. API calls this.
 
@@ -72,14 +72,14 @@ def build_implant(listener_uuid):
     listener_type = listener_data.get("listener_type")
     listener_host = listener_data.get("listener_host")
     listener_port = listener_data.get("listener_port")
+    malleable_c2_profile = listener_data.get("listener_profile_contents")
     # temp
-    mc2_path = Path("/home/ubuntu-dev/LongHaulC2/tests/profiles/webbug.profile")
-    build_dir = create_implant(
-        malleable_c2_path=mc2_path,  # need to update to pass the full str, not the path now
+    build_dir = setup_implant_build_enviornment(
+        malleable_c2_profile=malleable_c2_profile,  # need to update to pass the full str, not the path now
         listener_type=listener_type,
         callback_host=listener_host,
         callback_port=int(listener_port),
-        # protocol variant = whatever
+        variant=variant,
     )
     docker_build_implant(build_dir)
 
@@ -92,16 +92,20 @@ def build_implant(listener_uuid):
         ps.register_payload(b"somepayload", listener_uuid)
 
 
-def create_implant(
-    malleable_c2_path, listener_type, callback_host, callback_port=0
+def setup_implant_build_enviornment(
+    malleable_c2_profile,
+    listener_type,
+    callback_host,
+    variant,
+    callback_port=0,
 ) -> Path:
 
     # temp overwrite for mallc2
-    mc2_path = Path("/home/ubuntu-dev/LongHaulC2/tests/profiles/webbug.profile")
+    # mc2_path = Path("/home/ubuntu-dev/LongHaulC2/tests/profiles/webbug.profile")
 
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(
-        listener_type=listener_type, malleable_c2=mc2_path.name
+        listener_type=listener_type  # malleable_c2=mc2_path.name
     )
     server_logger.info("Generating implant")
 
@@ -112,52 +116,59 @@ def create_implant(
         copy_base_structure(source_dir=IMPLANT_BASE, dest_dir=Path(tmp_dir).resolve())
 
         # print(f"File created: {temp_file}")
-        _create_implant(
+        render_implant(
             output_dir=Path(tmp_dir).resolve(),
-            malleable_c2_path=str(mc2_path),
+            malleable_c2_profile=malleable_c2_profile,
             listener_type=listener_type,
             callback_host=callback_host,
             callback_port=callback_port,
             # protocol_variant = whatever
+            variant=variant,
         )
     return Path(tmp_dir)
 
 
-def _create_implant(
-    output_dir: Path, malleable_c2_path, listener_type, callback_host, callback_port
+def render_implant(
+    output_dir: Path,
+    malleable_c2_profile,
+    listener_type,
+    callback_host,
+    callback_port,
+    variant,
 ):
 
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(
         output_dir=output_dir,
-        malleable_c2_path=malleable_c2_path,
+        # malleable_c2_path=malleable_c2_path,
         listener_type=listener_type,
     )
     server_logger.debug("_create_implant")
-
-    # if variant == http:
 
     # 1. Generate the shared context (Data usually needed by ALL files)
     # these are the keys that get plugged into the templates
     # one per listener type for explicitness/control
     match listener_type:
-        case "http_wininet":
-            global_context = generate_http_wininet_context(
-                malleable_c2_path, callback_host, callback_port
-            )
+        case "http":
+            if variant == "http_wininet":
+                global_context = generate_http_wininet_context(
+                    malleable_c2_profile, callback_host, callback_port
+                )
+
+            # elif...
+            else:
+                server_logger.error(f"Invalid HTTP variant: {variant}")
 
         case _:
             server_logger.error(f"Invalid listener type: {listener_type}")
             return
 
-    # if variant == ...
-
     # 2. Define the File Map
     # Structure: "Destination Path" : "Source Template"
     files_to_render = {}
 
-    # Add Listener Specific files
-    match listener_type:
+    # Add Listener Specific files, based on variant.
+    match variant:
         case "http_wininet":
             # render and save to comms.cpp... (high level http funcsd)
             files_to_render[output_dir / "lifecycle/comms.cpp"] = (

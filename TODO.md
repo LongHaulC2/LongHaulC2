@@ -173,6 +173,7 @@
 
          - cleint has a field to specfy variant.
          - [ ] add in a field to api, and logic in build, for which variant to build/use.
+            # variant goes in implant builder dialog
 
       - [ ] API: hook up funcs to api
          - [X] build entry in build.py

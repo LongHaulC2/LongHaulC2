@@ -11,7 +11,7 @@ server_logger = logging.getLogger("server")
 
 
 def generate_http_wininet_context(
-    malleable_c2_path: str, callback_host: str, callback_port: int
+    malleable_c2_profile: str, callback_host: str, callback_port: int
 ) -> dict:
     """
     Main entry point to generate the Jinja2 context for HTTP Wininet listeners.
@@ -19,7 +19,7 @@ def generate_http_wininet_context(
     """
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(
-        malleable_c2=Path(malleable_c2_path).name,
+        # malleable_c2=Path(malleable_c2_path).name,
         callback_host=callback_host,
         callback_port=callback_port,
     )
@@ -27,7 +27,7 @@ def generate_http_wininet_context(
     server_logger.info("Generating HTTP Wininet context")
 
     # 1. Load and Parse Profile
-    profile = _load_malleable_profile(malleable_c2_path)
+    profile = _load_malleable_profile(malleable_c2_profile)
 
     context = {}
 
@@ -46,20 +46,20 @@ def generate_http_wininet_context(
     return context
 
 
-def _load_malleable_profile(path: str) -> MalleableProfile:
+def _load_malleable_profile(malleable_c2_profile: str) -> MalleableProfile:
     """
     Helper to safely load the MalleableProfile.
     Handles the quirk where mpp requires a file path rather than a string.
     """
-    server_logger.debug(f"Parsing Malleable C2 profile: {path}")
+    server_logger.debug(f"Parsing Malleable C2 profile.")
 
     try:
-        with open(path, "r") as file:
-            content = file.read()
+        # with open(path, "r") as file:
+        #     content = file.read()
 
         # Create a temporary file because mpp library requires a file path
         with tempfile.NamedTemporaryFile("w+", suffix=".profile") as tmp_file:
-            tmp_file.write(content)
+            tmp_file.write(malleable_c2_profile)
             tmp_file.flush()
             return MalleableProfile(profile=tmp_file.name)
 

@@ -46,6 +46,18 @@ server_logger = logging.getLogger("server")
 # GET /build/{HASH}      → download a specific implant binary
 # DELETE /build/{HASH}   → remove a build
 
+build_implant_model = build_ns.model(
+    "BuildImplantInput",
+    {
+        "variant": fields.String(
+            required=True,
+            description="The communication variant to use",
+            example="http_wininet",
+            # enum=["http_wininet", "http_curl"] # Optional: strictly enforce options
+        )
+    },
+)
+
 
 class Build(Resource):
     @build_ns.doc(
@@ -65,6 +77,7 @@ class Build(Resource):
             405: "Method Not Allowed",
         },
     )
+    @build_ns.expect(build_implant_model, validate=False)  # flip to True to enforce
     def post(self, uuid):  # get one implant
         """
         ...
@@ -79,8 +92,18 @@ class Build(Resource):
             },
         )
         check_type(uuid, str, "uuid")
+        data = request.get_json()
 
-        build_implant(uuid)
+        variant = request.get("variant")
+
+        if not variant:
+            api_response = APIResponse(
+                status="400",
+                message="Missing variant field",
+            )
+            return api_response.jsonify()
+
+        build_implant(uuid, variant)
 
         # return immediatly, don't send hash to not wait on build.
         # client will get hash with get req
