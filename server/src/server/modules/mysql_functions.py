@@ -586,7 +586,9 @@ class MySQLImplantPayloadService:
     def __init__(self, session):
         self.session = session
 
-    def register_payload(self, payload_bytes: bytes, listener_uuid: str) -> str:
+    def register_payload(
+        self, payload_name: str, payload_bytes: bytes, listener_uuid: str
+    ) -> str:
         """
         Create an entry for a new payload.
         Calculates the MD5, stores it as bytes, but returns it as a Hex String.
@@ -597,6 +599,7 @@ class MySQLImplantPayloadService:
 
         check_type(payload_bytes, bytes, "payload_bytes")
         check_type(listener_uuid, str, "listener_uuid")
+        check_type(payload_name, str, "payload_name")
 
         # get hash of payload
         md5_obj = hashlib.md5(payload_bytes)
@@ -624,6 +627,7 @@ class MySQLImplantPayloadService:
             payload_hash=hash_bytes,
             payload_bytes=payload_bytes,
             payload_listener_uuid=listener_uuid,
+            payload_name=payload_name,
         )
 
         self.session.add(payload_entry)

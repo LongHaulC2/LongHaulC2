@@ -165,6 +165,8 @@ class ImplantPayload(Base):
 
     payload_listener_uuid = Column(String(36))  # matches Listener model uuid
 
+    payload_name = Column(Text)
+
     def to_dict(self):
         """
         Turns each field into a dict.

@@ -154,12 +154,12 @@ async def start_implant_dialogue():
 
     # 4. Action Handler: Build
     async def _build_implant():
-        name = implant_name_field.value
+        implant_name = implant_name_field.value
         listener_name = implant_listener_field.value
         variant = implant_variant_field.value
 
         # Validation
-        if not all([name, listener_name]):
+        if not all([implant_name, listener_name]):
             ui.notify("Please fill in all required fields", type="warning")
             return
 
@@ -175,7 +175,7 @@ async def start_implant_dialogue():
 
         # Call build service
         result = await build_implant(
-            implant_name=name,
+            implant_name=implant_name,
             implant_listener_uuid=listener_uuid,
             implant_variant=variant if implant_variant_field.visible else None,
         )

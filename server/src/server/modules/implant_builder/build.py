@@ -43,7 +43,7 @@ env = Environment(
 server_logger = logging.getLogger("server")
 
 
-def build_implant(listener_uuid, variant):
+def build_implant(implant_name, listener_uuid, variant):
     """
     Function to call to build implant. API calls this.
 
@@ -101,13 +101,12 @@ def build_implant(listener_uuid, variant):
     for file_path in output_dir.iterdir():
         if file_path.is_file():
 
-            # 1. Read the raw artifact
+            # Read the raw artifact w pathlib's read_bytes
             payload_bytes = file_path.read_bytes()
-
-            # 2. Register to Database
+            # Register to Database
             with get_mysql_session() as session:
                 service = MySQLImplantPayloadService(session)
-                service.register_payload(payload_bytes, listener_uuid)
+                service.register_payload(implant_name, payload_bytes, listener_uuid)
 
 
 def setup_implant_build_enviornment(

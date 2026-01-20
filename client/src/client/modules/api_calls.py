@@ -195,7 +195,7 @@ async def build_implant(implant_name, implant_listener_uuid, implant_variant) ->
         # "implant_name": implant_name,
         "implant_variant": implant_variant,
         "implant_listener_uuid": implant_listener_uuid,
-        "implant_variant": implant_variant,
+        "implant_name": implant_name,
     }
 
     url = generate_url(f"/api/v1/build/")

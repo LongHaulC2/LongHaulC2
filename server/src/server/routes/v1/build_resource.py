@@ -77,33 +77,30 @@ class Build(Resource):
             405: "Method Not Allowed",
         },
     )
-    @build_ns.expect(build_implant_model, validate=False)  # flip to True to enforce
-    def post(self):  # get one implant
-        """ """
-        print("BUILDING")
-        ip = request.remote_addr
+    @build_ns.expect(build_implant_model, validate=True)  # flip to True to enforce
+    def post(self):
+        """
+        Submit a build task.
+        """
+        data = build_ns.payload
 
-        data = request.get_json()
+        listener_uuid = data["implant_listener_uuid"]
+        variant = data["implant_variant"]
+        implant_name = data["implant_name"]
 
-        implant_variant = data.get("implant_variant")
-        implant_listener_uuid = data.get("implant_listener_uuid")
-
-        if not all([implant_variant, implant_listener_uuid]):
-            api_response = APIResponse(
-                status="400",
-                message="Missing field",
-            )
-            return api_response.jsonify()
-
-        build_implant(implant_listener_uuid, implant_variant)
-
-        # return immediatly, don't send hash to not wait on build.
-        # client will get hash with get req
-        api_response = APIResponse(
-            status="200",
-            message="Success",
+        api_logger.info(
+            f"Build requested for listener {listener_uuid} (Variant: {variant})",
+            extra={"caller_ip": request.remote_addr},
         )
-        return api_response.jsonify()
+
+        # 3. Trigger Build
+        build_implant(implant_name, listener_uuid, variant)
+
+        # 4. Return immediately
+        return APIResponse(
+            status="200",
+            message="Build process initiated successfully",
+        ).jsonify()
 
 
 # GET /build/hash: Get singular binary
