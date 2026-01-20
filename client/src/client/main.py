@@ -4,6 +4,7 @@ import platform
 from nicegui import app, ui
 
 import client.src.client.log
+import client.src.client.pages.implants
 import client.src.client.pages.listeners
 
 # notes, just import your page here and it'll do the import python magic to add it to the web interface
