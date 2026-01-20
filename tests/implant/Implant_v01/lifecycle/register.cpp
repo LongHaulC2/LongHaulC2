@@ -6,7 +6,7 @@
 
 //placeholder register func. Put somehwere in control
 std::string register_implant() {
-    std::vector<uint8_t> http_response_buffer;
+    std::string http_response_buffer;
 
     // Define headers (No \r\n needed)
     //do this dynamically later

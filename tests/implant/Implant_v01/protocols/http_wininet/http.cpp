@@ -6,7 +6,7 @@
 #pragma comment(lib, "wininet.lib")
 
 
-bool HTTP_GET(std::vector<std::wstring>& headers, std::vector<uint8_t>& response) {
+bool HTTP_GET(std::vector<std::wstring>& headers, std::string& response) {
     // 1. Initialize
     //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-internetopenw
     HINTERNET hInternet = InternetOpenW(
@@ -79,7 +79,7 @@ bool HTTP_GET(std::vector<std::wstring>& headers, std::vector<uint8_t>& response
 }
 
 
-bool HTTP_POST(std::string data, std::vector<std::wstring>& headers, std::vector<uint8_t>& response) {
+bool HTTP_POST(std::string data, std::vector<std::wstring>& headers, std::string& response) {
     // 1. Initialize
     //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-internetopenw
     HINTERNET hInternet = InternetOpenW(

