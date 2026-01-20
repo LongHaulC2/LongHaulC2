@@ -173,6 +173,8 @@
          - [ ] Server: Clean up, add output options/logic (exe, etc)
             - Going to need to get that logic into the build process, for which verson of main to include (dll, vs exe main - have a template for both)
 
+         - [ ] Listeners tab - > change to name : uuid in the dropdowns
+
 
 
 Just remember, block == sender (ex, client, means sent from client). Transformations are top down
