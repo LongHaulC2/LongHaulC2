@@ -104,6 +104,6 @@ if __name__ == "__main__":
     from .modules.implant_builder.build import build_implant, create_implant
 
     # create_implant("", "http_wininet", "0.0.0.0", 9010)
-    build_implant("")
+    # build_implant("")
 
-    # app.run(host="0.0.0.0", port=45045, debug=False)
+    app.run(host="0.0.0.0", port=45045, debug=False)

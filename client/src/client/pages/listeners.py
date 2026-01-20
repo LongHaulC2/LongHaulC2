@@ -300,7 +300,11 @@ async def listener_view():
                     listener_host_field = (
                         ui.input("Host").props("outlined dense").classes("flex-1")
                     )
-
+                    with listener_host_field:
+                        ui.tooltip(
+                            "Put the external IP or hostname the implant should connect back to. "
+                            "This must be reachable by the target. Do NOT use 0.0.0.0. - implant will call out to nothing"
+                        )
                     listener_port_field = (
                         ui.input(
                             label="Port",

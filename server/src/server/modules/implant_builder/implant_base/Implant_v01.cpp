@@ -76,13 +76,12 @@ int temp_loop() {
             std::cout << "No task or failed request. Sleeping..." << std::endl;
         }
 
-        //Sleep(5000);
-        Sleep([[ sleep_time ]])
+        Sleep(5000);
+        //Sleep([[ sleep_time ]])
     }
 }
 
-int main()
-{
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     std::cout << "hello" << std::endl;
 
     //for debugging/sanity check, run all tests first. Remove for production use.
@@ -92,3 +91,4 @@ int main()
 
     return 0;
 }
+

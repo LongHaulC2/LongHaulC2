@@ -15,7 +15,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "/output")
 
 # Core sources
 set(SOURCES
-    "Implant_v01.cpp.j2"
+    "Implant_v01.cpp"
     "Implant_v01.h"
     "systems/memtrack.cpp"
     "control/settings/settings.cpp"
