@@ -6,149 +6,175 @@ import httpx
 from nicegui import events, ui
 
 from client.src.client.pages.menu import setup_menu
-
-# from client.src.client.pages.menu import setup_menu
-from client.src.client.style import (
-    BUTTON_COLOR,
-    HIGHLIGHT_COLOR,
-    ICON_COLOR,
-    NAVBAR_COLOR,
-    TEXT_COLOR,
-)
-from client.src.client.utils.helpers import get_timestamp_from_uuid7
+from client.src.client.style import TEXT_COLOR
 from client.src.client.utils.url import generate_url
 
 from ..utils.checks import check_type
 
 server_log = logging.getLogger("server")
-
 server_log.info("Loading /search page")
 
 
 @ui.page("/search")
 async def search():
-    # HEY- readme: This is a hack to get the page full screen (and make h-full work). It should also allow for things like headers to fit without adjusting it manually
-    # see the link below.
-    # https://github.com/zauberzeug/nicegui/discussions/4049
+    # 1. Full Screen Layout Setup
+    ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
     )
-    ui.context.client.content.classes("h-full")
 
     setup_menu("Event Search")
-    with ui.element().classes("w-full h-full"):
-        # ui.label("search")
-        await search_to_type()
+    await search_view()
 
 
-async def search_to_type():
-    #!/usr/bin/env python3
+async def search_view():
 
+    # Global state for the search logic
     api = httpx.AsyncClient()
     running_query: Optional[asyncio.Task] = None
 
-    async def search(e: events.ValueChangeEventArguments) -> None:
-        """Search for data as you type"""
+    # --- UI LAYOUT ---
+
+    # 1. Main Glass Panel
+    with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
+
+        # 2. Header Bar
+        with ui.row().classes("w-full items-center justify-between tech-header-bar"):
+            with ui.row().classes("items-center gap-3"):
+                ui.icon("manage_search", color="emerald-500").classes("text-xl")
+                ui.label("GLOBAL_SEARCH //").classes("tech-label-title")
+
+        # 3. Command Bar (Search Inputs)
+        with ui.row().classes(
+            "w-full p-4 border-b border-white/5 bg-black/20 gap-4 items-center"
+        ):
+
+            # Search Type Dropdown
+            # Using a styled select instead of a dropdown button for cleaner UI
+            search_type = (
+                ui.select(
+                    options=["Implant Search", "Task Search"],
+                    value="Implant Search",
+                    label="MODE",
+                )
+                .props("outlined dense dark color=emerald options-dense")
+                .classes("w-48")
+            )
+
+            # Search Input
+            search_field = (
+                ui.input(
+                    placeholder="Enter query...",
+                )
+                .props(
+                    "outlined dense dark color=emerald input-class=text-emerald-400 autofocus"
+                )
+                .classes("flex-grow")
+            )
+
+            with search_field.add_slot("prepend"):
+                ui.icon("search", color="emerald-500")
+
+            # Spinner (Hidden by default)
+            search_spinner = ui.spinner(size="sm", color="emerald-500").classes(
+                "opacity-0 transition-opacity"
+            )
+
+        # 4. Results Area
+        with ui.column().classes(
+            "w-full flex-grow relative overflow-hidden bg-transparent"
+        ) as results_container:
+            # Initial Empty State
+            with ui.column().classes(
+                "w-full h-full items-center justify-center opacity-30"
+            ):
+                ui.icon("radar", size="6em")
+                ui.label("AWAITING INPUT").classes(
+                    "font-mono text-sm mt-4 tracking-widest"
+                )
+
+    # --- LOGIC ---
+
+    async def run_search(e: events.ValueChangeEventArguments) -> None:
         nonlocal running_query
 
+        # UI Feedback
+        search_spinner.classes(remove="opacity-0")  # Show spinner
+
         if running_query:
-            running_query.cancel()  # cancel the previous query; happens when you type fast
-        # define endpoints
-        # note, add search endpoints for better/more efficent searching, that only returns necessary data
-        if selector_button.text == "Implant Search":
+            running_query.cancel()
+
+        # Determine Endpoint & Layout
+        if search_type.value == "Implant Search":
             url = generate_url("/api/v1/implants/search")
-            # POST /api/v1/search/implants
             display_func = implants_list_layout
-        elif selector_button.text == "Task Search":
-            # doesn't exist yet, gets ALL history of ALL the implants
+        elif search_type.value == "Task Search":
             url = generate_url("/api/v1/implants/history/search")
-            # POST /api/v1/search/implants/history
             display_func = tasks_list_layout
 
-        search_field.classes("mt-2", remove="mt-24")  # move the search field up
-        results.clear()
+        # Clear previous results
+        results_container.clear()
+
+        # If empty input, reset to empty state
+        if not search_field.value:
+            search_spinner.classes("opacity-0", add=True)
+            with results_container:
+                with ui.column().classes(
+                    "w-full h-full items-center justify-center opacity-30"
+                ):
+                    ui.icon("radar", size="6em")
+                    ui.label("AWAITING INPUT").classes(
+                        "font-mono text-sm mt-4 tracking-widest"
+                    )
+            return
 
         request_body = {"search_term": search_field.value}
 
-        # store the http coroutine in a task so we can cancel it later if needed
-        running_query = asyncio.create_task(
-            api.post(
-                # put api call here
-                # f"https://www.thecocktaildb.com/api/json/v1/1/search.php?s={e.value}"
-                url,
-                json=request_body,
-            )
-        )
-        response = await running_query
-        if response.text == "":
-            return
-        with results:  # enter the context of the results row
-            # make this more robust
-            # have a row that is clickable that opens in a "client" window.
-            query_data = response.json().get("data")
-            await display_func(data=query_data)
+        async def fetch():
+            try:
+                resp = await api.post(url, json=request_body)
+                if resp.status_code == 200:
+                    data = resp.json().get("data", [])
 
-        running_query = None
+                    # Render Results
+                    with results_container:
+                        if not data:
+                            with ui.column().classes(
+                                "w-full h-1/2 items-center justify-center opacity-50"
+                            ):
+                                ui.label("NO MATCHES FOUND").classes(
+                                    "font-mono text-sm text-red-400"
+                                )
+                        else:
+                            await display_func(data=data)
+            except Exception as err:
+                server_log.error(f"Search error: {err}")
+            finally:
+                search_spinner.classes("opacity-0", add=True)  # Hide spinner
 
-    # create a search field which is initially focused and leaves space at the top
-    search_field = (
-        ui.input(on_change=search)
-        .props("autofocus outlined flat")
-        .classes(f"w-1/2 mt-24 mx-auto")
-        .style(f"--q-primary: {HIGHLIGHT_COLOR};")
-    )
+        running_query = asyncio.create_task(fetch())
+        try:
+            await running_query
+        except asyncio.CancelledError:
+            pass
 
-    # add dropdown to search field
-    with search_field.add_slot("prepend"):
-        # shadow won't go away D:
-        selector_button = (
-            ui.dropdown_button(
-                "Implant Search",
-                auto_close=True,
-            )
-            .props("flat dense")
-            .classes("no-shadow")
-        )
+    # Attach Handler
+    search_field.on_value_change(run_search)
 
-        # updates the text to be what the user selected
-        def select_mode(label: str):
-            selector_button.text = label
 
-        with selector_button:
-            ui.item("Implant Search", on_click=lambda: select_mode("Implant Search"))
-            ui.item("Task Search", on_click=lambda: select_mode("Task Search"))
-
-    results = ui.row()
+# --- LAYOUT RENDERERS ---
 
 
 async def implants_list_layout(data: list[dict]):
-    """
-    Implant table view. Similar to the operations view, with reduced functionality.
-    """
+    """Renders the Implant Search Results Table"""
     check_type(data, list, "data")
 
-    table = (
-        ui.table(
-            columns=[],  # filled later
-            rows=[],
-            row_key="implant_uuid",
-            # selection="multiple",  # no selection, no use here currently.
-            # on_select=lambda e: ui.notify(f"selected: {e.selection}"),
-            pagination=100,
-        )
-        .classes(f"w-full no-shadow {TEXT_COLOR}")
-        .props("dense virtual-scroll")
-        # virtual scroll only renders items on screen. Helpful when a large amount of items exist in the table.")
-    )
-
-    # if no search results, DO NOT continue with dynamic generation of table
-    # This *will* show an empty table. Move above the table def to not do that.
-    if data == None or data == []:
+    if not data:
         return
 
-    # if not table.columns:
+    # Tech Table Setup
     first_row = data[0]
-    table.columns = [
+    cols = [
         {
             "name": key,
             "label": key.replace("_", " ").title(),
@@ -159,54 +185,46 @@ async def implants_list_layout(data: list[dict]):
         for key in first_row.keys()
     ]
 
-    # https://nicegui.io/documentation/table#table_cells_with_html
-    # adding HTML rendering in.
-    # Slightly diff than example, but still renders correctly. Also, only adding on AFTER initilization, otherwise
-    # there's an error about the notes row not existing (which is expected with dynamic row generation)
-    # ALSO: <div style="max-height: 20px; max-width: 300px; overflow: hidden;">  keeps the row a max size to not blow up the screen
-    # this is slightly bigger  than the operations tab, for easier viewing
-    table.add_slot(
-        "body-cell-notes",
-        """
-            <q-td :props="props">
-                <div style="max-height: 20px; max-width: 300px; overflow: hidden; word-wrap: break-word; white-space: normal;"> 
-                    <!-- <span v-html="props.row.notes"></span> -->
-                    <!-- v-if only applies if the row/data actually exists, which saves some JS work -->
-                    <span v-if="props.row.notes" v-html="props.row.notes"></span>
-            </q-td>
-        """,
+    table = (
+        ui.table(columns=cols, rows=data, row_key="implant_uuid", pagination=50)
+        .classes("w-full h-full no-shadow bg-transparent text-neutral-300")
+        .props("dense flat virtual-scroll square")
     )
 
-    # finally, Update table rows
-    table.rows = data
-    table.update()
+    # Custom Header styling (Dark/Tech)
+    table.add_slot(
+        "header",
+        r"""
+        <q-tr :props="props" class="bg-white/5 text-neutral-400 uppercase text-xs tracking-wider border-b border-white/10">
+            <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+            </q-th>
+        </q-tr>
+    """,
+    )
+
+    # Notes Column Rendering
+    table.add_slot(
+        "body-cell-notes",
+        r"""
+        <q-td :props="props">
+            <div style="max-height: 20px; max-width: 300px; overflow: hidden;" class="opacity-70 text-xs font-mono"> 
+                <span v-if="props.row.notes" v-html="props.row.notes"></span>
+            </div>
+        </q-td>
+    """,
+    )
 
 
 async def tasks_list_layout(data):
+    """Renders the Task Search Results Table"""
     check_type(data, list, "data")
 
-    table = (
-        ui.table(
-            columns=[],  # filled later
-            rows=[],
-            row_key="task_uuid",
-            # selection="multiple",  # no selection, no use here currently.
-            # on_select=lambda e: ui.notify(f"selected: {e.selection}"),
-            pagination=100,
-        )
-        .classes(f"w-full no-shadow {TEXT_COLOR}")
-        .props("dense virtual-scroll")
-        # virtual scroll only renders items on screen. Helpful when a large amount of items exist in the table.")
-    )
-
-    # if no search results, DO NOT continue with dynamic generation of table
-    # This *will* show an empty table. Move above the table def to not do that.
-    if data == None or data == []:
+    if not data:
         return
 
-    # if not table.columns:
     first_row = data[0]
-    table.columns = [
+    cols = [
         {
             "name": key,
             "label": key.replace("_", " ").title(),
@@ -215,47 +233,35 @@ async def tasks_list_layout(data):
             "align": "left",
         }
         for key in first_row.keys()
-        # exclude these, these are json reps of the responses. text version is stored in *_text, ex: task_response_text.
-        # These show up blank in the table.
-        if key not in ["task_request", "task_response"]
-        # convert impalnt_uuid to timestamp with get_timestamp_from_uuid7, and add to table
+        if key not in ["task_request", "task_response"]  # Hide raw JSON
     ]
 
-    # optional for later.
-    # Convert `implant_uuid` to timestamp using `get_timestamp_from_uuid7`
-    # and add it as a new column to the table
-    # if "task_uuid" in first_row:
-    #     timestamp_column = {
-    #         "name": "task_timestamp",
-    #         "label": "Task Queue Timestamp",
-    #         "field": "task_queue_timestamp",
-    #         "sortable": True,
-    #         "align": "left",
-    #     }
-    #     table.columns.append(timestamp_column)
-
-    #     # Add the timestamp to each row in the data (using the `get_timestamp_from_uuid7` function)
-    #     for row in data:
-    #         row["task_timestamp"] = get_timestamp_from_uuid7(row["task_uuid"])
-
-    # https://nicegui.io/documentation/table#table_cells_with_html
-    # adding HTML rendering in.
-    # Slightly diff than example, but still renders correctly. Also, only adding on AFTER initilization, otherwise
-    # there's an error about the notes row not existing (which is expected with dynamic row generation)
-    # ALSO: <div style="max-height: 20px; max-width: 300px; overflow: hidden;">  keeps the row a max size to not blow up the screen
-    # this is slightly bigger  than the operations tab, for easier viewing
-    table.add_slot(
-        "body-cell-notes",
-        """
-            <q-td :props="props">
-                <div style="max-height: 20px; max-width: 300px; overflow: hidden; word-wrap: break-word; white-space: normal;"> 
-                    <!-- <span v-html="props.row.notes"></span> -->
-                    <!-- v-if only applies if the row/data actually exists, which saves some JS work -->
-                    <span v-if="props.row.notes" v-html="props.row.notes"></span>
-            </q-td>
-        """,
+    table = (
+        ui.table(columns=cols, rows=data, row_key="task_uuid", pagination=50)
+        .classes("w-full h-full no-shadow bg-transparent text-neutral-300")
+        .props("dense flat virtual-scroll square")
     )
 
-    # finally, Update table rows
-    table.rows = data
-    table.update()
+    # Custom Header styling
+    table.add_slot(
+        "header",
+        r"""
+        <q-tr :props="props" class="bg-white/5 text-neutral-400 uppercase text-xs tracking-wider border-b border-white/10">
+            <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+            </q-th>
+        </q-tr>
+    """,
+    )
+
+    # Notes Rendering
+    table.add_slot(
+        "body-cell-notes",
+        r"""
+        <q-td :props="props">
+            <div style="max-height: 20px; max-width: 300px; overflow: hidden;" class="opacity-70 text-xs font-mono"> 
+                <span v-if="props.row.notes" v-html="props.row.notes"></span>
+            </div>
+        </q-td>
+    """,
+    )
