@@ -162,7 +162,7 @@ class ImplantPayload(Base):
     payload_bytes = Column(
         LONGBLOB, nullable=False
     )  # LONGBLOB is 4gb (massive, intentional for expandability)
-
+    payload_source_code_bytes = Column(LONGBLOB, nullable=False)
     payload_listener_uuid = Column(String(36))  # matches Listener model uuid
 
     payload_name = Column(Text)

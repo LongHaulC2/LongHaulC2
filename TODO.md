@@ -163,18 +163,19 @@
       >> 
       - [X] Do correct lookups for implant uuid -> new imlant. 
             Not hard, just need to pull correct data. in build.py
-      - [ ] Store binary output data in DB
-         - [ ] table
+      - [X] Store binary output data in DB
+         - [X] table
+      - [ ] Add in zipped source code to table as well
       - [ ] cleanup build.py
 
          # > here
          - Go thorugh the entire chain of files I edited last night and review
          - [ ] implant vs payload naming... payload: unran implant. Implant: Active implant?
-         - [ ] GUI: List/Download imlpants functionality
+         - [X] GUI: List/Download implants functionality
          - [ ] Server: Clean up, add output options/logic (exe, etc)
             - Going to need to get that logic into the build process, for which verson of main to include (dll, vs exe main - have a template for both)
 
-         - [ ] Listeners tab - > change to name : uuid in the dropdowns
+         - [X] Listeners tab - > change to name : uuid in the dropdowns
          - [ ] Defualt implant gets picked up by defender... yay. ON WHAT????? (it said ml. Probably new donwload, execute, and callback instantly to server)
 
 

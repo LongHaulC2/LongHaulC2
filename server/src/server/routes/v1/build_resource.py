@@ -59,7 +59,19 @@ build_implant_model = build_ns.model(
         "output_format": fields.String(
             required=True,
             description="The communication variant to use",
-            example="http_wininet",
+            example="exe",
+            # enum=["http_wininet", "http_curl"] # Optional: strictly enforce options
+        ),
+        "implant_name": fields.String(
+            required=True,
+            description="The name of the implant",
+            example="my_implant",
+            # enum=["http_wininet", "http_curl"] # Optional: strictly enforce options
+        ),
+        "listener_uuid": fields.String(
+            required=True,
+            description="The listener the implant will call back to. Important, as the implant is formatted with listener specific data.",
+            example="0000000-0000-0000-0000-000000000000",
             # enum=["http_wininet", "http_curl"] # Optional: strictly enforce options
         ),
     },
@@ -87,7 +99,7 @@ class Build(Resource):
     @build_ns.expect(build_implant_model, validate=True)  # flip to True to enforce
     def post(self):
         """
-        Submit a build task.
+        Submit a build task to build a payload.
         """
         data = build_ns.payload
 
@@ -112,7 +124,7 @@ class Build(Resource):
 
     def get(self):  # get one implant
         """
-        Get a list of all payloads
+        Get a list of all payloads in the Database
         """
         ip = request.remote_addr
 
@@ -156,7 +168,7 @@ class BinaryActions(Resource):
     )
     def get(self, hash):
         """
-        Download a specific payload artifact.
+        Download a specific payload artifact, based on the provided hash
         """
         ip = request.remote_addr
 
@@ -205,7 +217,7 @@ class BinaryActions(Resource):
     )
     def delete(self, hash):  # get one implant
         """
-        ...
+        Delete a specific payload artifact, based on the provided hash
 
         """
         ip = request.remote_addr
