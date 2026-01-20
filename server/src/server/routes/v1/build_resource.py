@@ -49,7 +49,7 @@ server_logger = logging.getLogger("server")
 build_implant_model = build_ns.model(
     "BuildImplantInput",
     {
-        "variant": fields.String(
+        "implant_variant": fields.String(
             required=True,
             description="The communication variant to use",
             example="http_wininet",
@@ -78,32 +78,24 @@ class Build(Resource):
         },
     )
     @build_ns.expect(build_implant_model, validate=False)  # flip to True to enforce
-    def post(self, uuid):  # get one implant
-        """
-        ...
-
-        """
+    def post(self):  # get one implant
+        """ """
+        print("BUILDING")
         ip = request.remote_addr
 
-        api_logger.info(
-            f"Getting implant {uuid} data",
-            extra={
-                "caller_ip": ip,
-            },
-        )
-        check_type(uuid, str, "uuid")
         data = request.get_json()
 
-        variant = request.get("variant")
+        implant_variant = data.get("implant_variant")
+        implant_listener_uuid = data.get("implant_listener_uuid")
 
-        if not variant:
+        if not all([implant_variant, implant_listener_uuid]):
             api_response = APIResponse(
                 status="400",
-                message="Missing variant field",
+                message="Missing field",
             )
             return api_response.jsonify()
 
-        build_implant(uuid, variant)
+        build_implant(implant_listener_uuid, implant_variant)
 
         # return immediatly, don't send hash to not wait on build.
         # client will get hash with get req

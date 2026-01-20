@@ -178,6 +178,38 @@ async def start_listener(
         return data
 
 
+async def build_implant(implant_name, implant_listener_uuid, implant_variant) -> dict:
+    """
+    Start a listener with the given configuration.
+
+    Returns:
+        dict: status/result payload
+    """
+
+    # --- validate inputs ---
+    check_type(implant_name, str, "implant_name")
+    check_type(implant_listener_uuid, str, "implant_listener_uuid")
+    check_type(implant_variant, str, "implant_variant")
+
+    build_request_data = {
+        # "implant_name": implant_name,
+        "implant_variant": implant_variant,
+        "implant_listener_uuid": implant_listener_uuid,
+        "implant_variant": implant_variant,
+    }
+
+    url = generate_url(f"/api/v1/build/")
+
+    # --- core logic placeholder ---
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(method="POST", url=url)
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, json=build_request_data)
+        data = response.json()
+        return data
+
+
 async def get_implant_task_history_since_uuid(
     implant_uuid: str, since_task_uuid: str
 ) -> dict:

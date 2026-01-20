@@ -65,7 +65,7 @@ class ImplantService:
         Gets all implants in the table.
         """
         try:
-            server_logger.debug(f"Retrieving all implants from MYSQL Database")
+            # server_logger.debug(f"Retrieving all implants from MYSQL Database")
 
             return self.session.query(Implant).all()
 

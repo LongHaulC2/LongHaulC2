@@ -51,11 +51,21 @@ def build_implant(listener_uuid, variant):
     listener_uuid (this will extract malleablec2, callback_host, callback_port, and listener type)
 
     """
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(variant=variant, listener_uuid=listener_uuid)
+
+    server_logger.info("Building implant")
 
     # lookup listener data
     with get_mysql_session() as session:
         ls = ListenerService(session)
-        listener_data = (ls.get_by_id(listener_uuid)).to_dict()
+        listener_data = ls.get_by_id(listener_uuid)
+
+        if not listener_data:
+            server_logger.error(f"Could not find listener with provided listener_uuid.")
+            return
+
+        listener_data = listener_data.to_dict()
 
         # print(listener_data.keys())
         """
@@ -85,11 +95,19 @@ def build_implant(listener_uuid, variant):
 
     # get built implant... somehow. Could get it from the outdir.
     # Maybe anything that is ".ps1, .exe, .dll, etc. " return as a list, and upload
+    # for now, just get anything in output.
+    output_dir = build_dir / "output"
 
-    # write to db
-    with get_mysql_session() as session:
-        ps = MySQLImplantPayloadService(session)
-        ps.register_payload(b"somepayload", listener_uuid)
+    for file_path in output_dir.iterdir():
+        if file_path.is_file():
+
+            # 1. Read the raw artifact
+            payload_bytes = file_path.read_bytes()
+
+            # 2. Register to Database
+            with get_mysql_session() as session:
+                service = MySQLImplantPayloadService(session)
+                service.register_payload(payload_bytes, listener_uuid)
 
 
 def setup_implant_build_enviornment(
