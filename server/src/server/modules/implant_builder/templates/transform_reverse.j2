@@ -8,65 +8,65 @@ IMPORTANT:
 - This file undoes what transforms.j2 applies
 #]
 
-[% macro rev_base64() -%]
+[% macro rev_base64(target) -%]
     // [Reverse Transform] Base64 Decode
-    base64_decode_inplace(id);
+    base64_decode_inplace([[ target ]]);
 [%- endmacro %]
 
-[% macro rev_base64url() -%]
+[% macro rev_base64url(target) -%]
     // [Reverse Transform] Base64 URL Decode
-    base64url_decode_inplace(id);
+    base64url_decode_inplace([[ target ]]);
 [%- endmacro %]
 
-[% macro rev_mask() -%]
+[% macro rev_mask(target) -%]
     // [Reverse Transform] XOR Mask (same op reverses)
-    xor_mask(id);
+    xor_mask([[ target ]]);
 [%- endmacro %]
 
-[% macro rev_append(val) -%]
+[% macro rev_append(target, val) -%]
     // [Reverse Transform] Undo Append
-    undo_transform_append(id, "[[ val ]]");
+    undo_transform_append([[ target ]], "[[ val ]]");
 [%- endmacro %]
 
-[% macro rev_prepend(val) -%]
+[% macro rev_prepend(target, val) -%]
     // [Reverse Transform] Undo Prepend
-    undo_transform_prepend(id, "[[ val ]]");
+    undo_transform_prepend([[ target ]], "[[ val ]]");
 [%- endmacro %]
 
-[% macro rev_netbios() -%]
+[% macro rev_netbios(target) -%]
     // [Reverse Transform] NetBIOS Decode
-    netbios_decode(id);
+    netbios_decode([[ target ]]);
 [%- endmacro %]
 
-[% macro rev_netbiosu() -%]
+[% macro rev_netbiosu(target) -%]
     // [Reverse Transform] NetBIOSu Decode
-    netbiosu_decode(id);
+    netbiosu_decode([[ target ]]);
 [%- endmacro %]
 
 [# --- THE REVERSE DISPATCHER --- #]
 [# Acts like a reverse switch statement #]
-[% macro render_reverse_transform_id(transform_object) -%]
+[% macro render_reverse_transform(transform_object, target_var) -%]
 
     [% if transform_object.statement == 'base64' %]
-        [[ rev_base64() ]]
+        [[ rev_base64(target_var) ]]
 
     [% elif transform_object.statement == 'base64url' %]
-        [[ rev_base64url() ]]
+        [[ rev_base64url(target_var) ]]
 
     [% elif transform_object.statement == 'mask' %]
-        [[ rev_mask() ]]
+        [[ rev_mask(target_var) ]]
 
     [% elif transform_object.statement == 'append' %]
-        [[ rev_append(transform_object.value) ]]
+        [[ rev_append(target_var, transform_object.value) ]]
 
     [% elif transform_object.statement == 'prepend' %]
-        [[ rev_prepend(transform_object.value) ]]
+        [[ rev_prepend(target_var, transform_object.value) ]]
 
     [% elif transform_object.statement == 'netbios' %]
-        [[ rev_netbios() ]]
+        [[ rev_netbios(target_var) ]]
 
     [% elif transform_object.statement == 'netbiosu' %]
-        [[ rev_netbiosu() ]]
+        [[ rev_netbiosu(target_var) ]]
 
     [% endif %]
 

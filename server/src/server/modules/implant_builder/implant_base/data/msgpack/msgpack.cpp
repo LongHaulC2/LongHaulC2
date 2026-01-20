@@ -52,10 +52,11 @@ Task structure:
 * @param task_as_msgpack_bytes: The data to turn into a json object
 * @return The json object (acts like a map/dict)
 */
-nlohmann::json decode_msgpack_task(const std::vector<uint8_t>& task_as_msgpack_bytes) {
+nlohmann::json decode_msgpack_task(const std::string& task_as_msgpack_bytes) {
     // Decode MsgPack -> JSON Object
     // handles the nested maps automatically.
     // If input is invalid, this throws json::parse_error
+
     json task_data = json::from_msgpack(task_as_msgpack_bytes);
 
     // items() gives key/value iterator for the JSON object
