@@ -43,7 +43,7 @@ env = Environment(
 server_logger = logging.getLogger("server")
 
 
-def build_implant(implant_name, listener_uuid, variant):
+def build_implant(implant_name, listener_uuid, variant, output_format):
     """
     Function to call to build implant. API calls this.
 
@@ -55,6 +55,9 @@ def build_implant(implant_name, listener_uuid, variant):
     structlog.contextvars.bind_contextvars(variant=variant, listener_uuid=listener_uuid)
 
     server_logger.info("Building implant")
+    server_logger.warning(
+        "WARNING: Output Format passed in, but not yet imlemented. .EXE only right now"
+    )
 
     # lookup listener data
     with get_mysql_session() as session:
@@ -184,7 +187,7 @@ def render_implant(
     # Structure: "Destination Path" : "Source Template"
     files_to_render = {}
 
-    # Add Listener Specific files, based on variant.
+    # Add Listener Specific files to the render list, based on variant.
     match variant:
         case "http_wininet":
             # render and save to comms.cpp... (high level http funcsd)
@@ -202,14 +205,21 @@ def render_implant(
                 "wininet_register_http.j2"
             )
 
-        # case "smb_named_pipe":
-        #     global_context["protocol"] = "SMB"
-        #     files_to_render[OUTPUT_DIR / "comms/transport.cpp"] = (
-        #         "protocols/smb/pipe.cpp.j2"
-        #     )
-
         case _:
-            raise ValueError(f"Unknown listener type: {listener_type}")
+            server_logger.error(f"Invalid variant type: {variant}")
+            raise ValueError(f"Invalid variant type: {variant}")
+
+    """
+    output format POC
+
+    match output
+        case "exe":
+            include main for exe, and cmake for exe
+        case "dll": include main for dll, and cmake for dll
+    
+        # should be pretty easy to have these that just call the "loop" function in main.cpp
+
+    """
 
     # 3. Execution Loop
     # Iterate over the dict and build everything

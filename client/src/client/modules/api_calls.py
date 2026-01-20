@@ -178,7 +178,9 @@ async def start_listener(
         return data
 
 
-async def build_implant(implant_name, implant_listener_uuid, implant_variant) -> dict:
+async def build_implant(
+    implant_name, implant_listener_uuid, implant_variant, output_format
+) -> dict:
     """
     Start a listener with the given configuration.
 
@@ -190,12 +192,14 @@ async def build_implant(implant_name, implant_listener_uuid, implant_variant) ->
     check_type(implant_name, str, "implant_name")
     check_type(implant_listener_uuid, str, "implant_listener_uuid")
     check_type(implant_variant, str, "implant_variant")
+    check_type(output_format, str, "output_format")
 
     build_request_data = {
         # "implant_name": implant_name,
         "implant_variant": implant_variant,
         "implant_listener_uuid": implant_listener_uuid,
         "implant_name": implant_name,
+        "output_format": output_format,
     }
 
     url = generate_url(f"/api/v1/build/")

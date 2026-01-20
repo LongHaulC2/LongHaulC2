@@ -54,7 +54,13 @@ build_implant_model = build_ns.model(
             description="The communication variant to use",
             example="http_wininet",
             # enum=["http_wininet", "http_curl"] # Optional: strictly enforce options
-        )
+        ),
+        "output_format": fields.String(
+            required=True,
+            description="The communication variant to use",
+            example="http_wininet",
+            # enum=["http_wininet", "http_curl"] # Optional: strictly enforce options
+        ),
     },
 )
 
@@ -87,6 +93,7 @@ class Build(Resource):
         listener_uuid = data["implant_listener_uuid"]
         variant = data["implant_variant"]
         implant_name = data["implant_name"]
+        output_format = data["output_format"]
 
         api_logger.info(
             f"Build requested for listener {listener_uuid} (Variant: {variant})",
@@ -94,7 +101,7 @@ class Build(Resource):
         )
 
         # 3. Trigger Build
-        build_implant(implant_name, listener_uuid, variant)
+        build_implant(implant_name, listener_uuid, variant, output_format)
 
         # 4. Return immediately
         return APIResponse(

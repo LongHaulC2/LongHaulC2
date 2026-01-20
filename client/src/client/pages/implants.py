@@ -154,16 +154,16 @@ async def start_implant_dialogue():
 
     # 4. Action Handler: Build
     async def _build_implant():
-        implant_name = implant_name_field.value
+        name = implant_name_field.value
         listener_name = implant_listener_field.value
         variant = implant_variant_field.value
+        output_format = implant_format_field.value
 
         # Validation
-        if not all([implant_name, listener_name]):
+        if not all([name, listener_name, output_format]):
             ui.notify("Please fill in all required fields", type="warning")
             return
 
-        # If the variant field is visible, we must ensure one is selected
         if implant_variant_field.visible and not variant:
             ui.notify("Please select a communication variant", type="warning")
             return
@@ -175,9 +175,10 @@ async def start_implant_dialogue():
 
         # Call build service
         result = await build_implant(
-            implant_name=implant_name,
+            implant_name=name,
             implant_listener_uuid=listener_uuid,
             implant_variant=variant if implant_variant_field.visible else None,
+            output_format=output_format,
         )
 
         dialog_spinner.visible = False
@@ -186,9 +187,8 @@ async def start_implant_dialogue():
             ui.notify("Implant build failed", type="negative")
             return
 
-        ui.notify(f"Implant '{name}' build started", type="positive")
+        ui.notify(f"Implant '{name}' build started ({output_format})", type="positive")
         dialog.close()
-        # await refresh()
 
     # 5. UI Logic: Update Dropdown
     def _on_listener_change(e):
@@ -221,58 +221,78 @@ async def start_implant_dialogue():
 
     # 6. Build the UI
     with ui.dialog() as dialog:
-        with ui.card().classes("w-[600px] max-w-full p-6 space-y-4 rounded-xl"):
+        with ui.card().classes(
+            "w-[600px] max-w-full p-6 space-y-4 rounded-xl shadow-lg"
+        ):
 
-            # Header
-            ui.label("Build Implant").classes("text-xl font-semibold text-center")
-            ui.label("Compile a new agent for a specific listener").classes(
-                "text-sm text-gray-500 text-center"
-            )
-            ui.separator()
+            # --- Header ---
+            with ui.column().classes("w-full items-center gap-1"):
+                ui.label("Build Implant").classes("text-xl font-bold tracking-tight")
+                ui.label("Compile a new agent configuration").classes(
+                    "text-sm text-gray-400"
+                )
 
-            # Row 1: Implant Name
+            ui.separator().classes("my-2")
+
+            # --- Row 1: Identity & Output (Side-by-Side) ---
             with ui.row().classes("w-full gap-4"):
+                # Name gets more space (flex-grow)
                 implant_name_field = (
-                    ui.input("Implant Name").props("outlined dense").classes("flex-1")
+                    ui.input("Implant Name", placeholder="e.g., win_update_agent")
+                    .props("outlined dense")
+                    .classes("flex-grow")
                 )
 
-            # Row 2: Listener Selection
-            with ui.row().classes("w-full gap-4"):
-                implant_listener_field = (
+                # Format gets fixed width or smaller flex
+                implant_format_field = (
                     ui.select(
-                        options=list(
-                            listener_type_map.keys()
-                        ),  # List of listener names
-                        label="Select Listener",
-                        on_change=_on_listener_change,  # Hook up logic
+                        options=["exe", "dll", "ps1", "shellcode", "all"],
+                        value="exe",
+                        label="Format",
                     )
                     .props("outlined dense")
-                    .classes("flex-1")
+                    .classes("w-32")  # Fixed width keeps it tidy
                 )
 
-            # Row 3: Variants (Dynamic)
-            with ui.row().classes("w-full gap-4"):
-                implant_variant_field = (
-                    ui.select(
-                        options=[],  # Empty start, populated by _on_listener_change
-                        label="Implementation Variant",
-                    )
-                    .props("outlined dense")
-                    .classes("flex-1")
+            # --- Row 2: Connection Settings ---
+            # Listener is the primary choice, so it gets a full row
+            implant_listener_field = (
+                ui.select(
+                    options=list(listener_type_map.keys()),
+                    label="Select Listener",
+                    on_change=_on_listener_change,
                 )
-                implant_variant_field.visible = False  # Hidden by default
+                .props("outlined dense options-dense")
+                .classes("w-full")
+            )
 
-            ui.separator()
+            # --- Row 3: Dynamic Variant (Full Width) ---
+            # This appears conditionally but takes full width when shown
+            implant_variant_field = (
+                ui.select(
+                    options=[],
+                    label="Implementation Variant",
+                )
+                .props("outlined dense options-dense")
+                .classes("w-full")
+            )
+            implant_variant_field.visible = False
 
-            # Spinner (Hidden)
-            dialog_spinner = ui.spinner(size="sm")
+            # --- Footer ---
+            ui.separator().classes("mt-4 mb-2")
+
+            # Spinner centered or near buttons
+            dialog_spinner = ui.spinner(size="sm").classes("self-center")
             dialog_spinner.visible = False
 
-            # Buttons
-            with ui.row().classes("w-full justify-end gap-2"):
-                ui.button("Cancel", icon="close", on_click=dialog.close).props("flat")
-                ui.button("Build", icon="construction", on_click=_build_implant).props(
-                    "unelevated color=primary"
-                )
+            with ui.row().classes("w-full justify-between items-center"):
+                # Place spinner on left (optional) or hidden
+                ui.element("div")  # Spacer if spinner is hidden
+
+                with ui.row().classes("gap-3"):
+                    ui.button("Cancel", on_click=dialog.close).props("flat color=grey")
+                    ui.button(
+                        "Build Payload", icon="construction", on_click=_build_implant
+                    ).props("unelevated color=primary")
 
     dialog.open()

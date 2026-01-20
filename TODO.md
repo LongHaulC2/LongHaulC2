@@ -168,16 +168,9 @@
       - [ ] cleanup build.py
 
          # > here
-         note - difference betwen lsitener type (http) and listenert type for build (http_wininet)
-         Solution: have a "main listener", ex http, then a subvariant to build into implant.
-
-         - cleint has a field to specfy variant.
-         - [X] add in a field to api, and logic in build, for which variant to build/use.
-            # variant goes in implant builder dialog
-
-      - [ ] API: hook up funcs to api
-         - [X] build entry in build.py
-         - [X] Skeleton of API structure
+         - [ ] GUI: List/Download imlpants functionality
+         - [ ] Server: Clean up, add output options/logic (exe, etc)
+            - Going to need to get that logic into the build process, for which verson of main to include (dll, vs exe main - have a template for both)
 
 
 Just remember, block == sender (ex, client, means sent from client). Transformations are top down
