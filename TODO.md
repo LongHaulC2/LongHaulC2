@@ -146,7 +146,7 @@
                - This could, and probably should be added onto http-post server output, but it doesn't matter too much, as 
                   no meaningful data is transfered on that channel afaik. (some profiles do use it for some seemingly blank data)
 
-      - [ ] Plan and build out the actual build process
+      - [X] Plan and build out the actual build process
          - Docker based build system would be nice, takes longer and is a PITA. 
          Aparently docker lib is better now.
          Steps:
@@ -155,13 +155,17 @@
 
          Ex: (no more boilerplate yay)
 
-         # > here
-         - [ ] Fix implant to let it compile
+         - [X] Fix implant to let it compile
             Use conversions between vector<uint8_t> and std::string - do this in visual studio then copy in
-         - [ ] test compile
+         - [X] test compile
+      - [X] Do basic compilation checks (copy paste into visual studio) to make sure generation is okay
 
+         # > here
 
-      - [ ] Do basic compilation checks (copy paste into visual studio) to make sure generation is okay
+      - [ ] Do correct lookups for implant uuid -> new imlant. 
+            Not hard, just need to pull correct data. in build.py
+      - [ ] Store binary output data in DB
+      - [ ] cleanup build.py
 
       - [ ] API: hook up funcs to api
          - [X] build entry in build.py
