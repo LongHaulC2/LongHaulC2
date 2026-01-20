@@ -7,7 +7,9 @@ import structlog
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from mpp import *
 
+from ...db.mysql_connector import get_mysql_session
 from ...listeners.malc2 import *
+from ...modules.mysql_functions import ListenerService, MySQLImplantPayloadService
 from .context_generators.http_wininet import generate_http_wininet_context
 
 # OUTPUT_DIR = Path("./templates/output")
@@ -51,6 +53,11 @@ def build_implant(listener_uuid):
     """
 
     # lookup listener data
+    with get_mysql_session() as session:
+        ls = ListenerService(session)
+        listener_data = ls.get_by_id(listener_uuid)
+
+    print(listener_data)
 
     # temp
     mc2_path = Path("/home/ubuntu-dev/LongHaulC2/tests/profiles/webbug.profile")
@@ -65,6 +72,10 @@ def build_implant(listener_uuid):
     # get built implant
 
     # write to db
+    with get_mysql_session() as session:
+
+        ps = MySQLImplantPayloadService(session)
+        ps.register_payload(b"somepayload", listener_uuid)
 
 
 def create_implant(

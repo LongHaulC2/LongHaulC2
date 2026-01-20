@@ -1,10 +1,11 @@
+import hashlib
 import logging
 from dataclasses import asdict
 
 from edwh_uuid7 import uuid7
 from sqlalchemy import exc, text
 
-from ..db.mysql_models import Implant, ImplantTask, Listener
+from ..db.mysql_models import Implant, ImplantPayload, ImplantTask, Listener
 from ..schemas.implant import ImplantCreate, ImplantUpdate, Task
 from ..schemas.listeners import ListenerCreate, ListenerUpdate
 from ..utils.checks import check_type
@@ -572,3 +573,146 @@ class MySQLImplantTaskService:
 
         # loop over objects (all returns objects) and return dicts
         return [r.to_dict() for r in results]
+
+
+class MySQLImplantPayloadService:
+    """
+    Class for managing Implant Payloads.
+
+    Storage: Uses TINYBLOB(16) (Raw Bytes) for efficiency.
+    Interface: Uses String (Hex) for human-readability.
+    """
+
+    def __init__(self, session):
+        self.session = session
+
+    def register_payload(self, payload_bytes: bytes, listener_uuid: str) -> str:
+        """
+        Create an entry for a new payload.
+        Calculates the MD5, stores it as bytes, but returns it as a Hex String.
+
+        returns: The MD5 hex string of the payload
+        """
+        server_logger.info(f"Registering new payload for listener {listener_uuid}")
+
+        check_type(payload_bytes, bytes, "payload_bytes")
+        check_type(listener_uuid, str, "listener_uuid")
+
+        # get hash of payload
+        md5_obj = hashlib.md5(payload_bytes)
+
+        # We need the RAW BYTES for the Database (TINYBLOB)
+        hash_bytes = md5_obj.digest()
+
+        # We need the HEX STRING for the return value/logs
+        hash_str = md5_obj.hexdigest()
+
+        existing = (
+            self.session.query(ImplantPayload)
+            .filter_by(payload_hash=hash_bytes)
+            .first()
+        )
+
+        if existing:
+            server_logger.info(
+                f"Payload with hash {hash_str} already exists. Returning existing hash."
+            )
+            return hash_str
+
+        # Save to DB (using hash_bytes)
+        payload_entry = ImplantPayload(
+            payload_hash=hash_bytes,
+            payload_bytes=payload_bytes,
+            payload_listener_uuid=listener_uuid,
+        )
+
+        self.session.add(payload_entry)
+        self.session.commit()
+
+        server_logger.info(f"Successfully committed payload: {hash_str}")
+
+        return hash_str
+
+    def get_payload_by_hash(self, payload_hash: str):
+        """
+        Retrieve a payload object by its MD5 HEX STRING.
+        The function encodes the string to bytes to query the DB.
+
+        payload_hash: str (32 char hex string)
+        """
+        check_type(payload_hash, str, "payload_hash")
+
+        server_logger.info(f"Retrieving payload for hash {payload_hash}")
+
+        try:
+            # Encode string -> bytes for the lookup
+            hash_bytes = bytes.fromhex(payload_hash)
+        except ValueError:
+            server_logger.error(f"Invalid hex string provided: {payload_hash}")
+            return None
+
+        payload = (
+            self.session.query(ImplantPayload)
+            .filter_by(payload_hash=hash_bytes)
+            .first()
+        )
+
+        if payload:
+            return payload
+        else:
+            server_logger.warning(f"No payload found for hash {payload_hash}")
+            return None
+
+    def get_payloads_by_listener(self, listener_uuid: str) -> list:
+        """
+        Retrieve all payloads for a listener.
+        Converts the binary hash in the DB to a hex string in the returned dict.
+        """
+        check_type(listener_uuid, str, "listener_name")
+
+        server_logger.info(f"Retrieving all payloads for listener {listener_uuid}")
+
+        payloads = (
+            self.session.query(ImplantPayload)
+            .filter_by(payload_listener=listener_uuid)
+            .all()
+        )
+
+        results = []
+        for p in payloads:
+            data = p.to_dict()
+            # Convert the bytes hash to hex string for the final output
+            if isinstance(data.get("payload_hash"), bytes):
+                data["payload_hash"] = data["payload_hash"].hex()
+            results.append(data)
+
+        return results
+
+    def delete_payload(self, payload_hash: str):
+        """
+        Delete a payload by hash (Hex String).
+        """
+        check_type(payload_hash, str, "payload_hash")
+        server_logger.info(f"Deleting payload {payload_hash}")
+
+        try:
+            # Encode string -> bytes for the lookup
+            hash_bytes = bytes.fromhex(payload_hash)
+        except ValueError:
+            server_logger.error(f"Invalid hex string provided: {payload_hash}")
+            return
+
+        payload = (
+            self.session.query(ImplantPayload)
+            .filter_by(payload_hash=hash_bytes)
+            .first()
+        )
+
+        if payload:
+            self.session.delete(payload)
+            self.session.commit()
+            server_logger.info("Payload deleted successfully.")
+        else:
+            server_logger.warning(
+                f"Attempted to delete non-existent payload {payload_hash}."
+            )

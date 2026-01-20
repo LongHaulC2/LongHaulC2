@@ -113,30 +113,6 @@ class ImplantTask(Base):
         return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
 
 
-"""
-Usage:
-Session = sessionmaker(bind=engine)
-session = Session()
-
-# Create a new task for a specific agent (implant_uuid = 1)
-task1 = AgentTask(
-    implant_uuid=1,
-    task_type="scan",
-    status="pending",
-    task_request={"scan_details": "scan details here"},
-    task_response=None
-)
-
-# Add and commit the task
-session.add(task1)
-session.commit()
-
-# Close the session
-session.close()
-
-"""
-
-
 class Listener(Base):
     __tablename__ = "listeners"
     listener_uuid = Column(String(36), primary_key=True)
@@ -187,7 +163,7 @@ class ImplantPayload(Base):
         LONGBLOB, nullable=False
     )  # LONGBLOB is 4gb (massive, intentional for expandability)
 
-    payload_listener = Column(String(255))  # matches Listener model name length of 255
+    payload_listener_uuid = Column(String(36))  # matches Listener model uuid
 
     def to_dict(self):
         """
