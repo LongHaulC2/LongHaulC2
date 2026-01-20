@@ -41,8 +41,8 @@ server_log = logging.getLogger("server")
 server_log.info("Loading /listeners page")
 
 
-@ui.page("/implants")
-async def implants():
+@ui.page("/payloads")
+async def payloads():
     # HEY- readme: This is a hack to get the page full screen (and make h-full work). It should also allow for things like headers to fit without adjusting it manually
     # see the link below.
     # https://github.com/zauberzeug/nicegui/discussions/4049
@@ -51,17 +51,17 @@ async def implants():
     )
     ui.context.client.content.classes("h-full")
 
-    setup_menu("Implants")
+    setup_menu("payloads")
 
-    await implants_view()
+    await payloads_view()
 
 
-async def implants_view():
+async def payloads_view():
     """ """
     # Setup header
     with ui.row().classes("w-full items-center justify-between"):
         # LEFT: title / context
-        ui.label("Implants").classes(f"text-h6 dense {TEXT_COLOR}")
+        ui.label("payloads").classes(f"text-h6 dense {TEXT_COLOR}")
 
         with ui.row().classes("items-center q-gutter-xs"):
 
@@ -183,7 +183,7 @@ async def render_payloads(payload_data: dict):
         ui.separator()
 
 
-async def start_implant_dialogue():
+async def start_payload_dialogue():
     """
     Opens a dialog to build a new implant.
     Fetches available listeners and dynamically updates available variants based on listener type.

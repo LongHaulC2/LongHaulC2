@@ -28,9 +28,9 @@ def setup_menu(title: str):
         ).classes("w-full px-4 text-white").props("flat no-caps")
 
         ui.button(
-            "Implants",
+            "Payloads",
             icon="outbound",
-            on_click=lambda: ui.navigate.to("/implants"),
+            on_click=lambda: ui.navigate.to("/payloads"),
         ).classes("w-full px-4 text-white").props("flat no-caps")
 
         ui.button(

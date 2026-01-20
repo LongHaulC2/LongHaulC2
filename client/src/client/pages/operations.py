@@ -13,10 +13,10 @@ from client.src.client.modules.api_calls import (
     update_implant,
 )
 from client.src.client.modules.task_definitions import ResultType, task_tree
-from client.src.client.pages.implants import start_implant_dialogue
 from client.src.client.pages.listeners import start_listener_dialogue
 from client.src.client.pages.menu import setup_menu
 from client.src.client.pages.notes import open_notes_dialog
+from client.src.client.pages.payloads import start_payload_dialogue
 
 # from client.src.client.pages.menu import setup_menu
 from client.src.client.style import (
@@ -111,7 +111,7 @@ async def implant_view():
         # RIGHT: action buttons
         with ui.row().classes("items-center q-gutter-xs"):
 
-            with ui.button(icon="add", on_click=lambda: start_implant_dialogue()).props(
+            with ui.button(icon="add", on_click=lambda: start_payload_dialogue()).props(
                 "dense flat round"
             ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
                 ui.tooltip("Create a new implant payload")
