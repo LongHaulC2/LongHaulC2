@@ -6,6 +6,7 @@ import httpx
 from nicegui import ui
 from nicegui.events import KeyEventArguments
 
+# --- Keep your original imports ---
 from client.src.client.modules.api_calls import (
     build_implant,
     get_all_implant_data,
@@ -23,8 +24,6 @@ from client.src.client.modules.api_calls import (
 from client.src.client.modules.task_definitions import ResultType, task_tree
 from client.src.client.pages.menu import setup_menu
 from client.src.client.pages.notes import open_notes_dialog
-
-# from client.src.client.pages.menu import setup_menu
 from client.src.client.style import (
     BUTTON_COLOR,
     HIGHLIGHT_COLOR,
@@ -38,314 +37,352 @@ from ..utils.checks import check_type
 
 server_log = logging.getLogger("server")
 
-server_log.info("Loading /listeners page")
+# ==============================================================================
+#   THE "REFINED TECH" CSS THEME
+#   (Radius set to 4px - "Just enough to remove the edge")
+# ==============================================================================
+TECH_CSS = r"""
+/* --- 1. GLOBAL SCROLLBAR --- */
+.tech-scroll ::-webkit-scrollbar { width: 6px; height: 6px; }
+.tech-scroll ::-webkit-scrollbar-track { background: transparent; }
+.tech-scroll ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+.tech-scroll ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+/* --- 2. THE TECH EXPANSION ITEM --- */
+.tech-expansion {
+    background-color: rgba(23, 23, 23, 0.4); 
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px; /* SUBTLE RADIUS */
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+}
+.tech-expansion:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(23, 23, 23, 0.6);
+}
+/* Active State */
+.tech-expansion.q-expansion-item--expanded {
+    background-color: rgba(23, 23, 23, 0.9);
+    border-color: rgba(52, 211, 153, 0.4); /* Emerald Border */
+    box-shadow: 0 4px 20px -10px rgba(16, 185, 129, 0.1);
+}
+.tech-expansion.q-expansion-item--expanded > .q-expansion-item__container > .q-item {
+    color: #34d399 !important;
+}
+.tech-expansion .q-focus-helper { display: none !important; }
+
+/* --- 3. THE EXPANSION CONTENT --- */
+.tech-expansion .q-expansion-item__content {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 0 !important;
+}
+
+/* --- 4. THE FLUSH EMBEDDED TABLE --- */
+.tech-table-flush .q-table__card,
+.tech-table-flush .q-table__container {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important; /* Keep internal table square to fit container */
+    width: 100% !important;
+    margin: 0 !important;
+}
+.tech-table-flush .q-table__top { display: none !important; }
+
+.tech-table-flush thead tr, .tech-table-flush th {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: #71717a;
+    height: 32px;
+}
+.tech-table-flush tbody td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+    height: 40px;
+    font-size: 0.85rem;
+    color: #d4d4d8;
+}
+.tech-table-flush tbody tr:last-child td { border-bottom: none !important; }
+
+/* --- 5. DIALOGS --- */
+.tech-dialog {
+    background-color: #18181b !important;
+    border: 1px solid rgba(52, 211, 153, 0.2);
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    border-radius: 4px !important; /* SUBTLE RADIUS */
+}
+"""
 
 
 @ui.page("/payloads")
 async def payloads():
-    # HEY- readme: This is a hack to get the page full screen (and make h-full work). It should also allow for things like headers to fit without adjusting it manually
-    # see the link below.
-    # https://github.com/zauberzeug/nicegui/discussions/4049
+    ui.add_head_html(f"<style>{TECH_CSS}</style>")
+
     ui.context.client.page_container.default_slot.children[0].props(
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
     )
     ui.context.client.content.classes("h-full")
 
-    setup_menu("payloads")
-
+    setup_menu("Payloads")
     await payloads_view()
 
 
 async def payloads_view():
-    """ """
-    # Setup header
-    with ui.row().classes("w-full items-center justify-between"):
-        # LEFT: title / context
-        ui.label("payloads").classes(f"text-h6 dense {TEXT_COLOR}")
 
-        with ui.row().classes("items-center q-gutter-xs"):
+    # --- 1. THE MAIN GLASS PANEL (Rounded Corners) ---
+    # Changed rounded-none to rounded (4px)
+    with ui.card().classes(
+        "w-full h-full p-0 flex flex-col gap-0 "
+        "bg-neutral-900/60 backdrop-blur-md border border-white/5 rounded overflow-hidden shadow-2xl"
+    ):
 
-            # RIGHT: action buttons
-            with ui.row().classes("items-center q-gutter-xs"):
+        # --- 2. HEADER BAR ---
+        with ui.row().classes(
+            "w-full px-6 py-4 items-center justify-between bg-white/5 border-b border-white/5"
+        ):
+            # Left: Title
+            with ui.row().classes("items-center gap-3"):
+                ui.icon("layers", color="emerald-500").classes("text-xl")
+                ui.label("PAYLOAD_LIBRARY //").classes(
+                    "text-sm font-bold tracking-widest text-neutral-400 font-mono"
+                )
 
-                with ui.button(
-                    icon="add", on_click=lambda: start_implant_dialogue()
-                ).props("dense flat round").classes(f"[&_.q-icon]:{ICON_COLOR}"):
-                    ui.tooltip("Add listener")
+            # Right: Actions
+            with ui.row().classes("items-center gap-2"):
+                # "Build" Button - Removed 'square' prop (defaults to 4px)
+                with ui.button(on_click=start_payload_dialogue).classes(
+                    "border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-4 transition-all"
+                ).props("flat no-caps dense"):
+                    ui.icon("add_circle", size="xs").classes("mr-2")
+                    ui.label("COMPILE NEW").classes("text-xs font-bold tracking-wide")
 
-                with ui.button(icon="refresh", on_click=lambda: ...).props(
-                    "dense flat round"
-                ).classes(f"[&_.q-icon]:{ICON_COLOR}"):
-                    ui.tooltip("Force Refresh listeners table")
+                # "Refresh" Button
+                ui.button(icon="refresh", on_click=lambda: ui.open("/payloads")).props(
+                    "dense flat size=sm"
+                ).classes("text-neutral-500 hover:text-white transition-colors")
 
-    ui.separator()
+        # --- 3. SCROLLABLE CONTENT AREA ---
+        with ui.scroll_area().classes("w-full flex-grow p-6 tech-scroll"):
 
-    payload_data = (await get_payload_data()).get("data")
-    await render_payloads(payload_data=payload_data)
+            payload_data_response = await get_payload_data()
+            payload_data = payload_data_response.get("data", [])
+
+            if not payload_data:
+                with ui.column().classes(
+                    "w-full h-64 items-center justify-center opacity-30"
+                ):
+                    ui.icon("inbox", size="4em")
+                    ui.label("NO ARTIFACTS FOUND").classes("font-mono text-sm mt-2")
+            else:
+                await render_payloads(payload_data=payload_data)
 
 
 async def render_payloads(payload_data: dict):
-    """
-    Renders expandable tables for payloads, grouped by Listener UUID.
 
-    api_response: The full JSON dict from your API
-                  (e.g. {'data': [...], 'status': '200', ...})
-    """
-
-    # 2. Define Table Columns
     columns = [
-        {"name": "name", "label": "File Name", "field": "name", "align": "left"},
+        {"name": "name", "label": "Artifact", "field": "name", "align": "left"},
         {
             "name": "hash",
-            "label": "Hash (MD5)",
+            "label": "Checksum (MD5)",
             "field": "hash",
             "align": "left",
-            "classes": "font-mono text-gray-500 text-xs",
+            "classes": "font-mono text-xs opacity-70",
         },
-        {"name": "actions", "label": "Action", "field": "actions", "align": "right"},
+        {"name": "actions", "label": "Op", "field": "actions", "align": "right"},
     ]
 
-    # 3. Group Data by Listener UUID
-    #    Sort first (required for groupby)
     sorted_data = sorted(
         payload_data, key=lambda x: x.get("payload_listener_uuid", "Unknown")
     )
-
     grouped_payloads = {}
     for key, group in groupby(
         sorted_data, key=lambda x: x.get("payload_listener_uuid", "Unknown")
     ):
         grouped_payloads[key] = list(group)
 
-    # 4. Action Handler
     async def handle_download(e):
         row = e.args
-        ui.notify(f"Fetching {row['name']}...")
-
-        # 1. Fetch bytes into NiceGUI memory
+        ui.notify(f"Retrieving {row['name']}...", type="info", color="grey-9")
         file_bytes = await get_payload_bytes(row["hash"])
-
         if file_bytes:
-            # 2. Trigger browser download from memory
-            # Note: 'row['name']' ensures the file saves as 'myfile.exe', not 'download'
-            # Note: can't use raw ui.download on endpoint, as ui.download can't auth to things
             ui.download(file_bytes, filename=row["name"])
-            ui.notify("Download ready")
+            ui.notify("Transfer Complete", type="positive")
         else:
-            ui.notify("Failed to fetch payload", type="negative")
+            ui.notify("Transfer Failed", type="negative")
 
-    # 5. Render UI
     for listener_uuid, payloads in grouped_payloads.items():
-
-        # Transform API data into Table Rows
         table_rows = []
         for p in payloads:
             table_rows.append(
                 {
                     "id": p.get("id"),
-                    "name": p.get(
-                        "payload_name", "Unnamed"
-                    ),  # Maps payload_name -> name
-                    "hash": p.get("payload_hash", ""),  # Maps payload_hash -> hash
+                    "name": p.get("payload_name", "Unnamed"),
+                    "hash": p.get("payload_hash", ""),
                     "uuid": listener_uuid,
                 }
             )
 
-        # Create Expansion Panel
-        # can do another lookup for listener name/data iwth get_listener_data
-        # or could just map it together with previous data.
-        # inneficient. Just get all listeners at start
         listener_data = await get_listener_data(listener_uuid)
-        listener_name = listener_data.get("data", {}).get("listener_name")
-        label_text = f"Listener: {listener_name}: {listener_uuid}"
+        listener_name = listener_data.get("data", {}).get("listener_name", "Unknown")
 
-        with ui.expansion(label_text, icon="hub").classes("w-full"):
+        # Tech Expansion (CSS handles 4px radius)
+        with ui.expansion().classes("w-full tech-expansion group") as expansion:
 
-            table = (
-                ui.table(columns=columns, rows=table_rows, row_key="id")
-                .props("dense flat")
-                .classes("w-full")
+            with expansion.add_slot("header"):
+                with ui.row().classes("w-full items-center py-2 px-1"):
+                    ui.icon("dns", size="sm").classes(
+                        "mr-4 text-neutral-600 group-hover:text-emerald-400 transition-colors"
+                    )
+                    with ui.column().classes("gap-0"):
+                        ui.label(listener_name).classes(
+                            "text-sm font-bold text-neutral-200 tracking-wide uppercase"
+                        )
+                        ui.label(f"UUID: {listener_uuid[:8]}...").classes(
+                            "text-xs font-mono text-neutral-600"
+                        )
+                    ui.space()
+
+                    # Badge count - Rounded
+                    with ui.row().classes("items-center gap-2"):
+                        ui.label(f"{len(table_rows)} ITEMS").classes(
+                            "text-[10px] font-bold text-neutral-600 bg-black/20 px-2 py-1 rounded-sm"
+                        )
+
+            table = ui.table(columns=columns, rows=table_rows, row_key="id").classes(
+                "tech-table-flush"
             )
 
-            # Inject Download Button
+            # Download Button - Removed 'square'
             table.add_slot(
                 "body-cell-actions",
                 r"""
                 <q-td :props="props">
-                    <q-btn icon="download" flat dense round size="sm" color="primary" 
-                        @click="$parent.$emit('download', props.row)" />
+                    <q-btn icon="download" flat dense size="sm" color="grey-5" 
+                           class="hover:text-emerald-400 transition-colors"
+                           @click="$parent.$emit('download', props.row)">
+                        <q-tooltip class="bg-neutral-900 text-xs">DOWNLOAD ARTIFACT</q-tooltip>
+                    </q-btn>
                 </q-td>
                 """,
             )
-
             table.on("download", handle_download)
-
-        ui.separator()
 
 
 async def start_payload_dialogue():
-    """
-    Opens a dialog to build a new implant.
-    Fetches available listeners and dynamically updates available variants based on listener type.
-    """
 
-    # Map Listener Types -> List of available Implant Variants
-    VARIANT_MAP = {
-        "http": ["http_wininet"],
-        # "ntp": ["ntp_default"],  # not imlpemetned
-    }
-
+    VARIANT_MAP = {"http": ["http_wininet"]}
     response = await get_all_listener_data()
     listeners_list = response.get("data", [])
-
-    # Create Lookups
-    # Map Name -> Type (used to determine which variants to show)
     listener_type_map = {l["listener_name"]: l["listener_type"] for l in listeners_list}
-
-    # Map Name -> UUID (used to send the build command)
     listener_uuid_map = {l["listener_name"]: l["listener_uuid"] for l in listeners_list}
 
-    # 4. Action Handler: Build
     async def _build_implant():
-        name = implant_name_field.value
-        listener_name = implant_listener_field.value
-        variant = implant_variant_field.value
-        output_format = implant_format_field.value
+        name = name_input.value
+        listener_name = listener_select.value
+        variant = variant_select.value
+        fmt = format_select.value
 
-        # Validation
-        if not all([name, listener_name, output_format]):
-            ui.notify("Please fill in all required fields", type="warning")
+        if not all([name, listener_name, fmt]):
+            ui.notify("MISSING REQUIRED FIELDS", type="warning", color="orange-9")
             return
 
-        if implant_variant_field.visible and not variant:
-            ui.notify("Please select a communication variant", type="warning")
-            return
+        build_btn.props("loading")
 
-        dialog_spinner.visible = True
-
-        # Get the UUID based on the name selected
         listener_uuid = listener_uuid_map.get(listener_name)
-
-        # Call build service
         result = await build_implant(
             implant_name=name,
             implant_listener_uuid=listener_uuid,
-            implant_variant=variant if implant_variant_field.visible else None,
-            output_format=output_format,
+            implant_variant=variant if variant_select.visible else None,
+            output_format=fmt,
         )
 
-        dialog_spinner.visible = False
+        build_btn.props("loading=false")
 
         if not result:
-            ui.notify("Implant build failed", type="negative")
+            ui.notify("COMPILATION FAILED", type="negative")
             return
 
-        ui.notify(f"Implant '{name}' build started ({output_format})", type="positive")
+        ui.notify(f"BUILD STARTED: {name}.{fmt}", type="positive", color="emerald-9")
         dialog.close()
 
-    # 5. UI Logic: Update Dropdown
     def _on_listener_change(e):
-        """
-        Triggered when listener dropdown changes.
-        Updates the Variant dropdown options based on the listener type.
-        """
-        selected_name = e.value
-        selected_type = listener_type_map.get(selected_name)
-
-        # Look up valid variants for this listener type
+        selected_type = listener_type_map.get(e.value)
         allowed_variants = VARIANT_MAP.get(selected_type, [])
 
-        # if there's a variant available....
         if allowed_variants:
-            # Update options dynamically
-            implant_variant_field.options = allowed_variants
-            implant_variant_field.value = allowed_variants[
-                0
-            ]  # Auto-select first option
-            implant_variant_field.visible = True
-            implant_variant_field.label = (
-                f"{selected_type.upper()} Variant"  # Update label text
-            )
+            variant_select.options = allowed_variants
+            variant_select.value = allowed_variants[0]
+            variant_select.classes("hidden", remove=True)
         else:
-            # Hide if no variants exist for this type
-            implant_variant_field.options = []
-            implant_variant_field.value = None
-            implant_variant_field.visible = False
+            variant_select.options = []
+            variant_select.value = None
+            variant_select.classes("hidden", add=True)
 
-    # 6. Build the UI
-    with ui.dialog() as dialog:
-        with ui.card().classes(
-            "w-[600px] max-w-full p-6 space-y-4 rounded-xl shadow-lg"
+    # --- UI: THE DIALOG (Rounded Corners) ---
+    # Removed rounded-none (defaults to slight round) or use rounded
+    with ui.dialog() as dialog, ui.card().classes(
+        "tech-dialog w-[500px] p-0 rounded overflow-hidden"
+    ):
+
+        # Header
+        with ui.row().classes(
+            "w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"
         ):
-
-            # --- Header ---
-            with ui.column().classes("w-full items-center gap-1"):
-                ui.label("Build Implant").classes("text-xl font-bold tracking-tight")
-                ui.label("Compile a new agent configuration").classes(
-                    "text-sm text-gray-400"
+            with ui.row().classes("gap-2 items-center"):
+                ui.icon("terminal", color="emerald-500")
+                ui.label("COMPILE_AGENT").classes(
+                    "text-sm font-bold tracking-widest text-emerald-500 font-mono"
                 )
+            ui.button(icon="close", on_click=dialog.close).props(
+                "dense flat size=sm color=grey"
+            )
 
-            ui.separator().classes("my-2")
+        # Body
+        with ui.column().classes("p-6 gap-6 w-full"):
 
-            # --- Row 1: Identity & Output (Side-by-Side) ---
-            with ui.row().classes("w-full gap-4"):
-                # Name gets more space (flex-grow)
-                implant_name_field = (
-                    ui.input("Implant Name", placeholder="e.g., win_update_agent")
-                    .props("outlined dense")
-                    .classes("flex-grow")
-                )
+            # Name Input - Removed square
+            name_input = (
+                ui.input("IDENTITY", placeholder="agent_filename")
+                .props("outlined dense dark color=emerald")
+                .classes("w-full")
+            )
 
-                # Format gets fixed width or smaller flex
-                implant_format_field = (
-                    ui.select(
-                        options=["exe", "dll", "ps1", "shellcode", "all"],
-                        value="exe",
-                        label="Format",
-                    )
-                    .props("outlined dense")
-                    .classes("w-32")  # Fixed width keeps it tidy
-                )
+            # Grid
+            with ui.grid().classes("grid-cols-2 gap-4 w-full"):
+                format_select = ui.select(
+                    options=["exe", "dll", "ps1", "shellcode", "all"],
+                    value="exe",
+                    label="FORMAT",
+                ).props("outlined dense dark color=emerald options-dense")
 
-            # --- Row 2: Connection Settings ---
-            # Listener is the primary choice, so it gets a full row
-            implant_listener_field = (
-                ui.select(
+                listener_select = ui.select(
                     options=list(listener_type_map.keys()),
-                    label="Select Listener",
+                    label="LISTENER",
                     on_change=_on_listener_change,
-                )
-                .props("outlined dense options-dense")
-                .classes("w-full")
+                ).props("outlined dense dark color=emerald options-dense")
+
+            variant_select = (
+                ui.select(label="VARIANT", options=[])
+                .props("outlined dense dark color=emerald")
+                .classes("w-full hidden")
             )
 
-            # --- Row 3: Dynamic Variant (Full Width) ---
-            # This appears conditionally but takes full width when shown
-            implant_variant_field = (
-                ui.select(
-                    options=[],
-                    label="Implementation Variant",
-                )
-                .props("outlined dense options-dense")
-                .classes("w-full")
+        # Footer
+        with ui.row().classes(
+            "w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"
+        ):
+            ui.button("ABORT", on_click=dialog.close).props(
+                "flat dense color=grey no-caps"
             )
-            implant_variant_field.visible = False
 
-            # --- Footer ---
-            ui.separator().classes("mt-4 mb-2")
-
-            # Spinner centered or near buttons
-            dialog_spinner = ui.spinner(size="sm").classes("self-center")
-            dialog_spinner.visible = False
-
-            with ui.row().classes("w-full justify-between items-center"):
-                # Place spinner on left (optional) or hidden
-                ui.element("div")  # Spacer if spinner is hidden
-
-                with ui.row().classes("gap-3"):
-                    ui.button("Cancel", on_click=dialog.close).props("flat color=grey")
-                    ui.button(
-                        "Build Payload", icon="construction", on_click=_build_implant
-                    ).props("unelevated color=primary")
+            # Action Button - Removed square
+            build_btn = (
+                ui.button("EXECUTE BUILD", on_click=_build_implant)
+                .props("unelevated dense color=emerald text-color=white no-caps")
+                .classes("font-bold tracking-wide")
+            )
 
     dialog.open()

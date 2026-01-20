@@ -15,6 +15,15 @@ import client.src.client.pages.search
 
 server_log = logging.getLogger("server")
 
+# attempt at css
+app.add_static_files(
+    local_directory="/home/ubuntu-dev/LongHaulC2/client/src/client/static",
+    url_path="/static",
+)
+ui.add_head_html(
+    '<link rel="stylesheet" type="text/css" href="/static/theme.css">', shared=True
+)
+
 
 # ui.run(native=True, dark=True)
 ui.run(

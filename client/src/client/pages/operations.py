@@ -72,7 +72,9 @@ async def operations():
     global open_tabs
     open_tabs = {}
 
-    with ui.splitter(horizontal=True, value=50).classes("w-full h-full") as splitter:
+    with ui.splitter(horizontal=True, value=50).classes(
+        "w-full h-full"
+    ) as splitter:
         with splitter.before:
             await implant_view()
         with splitter.after:

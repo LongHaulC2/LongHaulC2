@@ -628,6 +628,7 @@ class MySQLImplantPayloadService:
             payload_bytes=payload_bytes,
             payload_listener_uuid=listener_uuid,
             payload_name=payload_name,
+            payload_source_code_bytes=b"",
         )
 
         self.session.add(payload_entry)
@@ -712,6 +713,8 @@ class MySQLImplantPayloadService:
             # payloads canbe downloaded with dedicated donwload endpoint.
             if "payload_bytes" in data:
                 del data["payload_bytes"]
+            if "payload_source_code_bytes" in data:
+                del data["payload_source_code_bytes"]
 
             # Optional: Don't send the massive 4GB bytes field if this is just for a UI list
             # data.pop("payload_bytes", None)

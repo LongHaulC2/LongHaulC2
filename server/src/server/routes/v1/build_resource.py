@@ -68,7 +68,7 @@ build_implant_model = build_ns.model(
             example="my_implant",
             # enum=["http_wininet", "http_curl"] # Optional: strictly enforce options
         ),
-        "listener_uuid": fields.String(
+        "implant_listener_uuid": fields.String(
             required=True,
             description="The listener the implant will call back to. Important, as the implant is formatted with listener specific data.",
             example="0000000-0000-0000-0000-000000000000",
