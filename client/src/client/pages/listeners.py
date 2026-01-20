@@ -216,152 +216,153 @@ async def listener_view():
         # call refresh
         await refresh()
 
-    async def start_listener_dialogue():
-
-        async def _start_listener():
-            file_path = (
-                Path(__file__).resolve().parent.parent
-                / "user"
-                / "profiles"
-                / str(listener_profile_field.value)
-            )
-
-            if not file_path.exists():
-                ui.notify(
-                    f"Malleable profile not found: {file_path.name}",
-                    type="warning",
-                )
-                return
-
-            listener_host = listener_host_field.value
-            listener_port = listener_port_field.value
-            listener_type = listener_type_field.value
-            listener_name = listener_name_field.value
-            listener_notes = listener_notes_field.value
-            listener_profile_name = listener_profile_field.value
-            listener_profile_contents = get_malleable_profile_content(file_path)
-
-            # basic validation
-            if not all([listener_host, listener_port, listener_type, listener_name]):
-                ui.notify("Please fill in all required fields", type="warning")
-                return
-
-            dialog_spinner.visible = True
-
-            result = await start_listener(
-                listener_host=listener_host,
-                listener_port=int(listener_port),
-                listener_type=listener_type,
-                listener_name=listener_name,
-                listener_notes=listener_notes,
-                listener_profile_name=listener_profile_name,
-                listener_profile_contents=listener_profile_contents,
-            )
-
-            dialog_spinner.visible = False
-
-            if not result:
-                ui.notify("Listener could not be started", type="negative")
-                return
-
-            ui.notify("Listener started successfully", type="positive")
-            dialog.close()
-            await refresh()
-
-        with ui.dialog() as dialog:
-            with ui.card().classes("w-[600px] max-w-full p-6 space-y-4 rounded-xl"):
-
-                # Header
-                ui.label("Spawn Listener").classes("text-xl font-semibold text-center")
-                ui.label("Create and start a new C2 listener").classes(
-                    "text-sm text-gray-500 text-center"
-                )
-
-                ui.separator()
-
-                # Name + Type
-                with ui.row().classes("w-full gap-4"):
-                    listener_name_field = (
-                        ui.input("Name").props("outlined dense").classes("flex-1")
-                    )
-
-                    listener_type_field = (
-                        ui.select(
-                            ["http", "ntp"],
-                            label="Type",
-                            value="http",
-                        )
-                        .props("outlined dense")
-                        .classes("flex-1")
-                    )
-
-                # Host + Port
-                with ui.row().classes("w-full gap-4"):
-                    listener_host_field = (
-                        ui.input("Host").props("outlined dense").classes("flex-1")
-                    )
-                    with listener_host_field:
-                        ui.tooltip(
-                            "Put the external IP or hostname the implant should connect back to. "
-                            "This must be reachable by the target. Do NOT use 0.0.0.0. - implant will call out to nothing"
-                        )
-                    listener_port_field = (
-                        ui.input(
-                            label="Port",
-                            placeholder="1–65535",
-                            validation={
-                                "Must be a number": lambda v: v.isdigit(),
-                                "Must be 1–65535": lambda v: v.isdigit()
-                                and 1 <= int(v) <= 65535,
-                            },
-                        )
-                        .props("outlined dense type=number min=1 max=65535")
-                        .classes("w-32")
-                    )
-
-                # Notes
-                listener_notes_field = (
-                    ui.textarea("Notes [expands if you hit enter]")
-                    .props("outlined autogrow")
-                    .classes("w-full flex")
-                )
-                ui.separator()
-
-                # Profile
-                listener_profile_field = (
-                    ui.select(
-                        get_malleable_profiles_list(),
-                        label="Malleable C2 Profile",
-                        with_input=True,
-                    )
-                    .props("outlined dense")
-                    .classes("w-full")
-                )
-
-                ui.separator()
-
-                # Spinner (hidden by default)
-                dialog_spinner = ui.spinner(size="sm")
-                dialog_spinner.visible = False
-
-                # Actions
-                with ui.row().classes("w-full justify-end gap-2"):
-                    ui.button(
-                        "Cancel",
-                        icon="close",
-                        on_click=dialog.close,
-                    ).props("flat")
-
-                    ui.button(
-                        "Spawn Listener",
-                        icon="rocket_launch",
-                        on_click=_start_listener,
-                    ).props("unelevated color=primary")
-
-        dialog.open()
-
     # set to every 3 seconds, less load on server.
     ui.timer(3, refresh)
+
+
+async def start_listener_dialogue():
+
+    async def _start_listener():
+        file_path = (
+            Path(__file__).resolve().parent.parent
+            / "user"
+            / "profiles"
+            / str(listener_profile_field.value)
+        )
+
+        if not file_path.exists():
+            ui.notify(
+                f"Malleable profile not found: {file_path.name}",
+                type="warning",
+            )
+            return
+
+        listener_host = listener_host_field.value
+        listener_port = listener_port_field.value
+        listener_type = listener_type_field.value
+        listener_name = listener_name_field.value
+        listener_notes = listener_notes_field.value
+        listener_profile_name = listener_profile_field.value
+        listener_profile_contents = get_malleable_profile_content(file_path)
+
+        # basic validation
+        if not all([listener_host, listener_port, listener_type, listener_name]):
+            ui.notify("Please fill in all required fields", type="warning")
+            return
+
+        dialog_spinner.visible = True
+
+        result = await start_listener(
+            listener_host=listener_host,
+            listener_port=int(listener_port),
+            listener_type=listener_type,
+            listener_name=listener_name,
+            listener_notes=listener_notes,
+            listener_profile_name=listener_profile_name,
+            listener_profile_contents=listener_profile_contents,
+        )
+
+        dialog_spinner.visible = False
+
+        if not result:
+            ui.notify("Listener could not be started", type="negative")
+            return
+
+        ui.notify("Listener started successfully", type="positive")
+        dialog.close()
+        # await refresh()
+
+    with ui.dialog() as dialog:
+        with ui.card().classes("w-[600px] max-w-full p-6 space-y-4 rounded-xl"):
+
+            # Header
+            ui.label("Spawn Listener").classes("text-xl font-semibold text-center")
+            ui.label("Create and start a new C2 listener").classes(
+                "text-sm text-gray-500 text-center"
+            )
+
+            ui.separator()
+
+            # Name + Type
+            with ui.row().classes("w-full gap-4"):
+                listener_name_field = (
+                    ui.input("Name").props("outlined dense").classes("flex-1")
+                )
+
+                listener_type_field = (
+                    ui.select(
+                        ["http", "ntp"],
+                        label="Type",
+                        value="http",
+                    )
+                    .props("outlined dense")
+                    .classes("flex-1")
+                )
+
+            # Host + Port
+            with ui.row().classes("w-full gap-4"):
+                listener_host_field = (
+                    ui.input("Host").props("outlined dense").classes("flex-1")
+                )
+                with listener_host_field:
+                    ui.tooltip(
+                        "Put the external IP or hostname the implant should connect back to. "
+                        "This must be reachable by the target. Do NOT use 0.0.0.0. - implant will call out to nothing"
+                    )
+                listener_port_field = (
+                    ui.input(
+                        label="Port",
+                        placeholder="1–65535",
+                        validation={
+                            "Must be a number": lambda v: v.isdigit(),
+                            "Must be 1–65535": lambda v: v.isdigit()
+                            and 1 <= int(v) <= 65535,
+                        },
+                    )
+                    .props("outlined dense type=number min=1 max=65535")
+                    .classes("w-32")
+                )
+
+            # Notes
+            listener_notes_field = (
+                ui.textarea("Notes [expands if you hit enter]")
+                .props("outlined autogrow")
+                .classes("w-full flex")
+            )
+            ui.separator()
+
+            # Profile
+            listener_profile_field = (
+                ui.select(
+                    get_malleable_profiles_list(),
+                    label="Malleable C2 Profile",
+                    with_input=True,
+                )
+                .props("outlined dense")
+                .classes("w-full")
+            )
+
+            ui.separator()
+
+            # Spinner (hidden by default)
+            dialog_spinner = ui.spinner(size="sm")
+            dialog_spinner.visible = False
+
+            # Actions
+            with ui.row().classes("w-full justify-end gap-2"):
+                ui.button(
+                    "Cancel",
+                    icon="close",
+                    on_click=dialog.close,
+                ).props("flat")
+
+                ui.button(
+                    "Spawn Listener",
+                    icon="rocket_launch",
+                    on_click=_start_listener,
+                ).props("unelevated color=primary")
+
+    dialog.open()
 
 
 def get_malleable_profiles_list() -> list:

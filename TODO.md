@@ -174,7 +174,7 @@
             - Going to need to get that logic into the build process, for which verson of main to include (dll, vs exe main - have a template for both)
 
          - [ ] Listeners tab - > change to name : uuid in the dropdowns
-         - [ ] Defualt implant gets picked up by defender... yay. ON WHAT?????
+         - [ ] Defualt implant gets picked up by defender... yay. ON WHAT????? (it said ml. Probably new donwload, execute, and callback instantly to server)
 
 
 

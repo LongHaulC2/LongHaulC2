@@ -81,10 +81,10 @@ async def implants_view():
     ui.separator()
 
     payload_data = (await get_payload_data()).get("data")
-    render_payloads(payload_data=payload_data)
+    await render_payloads(payload_data=payload_data)
 
 
-def render_payloads(payload_data: dict):
+async def render_payloads(payload_data: dict):
     """
     Renders expandable tables for payloads, grouped by Listener UUID.
 
@@ -152,8 +152,12 @@ def render_payloads(payload_data: dict):
             )
 
         # Create Expansion Panel
-        # (You might want to map UUID -> Listener Name later if you have that data)
-        label_text = f"Listener: {listener_uuid}"
+        # can do another lookup for listener name/data iwth get_listener_data
+        # or could just map it together with previous data.
+        # inneficient. Just get all listeners at start
+        listener_data = await get_listener_data(listener_uuid)
+        listener_name = listener_data.get("data", {}).get("listener_name")
+        label_text = f"Listener: {listener_name}: {listener_uuid}"
 
         with ui.expansion(label_text, icon="hub").classes("w-full"):
 
