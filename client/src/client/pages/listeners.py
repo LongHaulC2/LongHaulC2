@@ -295,6 +295,25 @@ async def listener_view():
                         .classes("flex-1")
                     )
 
+                    # Variant dropdown
+                    http_variant_field = (
+                        ui.select(
+                            [
+                                "wininet",
+                                "curl",
+                            ],  # Options based on your architecture decision
+                            label="HTTP Implementation Variant",
+                            value="wininet",
+                        )
+                        .props("outlined dense")
+                        .classes("flex-1")
+                    )
+
+                    # 2. Bind visibility: Only show this field if listener_type_field == "http"
+                    http_variant_field.bind_visibility_from(
+                        listener_type_field, "value", backward=lambda v: v == "http"
+                    )
+
                 # Host + Port
                 with ui.row().classes("w-full gap-4"):
                     listener_host_field = (

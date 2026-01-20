@@ -160,13 +160,19 @@
          - [X] test compile
       - [X] Do basic compilation checks (copy paste into visual studio) to make sure generation is okay
 
-         # > here
-
+      >> 
       - [ ] Do correct lookups for implant uuid -> new imlant. 
             Not hard, just need to pull correct data. in build.py
       - [ ] Store binary output data in DB
          - [ ] table
       - [ ] cleanup build.py
+
+         # > here
+         note - difference betwen lsitener type (http) and listenert type for build (http_wininet)
+         Solution: have a "main listener", ex http, then a subvariant to build into implant.
+
+         - cleint has a field to specfy variant.
+         - [ ] add in a field to api, and logic in build, for which variant to build/use.
 
       - [ ] API: hook up funcs to api
          - [X] build entry in build.py

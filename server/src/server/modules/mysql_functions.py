@@ -3,7 +3,7 @@ import logging
 from dataclasses import asdict
 
 from edwh_uuid7 import uuid7
-from sqlalchemy import exc, text
+from sqlalchemy import exc, inspect, text
 
 from ..db.mysql_models import Implant, ImplantPayload, ImplantTask, Listener
 from ..schemas.implant import ImplantCreate, ImplantUpdate, Task

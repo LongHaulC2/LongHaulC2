@@ -55,25 +55,39 @@ def build_implant(listener_uuid):
     # lookup listener data
     with get_mysql_session() as session:
         ls = ListenerService(session)
-        listener_data = ls.get_by_id(listener_uuid)
+        listener_data = (ls.get_by_id(listener_uuid)).to_dict()
 
-    print(listener_data)
+        # print(listener_data.keys())
+        """
+        dict_keys(['listener_uuid', 'listener_host', 'listener_port', 
+        'listener_type', 'listener_name', 'listener_notes', 'listener_active', 
+        'listener_profile_name', 'listener_profile_contents'])
+        """
 
+    # note - difference betwen lsitener type (http) and listenert type for build (http_wininet)
+    # OR - less complicated for user, have a "http" listener, then specify which method
+    # done - cleint has a field to specfy variant.
+    # add in a field to api, and here, for which variant to build/use.
+
+    listener_type = listener_data.get("listener_type")
+    listener_host = listener_data.get("listener_host")
+    listener_port = listener_data.get("listener_port")
     # temp
     mc2_path = Path("/home/ubuntu-dev/LongHaulC2/tests/profiles/webbug.profile")
     build_dir = create_implant(
-        malleable_c2_path=mc2_path,
-        listener_type="http_wininet",
-        callback_host="0.0.0.0",
-        callback_port=9010,
+        malleable_c2_path=mc2_path,  # need to update to pass the full str, not the path now
+        listener_type=listener_type,
+        callback_host=listener_host,
+        callback_port=int(listener_port),
+        # protocol variant = whatever
     )
     docker_build_implant(build_dir)
 
-    # get built implant
+    # get built implant... somehow. Could get it from the outdir.
+    # Maybe anything that is ".ps1, .exe, .dll, etc. " return as a list, and upload
 
     # write to db
     with get_mysql_session() as session:
-
         ps = MySQLImplantPayloadService(session)
         ps.register_payload(b"somepayload", listener_uuid)
 
@@ -104,6 +118,7 @@ def create_implant(
             listener_type=listener_type,
             callback_host=callback_host,
             callback_port=callback_port,
+            # protocol_variant = whatever
         )
     return Path(tmp_dir)
 
@@ -120,6 +135,8 @@ def _create_implant(
     )
     server_logger.debug("_create_implant")
 
+    # if variant == http:
+
     # 1. Generate the shared context (Data usually needed by ALL files)
     # these are the keys that get plugged into the templates
     # one per listener type for explicitness/control
@@ -132,6 +149,8 @@ def _create_implant(
         case _:
             server_logger.error(f"Invalid listener type: {listener_type}")
             return
+
+    # if variant == ...
 
     # 2. Define the File Map
     # Structure: "Destination Path" : "Source Template"
