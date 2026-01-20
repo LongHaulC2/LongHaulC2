@@ -168,9 +168,11 @@
       - [ ] cleanup build.py
 
          # > here
+         - Go thorugh the entire chain of files I edited last night and review
          - [ ] GUI: List/Download imlpants functionality
          - [ ] Server: Clean up, add output options/logic (exe, etc)
             - Going to need to get that logic into the build process, for which verson of main to include (dll, vs exe main - have a template for both)
+
 
 
 Just remember, block == sender (ex, client, means sent from client). Transformations are top down

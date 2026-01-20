@@ -1,15 +1,16 @@
+import io
 import logging
 from dataclasses import asdict
 
 from edwh_uuid7 import uuid7
-from flask import request
+from flask import request, send_file
 from flask_restx import Namespace, Resource, fields
 
 from ...db.mysql_connector import get_mysql_session
 from ...instance import api
 from ...listeners.supervisor import start_listener, stop_listener
 from ...modules.implant_builder.build import build_implant
-from ...modules.mysql_functions import ListenerService
+from ...modules.mysql_functions import MySQLImplantPayloadService
 from ...schemas.listeners import ListenerCreate
 from ...utils.checks import check_type
 from ...utils.response import APIResponse
@@ -109,6 +110,28 @@ class Build(Resource):
             message="Build process initiated successfully",
         ).jsonify()
 
+    def get(self):  # get one implant
+        """
+        Get a list of all payloads
+        """
+        ip = request.remote_addr
+
+        api_logger.info(
+            f"Getting all payloads",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
+        # sql call to get implant data, return it as a dict (including bin data)
+        with get_mysql_session() as session:
+            ips = MySQLImplantPayloadService(session)
+
+            data = ips.get_all_payloads()
+
+        api_response = APIResponse(status="200", message="Success", data=data)
+        return api_response.jsonify()
+
 
 # GET /build/hash: Get singular binary
 # DELETE /build/hash: Delete singular binary
@@ -131,27 +154,37 @@ class BinaryActions(Resource):
             405: "Method Not Allowed",
         },
     )
-    def get(self, hash):  # get one implant
+    def get(self, hash):
         """
-        ...
+        Download a specific payload artifact.
         """
         ip = request.remote_addr
 
-        api_logger.info(
-            f"Getting implant {hash}",
-            extra={
-                "caller_ip": ip,
-            },
-        )
+        # 1. Validation
         check_type(hash, str, "hash")
 
-        # sql call to get implant data, return it as a dict (including bin data)
-
-        api_response = APIResponse(
-            status="200",
-            message="Success",
+        api_logger.info(
+            f"Download requested for hash {hash}",
+            extra={"caller_ip": ip},
         )
-        return api_response.jsonify()
+
+        # 2. Fetch Data
+        with get_mysql_session() as session:
+            service = MySQLImplantPayloadService(session)
+            payload = service.get_payload_by_hash(hash)
+
+            if not payload:
+                api_logger.warning(f"Payload not found: {hash}")
+                return APIResponse(status="404", message="Payload not found").jsonify()
+
+            # 3. Serve File
+            # We wrap the bytes in BytesIO so Flask can treat it like a file
+            return send_file(
+                io.BytesIO(payload.payload_bytes),
+                mimetype="application/octet-stream",
+                as_attachment=True,
+                download_name=payload.payload_name or f"{hash}.bin",
+            )
 
     @build_ns.doc(
         summary="[Not Implemented] Delete an implant",

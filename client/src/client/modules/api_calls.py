@@ -214,6 +214,43 @@ async def build_implant(
         return data
 
 
+async def get_payload_data() -> dict:
+    """Gets list of payloads
+    Returns:
+        dict: _description_
+
+    """
+    url = generate_url(f"/api/v1/build/")
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(method="GET", url=url)
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        data = response.json()  # .get("data")
+        return data
+
+
+async def get_payload_bytes(payload_hash: str) -> dict:
+    """Gets the bytes of a payload
+    Returns:
+        dict: _description_
+
+    """
+    url = generate_url(f"/api/v1/build/{payload_hash}")
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(method="GET", url=url)
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        if response.status_code != 200:
+            print(f"Error downloading: {response.text}")
+            return None
+
+        # Note: Use .content for binary, not .json()
+        return response.content
+
+
 async def get_implant_task_history_since_uuid(
     implant_uuid: str, since_task_uuid: str
 ) -> dict:

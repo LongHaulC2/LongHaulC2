@@ -692,6 +692,34 @@ class MySQLImplantPayloadService:
 
         return results
 
+    def get_all_payloads(self):
+        """
+        Retrieve ALL payloads currently registered in the database.
+        Converts the binary hash in the DB to a hex string in the returned dict.
+        """
+        server_logger.info("Retrieving all payloads from database")
+
+        payloads = self.session.query(ImplantPayload).all()
+
+        results = []
+        for p in payloads:
+            data = p.to_dict()
+            # Convert the bytes hash to hex string for the final output
+            if isinstance(data.get("payload_hash"), bytes):
+                data["payload_hash"] = data["payload_hash"].hex()
+
+            # Remove payload bytes cuz flask can't handle it as its bytes.
+            # payloads canbe downloaded with dedicated donwload endpoint.
+            if "payload_bytes" in data:
+                del data["payload_bytes"]
+
+            # Optional: Don't send the massive 4GB bytes field if this is just for a UI list
+            # data.pop("payload_bytes", None)
+
+            results.append(data)
+
+        return results
+
     def delete_payload(self, payload_hash: str):
         """
         Delete a payload by hash (Hex String).

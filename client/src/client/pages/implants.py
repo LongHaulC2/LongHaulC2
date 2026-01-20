@@ -1,4 +1,5 @@
 import logging
+from itertools import groupby
 from pathlib import Path
 
 import httpx
@@ -12,6 +13,8 @@ from client.src.client.modules.api_calls import (
     get_implant_task_history,
     get_implant_task_history_since_uuid,
     get_listener_data,
+    get_payload_bytes,
+    get_payload_data,
     queue_task,
     start_listener,
     stop_listener,
@@ -77,44 +80,90 @@ async def implants_view():
 
     ui.separator()
 
-    # example layout
+    payload_data = (await get_payload_data()).get("data")
+    render_payloads(payload_data=payload_data)
 
-    # with ui.expansion("Listener Name", icon="work").classes("w-full"):
-    #     for i in range(1, 5):
-    #         with ui.row().classes("w-full"):
-    #             ui.label("inside the expansion - maybe table this")
-    #             ui.label("<file_name>")
-    #             ui.label("<file_hash>")
-    #             ui.button("Download")
-    #             ui.separator()
-    rows = [
-        {"name": "file_alpha.txt", "hash": "39a84b", "status": "Ready"},
-        {"name": "file_beta.log", "hash": "10c92d", "status": "Ready"},
-        {"name": "file_gamma.py", "hash": "55f12e", "status": "Archived"},
-    ]
 
+def render_payloads(payload_data: dict):
+    """
+    Renders expandable tables for payloads, grouped by Listener UUID.
+
+    api_response: The full JSON dict from your API
+                  (e.g. {'data': [...], 'status': '200', ...})
+    """
+
+    # 2. Define Table Columns
     columns = [
         {"name": "name", "label": "File Name", "field": "name", "align": "left"},
         {
             "name": "hash",
-            "label": "Hash",
+            "label": "Hash (MD5)",
             "field": "hash",
             "align": "left",
-            "classes": "font-mono text-gray-500",
+            "classes": "font-mono text-gray-500 text-xs",
         },
-        {"name": "actions", "label": "Download", "field": "actions", "align": "right"},
+        {"name": "actions", "label": "Action", "field": "actions", "align": "right"},
     ]
 
-    for i in range(1, 5):
-        with ui.expansion("Listener Name", icon="table_view").classes("w-full"):
-            # 'dense' makes rows shorter, 'flat' removes the table shadow
+    # 3. Group Data by Listener UUID
+    #    Sort first (required for groupby)
+    sorted_data = sorted(
+        payload_data, key=lambda x: x.get("payload_listener_uuid", "Unknown")
+    )
+
+    grouped_payloads = {}
+    for key, group in groupby(
+        sorted_data, key=lambda x: x.get("payload_listener_uuid", "Unknown")
+    ):
+        grouped_payloads[key] = list(group)
+
+    # 4. Action Handler
+    async def handle_download(e):
+        row = e.args
+        ui.notify(f"Fetching {row['name']}...")
+
+        # 1. Fetch bytes into NiceGUI memory
+        file_bytes = await get_payload_bytes(row["hash"])
+
+        if file_bytes:
+            # 2. Trigger browser download from memory
+            # Note: 'row['name']' ensures the file saves as 'myfile.exe', not 'download'
+            # Note: can't use raw ui.download on endpoint, as ui.download can't auth to things
+            ui.download(file_bytes, filename=row["name"])
+            ui.notify("Download ready")
+        else:
+            ui.notify("Failed to fetch payload", type="negative")
+
+    # 5. Render UI
+    for listener_uuid, payloads in grouped_payloads.items():
+
+        # Transform API data into Table Rows
+        table_rows = []
+        for p in payloads:
+            table_rows.append(
+                {
+                    "id": p.get("id"),
+                    "name": p.get(
+                        "payload_name", "Unnamed"
+                    ),  # Maps payload_name -> name
+                    "hash": p.get("payload_hash", ""),  # Maps payload_hash -> hash
+                    "uuid": listener_uuid,
+                }
+            )
+
+        # Create Expansion Panel
+        # (You might want to map UUID -> Listener Name later if you have that data)
+        label_text = f"Listener: {listener_uuid}"
+
+        with ui.expansion(label_text, icon="hub").classes("w-full"):
+
             table = (
-                ui.table(columns=columns, rows=rows, row_key="name")
+                ui.table(columns=columns, rows=table_rows, row_key="id")
                 .props("dense flat")
                 .classes("w-full")
             )
 
-            # Use a slot to inject a button into the table
+            # Inject Download Button
             table.add_slot(
                 "body-cell-actions",
                 r"""
@@ -122,11 +171,11 @@ async def implants_view():
                     <q-btn icon="download" flat dense round size="sm" color="primary" 
                         @click="$parent.$emit('download', props.row)" />
                 </q-td>
-            """,
+                """,
             )
 
-            # Python handler for the Vue event
-            table.on("download", lambda e: ui.notify(f"Downloading {e.args['name']}"))
+            table.on("download", handle_download)
+
         ui.separator()
 
 
