@@ -165,6 +165,7 @@
       - [ ] Do correct lookups for implant uuid -> new imlant. 
             Not hard, just need to pull correct data. in build.py
       - [ ] Store binary output data in DB
+         - [ ] table
       - [ ] cleanup build.py
 
       - [ ] API: hook up funcs to api

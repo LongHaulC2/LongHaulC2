@@ -11,6 +11,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
+from sqlalchemy.dialects.mysql import LONGBLOB, TINYBLOB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.inspection import inspect
 
@@ -172,5 +173,24 @@ class Listener(Base):
             data = [i.to_dict() for i in implants]
         ```
 
+        """
+        return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
+
+
+class ImplantPayload(Base):
+    __tablename__ = "implant_payloads"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+
+    payload_hash = Column(TINYBLOB(16), nullable=False)  # md5 hash
+    payload_bytes = Column(
+        LONGBLOB, nullable=False
+    )  # LONGBLOB is 4gb (massive, intentional for expandability)
+
+    payload_listener = Column(String(255))  # matches Listener model name length of 255
+
+    def to_dict(self):
+        """
+        Turns each field into a dict.
         """
         return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}

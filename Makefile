@@ -117,9 +117,11 @@ uninstall:
 
 .PHONY: create_docker_images
 create_docker_images:
-	sudo groupadd docker
-	sudo usermod -aG docker $USER
-	
+	sudo getent group docker >/dev/null || sudo groupadd docker
+
+	sudo usermod -aG docker "$(USER)"
+	echo "Log out and back in (or run: newgrp docker) for changes to take effect."
+
 	@echo "=================================================="
 	@echo "Creating docker images"
 	@echo "=================================================="
