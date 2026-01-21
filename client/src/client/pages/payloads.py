@@ -155,7 +155,7 @@ async def render_payloads(payload_data: dict):
                         ui.label(listener_name).classes(
                             "text-sm font-bold text-neutral-200 tracking-wide uppercase"
                         )
-                        ui.label(f"UUID: {listener_uuid[:8]}...").classes(
+                        ui.label(f"UUID: {listener_uuid}").classes(
                             "tech-label-subtitle"
                         )
 
