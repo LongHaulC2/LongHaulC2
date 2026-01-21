@@ -246,7 +246,7 @@ async def start_payload_dialogue():
         ):
             with ui.row().classes("gap-2 items-center"):
                 ui.icon("terminal", color="emerald-500")
-                ui.label("COMPILE_AGENT").classes(
+                ui.label("BUILD_IMPLANT_PAYLOAD").classes(
                     "text-sm font-bold tracking-widest text-emerald-500 font-mono"
                 )
             ui.button(icon="close", on_click=dialog.close).props(

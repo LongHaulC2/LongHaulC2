@@ -108,14 +108,14 @@ async def implant_view():
                     ui.label("PAYLOAD").classes("text-[10px] font-bold")
                     ui.tooltip("Build New Payload")
 
-                ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
+                with ui.button(on_click=lambda: start_listener_dialogue()).classes(
+                    "tech-btn-action px-2"
+                ).props("dense flat size=sm"):
+                    ui.icon("add", size="xs").classes("mr-1")
+                    ui.label("LISTENER").classes("text-[10px] font-bold")
+                    ui.tooltip("Start a Listener")
 
-                # Listeners
-                ui.button(
-                    icon="headphone", on_click=lambda: start_listener_dialogue()
-                ).classes("tech-btn-ghost").props("dense flat size=sm round").tooltip(
-                    "Start Listener"
-                )
+                ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
 
                 # Terminal (Open)
                 ui.button(
