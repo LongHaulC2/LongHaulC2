@@ -10,6 +10,7 @@ from client.src.client.modules.api_calls import (
     get_listener_data,
     get_payload_bytes,
     get_payload_data,
+    get_payload_source_bytes,
 )
 from client.src.client.pages.menu import setup_menu
 
@@ -122,6 +123,16 @@ async def render_payloads(payload_data: dict):
         else:
             ui.notify("Transfer Failed", type="negative")
 
+    async def handle_source_download(e):
+        row = e.args
+        ui.notify(f"Retrieving {row['name']}...", type="info", color="grey-9")
+        file_bytes = await get_payload_source_bytes(row["hash"])
+        if file_bytes:
+            ui.download(file_bytes, filename=f"{row["name"]}_source.zip")
+            ui.notify("Transfer Complete", type="positive")
+        else:
+            ui.notify("Transfer Failed", type="negative")
+
     # 4. Render Groups
     listener_data = (await get_all_listener_data()).get("data")
     for listener_uuid, payloads in grouped_payloads.items():
@@ -172,20 +183,35 @@ async def render_payloads(payload_data: dict):
                 "tech-table-flush"
             )
 
-            # Inject Download Button
+            # Inject Download Buttons
             table.add_slot(
                 "body-cell-actions",
                 r"""
                 <q-td :props="props">
-                    <q-btn icon="download" flat dense size="sm" color="grey-5" 
-                           class="hover:text-emerald-400 transition-colors"
-                           @click="$parent.$emit('download', props.row)">
-                        <q-tooltip class="bg-neutral-900 text-xs">DOWNLOAD ARTIFACT</q-tooltip>
-                    </q-btn>
+                    <div class="row items-center justify-end no-wrap gap-1">
+                        
+                        <q-btn icon="download" flat dense size="sm" color="grey-5" 
+                            class="hover:text-emerald-400 transition-colors"
+                            @click="$parent.$emit('download', props.row)">
+                            <q-tooltip class="bg-neutral-900 text-xs">DOWNLOAD BINARY</q-tooltip>
+                        </q-btn>
+
+                        <q-btn icon="code" flat dense size="sm" color="grey-5" 
+                            class="hover:text-emerald-400 transition-colors"
+                            @click="$parent.$emit('source_download', props.row)">
+                            <q-tooltip class="bg-neutral-900 text-xs">DOWNLOAD SOURCE</q-tooltip>
+                        </q-btn>
+
+                    </div>
                 </q-td>
-            """,
+                """,
             )
+
+            # Register Listeners for both events
             table.on("download", handle_download)
+
+            # Make sure you have this function defined above!
+            table.on("source_download", handle_source_download)
 
 
 async def start_payload_dialogue():

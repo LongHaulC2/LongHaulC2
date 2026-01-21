@@ -587,7 +587,11 @@ class MySQLImplantPayloadService:
         self.session = session
 
     def register_payload(
-        self, payload_name: str, payload_bytes: bytes, listener_uuid: str
+        self,
+        payload_name: str,
+        payload_bytes: bytes,
+        listener_uuid: str,
+        source_code_bytes: bytes,
     ) -> str:
         """
         Create an entry for a new payload.
@@ -628,7 +632,7 @@ class MySQLImplantPayloadService:
             payload_bytes=payload_bytes,
             payload_listener_uuid=listener_uuid,
             payload_name=payload_name,
-            payload_source_code_bytes=b"",
+            payload_source_code_bytes=source_code_bytes,
         )
 
         self.session.add(payload_entry)

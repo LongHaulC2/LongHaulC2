@@ -148,36 +148,26 @@
 
       - [X] Plan and build out the actual build process
          - Docker based build system would be nice, takes longer and is a PITA. 
-         Aparently docker lib is better now.
-         Steps:
-            1 docker container per compile
-            Volumes, source is temp dir where code is generated, then out to another temp. Binary is then read from out temp, and stored in SQL with relevant data. 
-
-         Ex: (no more boilerplate yay)
+         - Note, subsequent docker builds, or a lot at once, get slow. 
+         - Another note, payload id or something similar for tracking said payload that
+            the API can return fro tracking payloads after build would be nice. 
+            (Need to clarify, payload_uuid, and implant_uuid are 2 diff things, see payload vs implant) - maybe name it build_uuid for tracking the build
 
          - [X] Fix implant to let it compile
             Use conversions between vector<uint8_t> and std::string - do this in visual studio then copy in
          - [X] test compile
       - [X] Do basic compilation checks (copy paste into visual studio) to make sure generation is okay
 
-      >> 
-      - [X] Do correct lookups for implant uuid -> new imlant. 
-            Not hard, just need to pull correct data. in build.py
-      - [X] Store binary output data in DB
-         - [X] table
-      - [ ] Add in zipped source code to table as well
+         >> here
       - [ ] cleanup build.py
 
-         # > here
-         - Go thorugh the entire chain of files I edited last night and review
-         - [ ] implant vs payload naming... payload: unran implant. Implant: Active implant?
-         - [X] GUI: List/Download implants functionality
+         - implant vs payload naming: payload: unran implant. Implant: Active implant
          - [ ] Server: Clean up, add output options/logic (exe, etc)
             - Going to need to get that logic into the build process, for which verson of main to include (dll, vs exe main - have a template for both)
 
-         - [X] Listeners tab - > change to name : uuid in the dropdowns
          - [ ] Defualt implant gets picked up by defender... yay. ON WHAT????? (it said ml. Probably new donwload, execute, and callback instantly to server)
 
+         - [ ] Add variant back to GUI, seemingly not showing up in payload build
 
 
 

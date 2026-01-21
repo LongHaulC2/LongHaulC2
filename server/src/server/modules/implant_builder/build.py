@@ -2,6 +2,7 @@ import functools
 import logging
 import shutil
 import tempfile
+import zipfile
 from pathlib import Path
 
 import structlog
@@ -96,6 +97,15 @@ def build_implant(implant_name, listener_uuid, variant, output_format):
     )
     docker_build_implant(build_dir)
 
+    # zip source, and write to db
+    zip_location = build_dir / f"{implant_name}_source.zip"
+
+    with zipfile.ZipFile(zip_location, "w", compression=zipfile.ZIP_DEFLATED) as z:
+        for path in Path(build_dir).rglob("*"):
+            if path.is_file():
+                z.write(path, arcname=path.relative_to(build_dir))
+
+    zip_bytes = zip_location.read_bytes()
     # get built implant... somehow. Could get it from the outdir.
     # Maybe anything that is ".ps1, .exe, .dll, etc. " return as a list, and upload
     # for now, just get anything in output.
@@ -109,7 +119,9 @@ def build_implant(implant_name, listener_uuid, variant, output_format):
             # Register to Database
             with get_mysql_session() as session:
                 service = MySQLImplantPayloadService(session)
-                service.register_payload(implant_name, payload_bytes, listener_uuid)
+                service.register_payload(
+                    implant_name, payload_bytes, listener_uuid, zip_bytes
+                )
 
 
 def setup_implant_build_enviornment(

@@ -239,7 +239,59 @@ class BinaryActions(Resource):
         return api_response.jsonify()
 
 
+class SourceActions(Resource):
+    @build_ns.doc(
+        summary="Download the source of an implant",
+        description="Download the source of an implant",
+        params={
+            "hash": {
+                "description": "Hash of implant",
+                "in": "path",
+            }
+        },
+        responses={
+            200: "Success",
+            404: "Not found",
+            400: "Bad request",
+            500: "Server Error",
+            405: "Method Not Allowed",
+        },
+    )
+    def get(self, hash):
+        """
+        Download a specific payload artifact, based on the provided hash
+        """
+        ip = request.remote_addr
+
+        # 1. Validation
+        check_type(hash, str, "hash")
+
+        api_logger.info(
+            f"Download requested for hash {hash}",
+            extra={"caller_ip": ip},
+        )
+
+        # 2. Fetch Data
+        with get_mysql_session() as session:
+            service = MySQLImplantPayloadService(session)
+            payload = service.get_payload_by_hash(hash)
+
+            if not payload:
+                api_logger.warning(f"Payload not found: {hash}")
+                return APIResponse(status="404", message="Payload not found").jsonify()
+
+            # 3. Serve File
+            # We wrap the bytes in BytesIO so Flask can treat it like a file
+            return send_file(
+                io.BytesIO(payload.payload_source_code_bytes),
+                mimetype="application/octet-stream",
+                as_attachment=True,
+                download_name=f"{payload.payload_name}_source.zip" or f"{hash}.zip",
+            )
+
+
 build_ns.add_resource(Build, "/")
 build_ns.add_resource(BinaryActions, "/<string:hash>")
+build_ns.add_resource(SourceActions, "/<string:hash>/source")
 
 api.add_namespace(build_ns)
