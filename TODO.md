@@ -159,8 +159,8 @@
       - [X] Do basic compilation checks (copy paste into visual studio) to make sure generation is okay
 
          >> here
-      - [ ] cleanup build.py
-
+      - [ ] cleanup build.py <<<<<
+      
          - implant vs payload naming: payload: unran implant. Implant: Active implant
          - [ ] Server: Clean up, add output options/logic (exe, etc)
             - Going to need to get that logic into the build process, for which verson of main to include (dll, vs exe main - have a template for both)

@@ -271,7 +271,7 @@ async def terminal_view():
             "w-full items-center bg-black/20 border-b border-white/5 px-2 h-10 gap-2"
         ):
             ui.icon("terminal", size="xs", color="emerald-500")
-            ui.label("TERMINAL_MULTIPLEXER //").classes("tech-label-subtitle mr-4")
+            ui.label("TERMINAL //").classes("tech-label-subtitle mr-4")
 
             # The Tabs Control
             tabs = ui.tabs().props(

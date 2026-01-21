@@ -117,7 +117,7 @@ async def search_view():
 
         # If empty input, reset to empty state
         if not search_field.value:
-            search_spinner.classes("opacity-0", add=True)
+            search_spinner.classes(add="opacity-0")
             with results_container:
                 with ui.column().classes(
                     "w-full h-full items-center justify-center opacity-30"
@@ -150,7 +150,7 @@ async def search_view():
             except Exception as err:
                 server_log.error(f"Search error: {err}")
             finally:
-                search_spinner.classes("opacity-0", add=True)  # Hide spinner
+                search_spinner.classes(add="opacity-0")  # Hide spinner
 
         running_query = asyncio.create_task(fetch())
         try:
