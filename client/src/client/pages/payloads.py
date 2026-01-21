@@ -118,7 +118,7 @@ async def render_payloads(payload_data: dict):
         ui.notify(f"Retrieving {row['name']}...", type="info", color="grey-9")
         file_bytes = await get_payload_bytes(row["hash"])
         if file_bytes:
-            ui.download(file_bytes, filename=row["name"])
+            ui.download(file_bytes, filename=f'{row["name"]}.bin')
             ui.notify("Transfer Complete", type="positive")
         else:
             ui.notify("Transfer Failed", type="negative")
