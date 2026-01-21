@@ -92,6 +92,14 @@ async def render_payloads(payload_data: dict):
         {"name": "actions", "label": "Op", "field": "actions", "align": "right"},
     ]
 
+    # Get all lsiteenrs at once, create a lookup dictionary: { 'uuid_string': 'Listener Name', ... }
+    all_listeners_resp = await get_all_listener_data()
+    all_listeners = all_listeners_resp.get("data", [])
+    # Map UUID -> Name for O(1) lookup inside the loop
+    listener_map = {
+        l.get("listener_uuid"): l.get("listener_name", "Unknown") for l in all_listeners
+    }
+
     # 2. Group Data by Listener
     sorted_data = sorted(
         payload_data, key=lambda x: x.get("payload_listener_uuid", "Unknown")
@@ -115,6 +123,7 @@ async def render_payloads(payload_data: dict):
             ui.notify("Transfer Failed", type="negative")
 
     # 4. Render Groups
+    listener_data = (await get_all_listener_data()).get("data")
     for listener_uuid, payloads in grouped_payloads.items():
         # Prepare Rows
         table_rows = [
@@ -128,8 +137,8 @@ async def render_payloads(payload_data: dict):
         ]
 
         # Fetch Context
-        listener_data = await get_listener_data(listener_uuid)
-        listener_name = listener_data.get("data", {}).get("listener_name", "Unknown")
+        # listener_data = await get_listener_data(listener_uuid)
+        listener_name = listener_map.get(listener_uuid, "Unknown")
 
         # --- TECH EXPANSION COMPONENT ---
         # "tech-expansion" class handles all the border/background logic in CSS
