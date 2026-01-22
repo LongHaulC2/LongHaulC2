@@ -160,7 +160,7 @@
 
          >> here
       - [ ] cleanup build.py <<<<<
-         - [ ] DELTE OLD TEMP FILES AFTER USING THEM (after write to DB in payload.py)
+         - [X] DELTE OLD TEMP FILES AFTER USING THEM (after write to DB in payload.py)
 
 
          - implant vs payload naming: payload: unran implant. Implant: Active implant

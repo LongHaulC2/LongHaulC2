@@ -166,6 +166,11 @@ def store_data_post_build(
         server_logger.error(
             f"Database transaction failed for {payload_name}: {db_error}"
         )
+    finally:
+        ...
+        # nuke temp dir - could do this automatically with tempdir, but I need it out of the context of tempdir
+        # note.... throws a perms error.... it's probably fine. /tmp gets deleted after a while anways.
+        # shutil.rmtree(build_path)
 
 
 def setup_implant_build_enviornment(
