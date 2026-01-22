@@ -12,5 +12,5 @@
  * @param (out) response: A vector that the response from the server is stored in.
  * @returns BOOL: True for success, else fail
  */
-bool HTTP_GET(std::vector<std::wstring>& headers, std::string& response);
+bool HTTP_GET(const std::wstring& callback_host, int callback_port, std::wstring http_verb, const std::wstring& uri, const std::vector<std::wstring>& headers, std::string& request_body, std::string& response);
 bool HTTP_POST( std::string data, std::vector<std::wstring>& headers, std::string& response);

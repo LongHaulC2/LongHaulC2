@@ -76,9 +76,9 @@ def render_implant(
             )
 
             # render and save to http.cpp... (this is the lib implemetnation for http)
-            files_to_render[output_dir / "protocols/http_wininet/http.cpp"] = (
-                "wininet_http.j2"
-            )
+            # files_to_render[output_dir / "protocols/http_wininet/http.cpp"] = (
+            #     "wininet_http.j2"
+            # )
 
             # no more register - moved to comms
             # render and save to register.cpp... (this is the high level implemetnation for register)

