@@ -299,7 +299,7 @@ def docker_build_implant(source_code_dir: Path):
             },  # temp dir created b4, binary is read out of here.
         },
         # detaches and nukes the container after build. off for debugging for now
-        remove=True,
+        # remove=True,
         detach=True,
     )
 

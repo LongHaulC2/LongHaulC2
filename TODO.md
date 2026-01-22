@@ -171,6 +171,37 @@
 
          - [ ] Add variant back to GUI, seemingly not showing up in payload build
 
+         - [ ] move register to comms. 
+
+      - note... containers not removed atm as they bugged out and would vanish before execution done? 
+
+      - [ ] Implant Formatting/Jinja Options
+         http_comms.cpp
+            HTTP_GET:
+               - Metadata
+                  - [ ] Header
+                  - [ ] Parameter
+                  - [ ] URI
+                  - [ ] Print
+
+               - Task (server) Output
+                  - [ ] Header
+                  - [ ] Parameter
+                  - [ ] URI
+                  - [ ] Print
+
+            HTTP_POST:
+               - ID
+                  - [ ] Header
+                  - [ ] Parameter
+                  - [ ] URI
+                  - [ ] Print
+
+               - Client Output (client -> server)
+                  - [ ] Header
+                  - [ ] Parameter
+                  - [ ] URI
+                  - [ ] Print
 
 
 Just remember, block == sender (ex, client, means sent from client). Transformations are top down

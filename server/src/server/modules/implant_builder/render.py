@@ -80,10 +80,11 @@ def render_implant(
                 "wininet_http.j2"
             )
 
+            # no more register - moved to comms
             # render and save to register.cpp... (this is the high level implemetnation for register)
-            files_to_render[output_dir / "lifecycle/register.cpp"] = (
-                "wininet_register_http.j2"
-            )
+            # files_to_render[output_dir / "lifecycle/register.cpp"] = (
+            #     "wininet_register_http.j2"
+            # )
 
         case _:
             server_logger.error(f"Invalid variant type: {variant}")

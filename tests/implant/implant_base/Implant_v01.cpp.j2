@@ -33,7 +33,6 @@
 #include <windows.h>
 #include "Implant_v01.h"
 #include "tests/test.h"
-#include "lifecycle/register.h"
 #include "lifecycle/comms.h"
 #include "data/msgpack/msgpack.h"
 
