@@ -100,7 +100,4 @@ if __name__ == "__main__":
     start_watchdog()
     start_task_batch_job()
 
-    # temp
-    from .modules.implant_builder.build import build_implant
-
     app.run(host="0.0.0.0", port=45045, debug=False)

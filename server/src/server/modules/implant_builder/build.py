@@ -7,7 +7,7 @@ from typing import Union
 
 import docker
 import structlog
-from mpp import *
+from mpp import MalleableProfile
 
 from ...db.mysql_connector import get_mysql_session
 from ...listeners.malc2 import *
@@ -212,17 +212,17 @@ def copy_file(source: Path, dest: Path):
     structlog.contextvars.bind_contextvars(source=source, dest=dest)
     server_logger.debug(f"Copying file")
 
-    # 1. Sanity Check
+    # Sanity Check
     if not source.exists():
         server_logger.error(f"Error: Source file missing: {source}")
         return
 
-    # 2. Create the folder structure if it doesn't exist
+    # create the folder structure if it doesn't exist
     # (e.g., if dest is 'build/libs/core.lib', this makes 'build/libs/')
     dest.parent.mkdir(parents=True, exist_ok=True)
 
     try:
-        # 3. Copy (copy2 preserves metadata like timestamps)
+        # copy2 preserves metadata like timestamps
         shutil.copy2(source, dest)
         server_logger.info(f"Copied: {source.name} -> {dest}")
 

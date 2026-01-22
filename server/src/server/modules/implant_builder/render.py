@@ -3,7 +3,7 @@ from pathlib import Path
 
 import structlog
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
-from mpp import *
+from mpp import MalleableProfile
 
 from ...listeners.malc2 import *
 from .context_generators.http_wininet import generate_http_wininet_context
@@ -21,7 +21,7 @@ env = Environment(
     variable_end_string="]]",
     comment_start_string="[#",
     comment_end_string="#]",
-    # clean up whitespace so generated code looks pro
+    # clean up whitespace so generated code looks not like shit
     trim_blocks=True,
     lstrip_blocks=True,
     undefined=StrictUndefined,  # Fail fast if a var is missing
