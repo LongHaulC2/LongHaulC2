@@ -160,7 +160,9 @@
 
          >> here
       - [ ] cleanup build.py <<<<<
-      
+         - [ ] DELTE OLD TEMP FILES AFTER USING THEM (after write to DB in payload.py)
+
+
          - implant vs payload naming: payload: unran implant. Implant: Active implant
          - [ ] Server: Clean up, add output options/logic (exe, etc)
             - Going to need to get that logic into the build process, for which verson of main to include (dll, vs exe main - have a template for both)

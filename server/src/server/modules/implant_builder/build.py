@@ -1,45 +1,21 @@
-import functools
 import logging
 import shutil
 import tempfile
 import zipfile
 from pathlib import Path
+from typing import Union
 
+import docker
 import structlog
-from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from mpp import *
 
 from ...db.mysql_connector import get_mysql_session
 from ...listeners.malc2 import *
 from ...modules.mysql_functions import ListenerService, MySQLImplantPayloadService
-from .context_generators.http_wininet import generate_http_wininet_context
+from .render import render_file, render_implant
 
-# OUTPUT_DIR = Path("./templates/output")
-IMPLANT_BASE = (
-    # this file, up one dir, to implant_base
-    Path(__file__).parent
-    / "implant_base"
-)
-# this file, up one dir, to templates
-TEMPLATE_DIR = Path(__file__).parent / "templates"
-
-
-# 1. Setup Jinja with C++ safe delimiters
-env = Environment(
-    loader=FileSystemLoader(TEMPLATE_DIR.resolve()),
-    # distinct brackets to avoid C++ conflicts
-    block_start_string="[%",
-    block_end_string="%]",
-    variable_start_string="[[",
-    variable_end_string="]]",
-    comment_start_string="[#",
-    comment_end_string="#]",
-    # clean up whitespace so generated code looks pro
-    trim_blocks=True,
-    lstrip_blocks=True,
-    undefined=StrictUndefined,  # Fail fast if a var is missing
-)
-
+# this file, up one dir, to implant_base
+IMPLANT_BASE = Path(__file__).parent / "implant_base"
 
 server_logger = logging.getLogger("server")
 
@@ -87,41 +63,109 @@ def build_implant(implant_name, listener_uuid, variant, output_format):
     listener_host = listener_data.get("listener_host")
     listener_port = listener_data.get("listener_port")
     malleable_c2_profile = listener_data.get("listener_profile_contents")
-    # temp
+
+    # setup build enviornment, creates a temp dir in /tmp/...
     build_dir = setup_implant_build_enviornment(
-        malleable_c2_profile=malleable_c2_profile,  # need to update to pass the full str, not the path now
+        malleable_c2_profile=malleable_c2_profile,
         listener_type=listener_type,
         callback_host=listener_host,
         callback_port=int(listener_port),
         variant=variant,
     )
+    # built the implant with docker
     docker_build_implant(build_dir)
+    # and store in DB
+    store_data_post_build(
+        build_dir=build_dir, payload_name=implant_name, listener_uuid=listener_uuid
+    )
 
-    # zip source, and write to db
-    zip_location = build_dir / f"{implant_name}_source.zip"
 
-    with zipfile.ZipFile(zip_location, "w", compression=zipfile.ZIP_DEFLATED) as z:
-        for path in Path(build_dir).rglob("*"):
-            if path.is_file():
-                z.write(path, arcname=path.relative_to(build_dir))
+def store_data_post_build(
+    build_dir: Union[str, Path], payload_name: str, listener_uuid: str
+) -> None:
+    """
+    Zips the source code from the build directory and uploads build artifacts
+    (payloads) to the database.
+    """
+    build_path = Path(build_dir)
 
-    zip_bytes = zip_location.read_bytes()
-    # get built implant... somehow. Could get it from the outdir.
-    # Maybe anything that is ".ps1, .exe, .dll, etc. " return as a list, and upload
-    # for now, just get anything in output.
-    output_dir = build_dir / "output"
+    # Checks
+    if not build_path.exists():
+        server_logger.error(f"Build failed: Directory not found at {build_path}")
+        return
 
-    for file_path in output_dir.iterdir():
-        if file_path.is_file():
+    server_logger.info(f"Starting post-build storage for implant: {payload_name}")
 
-            # Read the raw artifact w pathlib's read_bytes
-            payload_bytes = file_path.read_bytes()
-            # Register to Database
-            with get_mysql_session() as session:
-                service = MySQLImplantPayloadService(session)
-                service.register_payload(
-                    implant_name, payload_bytes, listener_uuid, zip_bytes
-                )
+    try:
+        # Zip Source Code
+        zip_location = build_path / f"{payload_name}_source.zip"
+        server_logger.debug(f"Zipping source code to {zip_location}")
+
+        with zipfile.ZipFile(zip_location, "w", compression=zipfile.ZIP_DEFLATED) as z:
+            for path in build_path.rglob("*"):
+                # Don't zip the zip file itself if it's in the same dir
+                if path.resolve() == zip_location.resolve():
+                    continue
+
+                if path.is_file():
+                    z.write(path, arcname=path.relative_to(build_path))
+
+        # Get zip contetns
+        zip_bytes = zip_location.read_bytes()
+        server_logger.debug(f"Source zipped successfully ({len(zip_bytes)} bytes).")
+
+    except Exception as e:
+        server_logger.error(f"Failed to zip source code for {payload_name}: {e}")
+        return
+
+    # Process Build Artifacts
+    output_dir = build_path / "output"
+
+    if not output_dir.exists():
+        server_logger.warning(
+            f"No 'output' directory found in {build_path}. Skipping artifact upload."
+        )
+        return
+
+    # Get list of artifacts (filtering out directories) - may need to do a filter for .exe, dll, etc - but for now it saves all of them
+    artifacts = [p for p in output_dir.iterdir() if p.is_file()]
+
+    if not artifacts:
+        server_logger.warning(
+            f"Output directory exists but contains no files: {output_dir}"
+        )
+        return
+    server_logger.info(f"Found {len(artifacts)} artifact(s) to upload.")
+
+    # write to db
+    try:
+        with get_mysql_session() as session:
+            service = MySQLImplantPayloadService(session)
+
+            for file_path in artifacts:
+                try:
+                    payload_bytes = file_path.read_bytes()
+
+                    server_logger.debug(f"Registering payload: {file_path.name}")
+
+                    service.register_payload(
+                        payload_name=payload_name,
+                        payload_bytes=payload_bytes,
+                        listener_uuid=listener_uuid,
+                        source_code_bytes=zip_bytes,
+                    )
+                except Exception as file_error:
+                    server_logger.error(
+                        f"Failed to read or register specific artifact {file_path.name}: {file_error}"
+                    )
+                    continue
+
+        server_logger.info(f"Successfully registered artifacts for {payload_name}.")
+
+    except Exception as db_error:
+        server_logger.error(
+            f"Database transaction failed for {payload_name}: {db_error}"
+        )
 
 
 def setup_implant_build_enviornment(
@@ -158,123 +202,6 @@ def setup_implant_build_enviornment(
             variant=variant,
         )
     return Path(tmp_dir)
-
-
-def render_implant(
-    output_dir: Path,
-    malleable_c2_profile,
-    listener_type,
-    callback_host,
-    callback_port,
-    variant,
-):
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        output_dir=output_dir,
-        # malleable_c2_path=malleable_c2_path,
-        listener_type=listener_type,
-    )
-    server_logger.debug("_create_implant")
-
-    # 1. Generate the shared context (Data usually needed by ALL files)
-    # these are the keys that get plugged into the templates
-    # one per listener type for explicitness/control
-    match listener_type:
-        case "http":
-            if variant == "http_wininet":
-                global_context = generate_http_wininet_context(
-                    malleable_c2_profile, callback_host, callback_port
-                )
-
-            # elif...
-            else:
-                server_logger.error(f"Invalid HTTP variant: {variant}")
-
-        case _:
-            server_logger.error(f"Invalid listener type: {listener_type}")
-            return
-
-    # 2. Define the File Map
-    # Structure: "Destination Path" : "Source Template"
-    files_to_render = {}
-
-    # Add Listener Specific files to the render list, based on variant.
-    match variant:
-        case "http_wininet":
-            # render and save to comms.cpp... (high level http funcsd)
-            files_to_render[output_dir / "lifecycle/comms.cpp"] = (
-                "wininet_comms_http.j2"  # no need to prefix, already searching in templates dir
-            )
-
-            # render and save to http.cpp... (this is the lib implemetnation for http)
-            files_to_render[output_dir / "protocols/http_wininet/http.cpp"] = (
-                "wininet_http.j2"
-            )
-
-            # render and save to register.cpp... (this is the high level implemetnation for register)
-            files_to_render[output_dir / "lifecycle/register.cpp"] = (
-                "wininet_register_http.j2"
-            )
-
-        case _:
-            server_logger.error(f"Invalid variant type: {variant}")
-            raise ValueError(f"Invalid variant type: {variant}")
-
-    """
-    output format POC
-
-    match output
-        case "exe":
-            include main for exe, and cmake for exe
-        case "dll": include main for dll, and cmake for dll
-    
-        # should be pretty easy to have these that just call the "loop" function in main.cpp
-
-    """
-
-    # 3. Execution Loop
-    # Iterate over the dict and build everything
-    server_logger.info(f"Rendering Implant Files")
-    server_logger.debug(f"Rendering files: {files_to_render}")
-
-    for out_file, template_file in files_to_render.items():
-        render_file(str(template_file), out_file, global_context)
-
-
-def render_file(template_file: str, output_path: Path, context: dict):
-    """Render a file based on the template provided
-
-    Args:
-        template_file (str): Path to template file
-        output_path (Path): where to store template output
-        context (dict): context to fill in template with
-
-    Raises:
-        e: error
-    """
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        template=str(template_file), output_path=str(output_path), context=context
-    )
-    server_logger.debug("Rendering file")
-
-    try:
-        # Load by name
-        template = env.get_template(template_file)
-        rendered_code = template.render(**context)
-
-        # Ensure output directory exists
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        with open(output_path, "w") as f:
-            f.write(rendered_code)
-
-        server_logger.debug(f"Rendered successfully")
-
-    except Exception as e:
-        server_logger.error(f"Error rendering: {e}")
-        raise e
 
 
 def copy_file(source: Path, dest: Path):
@@ -334,8 +261,6 @@ def docker_build_implant(source_code_dir: Path):
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(source_dir=str(source_code_dir))
 
-    import docker
-
     client = docker.from_env()
 
     source_dir = str(source_code_dir.resolve())
@@ -369,7 +294,7 @@ def docker_build_implant(source_code_dir: Path):
             },  # temp dir created b4, binary is read out of here.
         },
         # detaches and nukes the container after build. off for debugging for now
-        # remove=True,
+        remove=True,
         detach=True,
     )
 
