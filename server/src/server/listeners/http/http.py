@@ -30,6 +30,7 @@ import uvicorn
 from concurrent_log_handler import ConcurrentRotatingFileHandler
 from edwh_uuid7 import uuid7
 from fastapi import FastAPI, HTTPException, Request, Response, status
+from flask import request
 from mpp import MalleableProfile
 from starlette.middleware.base import BaseHTTPMiddleware
 from yarl import URL
@@ -104,6 +105,7 @@ def run(
 
     # header handling
     app.add_middleware(HeadersMiddleware)
+    app.add_middleware(DumpRequestMiddleware)
 
     # setup get route
     http_get_method = getattr(mp.http_get.verb, "value", "GET")
@@ -354,6 +356,28 @@ class HeadersMiddleware(BaseHTTPMiddleware):
         response.init_headers(headers=ordered_headers)
         # listener_logger.debug(response.headers)
 
+        return response
+
+
+class DumpRequestMiddleware(BaseHTTPMiddleware):
+    """
+    Dumps request from each request
+
+    """
+
+    async def dispatch(self, request, call_next):
+        # Call the next request handler
+
+        body = await request.body()
+
+        print("=== REQUEST DUMP ===")
+        print("METHOD:", request.method)
+        print("URL:", request.url)
+        print("HEADERS:", dict(request.headers))
+        print("QUERY:", dict(request.query_params))
+        print("BODY:", body.decode(errors="ignore"))
+
+        response = await call_next(request)
         return response
 
 

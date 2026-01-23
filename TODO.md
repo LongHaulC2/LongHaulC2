@@ -192,27 +192,29 @@
                   - [X] Print
 
                   >> here
-                  Register works, bug at HTTP_POST, so we get a successful register, but not a consistent loop:
-                     "019be859-b11f-769b-9e2a-27b180f326da"
-                     terminate called after throwing an instance of 'nlohmann::json_abi_v3_12_0::detail::parse_error'
-                     what():  [json.exception.parse_error.110] parse error at byte 2: syntax error while parsing MessagePack value: expected end of input; last byte: 0x22
+                  base64 bug fixed, TLDR, `.` characters not getting stripped from base64url encoding. Loop works, post is still not quite working. Might be a borked user agent? 
 
-                     Likely due to a bad base64 -> server. Investigate on wire comms (wireshark + cyberchef), but it compiles fine. 
-                     Need to also think about resilient failures, like, if fail, continue to next loop.
+                  2 things:
+                     - [X] no user agent
+                     - [ ] no data back
+                        - Track full post flow, probably happening here. Missing the output (which should be in a header, utmac), and ID, also in header (utmcc)
+                        - [X] id: Works
+                        - [ ] output: not added on for some reason. 
 
-
-                  2026-01-23T17:46:23.610268Z [warning  ] Data was passed as str, converting to bytes. [listener] ip=10.0.0.25 method=GET path=/___utm.gif
-                  2026-01-23T17:46:23.610339Z [debug    ] Base64URL Decode input: b'gaxpbXBsYW50X3V1aWTZJDAxOWJlYmY2LWRmYmQtN2YwYS04MjMzLTk4MTU5NjdlNTYyNA..' [listener] ip=10.0.0.25 method=GET path=/___utm.gif
-                  2026-01-23T17:46:23.611206Z [error    ] Error in base64url_decode      [listener] ip=10.0.0.25 method=GET path=/___utm.gif
-                  Traceback (most recent call last):
-                  File "/home/ubuntu-dev/LongHaulC2/server/src/server/listeners/transform.py", line 116, in base64url_decode
-                     out = base64.urlsafe_b64decode(data + padding)
-                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                  File "/usr/lib/python3.12/base64.py", line 134, in urlsafe_b64decode
-                     return b64decode(s)
-                           ^^^^^^^^^^^^
-                  File "/usr/lib/python3.12/base64.py", line 88, in b64decode
-                     return binascii.a2b_base64(s, strict_mode=validate)
+                  2026-01-23T20:48:50.951421Z [debug    ] http_config_not_found          [listener] error="'http_config'"
+                  INFO:     10.0.0.25:51064 - "GET /___utm.gif HTTP/1.1" 200 OK
+                  === REQUEST DUMP ===
+                  METHOD: GET
+                  URL: http://10.0.0.30:9095/__utm.gif
+                  HEADERS: {'host': '10.0.0.30:9095', 'cache-control': 'no-cache'}
+                  QUERY: {}
+                  BODY: 
+                  2026-01-23T20:48:50.954864Z [debug    ] incoming_request               [listener] ip=10.0.0.25 method=POST path=/__utm.gif ua=None
+                  2026-01-23T20:48:50.955054Z [warning  ] Potential Type Mismatch [user_agent]: Expected 'str', but got 'NoneType'. Value: None. Caller: check_user_agent() @ /home/ubuntu-dev/LongHaulC2/server/src/server/listeners/http/http.py:165 [server] ip=10.0.0.25 method=POST path=/__utm.gif
+                  2026-01-23T20:48:50.955079Z [debug    ] config_block_error             [listener] error="'http_config'" ip=10.0.0.25 method=POST path=/__utm.gif
+                  2026-01-23T20:48:50.955155Z [debug    ] http-config block not found    [listener] ip=10.0.0.25 method=POST path=/__utm.gif
+                  2026-01-23T20:48:50.955235Z [debug    ] extracting_header              [listener] ip=10.0.0.25 key=utmcc method=POST path=/__utm.gif
+                  2026-01-23T20:48:50.955324Z [error    ] post_output_error              [listener] error='400: Missing required data' ip=10.0.0.25 method=POST path=/__utm.gif
 
                - imlpement
             HTTP_POST:
