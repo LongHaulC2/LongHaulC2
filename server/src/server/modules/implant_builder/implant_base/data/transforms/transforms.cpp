@@ -64,12 +64,23 @@ void base64_decode_inplace(std::string& data) {
     data = base64_decode(data, false);
 }
 
+// void base64url_encode_inplace(std::string& data) {
+//     // 1. Encode with URL safe chars
+//     data = base64_encode(data, true);
+
+//     // 2. Remove padding '=' from the end
+//     while (!data.empty() && data.back() == '=') {
+//         data.pop_back();
+//     }
+// }
+//hotfic
 void base64url_encode_inplace(std::string& data) {
     // 1. Encode with URL safe chars
+    // This library appears to use '.' for padding when bool url_safe=true
     data = base64_encode(data, true);
 
-    // 2. Remove padding '=' from the end
-    while (!data.empty() && data.back() == '=') {
+    // 2. Remove padding (check for BOTH '=' and '.')
+    while (!data.empty() && (data.back() == '=' || data.back() == '.')) {
         data.pop_back();
     }
 }

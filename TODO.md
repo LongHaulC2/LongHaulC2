@@ -158,7 +158,6 @@
          - [X] test compile
       - [X] Do basic compilation checks (copy paste into visual studio) to make sure generation is okay
 
-         >> here
       - [ ] cleanup build.py <<<<<
          - [X] DELTE OLD TEMP FILES AFTER USING THEM (after write to DB in payload.py)
 
@@ -176,6 +175,7 @@
       - note... containers not removed atm as they bugged out and would vanish before execution done? 
 
       - [ ] Implant Formatting/Jinja Options
+         - [ ] Update keys needed at ehader of j2
          http_comms.cpp
             HTTP_GET:
                - Double check these - only x off when known working with different profiles. 
@@ -191,6 +191,7 @@
                   - [ ] URI
                   - [X] Print
 
+                  >> here
                   Register works, bug at HTTP_POST, so we get a successful register, but not a consistent loop:
                      "019be859-b11f-769b-9e2a-27b180f326da"
                      terminate called after throwing an instance of 'nlohmann::json_abi_v3_12_0::detail::parse_error'
@@ -198,6 +199,20 @@
 
                      Likely due to a bad base64 -> server. Investigate on wire comms (wireshark + cyberchef), but it compiles fine. 
                      Need to also think about resilient failures, like, if fail, continue to next loop.
+
+
+                  2026-01-23T17:46:23.610268Z [warning  ] Data was passed as str, converting to bytes. [listener] ip=10.0.0.25 method=GET path=/___utm.gif
+                  2026-01-23T17:46:23.610339Z [debug    ] Base64URL Decode input: b'gaxpbXBsYW50X3V1aWTZJDAxOWJlYmY2LWRmYmQtN2YwYS04MjMzLTk4MTU5NjdlNTYyNA..' [listener] ip=10.0.0.25 method=GET path=/___utm.gif
+                  2026-01-23T17:46:23.611206Z [error    ] Error in base64url_decode      [listener] ip=10.0.0.25 method=GET path=/___utm.gif
+                  Traceback (most recent call last):
+                  File "/home/ubuntu-dev/LongHaulC2/server/src/server/listeners/transform.py", line 116, in base64url_decode
+                     out = base64.urlsafe_b64decode(data + padding)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  File "/usr/lib/python3.12/base64.py", line 134, in urlsafe_b64decode
+                     return b64decode(s)
+                           ^^^^^^^^^^^^
+                  File "/usr/lib/python3.12/base64.py", line 88, in b64decode
+                     return binascii.a2b_base64(s, strict_mode=validate)
 
                - imlpement
             HTTP_POST:
