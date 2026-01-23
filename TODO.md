@@ -191,7 +191,7 @@
                   - [ ] URI
                   - [X] Print
 
-                  Register works, bug at HTTP_POST:
+                  Register works, bug at HTTP_POST, so we get a successful register, but not a consistent loop:
                      "019be859-b11f-769b-9e2a-27b180f326da"
                      terminate called after throwing an instance of 'nlohmann::json_abi_v3_12_0::detail::parse_error'
                      what():  [json.exception.parse_error.110] parse error at byte 2: syntax error while parsing MessagePack value: expected end of input; last byte: 0x22
