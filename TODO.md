@@ -178,9 +178,9 @@
       - [ ] Implant Formatting/Jinja Options
          http_comms.cpp
             HTTP_GET:
-               - Double check these, 
+               - Double check these - only x off when known working with different profiles. 
                - Metadata
-                  - [ ] Header
+                  - [X] Header
                   - [ ] Parameter
                   - [ ] URI
                   - [ ] Print
@@ -189,7 +189,15 @@
                   - [ ] Header
                   - [ ] Parameter
                   - [ ] URI
-                  - [ ] Print
+                  - [X] Print
+
+                  Register works, bug at HTTP_POST:
+                     "019be859-b11f-769b-9e2a-27b180f326da"
+                     terminate called after throwing an instance of 'nlohmann::json_abi_v3_12_0::detail::parse_error'
+                     what():  [json.exception.parse_error.110] parse error at byte 2: syntax error while parsing MessagePack value: expected end of input; last byte: 0x22
+
+                     Likely due to a bad base64 -> server. Investigate on wire comms (wireshark + cyberchef), but it compiles fine. 
+                     Need to also think about resilient failures, like, if fail, continue to next loop.
 
                - imlpement
             HTTP_POST:
