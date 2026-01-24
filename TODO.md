@@ -192,8 +192,7 @@
                   - [X] Print
 
                   >> here
-                  Transform works - note, data not getting back to server once it's recieved. Need to check logic on post. 
-                  Likely saving to redis as bytes =[
+                  - clean up formatting in wininet_comms_http.j2
 
                - imlpement
             HTTP_POST:

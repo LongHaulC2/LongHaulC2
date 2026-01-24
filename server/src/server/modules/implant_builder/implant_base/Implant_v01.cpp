@@ -38,7 +38,12 @@
 
 int temp_loop() {
     //note - do a while not registered?
-    std::string implant_uuid = register_implant();
+    //std::string implant_uuid = register_implant();
+    //swithcing to a get with a null uuid
+    nlohmann::json implant_uuid_data = get("00000000-0000-0000-0000-000000000000");
+    //extract implant_uuid from here
+    std::string implant_uuid = implant_uuid_data["implant_uuid"];
+    std::cout << "Implant UUID: " << implant_uuid << std::endl;
 
     if (implant_uuid.empty()) {
         std::cerr << "Failed to register implant. Exiting." << std::endl;

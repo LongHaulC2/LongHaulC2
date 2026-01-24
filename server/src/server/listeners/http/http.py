@@ -499,8 +499,8 @@ def http_response(data_from_implant):
     # | Redis Here >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     implant_uuid = unpacked_metadata.get("implant_uuid", "")
     check_if_data(implant_uuid)
-
-    if implant_uuid == "00000000-0000-0000-0000-00000000000":
+    # 00000000-0000-0000-0000-000000000000
+    if implant_uuid == "00000000-0000-0000-0000-000000000000":
         """
         When an implant hasn't checked in, go ahead and setup the first "task"
         for it, and do all the necessary registration steps
