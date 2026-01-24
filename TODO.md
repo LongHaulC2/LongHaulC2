@@ -198,7 +198,7 @@
                      - [X] no user agent
                      - [ ] no data back
                         - Track full post flow, probably happening here. Missing the output (which should be in a header, utmac), and ID, also in header (utmcc)
-                        - [X] id: Works
+                        - [X] id: not added on for some reason. 
                         - [ ] output: not added on for some reason. 
 
                   2026-01-23T20:48:50.951421Z [debug    ] http_config_not_found          [listener] error="'http_config'"

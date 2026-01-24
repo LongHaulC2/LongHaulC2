@@ -36,6 +36,7 @@ http-post {
 	set verb "GET";
 	client {
 		id {
+			base64url;
 			parameter "utmac";
 		}
 
