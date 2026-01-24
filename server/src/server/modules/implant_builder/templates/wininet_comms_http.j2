@@ -145,11 +145,13 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
 
     // --- Transforms for ID and Output ---
 
-    [%- for transform in http_post_client_id_transforms_list %]
-    [[ render_transform(transform, 'payload') ]] // Note: This usually transforms the ID specifically if separated, be careful transforming the whole payload twice
+    //Transform ID as specified by malleablec2
+    [% for transform in http_post_client_id_transforms_list %]
+    [[ render_transform(transform, 'implant_uuid') ]]
     [%- endfor %]
 
-    [%- for transform in http_post_client_output_transforms_list %]
+    //Transform msgpack output as specified by malleablec2
+    [% for transform in http_post_client_output_transforms_list %]
     [[ render_transform(transform, 'payload') ]]
     [%- endfor %]
     // --- End Transforms for ID and Output ---
