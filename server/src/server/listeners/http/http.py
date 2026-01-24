@@ -644,7 +644,7 @@ async def http_post(request: Request) -> Response:
         check_if_data(id_terminator_type)
         check_if_data(id_terminator_key)
 
-        implant_uuid = await deobsfucate_malleable_c2_request_data(
+        implant_uuid_bytes = await deobsfucate_malleable_c2_request_data(
             request=request,
             terminator_type=id_terminator_type,
             terminator_key=id_terminator_key,
@@ -653,8 +653,11 @@ async def http_post(request: Request) -> Response:
             parser_class=HttpPostBlockClientParser,
         )
 
+        # note, implant_uuid is now bytes. Need to convert to a string before passing in to redis
+        implant_uuid = implant_uuid_bytes.decode()
+
         # STRUCTLOG: Bind ID
-        structlog.contextvars.bind_contextvars(implant_id=str(implant_uuid))
+        structlog.contextvars.bind_contextvars(implant_id=implant_uuid)
         listener_logger.info("implant_id_extracted")
 
     except Exception as e:
@@ -713,7 +716,7 @@ async def http_post_uri(request: Request, data: str) -> Response:
         check_if_data(id_terminator_type)
         check_if_data(id_terminator_key)
 
-        implant_uuid = await deobsfucate_malleable_c2_request_data(
+        implant_uuid_bytes = await deobsfucate_malleable_c2_request_data(
             request=request,
             terminator_type=id_terminator_type,
             terminator_key=id_terminator_key,
@@ -721,6 +724,10 @@ async def http_post_uri(request: Request, data: str) -> Response:
             block_field=mp.http_post.client.id,
             parser_class=HttpPostBlockClientParser,
         )
+
+        # note, implant_uuid is now bytes. Need to convert to a string before passing in to redis
+        implant_uuid = implant_uuid_bytes.decode()
+
         # STRUCTLOG: Bind ID
         structlog.contextvars.bind_contextvars(implant_id=str(implant_uuid))
         listener_logger.info("implant_id_extracted")

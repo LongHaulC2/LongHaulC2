@@ -192,24 +192,8 @@
                   - [X] Print
 
                   >> here
-                  base64 bug fixed, TLDR, `.` characters not getting stripped from base64url encoding. Loop works, post is still not quite working. Might be a borked user agent? 
-
-
-                  INFO:     10.0.0.25:51614 - "GET /___utm.gif HTTP/1.1" 200 OK
-                  === REQUEST DUMP ===
-                  METHOD: GET
-                  URL: http://10.0.0.30:2048/__utm.gif?utmac=019bf12f-b6d0-7e20-b433-8fba92f3d02f
-                  HEADERS: {'user-agent': 'GoogleChrome', 'utmcc': 'ZzZ4cGJYQnNZVzUwWDNWMWFXVFpKREF4T1dKbU1USm1MV0kyWkRBdE4yVXlNQzFpTkRNekxUaG1ZbUU1TW1ZelpEQXlacVp5WlhOMWJIU0NwR1JoZEdIWk5rbG1JSGx2ZFNCelpXVWdkR2hwY3lCcGRDQnRaV0Z1Y3lCMGFHVWdhVzF3YkdGdWRDQnBjeUIwWVd4cmFXNW5JSFJ2SUhsdmRhbGtZWFJoWDNSNWNHV2tkR1Y0ZEtsMFlYTnJYM1YxYVdUWkpEQXhPV0ptTVRNd0xUUTFNVE10TnpZMk5TMDVOVEkyTFdRMVpHWmpaVFkzTURkbU5n', 'host': '10.0.0.30:2048', 'cache-control': 'no-cache'}
-                  QUERY: {'utmac': '019bf12f-b6d0-7e20-b433-8fba92f3d02f'}
-                  BODY: 
-                  2026-01-24T18:07:14.859640Z [debug    ] incoming_request               [listener] ip=10.0.0.25 method=POST path=/__utm.gif ua=GoogleChrome
-                  2026-01-24T18:07:14.859783Z [debug    ] config_block_error             [listener] error="'http_config'" ip=10.0.0.25 method=POST path=/__utm.gif
-                  2026-01-24T18:07:14.859893Z [debug    ] http-config block not found    [listener] ip=10.0.0.25 method=POST path=/__utm.gif
-                  2026-01-24T18:07:14.860008Z [debug    ] extracting_header              [listener] ip=10.0.0.25 key=utmcc method=POST path=/__utm.gif
-
-                                    2 things:
-                     - [ ] 1. ID not getting encoded as needed (weird) - still not encoded right. 
-                     - [X] utmcc (output data) not being encoded correctly - fixed
+                  Transform works - note, data not getting back to server once it's recieved. Need to check logic on post. 
+                  Likely saving to redis as bytes =[
 
                - imlpement
             HTTP_POST:
