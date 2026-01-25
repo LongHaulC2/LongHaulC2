@@ -226,6 +226,45 @@ class HttpGetBlockServerParser:
         output_list = output.data[:-1] if output and output.data else []
         return output_list
 
+    def get_headers_and_parameters_list(self) -> list:
+        """
+        Gets the headers and parameters outside of the metadata block in the client.
+
+        Returns a list of dicts: [{'name': 'parameter', 'key':'utmac', 'value':'1234'},...]
+
+        Ex:
+        server {
+            # these
+            header "Content-Type" "image/gif";
+
+            output {
+                print;
+            }
+        }
+
+        https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_profile-language.htm#_Toc65482837
+        """
+
+        # note, using a list of dicts. I was going to use a dict originally,
+        # but it turn sout HTTP can have multiple params/headers of the same name,
+        # ex, url/a?=b?a=c,  etc. Dict only has one key per param, list  of dicts can
+        # have as many as specified.
+        headers_and_parameters_list = []
+
+        for stmt in self.server.data:
+            name = stmt.statement
+            value = stmt.value
+            key = stmt.key
+
+            if name in ("parameter", "header"):
+                data = {"name": name, "key": key, "value": value}
+                headers_and_parameters_list.append(data)
+
+            else:
+                continue
+
+        return headers_and_parameters_list
+
 
 """
     # client -> serer
@@ -516,6 +555,45 @@ class HttpPostBlockServerParser:
 
         return data
 
+    def get_headers_and_parameters_list(self) -> list:
+        """
+        Gets the headers and parameters outside of the metadata block in the client.
+
+        Returns a list of dicts: [{'name': 'parameter', 'key':'utmac', 'value':'1234'},...]
+
+        Ex:
+        server {
+            # these
+            header "Content-Type" "image/gif";
+
+            output {
+                print;
+            }
+        }
+
+        https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_profile-language.htm#_Toc65482837
+        """
+
+        # note, using a list of dicts. I was going to use a dict originally,
+        # but it turn sout HTTP can have multiple params/headers of the same name,
+        # ex, url/a?=b?a=c,  etc. Dict only has one key per param, list  of dicts can
+        # have as many as specified.
+        headers_and_parameters_list = []
+
+        for stmt in self.server.data:
+            name = stmt.statement
+            value = stmt.value
+            key = stmt.key
+
+            if name in ("parameter", "header"):
+                data = {"name": name, "key": key, "value": value}
+                headers_and_parameters_list.append(data)
+
+            else:
+                continue
+
+        return headers_and_parameters_list
+
 
 class HttpPostBlockClientParser:
     """
@@ -631,6 +709,56 @@ class HttpPostBlockClientParser:
         """
         output = self.client.output
         return output.data[:-1] if output and output.data else []
+
+    def get_headers_and_parameters_list(self) -> list:
+        """
+        Gets the headers and parameters outside of the metadata block in the client.
+
+        Returns a list of dicts: [{'name': 'parameter', 'key':'utmac', 'value':'1234'},...]
+
+        Ex:
+        client {
+            id {
+                base64url;
+                parameter "utmac";
+            }
+
+            # these
+            parameter "utmcn" "1";
+            parameter "utmcs" "ISO-8859-1";
+            parameter "utmsr" "1280x1024";
+            parameter "utmsc" "32-bit";
+            parameter "utmul" "en-US";
+
+            output {
+                base64url;
+                header "utmcc";
+            }
+        }
+
+
+        https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_profile-language.htm#_Toc65482837
+        """
+
+        # note, using a list of dicts. I was going to use a dict originally,
+        # but it turn sout HTTP can have multiple params/headers of the same name,
+        # ex, url/a?=b?a=c,  etc. Dict only has one key per param, list  of dicts can
+        # have as many as specified.
+        headers_and_parameters_list = []
+
+        for stmt in self.client.data:
+            name = stmt.statement
+            value = stmt.value
+            key = stmt.key
+
+            if name in ("parameter", "header"):
+                data = {"name": name, "key": key, "value": value}
+                headers_and_parameters_list.append(data)
+
+            else:
+                continue
+
+        return headers_and_parameters_list
 
 
 # other parsers here too...

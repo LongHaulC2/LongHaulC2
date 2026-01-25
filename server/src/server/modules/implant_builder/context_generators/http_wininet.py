@@ -124,7 +124,6 @@ def _extract_http_get_options(profile: MalleableProfile) -> dict:
     context_dict["http_get_client_headers_or_parameters_list"] = (
         headers_and_parameters_list
     )
-    print(headers_and_parameters_list)
 
     # --- Server Configuration ---
     server_parser = HttpGetBlockServerParser(profile.http_get.server)
@@ -177,6 +176,12 @@ def _extract_http_post_options(profile: MalleableProfile) -> dict:
     # Transforms (Client ID)
     context_dict["http_post_client_id_transforms_list"] = (
         client_parser.post_client_id_transforms_list()
+    )
+
+    # get addtl headers/params
+    headers_and_parameters_list = client_parser.get_headers_and_parameters_list()
+    context_dict["http_post_client_headers_or_parameters_list"] = (
+        headers_and_parameters_list
     )
 
     # Terminator (ID)
