@@ -15,6 +15,7 @@ http-get {
 		parameter "utmsr" "1280x1024";
 		parameter "utmsc" "32-bit";
 		parameter "utmul" "en-US";
+		header "plzwork" "something";
 
 		metadata {
 			base64url;

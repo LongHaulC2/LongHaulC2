@@ -174,6 +174,7 @@
 
       - note... containers not removed atm as they bugged out and would vanish before execution done? 
 
+         >> Works - just continue building out/testing:
       - [ ] Implant Formatting/Jinja Options
          - [ ] Update keys needed at ehader of j2
          http_comms.cpp
@@ -190,6 +191,10 @@
                   - [ ] Parameter
                   - [ ] URI
                   - [X] Print
+               
+               Misc:
+                  - [ ] Additional headers/parameters declared in http-get client scope
+                  //going to need a jija macro 
 
                   >> here
                   - clean up formatting in wininet_comms_http.j2
@@ -198,15 +203,18 @@
             HTTP_POST:
                - ID
                   - [ ] Header
-                  - [ ] Parameter
+                  - [X] Parameter
                   - [ ] URI
                   - [ ] Print
 
                - Client Output (client -> server)
-                  - [ ] Header
+                  - [X] Header
                   - [ ] Parameter
                   - [ ] URI
                   - [ ] Print
+               
+               Misc:
+                  - [ ] Additional headers/parameters declared in http-post client scope
 
 
 Just remember, block == sender (ex, client, means sent from client). Transformations are top down

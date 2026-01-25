@@ -91,6 +91,7 @@ def _extract_http_get_options(profile: MalleableProfile) -> dict:
         "http_get_server_output_transforms_list": [],
         "http_get_client_output_terminator": None,
         "http_get_client_output_terminator_value": None,
+        "http_get_client_headers_or_parameters_list": [],
     }
 
     # --- Client Configuration ---
@@ -114,6 +115,16 @@ def _extract_http_get_options(profile: MalleableProfile) -> dict:
         context_dict["http_get_client_metadata_terminator"] = "header"
         context_dict["http_get_client_metadata_terminator_value"] = term_value
     # Add other cases (uri, etc) here as needed
+
+    # List of headers or parameters to add to the request
+    """
+    [{'name': 'parameter', 'key': 'utmac', 'value': 'UA-2202604-2'}, {'name': 'parameter', 'key': 'utmcn', 'value': '1'}, {'name': 'parameter', 'key': 'utmcs', 'value': 'ISO-8859-1'}, {'name': 'parameter', 'key': 'utmsr', 'value': '1280x1024'}, {'name': 'parameter', 'key': 'utmsc', 'value': '32-bit'}, {'name': 'parameter', 'key': 'utmul', 'value': 'en-US'}]    
+    """
+    headers_and_parameters_list = client_parser.get_headers_and_parameters_list()
+    context_dict["http_get_client_headers_or_parameters_list"] = (
+        headers_and_parameters_list
+    )
+    print(headers_and_parameters_list)
 
     # --- Server Configuration ---
     server_parser = HttpGetBlockServerParser(profile.http_get.server)
