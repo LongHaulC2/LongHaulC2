@@ -185,9 +185,12 @@
                - Metadata
                   - [X] Header      Works
                   - [X] Parameter   (see if needed to be url encoded or not...)
-                  - [ ] URI         ?
-                  - [X] Print       (implant fine, server bugged)
+                  - [ ] URI         implant - needs to put before params
+                     current: URL: http://10.0.0.30:9092/___utm.gif?utmac=UA-2202604-2&utmcn=1&utmcs=ISO-8859-1&utmsr=1280x1024&utmsc=32-bit&utmul=en-US/gaxpbXBsYW50X3V1aWTZJDAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMA
 
+                     needs to be: <schema>/__utm.gif/DATA_HERE?params....
+
+                  - [X] Print       Works
 
                - Task (server) Output
                   - [X] Print       Works

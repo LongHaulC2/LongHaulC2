@@ -20,8 +20,8 @@ http-get {
 		metadata {
 			base64url;
 			#parameter "test";
-			#uri-append;
-			print;
+			uri-append;
+			#print;
 		}
 	}
 

@@ -295,9 +295,30 @@ async def deobsfucate_malleable_c2_request_data(
                 )
                 raise e
 
+        # for some reason
         case "uri-append":
-            print("NO_URI_APPEND_CONFIGURED YET.")
-            # best way may be to extract
+            # get URI
+            url = URL(str(request.url))
+            data_from_request = url.path.rstrip("/").split("/")[-1]
+            # return uri_append.encode()
+
+            print(url)
+            print(data_from_request)
+
+            try:
+                hce = parser_class(client_block=malleable_c2_block)
+                data = hce.apply_transforms(
+                    data=data_from_request, block_field=block_field
+                )
+                listener_logger.debug(
+                    "deobfuscation_complete", type="print", len=len(data)
+                )
+                return data
+            except Exception as e:
+                listener_logger.error(
+                    "deobfuscation_failed", error=str(e), type="print"
+                )
+                raise e
 
         case _:
             # unknown terminator

