@@ -193,11 +193,10 @@
                   - [X] Print
                
                Misc:
-                  - [ ] Additional headers/parameters declared in http-get client scope
+                  >> here, just finished. Do post next
+                  - [X] Additional headers/parameters declared in http-get client scope
+                  (see if needs to be URL encoded...)
                   //going to need a jija macro 
-
-                  >> here
-                  - clean up formatting in wininet_comms_http.j2
 
                - imlpement
             HTTP_POST:
