@@ -198,7 +198,7 @@
                   (see if needs to be URL encoded...)
                   //going to need a jija macro 
 
-                  - [ ] Additional headers/parameters declared in http-get server scope
+                  - [X] Additional headers/parameters declared in http-get server scope
 
 
                - imlpement
@@ -216,8 +216,8 @@
                   - [ ] Print
                
                Misc:
-                  - [ ] Additional headers/parameters declared in http-post client scope
-                  - [ ] Additional headers/parameters declared in http-post server scope
+                  - [X] Additional headers/parameters declared in http-post client scope
+                  - [X] Additional headers/parameters declared in http-post server scope
 
 
 Just remember, block == sender (ex, client, means sent from client). Transformations are top down

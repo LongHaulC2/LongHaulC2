@@ -122,11 +122,23 @@ class HttpGetBlockServerParser:
 
     def headers(self) -> dict:
         """
-        Extracts headers from malc2 profile
+        Extracts headers from malc2 profile server block
 
         Returns a dict of headers:
         {
             "Myheader1":"SomeValue"
+        }
+
+        Ex:
+        server {
+            # *no* params in server block, doesn't make sense. That is specified by client
+            # headers only
+            header "Content-Type" "image/gif";
+            header "http_post->server->header" "image/gif";
+
+            output {
+                print;
+            }
         }
 
         """
@@ -478,6 +490,17 @@ class HttpPostBlockServerParser:
             "Myheader1":"SomeValue"
         }
 
+        Ex:
+        server {
+            # *no* params in server block, doesn't make sense. That is specified by client
+            # headers only
+            header "Content-Type" "image/gif";
+            header "http_post->server->header" "image/gif";
+
+            output {
+                print;
+            }
+        }
         """
         headers = {
             stmt.key: stmt.value

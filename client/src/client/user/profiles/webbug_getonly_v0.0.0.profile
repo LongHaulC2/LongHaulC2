@@ -24,7 +24,10 @@ http-get {
 	}
 
 	server {
+		# *no* params in server block, doesn't make sense. That is specified by client
+		# headers only
 		header "Content-Type" "image/gif";
+		header "http_get->server->header" "image/gif";
 
 		output {
 			print;
@@ -54,7 +57,10 @@ http-post {
 	}
 
 	server {
+		# *no* params in server block, doesn't make sense. That is specified by client
+		# headers only
 		header "Content-Type" "image/gif";
+		header "http_post->server->header" "image/gif";
 
 		output {
 			print;
