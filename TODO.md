@@ -146,27 +146,12 @@
                - This could, and probably should be added onto http-post server output, but it doesn't matter too much, as 
                   no meaningful data is transfered on that channel afaik. (some profiles do use it for some seemingly blank data)
 
-      - [X] Plan and build out the actual build process
-         - Docker based build system would be nice, takes longer and is a PITA. 
-         - Note, subsequent docker builds, or a lot at once, get slow. 
-         - Another note, payload id or something similar for tracking said payload that
-            the API can return fro tracking payloads after build would be nice. 
-            (Need to clarify, payload_uuid, and implant_uuid are 2 diff things, see payload vs implant) - maybe name it build_uuid for tracking the build
-
-         - [X] Fix implant to let it compile
-            Use conversions between vector<uint8_t> and std::string - do this in visual studio then copy in
-         - [X] test compile
-      - [X] Do basic compilation checks (copy paste into visual studio) to make sure generation is okay
-
       - [ ] cleanup build.py <<<<<
          - [X] DELTE OLD TEMP FILES AFTER USING THEM (after write to DB in payload.py)
-
 
          - implant vs payload naming: payload: unran implant. Implant: Active implant
          - [ ] Server: Clean up, add output options/logic (exe, etc)
             - Going to need to get that logic into the build process, for which verson of main to include (dll, vs exe main - have a template for both)
-
-         - [ ] Defualt implant gets picked up by defender... yay. ON WHAT????? (it said ml. Probably new donwload, execute, and callback instantly to server)
 
          - [ ] Add variant back to GUI, seemingly not showing up in payload build
 
@@ -178,32 +163,9 @@
       - [ ] Implant Formatting/Jinja Options
          - [ ] Update keys needed at ehader of j2
          http_comms.cpp
-            HTTP_GET:
-               Jinja:
+            - [X] HTTP_GET:
 
-               - Double check these - only x off when known working with different profiles. 
-               - Metadata
-                  - [X] Header      Works
-                  - [X] Parameter   (see if needed to be url encoded or not...)
-                  - [X] URI         
-                  - [X] Print       Works
-
-               - Task (server) Output
-                  - [X] Print       Works
-
-                  *: URI-APPEND, PRINT, PARAMTER are not valid outputs 
-               
-               Misc:
-                  >> here, just finished. Do post next
-                  - [X] Additional headers/parameters declared in http-get client scope
-                  (see if needs to be URL encoded...)
-                  //going to need a jija macro 
-
-                  - [X] Additional headers/parameters declared in http-get server scope
-
-
-               - imlpement
-            HTTP_POST:
+            - [ ] HTTP_POST:
                Jinja:
                   - ID
                      - [ ] Header

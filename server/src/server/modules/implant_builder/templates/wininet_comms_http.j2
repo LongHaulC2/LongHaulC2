@@ -99,14 +99,14 @@ nlohmann::json get(std::string implant_uuid) {
 
     [# HTTP_GET: METADATA: PRINT - IF MC2 says it wants a header for where to find the metadata... #]
     [%- if http_get_client_metadata_terminator == "print" %]
-    
+
     //convert back to string for HTTP_GET function
     request_body.assign(w_metadata.begin(), w_metadata.end());
     [%- endif %]
 
     // --- End Malleable C2 Metadata transport method ---
 
-    // --- Add addtl headers/params as specified in mc2 b4 sending off. Placed ehre to fix URI bug too---
+    // --- Add addtl headers/params as specified in mc2 b4 sending off. ---
     [%- for header_or_param in http_get_client_headers_or_parameters_list %]
     [[ render_add_headers_or_parameters(header_or_param) ]]
     [%- endfor %]
