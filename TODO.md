@@ -179,18 +179,20 @@
          - [ ] Update keys needed at ehader of j2
          http_comms.cpp
             HTTP_GET:
+               Jinja:
+
                - Double check these - only x off when known working with different profiles. 
                - Metadata
-                  - [X] Header
-                  - [X] Parameter (see if needed to be url encoded or not...)
-                  - [ ] URI
-                  - [ ] Print
+                  - [X] Header      Works
+                  - [X] Parameter   (see if needed to be url encoded or not...)
+                  - [ ] URI         ?
+                  - [X] Print       (implant fine, server bugged)
+
 
                - Task (server) Output
-                  - [ ] Header
-                  - [ ] Parameter
-                  - [ ] URI
-                  - [X] Print
+                  - [X] Print       Works
+
+                  *: URI-APPEND, PRINT, PARAMTER are not valid outputs 
                
                Misc:
                   >> here, just finished. Do post next
@@ -203,18 +205,23 @@
 
                - imlpement
             HTTP_POST:
-               - ID
-                  - [ ] Header
-                  - [X] Parameter
-                  - [ ] URI
-                  - [ ] Print
+               Jinja:
+                  - ID
+                     - [ ] Header
+                     - [X] Parameter
+                     - [ ] URI
+                     - [ ] Print
 
-               - Client Output (client -> server)
-                  - [X] Header
-                  - [ ] Parameter
-                  - [ ] URI
-                  - [ ] Print
+                  - Client Output (client -> server)
+                     - [X] Header
+                     - [ ] Parameter
+                     - [ ] URI
+                     - [ ] Print
                
+               srv logic:
+                  server output:
+                     - [X] print
+
                Misc:
                   - [X] Additional headers/parameters declared in http-post client scope
                   - [X] Additional headers/parameters declared in http-post server scope

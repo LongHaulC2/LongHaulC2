@@ -282,7 +282,9 @@ async def deobsfucate_malleable_c2_request_data(
 
             try:
                 hce = parser_class(client_block=malleable_c2_block)
-                data = hce.apply_transforms(data=data_from_request)
+                data = hce.apply_transforms(
+                    data=data_from_request, block_field=block_field
+                )
                 listener_logger.debug(
                     "deobfuscation_complete", type="print", len=len(data)
                 )
@@ -559,14 +561,13 @@ def http_response(data_from_implant):
     headers = emitter.headers()
     obsfucated_task = emitter.generate_data(msgpack_task)
 
-    terminator_type, target = emitter.get_output_terminator()
+    terminator_type, terimnator_key = emitter.get_output_terminator()
 
     match terminator_type:
-
-        # case "header":
-        #     # send data in a header
-        #     # headers[target] = obsfucated_task
-        #     # construct response here
+        # note, only print is a valid output statemetn (from https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_profile-language.htm#_Toc65482837)
+        # The print statement is the expected termination statement for the http-get.server.output,
+        # http- post.server.output, and http-stager.server.output blocks.
+        # You may use the header, parameter, print and uri-append termination statements for the other blocks.
 
         case "print":
             # send data in the body

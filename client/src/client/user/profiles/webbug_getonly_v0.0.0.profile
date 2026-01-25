@@ -31,8 +31,11 @@ http-get {
 		header "Content-Type" "image/gif";
 		header "http_get->server->header" "image/gif";
 
+		#The print statement is the expected termination statement for the http-get.server.output, 
+		#http- post.server.output, and http-stager.server.output blocks. You may use the header, parameter, 
+		# print and uri-append termination statements for the other blocks.
 		output {
-			print;
+			print "output";
 		}
 	}
 }
