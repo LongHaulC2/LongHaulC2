@@ -301,10 +301,6 @@ async def deobsfucate_malleable_c2_request_data(
             url = URL(str(request.url))
             data_from_request = url.path.rstrip("/").split("/")[-1]
             # return uri_append.encode()
-
-            print(url)
-            print(data_from_request)
-
             try:
                 hce = parser_class(client_block=malleable_c2_block)
                 data = hce.apply_transforms(

