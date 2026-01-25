@@ -292,6 +292,11 @@ async def deobsfucate_malleable_c2_request_data(
                     "deobfuscation_failed", error=str(e), type="print"
                 )
                 raise e
+
+        case "uri-append":
+            print("NO_URI_APPEND_CONFIGURED YET.")
+            # best way may be to extract
+
         case _:
             # unknown terminator
             listener_logger.error("unknown_terminator", terminator=terminator_type)

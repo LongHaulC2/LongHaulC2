@@ -182,7 +182,7 @@
                - Double check these - only x off when known working with different profiles. 
                - Metadata
                   - [X] Header
-                  - [ ] Parameter
+                  - [X] Parameter (see if needed to be url encoded or not...)
                   - [ ] URI
                   - [ ] Print
 

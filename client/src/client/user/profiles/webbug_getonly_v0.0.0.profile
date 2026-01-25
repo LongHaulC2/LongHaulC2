@@ -19,7 +19,9 @@ http-get {
 
 		metadata {
 			base64url;
-			header "utmcc";
+			#parameter "test";
+			#uri-append;
+			print;
 		}
 	}
 

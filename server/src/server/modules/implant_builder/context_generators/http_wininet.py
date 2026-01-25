@@ -114,6 +114,19 @@ def _extract_http_get_options(profile: MalleableProfile) -> dict:
     if term_type == "header":
         context_dict["http_get_client_metadata_terminator"] = "header"
         context_dict["http_get_client_metadata_terminator_value"] = term_value
+    elif term_type == "parameter":
+        context_dict["http_get_client_metadata_terminator"] = "parameter"
+        context_dict["http_get_client_metadata_terminator_value"] = term_value
+    elif term_type == "uri-append":
+        context_dict["http_get_client_metadata_terminator"] = "uri-append"
+        context_dict["http_get_client_metadata_terminator_value"] = (
+            term_value  # shuold be none
+        )
+    elif term_type == "print":
+        context_dict["http_get_client_metadata_terminator"] = "print"
+        context_dict["http_get_client_metadata_terminator_value"] = (
+            term_value  # should be none
+        )
     # Add other cases (uri, etc) here as needed
 
     # List of headers or parameters to add to the request
