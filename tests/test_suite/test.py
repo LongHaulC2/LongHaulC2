@@ -62,10 +62,11 @@ def step_2_create_listener(profile_name, profile_data):
     payload = {
         "listener_name": unique_name,
         "listener_type": "http",  # Assumed type
-        "listener_host": "127.0.0.1",
-        "listener_port": 8080,  # Ensure this port is free
+        "listener_host": "10.0.0.30",
+        "listener_port": 9016,  # Ensure this port is free
         "listener_notes": "Automated test listener",
-        "listener_profile": profile_data,
+        "listener_profile_name": profile_name,
+        "listener_profile_contents": profile_data,
     }
 
     resp = requests.post(f"{API_BASE}/listeners/", json=payload)
@@ -74,10 +75,12 @@ def step_2_create_listener(profile_name, profile_data):
         # Assuming the API returns the UUID directly or in a dict
         # Adjust 'get("id")' based on exact server response (spec just says "Returns ID")
         try:
-            data = resp.json()
-            listener_id = (
-                data if isinstance(data, str) else data.get("uuid", data.get("id"))
-            )
+            data = (resp.json()).get("data")
+            # listener_id = (
+            #     data if isinstance(data, str) else data.get("listener_uuid", data.get("id"))
+            # )
+            listener_id = data.get("listener_uuid")
+
             log(f"Listener created. ID: {listener_id}", "SUCCESS")
             return listener_id
         except:
@@ -104,13 +107,15 @@ def step_3_build_payload(listener_uuid):
 
     if resp.status_code == 200:
         try:
-            data = resp.json()
+            data = (resp.json()).get("data")
             # Spec says "Returns ID/Hash"
-            build_hash = (
-                data if isinstance(data, str) else data.get("hash", data.get("uuid"))
-            )
-            log(f"Payload build task submitted. Hash: {build_hash}", "SUCCESS")
-            return build_hash
+            # build_hash = (
+            #     data if isinstance(data, str) else data.get("hash", data.get("uuid"))
+            # )
+            build_uuid = data.get("build_uuid")
+
+            log(f"Payload build task submitted. build uuid: {build_uuid}", "SUCCESS")
+            return build_uuid
         except:
             log(f"Failed to parse build response: {resp.text}", "ERROR")
             return None
@@ -119,10 +124,51 @@ def step_3_build_payload(listener_uuid):
         return None
 
 
+def step_3_5_get_hash(build_id):
+    """
+    Polls the build job status until completion or timeout.
+    """
+    log(f"Polling build job {build_id}...", "INFO")
+
+    url = f"{API_BASE}/build/jobs/{build_id}"
+
+    # Loop for MAX_RETRIES
+    for _ in range(MAX_RETRIES):
+        try:
+            resp = requests.get(url)
+            if resp.status_code == 200:
+                data = resp.json().get("data", {})
+                status = data.get("build_status")
+
+                print(data)
+
+                if status == "complete":
+                    payload_hash = data.get("payload_hash")
+                    log(f"Payload built successfully. Hash: {payload_hash}", "SUCCESS")
+                    return payload_hash
+
+                elif status == "failed":
+                    error_msg = data.get("error", "Unknown error")
+                    log(f"Build failed: {error_msg}", "ERROR")
+                    return None
+
+                elif status == "building" or status == "pending":
+                    log("Payload still being built...", "INFO")
+            else:
+                log(f"Error polling job: {resp.status_code}", "WARNING")
+
+        except Exception as e:
+            log(f"Exception during polling: {e}", "ERROR")
+
+        # Wait before next loop
+        time.sleep(SLEEP_INTERVAL)
+
+    log("Timed out waiting for build to complete.", "ERROR")
+    return None
+
+
 def step_4_download_payload(build_hash):
     """Step 4: Download payload"""
-    # Give the server a second to compile if needed
-    time.sleep(2)
 
     url = f"{API_BASE}/build/{build_hash}"
     resp = requests.get(url)
@@ -269,7 +315,12 @@ def main():
             continue
 
         # 3. Build Payload
-        build_hash = step_3_build_payload(listener_id)
+        build_id = step_3_build_payload(listener_id)
+        if not build_id:
+            continue
+
+        # get hash of build id:
+        build_hash = step_3_5_get_hash(build_id)
         if not build_hash:
             continue
 

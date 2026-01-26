@@ -63,6 +63,7 @@ def build_implant(implant_name, listener_uuid, variant, output_format, build_uui
             listener_uuid=listener_uuid,
             build_uuid=build_uuid,
         )
+        service.update_build_status(build_uuid=build_uuid, build_status="building")
 
     # note - difference betwen lsitener type (http) and listenert type for build (http_wininet)
     # OR - less complicated for user, have a "http" listener, then specify which method
@@ -86,12 +87,15 @@ def build_implant(implant_name, listener_uuid, variant, output_format, build_uui
     docker_build_implant(build_dir)
     # and store in DB
     store_data_post_build(
-        build_dir=build_dir, payload_name=implant_name, listener_uuid=listener_uuid
+        build_dir=build_dir,
+        payload_name=implant_name,
+        listener_uuid=listener_uuid,
+        build_uuid=build_uuid,
     )
 
 
 def store_data_post_build(
-    build_dir: Union[str, Path], payload_name: str, listener_uuid: str
+    build_dir: Union[str, Path], payload_name: str, listener_uuid: str, build_uuid: str
 ) -> None:
     """
     Zips the source code from the build directory and uploads build artifacts
@@ -163,10 +167,15 @@ def store_data_post_build(
                         payload_bytes=payload_bytes,
                         listener_uuid=listener_uuid,
                         source_code_bytes=zip_bytes,
+                        build_uuid=build_uuid,
                     )
                 except Exception as file_error:
                     server_logger.error(
                         f"Failed to read or register specific artifact {file_path.name}: {file_error}"
+                    )
+                    # on fail. update status to fail
+                    service.update_build_status(
+                        build_uuid=build_uuid, build_status="failed"
                     )
                     continue
 

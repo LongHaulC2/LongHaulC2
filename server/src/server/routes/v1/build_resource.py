@@ -89,6 +89,14 @@ the client continues to hit the job endpoint until it has a hash.
 payload can then be downloaded via hash.
 
 
+Note, ahving a websocket, or something with build logs as well would be nice. 
+
+maybe a /build/build_uuid/logs
+
+
+Adding status
+
+udpate fail on build fail, update success on success, pending on init
 """
 
 
@@ -185,6 +193,15 @@ class BuildJobs(Resource):
             ips = MySQLImplantPayloadService(session)
 
             data = ips.get_build_job_by_uuid(build_uuid)
+
+            if isinstance(data.get("payload_hash"), bytes):
+                data["payload_hash"] = data["payload_hash"].hex()
+            # remove bytes (payload and source)
+            if "payload_bytes" in data:
+                del data["payload_bytes"]
+
+            if "payload_source_code_bytes" in data:
+                del data["payload_source_code_bytes"]
 
         api_response = APIResponse(status="200", message="Success", data=data)
         return api_response.jsonify()
