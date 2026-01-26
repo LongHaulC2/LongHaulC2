@@ -151,30 +151,8 @@
       - [ ] Implant Formatting/Jinja Options
          - [ ] Update keys needed at ehader of j2
          http_comms.cpp
-            - [X] HTTP_GET:
-
-            - [ ] HTTP_POST:
-               Jinja:
-                  - ID
-                     # always header or param:         # https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_beacon-http-transaction-walkthru.htm#_Toc65482844
-
-                     - [X] Header
-                     - [X] Parameter
-
-                  - Client Output (client -> server)
-                     - [X] Header
-                     - [X] Parameter
-                     - [X] URI      err - missing data, server bug not implant
-                     - [X] Print
-               
-               srv logic:
-                  server output:
-                     - [X] print
-
-               Misc:
-                  - [X] Additional headers/parameters declared in http-post client scope
-                  - [X] Additional headers/parameters declared in http-post server scope
-
+            - [ ] http-config:
+               - Add user agent (parser, in jinja, etc. )
 
 Just remember, block == sender (ex, client, means sent from client). Transformations are top down
 from the sender. 
