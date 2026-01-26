@@ -114,18 +114,6 @@
     2. Format code blocks with data  (callback, transforms, etc)
     3. Paste into build files
 
-    Misc:
-        - [ ] Implement Transforms
-            - [X] C++
-            - [X] Python
-        - [ ] Implement parameters/things in client block
-            - [ ] C++
-            - [ ] Python
-        - [ ] Implement Other terminators
-            - [ ] C++
-            - [ ] Python
-        - [ ] Compile
-
    >> here
    Left off: 
       Working on jinja templating.
@@ -168,10 +156,10 @@
             - [ ] HTTP_POST:
                Jinja:
                   - ID
-                     - [ ] Header
+                     # always header or param:         # https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_beacon-http-transaction-walkthru.htm#_Toc65482844
+
+                     - [X] Header
                      - [X] Parameter
-                     - [ ] URI
-                     - [ ] Print
 
                   - Client Output (client -> server)
                      - [X] Header

@@ -46,7 +46,7 @@ http-post {
 	client {
 		id {
 			base64url;
-			parameter "utmac";
+			header "text";
 		}
 
 		parameter "utmcn" "1";
