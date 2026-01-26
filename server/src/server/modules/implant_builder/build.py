@@ -7,6 +7,7 @@ from typing import Union
 
 import docker
 import structlog
+from edwh_uuid7 import uuid7
 from mpp import MalleableProfile
 
 from ...db.mysql_connector import get_mysql_session
@@ -20,7 +21,7 @@ IMPLANT_BASE = Path(__file__).parent / "implant_base"
 server_logger = logging.getLogger("server")
 
 
-def build_implant(implant_name, listener_uuid, variant, output_format):
+def build_implant(implant_name, listener_uuid, variant, output_format, build_uuid):
     """
     Function to call to build implant. API calls this.
 
@@ -53,6 +54,15 @@ def build_implant(implant_name, listener_uuid, variant, output_format):
         'listener_type', 'listener_name', 'listener_notes', 'listener_active', 
         'listener_profile_name', 'listener_profile_contents'])
         """
+
+        # go ahead and register build job too
+        # Generate a tracking UUID for this build job
+        service = MySQLImplantPayloadService(session)
+        service.register_build_start(
+            payload_name=implant_name,
+            listener_uuid=listener_uuid,
+            build_uuid=build_uuid,
+        )
 
     # note - difference betwen lsitener type (http) and listenert type for build (http_wininet)
     # OR - less complicated for user, have a "http" listener, then specify which method

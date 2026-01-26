@@ -77,6 +77,20 @@ build_implant_model = build_ns.model(
     },
 )
 
+"""
+Quick fix for job otpions
+
+Add a job_id or build_id for the current build job
+This gets returned immediatly. 
+
+Implant gets compiled in the background, and in the meantime,
+the client continues to hit the job endpoint until it has a hash.
+
+payload can then be downloaded via hash.
+
+
+"""
+
 
 class Build(Resource):
     @build_ns.doc(
@@ -114,12 +128,14 @@ class Build(Resource):
         )
 
         # 3. Trigger Build
-        build_implant(implant_name, listener_uuid, variant, output_format)
+        build_uuid = str(uuid7())
 
+        build_implant(implant_name, listener_uuid, variant, output_format, build_uuid)
+
+        response = {"build_uuid": build_uuid}
         # 4. Return immediately
         return APIResponse(
-            status="200",
-            message="Build process initiated successfully",
+            status="200", message="Build process initiated successfully", data=response
         ).jsonify()
 
     def get(self):  # get one implant
@@ -140,6 +156,35 @@ class Build(Resource):
             ips = MySQLImplantPayloadService(session)
 
             data = ips.get_all_payloads()
+
+        api_response = APIResponse(status="200", message="Success", data=data)
+        return api_response.jsonify()
+
+
+class BuildJobs(Resource):
+    def get(self, build_uuid):  # get one implant
+        """
+        Get the status of a build job
+
+        Contains all of the information about a build, including the payload, once built.
+        If you are looking for just the payload,
+        Please use GET /api/v1/build/{payload_hash} to get the payload as a file (bytes)
+
+        """
+        ip = request.remote_addr
+
+        api_logger.info(
+            f"Getting status of build job {build_uuid}",
+            extra={
+                "caller_ip": ip,
+            },
+        )
+
+        # sql call to get implant data, return it as a dict (including bin data)
+        with get_mysql_session() as session:
+            ips = MySQLImplantPayloadService(session)
+
+            data = ips.get_build_job_by_uuid(build_uuid)
 
         api_response = APIResponse(status="200", message="Success", data=data)
         return api_response.jsonify()
@@ -291,6 +336,7 @@ class SourceActions(Resource):
 
 
 build_ns.add_resource(Build, "/")
+build_ns.add_resource(BuildJobs, "/jobs/<string:build_uuid>")
 build_ns.add_resource(BinaryActions, "/<string:hash>")
 build_ns.add_resource(SourceActions, "/<string:hash>/source")
 

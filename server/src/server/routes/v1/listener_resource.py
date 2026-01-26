@@ -32,9 +32,13 @@ listener_spawn_model = api.model(
         ),
         "listener_name": fields.String(required=True, description="Name of listener"),
         "listener_notes": fields.String(required=False, description="Listener notes"),
-        "listener_profile": fields.String(
-            required=False,
-            description="Listener malleable c2 profile",
+        "listener_profile_name": fields.String(
+            required=True,
+            description="Listener malleable c2 profile name",
+        ),
+        "listener_profile_contents": fields.String(
+            required=True,
+            description="Listener malleable c2 profile contents (i.e., read the profile, and pass that string here)",
         ),
     },
 )

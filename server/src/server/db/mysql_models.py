@@ -158,14 +158,16 @@ class ImplantPayload(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
 
-    payload_hash = Column(TINYBLOB(16), nullable=False)  # md5 hash
+    payload_hash = Column(TINYBLOB(16))  # md5 hash
     payload_bytes = Column(
-        LONGBLOB, nullable=False
+        LONGBLOB
     )  # LONGBLOB is 4gb (massive, intentional for expandability)
-    payload_source_code_bytes = Column(LONGBLOB, nullable=False)
+    payload_source_code_bytes = Column(LONGBLOB)
     payload_listener_uuid = Column(String(36))  # matches Listener model uuid
 
     payload_name = Column(Text)
+
+    build_uuid = Column(String(36))  # uuid to track the build
 
     def to_dict(self):
         """

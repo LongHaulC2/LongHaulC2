@@ -642,6 +642,39 @@ class MySQLImplantPayloadService:
 
         return hash_str
 
+    def register_build_start(
+        self, payload_name: str, listener_uuid: str, build_uuid: str
+    ) -> str:
+        """
+        Creates an initial 'placeholder' entry for a new payload build.
+        Generates a UUID to track the build job, allowing the API to return immediately
+        while the actual compilation happens in the background.
+
+        returns: The new Build UUID (str)
+        """
+        server_logger.info(f"Registering new build task for listener {listener_uuid}")
+
+        check_type(listener_uuid, str, "listener_uuid")
+        check_type(payload_name, str, "payload_name")
+
+        # Create the row with the UUID, but leave the payload bytes Empty/Null for now.
+        # Note: Ensure your SQL Model 'ImplantPayload' allows payload_bytes to be Nullable
+        payload_entry = ImplantPayload(
+            build_uuid=build_uuid,  # Saving the UUID instead of a Hash
+            payload_name=payload_name,
+            payload_listener_uuid=listener_uuid,
+            payload_bytes=None,  # Data not ready yet
+            payload_source_code_bytes=None,  # Data not ready yet
+            # build_status="pending"            # Optional: Helpful for the polling logic
+        )
+
+        self.session.add(payload_entry)
+        self.session.commit()
+
+        server_logger.info(f"Successfully initiated build job: {build_uuid}")
+
+        return build_uuid
+
     def get_payload_by_hash(self, payload_hash: str):
         """
         Retrieve a payload object by its MD5 HEX STRING.
@@ -670,6 +703,24 @@ class MySQLImplantPayloadService:
             return payload
         else:
             server_logger.warning(f"No payload found for hash {payload_hash}")
+            return None
+
+    def get_build_job_by_uuid(self, build_uuid: str):
+        """
+        Retrieve a build job by its UUID
+        """
+        check_type(build_uuid, str, "build_uuid")
+
+        server_logger.info(f"Retrieving build job status for {build_uuid}")
+
+        payload = (
+            self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid).first()
+        )
+
+        if payload:
+            return payload.to_dict()
+        else:
+            server_logger.warning(f"No build job found for build uuid {build_uuid}")
             return None
 
     def get_payloads_by_listener(self, listener_uuid: str) -> list:
