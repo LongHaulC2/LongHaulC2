@@ -57,7 +57,9 @@ http-post {
 
 		output {
 			base64url;
-			header "utmcc";
+			#parameter "test";
+			#uri-append;
+			print;
 		}
 	}
 

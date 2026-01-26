@@ -714,7 +714,7 @@ async def http_post_uri(request: Request, data: str) -> Response:
 
         # check if keys, ifnot, throw a 400 (it's a server error though - so maybe change later)
         check_if_data(output_terminator_type)
-        check_if_data(output_terminator_key)
+        # check_if_data(output_terminator_key)
 
         data_from_implant = await deobsfucate_malleable_c2_request_data(
             request=request,

@@ -163,9 +163,9 @@
 
                   - Client Output (client -> server)
                      - [X] Header
-                     - [ ] Parameter
-                     - [ ] URI
-                     - [ ] Print
+                     - [X] Parameter
+                     - [X] URI      err - missing data, server bug not implant
+                     - [X] Print
                
                srv logic:
                   server output:
