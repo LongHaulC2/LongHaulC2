@@ -158,7 +158,7 @@ Just remember, block == sender (ex, client, means sent from client). Transformat
 from the sender. 
 
 
-# Test planning:
+# Test planning - need before further development
  3 VM's:
 
  1. C2 Host (linux)
@@ -176,10 +176,14 @@ Goals;
 Idea:
  - install server
  - start server
- - run script to create X listeners (various malleabel c2)
+ - run script to create X listeners (various malleabel c2, that cover all test cases, params, output, etc)
  - compile implants for each listener
  - donwload implants
  - run on victim (somethign dumb like winrm or psexec or a way to just easily execute them, use a bad passwd for victim pc)
+ - some sort of checker script that checks certain values to make sure everything is okay (this is a sanity check for the API as well to make sure Ihave everyhting)
+
+Shorter goal:
+ - 1 script, with a profiles folder. Script does everything. 
 
 # Task Formatting (for reference):
 
