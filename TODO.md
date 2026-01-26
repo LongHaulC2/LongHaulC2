@@ -158,6 +158,29 @@ Just remember, block == sender (ex, client, means sent from client). Transformat
 from the sender. 
 
 
+# Test planning:
+ 3 VM's:
+
+ 1. C2 Host (linux)
+ 2. Operator ( (windows or lin) run scripts from - gui would be nice for debugging things.)
+ 3. Victim ( (windows) where agents are run)
+
+Save/Revert; snapshots w proxmox
+
+Goals;
+ - test Malleable c2 scripts (make sure nothing breaks)
+ - tests install pattern
+ - tests implant compilation, etc. 
+ - load testing?
+
+Idea:
+ - install server
+ - start server
+ - run script to create X listeners (various malleabel c2)
+ - compile implants for each listener
+ - donwload implants
+ - run on victim (somethign dumb like winrm or psexec or a way to just easily execute them, use a bad passwd for victim pc)
+
 # Task Formatting (for reference):
 
 Note: Task_uuid and implant_uuid are included for task verification (right task to right agent),
