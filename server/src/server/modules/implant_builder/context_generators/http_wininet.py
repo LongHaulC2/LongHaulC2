@@ -207,8 +207,8 @@ def _extract_http_post_options(profile: MalleableProfile) -> dict:
             context_dict["http_post_client_id_terminator"] = "parameter"
             context_dict["http_post_client_id_terminator_value"] = id_term_value
         # not sure if allowed
-        case "uri":
-            context_dict["http_post_client_id_terminator"] = "uri"
+        case "uri-append":
+            context_dict["http_post_client_id_terminator"] = "uri-append"
             context_dict["http_post_client_id_terminator_value"] = id_term_value
         case "print":
             context_dict["http_post_client_id_terminator"] = "print"
@@ -227,8 +227,8 @@ def _extract_http_post_options(profile: MalleableProfile) -> dict:
         case "parameter":
             context_dict["http_post_client_output_terminator"] = "parameter"
             context_dict["http_post_client_output_terminator_value"] = out_term_value
-        case "uri":
-            context_dict["http_post_client_output_terminator"] = "uri"
+        case "uri-append":
+            context_dict["http_post_client_output_terminator"] = "uri-append"
             context_dict["http_post_client_output_terminator_value"] = out_term_value
         case "print":
             context_dict["http_post_client_output_terminator"] = "print"

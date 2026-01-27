@@ -733,11 +733,11 @@ async def http_post_uri(request: Request, data: str) -> Response:
     try:
         # note, id is always in a header or param
         # https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_beacon-http-transaction-walkthru.htm#_Toc65482844
+        # new note: Looks like it can be appended to URI as well, despite not being doc'd, at least it is in the etumbot profile.
         id_terminator_type, id_terminator_key = hce.get_id_terminator()
 
-        # check if keys
+        # only check for termiantor type, as uri-append does not have a key
         check_if_data(id_terminator_type)
-        check_if_data(id_terminator_key)
 
         implant_uuid_bytes = await deobsfucate_malleable_c2_request_data(
             request=request,
@@ -841,14 +841,6 @@ def register_http_route(uri: URL, method: str, endpoint, uri_endpoint):
         # response_model=dict,
         # tags=["items"],
     )
-
-    # # for uri-append, add another route
-    # # hack together a string for what it wants: "myuri/{data}"
-    # # full_uri = str(uri) + "/{data}"
-    # full_uri = (
-    #     str(uri) + "{data}"
-    # )  # note, not using a / here on data, creates a blank path, ex host/location//data.
-    # # If the profile has uri-append, it shuold have a trailing /, ex: `/<path>/`
 
     full_uri = safe_join(str(uri), "{data}")
 

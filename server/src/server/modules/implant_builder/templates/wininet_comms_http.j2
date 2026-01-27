@@ -209,8 +209,17 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
 
     [%- endif %]
     
+    [%- if http_post_client_id_terminator == "uri-append" %]
 
-    //Need to check if ID is allowed in URI
+    //TODO: check if `/` at last char, if not, add one.
+    if (!uri.empty() && uri.back() != '/') {
+        uri.push_back('/');
+    }
+    //could use append from transform here too
+    uri += w_id;
+
+    [% endif %]
+
 
     // 5. Handle Output Placement
     [# no %- here, as otherwise the previous comment adds the below headers line in #]
@@ -236,8 +245,7 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
 
     [%- endif %]
 
-    [# HTTP_GET: METADATA: URI - IF MC2 says it wants a header for where to find the metadata... #]
-    [%- if http_get_client_metadata_terminator == "uri-append" %]
+    [%- if http_post_client_output_terminator == "uri-append" %]
 
     //TODO: check if `/` at last char, if not, add one.
     if (!uri.empty() && uri.back() != '/') {

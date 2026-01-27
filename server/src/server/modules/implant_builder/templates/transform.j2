@@ -30,6 +30,11 @@
     netbios_encode([[ target ]]);
 [%- endmacro %]
 
+[% macro trans_netbiosu(target) -%]
+    // [Transform] netbios conversion
+    netbiosu_encode([[ target ]]);
+[%- endmacro %]
+
 [# --- THE GENERIC DISPATCHER --- #]
 [% macro render_transform(transform_object, target_var) -%]
 
@@ -50,6 +55,9 @@
 
     [% elif transform_object.statement == 'netbios' %]
         [[ trans_netbios(target_var) ]]
+
+    [% elif transform_object.statement == 'netbiosu' %]
+        [[ trans_netbiosu(target_var) ]]
 
     [% endif %]
 [%- endmacro %]
