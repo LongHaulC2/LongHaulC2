@@ -179,7 +179,7 @@ class BuildJobs(Resource):
 
             if isinstance(data.get("payload_hash"), bytes):
                 data["payload_hash"] = data["payload_hash"].hex()
-            # remove bytes (payload and source)
+            # remove bytes (payload and source), as flask can't handle them/encode them as responses. There are endpoitns for this specifially that send as a file
             if "payload_bytes" in data:
                 del data["payload_bytes"]
 
