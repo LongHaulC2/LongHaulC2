@@ -77,28 +77,6 @@ build_implant_model = build_ns.model(
     },
 )
 
-"""
-Quick fix for job otpions
-
-Add a job_id or build_id for the current build job
-This gets returned immediatly. 
-
-Implant gets compiled in the background, and in the meantime,
-the client continues to hit the job endpoint until it has a hash.
-
-payload can then be downloaded via hash.
-
-
-Note, ahving a websocket, or something with build logs as well would be nice. 
-
-maybe a /build/build_uuid/logs
-
-
-Adding status
-
-udpate fail on build fail, update success on success, pending on init
-"""
-
 
 class Build(Resource):
     @build_ns.doc(
@@ -174,9 +152,12 @@ class BuildJobs(Resource):
         """
         Get the status of a build job
 
-        Contains all of the information about a build, including the payload, once built.
-        If you are looking for just the payload,
-        Please use GET /api/v1/build/{payload_hash} to get the payload as a file (bytes)
+        Contains all of the information about a build, except for payload bytes, and zip bytes.
+
+        If you are looking for the payload/source code,
+        Please use:
+         - `GET /api/v1/build/{payload_hash}` to get the payload as a file (bytes)
+         - `GET /api/v1/build/{payload_hash}/source` to get the source code zip
 
         """
         ip = request.remote_addr
@@ -187,6 +168,8 @@ class BuildJobs(Resource):
                 "caller_ip": ip,
             },
         )
+
+        check_type(build_uuid, str, "build_uuid")
 
         # sql call to get implant data, return it as a dict (including bin data)
         with get_mysql_session() as session:

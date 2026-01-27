@@ -1,6 +1,7 @@
 import hashlib
 import logging
 from dataclasses import asdict
+from typing import Literal
 
 from edwh_uuid7 import uuid7
 from sqlalchemy import exc, inspect, text
@@ -712,7 +713,9 @@ class MySQLImplantPayloadService:
 
         return build_uuid
 
-    def update_build_status(self, build_uuid, build_status) -> str:
+    def update_build_status(
+        self, build_uuid, build_status: Literal["building", "complete", "failed"]
+    ):
         """
         Updates build status by querying the EXISTING row.
         """

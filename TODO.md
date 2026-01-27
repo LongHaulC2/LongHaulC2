@@ -185,6 +185,9 @@ Idea:
 Shorter goal:
  - 1 script, with a profiles folder. Script does everything. 
 
+ - [ ] build id
+   - [ ] add proper docs/logging to endpoint, and sub funcs, then continue testing
+
 # Task Formatting (for reference):
 
 Note: Task_uuid and implant_uuid are included for task verification (right task to right agent),

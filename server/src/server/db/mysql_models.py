@@ -169,7 +169,7 @@ class ImplantPayload(Base):
 
     build_uuid = Column(String(36))  # uuid to track the build
 
-    build_status = Column(Text)
+    build_status = Column(Text)  # status of build
 
     def to_dict(self):
         """
