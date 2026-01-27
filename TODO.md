@@ -198,6 +198,8 @@ Every test failed - lots of crashes, which means invalid data being sent back to
 
 Bugs:
  - [X] order: http_get metadata seems to be doing transforms in reverse order. 
+ - [ ] Delim: Seems to be a problem that some profiels have delims, or extra \ or / in URL's/
+ - [ ] Extra / in URL's. YARL every URL string, check every point it could be at.
 
 # Task Formatting (for reference):
 

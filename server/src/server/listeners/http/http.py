@@ -842,9 +842,16 @@ def register_http_route(uri: URL, method: str, endpoint, uri_endpoint):
         # tags=["items"],
     )
 
-    # for uri-append, add another route
-    # hack together a string for what it wants: "myuri/{data}"
-    full_uri = str(uri) + "/{data}"
+    # # for uri-append, add another route
+    # # hack together a string for what it wants: "myuri/{data}"
+    # # full_uri = str(uri) + "/{data}"
+    # full_uri = (
+    #     str(uri) + "{data}"
+    # )  # note, not using a / here on data, creates a blank path, ex host/location//data.
+    # # If the profile has uri-append, it shuold have a trailing /, ex: `/<path>/`
+
+    full_uri = safe_join(str(uri), "{data}")
+
     # Register the route with the dynamic path
     app.add_api_route(
         path=str(full_uri),
@@ -863,3 +870,36 @@ def register_http_route(uri: URL, method: str, endpoint, uri_endpoint):
 
     This way, FastAPI can process both the static and dynamic parts of the URL correctly.    
     """
+
+
+def safe_join(base_uri: str, append: str) -> str:
+    """
+    Join two URI parts with exactly one '/' between them.
+
+    Args:
+        base_uri: The base URI or path segment (e.g., "https://example.com/api" or "https://example.com/api/").
+        append: The segment to append (e.g., "v1/data" or "/v1/data").
+
+    Returns:
+        A string representing the combined URI with a single slash separating the two parts.
+
+    Examples:
+        safe_join("https://example.com/api", "v1")       -> "https://example.com/api/v1"
+        safe_join("https://example.com/api/", "v1")      -> "https://example.com/api/v1"
+        safe_join("https://example.com/api", "/v1")      -> "https://example.com/api/v1"
+        safe_join("https://example.com/api/", "/v1")     -> "https://example.com/api/v1"
+
+    Also: For formatting fastapi urls:
+        safe_join(str(uri), "{data}")                   -> https://example.com/{data}
+
+        There was a bug here where the URI would be https://example.com//{data}, which leaves a blank path/an invalid path where the listener
+        was not getting the data because of it.
+
+
+    """
+    if not base_uri.endswith("/") and not append.startswith("/"):
+        return base_uri + "/" + append
+    elif base_uri.endswith("/") and append.startswith("/"):
+        return base_uri + append[1:]  # remove extra slash
+    else:
+        return base_uri + append
