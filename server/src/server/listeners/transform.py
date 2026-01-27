@@ -10,12 +10,14 @@ server_logger = logging.getLogger("listener")
 This is for Data Transform Language
 https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_profile-language.htm#_Toc65482837 (Data Transform Language))
 """
+import json
 
 
 def transform_prepend(data: bytes, value) -> bytes:
     check_type(data, bytes, "data")
 
     try:
+
         b = value if isinstance(value, bytes) else malleable_string_to_bytes(value)
         return b + data
     except Exception as e:
@@ -30,6 +32,7 @@ def undo_transform_prepend(data: bytes, value) -> bytes:
     check_type(data, bytes, "data")
 
     try:
+
         b = value if isinstance(value, bytes) else malleable_string_to_bytes(value)
         return data[len(b) :]
     except Exception as e:
@@ -41,6 +44,7 @@ def transform_append(data: bytes, value) -> bytes:
     check_type(data, bytes, "data")
 
     try:
+
         b = value if isinstance(value, bytes) else malleable_string_to_bytes(value)
         return data + b
     except Exception as e:
@@ -55,6 +59,7 @@ def undo_transform_append(data: bytes, value) -> bytes:
     check_type(data, bytes, "data")
 
     try:
+
         b = value if isinstance(value, bytes) else malleable_string_to_bytes(value)
         return data[: -len(b)]
     except Exception as e:
@@ -281,6 +286,7 @@ def netbios_decode(data: bytes) -> bytes:
         out_bytes = bytes(out)
         server_logger.debug("NetBIOS Decode output: %r", out_bytes)
         return out_bytes
+
     except Exception as e:
         server_logger.exception("Error in netbios_decode")
         raise ValueError(f"Error in netbios_decode: {e}")

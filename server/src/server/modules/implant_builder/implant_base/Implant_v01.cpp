@@ -37,6 +37,7 @@
 #include "data/msgpack/msgpack.h"
 
 int temp_loop() {
+    
     //note - do a while not registered?
     //std::string implant_uuid = register_implant();
     //swithcing to a get with a null uuid

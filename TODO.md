@@ -188,10 +188,16 @@ Shorter goal:
  - [ ] build id
    - [ ] add proper docs/logging to endpoint, and sub funcs, then continue testing
 
+
+
 > here
 Testing:
 
 Every test failed - lots of crashes, which means invalid data being sent back to server/it's interpreting it wrong. 
+
+
+Bugs:
+ - [X] order: http_get metadata seems to be doing transforms in reverse order. 
 
 # Task Formatting (for reference):
 

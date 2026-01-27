@@ -367,9 +367,16 @@ class HttpGetBlockClientParser:
         return None, None
 
     def apply_transforms(self, data: bytes, block_field):
+        """
+        Applies transforms to data coming in from implant.
+
+        Because it is inbound, the transforms are reversed, aka applied last to first,
+        as the implant has created them first to last.
+        """
+
         check_type(data, bytes, "data")
 
-        for stmt in block_field.data:  # self.client.metadata.data:
+        for stmt in reversed(block_field.data):  # Reversed, see docstring
             name = stmt.statement
             value = stmt.value
 
@@ -680,9 +687,15 @@ class HttpPostBlockClientParser:
         return None, None
 
     def apply_transforms(self, data, block_field):
+        """
+        Applies transforms to data coming in from implant.
+
+        Because it is inbound, the transforms are reversed, aka applied last to first,
+        as the implant has created them first to last.
+        """
         check_type(data, bytes, "data")
 
-        for stmt in block_field.data:  # self.client.output.data:
+        for stmt in reversed(block_field.data):  # self.client.output.data:
             name = stmt.statement
             value = stmt.value
 

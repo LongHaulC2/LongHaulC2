@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <algorithm> // for std::transform if needed
 
-
+#include <iostream>
 #include "../../protocols/base64/base64.h"
 
 // ==========================================
@@ -15,13 +15,28 @@ void transform_prepend(std::string& data, const std::string& value) {
     data.insert(0, value);
 }
 
+// void undo_transform_prepend(std::string& data, const std::string& value) {
+//     if (data.size() < value.size()) {
+//         throw std::runtime_error("undo_prepend: Data shorter than value");
+//     }
+//     std::cout << "undo_transform_prepend: Before: " << data << std::endl;
+//     // Erase from index 0, count of value.size()
+//     data.erase(0, value.size());
+//     std::cout << "undo_transform_prepend: After: " << data << std::endl;
+
+// }
+
 void undo_transform_prepend(std::string& data, const std::string& value) {
-    if (data.size() < value.size()) {
-        throw std::runtime_error("undo_prepend: Data shorter than value");
+    if (!data.starts_with(value)) {
+        std::cerr << "undo_transform_prepend: prefix mismatch\n";
+        std::cerr << "Expected prefix:\n" << value << "\n\n";
+        std::cerr << "Actual prefix:\n" 
+                  << data.substr(0, value.size()) << "\n";
+        throw std::runtime_error("undo_prepend: prefix does not match");
     }
-    // Erase from index 0, count of value.size()
     data.erase(0, value.size());
 }
+
 
 void transform_append(std::string& data, const std::string& value) {
     data += value;
@@ -31,8 +46,12 @@ void undo_transform_append(std::string& data, const std::string& value) {
     if (data.size() < value.size()) {
         throw std::runtime_error("undo_append: Data shorter than value");
     }
+    std::cout << "undo_transform_append: Before: " << data << std::endl;
+
     // Resize to cut off the end
     data.resize(data.size() - value.size());
+    std::cout << "undo_transform_append: After: " << data << std::endl;
+
 }
 
 // ==========================================
