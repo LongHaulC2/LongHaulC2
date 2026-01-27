@@ -27,7 +27,7 @@ PROFILES_DIR = "./profiles"
 DOWNLOAD_DIR = "./downloads"
 SLEEP_INTERVAL = 5  # Seconds to wait between polls
 MAX_RETRIES = 12  # Max number of polls (12 * 5s = 60s total wait)
-CURRENT_LISTENER_PORT = 5134
+CURRENT_LISTENER_PORT = 5180
 # Ensure directories exist
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 os.makedirs(PROFILES_DIR, exist_ok=True)
@@ -255,7 +255,8 @@ def step_6_queue_command(implant_uuid):
         resp = requests.post(f"{API_BASE}/implants/{implant_uuid}/task", json=task_data)
         if resp.status_code == 200:
             log(f"Command '{command_str}' queued.", "SUCCESS")
-            return command_str
+            task_uuid = (resp.json()).get("data").get("task_uuid")
+            return task_uuid
         else:
             log(f"Failed to queue command: {resp.text}", "ERROR")
             return None
@@ -264,9 +265,9 @@ def step_6_queue_command(implant_uuid):
         return None
 
 
-def step_7_check_output(implant_uuid, expected_substring):
+def step_7_check_output(implant_uuid, task_uuid):
     """Step 7: Check history for output"""
-    log(f"Polling history for output containing: '{expected_substring}'", "INFO")
+    log(f"Polling history of implant, looking for task {task_uuid}", "INFO")
 
     for i in range(MAX_RETRIES):
         try:
@@ -279,31 +280,21 @@ def step_7_check_output(implant_uuid, expected_substring):
                     else history_data
                 )
 
-                print(tasks)
+                # print(tasks)
 
                 for task in tasks:
-                    response = task.get("task_response")
-                    if response:
-                        # Check raw
-                        if expected_substring.lower() in str(response).lower():
-                            log(
-                                f"Verified output: found '{expected_substring}'",
-                                "SUCCESS",
+                    extracted_task_uuid = task.get("task_uuid")
+                    extracted_task_response = task.get("task_response")
+
+                    # make sure we pull the correct task id
+                    if extracted_task_uuid == task_uuid:
+                        # and that the response is not none
+                        if extracted_task_response != None:
+                            print(
+                                f"Task {task_uuid} response found: {extracted_task_response}"
                             )
                             return True
-                        # Check decoded
-                        try:
-                            decoded = base64.b64decode(response).decode(
-                                "utf-8", errors="ignore"
-                            )
-                            if expected_substring.lower() in decoded.lower():
-                                log(
-                                    f"Verified output (decoded): found '{expected_substring}'",
-                                    "SUCCESS",
-                                )
-                                return True
-                        except:
-                            pass
+
         except Exception as e:
             log(f"Exception checking history: {e}", "ERROR")
 
@@ -382,8 +373,8 @@ def main():
             continue
 
         # 6. Queue Command
-        cmd_sent = step_6_queue_command(implant_uuid)
-        if not cmd_sent:
+        task_uuid = step_6_queue_command(implant_uuid)
+        if not task_uuid:
             process.kill()
             requests.delete(f"{API_BASE}/implants/{implant_uuid}")
             test_report[profile_name] = "FAILURE: Step 6 (Queue Command)"
@@ -393,9 +384,7 @@ def main():
         # current_user = os.getlogin()
         # output_verified = step_7_check_output(implant_uuid, current_user)
 
-        output_verified = step_7_check_output(
-            implant_uuid, "If you see this it means the implant is talking to you"
-        )
+        output_verified = step_7_check_output(implant_uuid, task_uuid)
 
         # Cleanup
         requests.delete(f"{API_BASE}/implants/{implant_uuid}")

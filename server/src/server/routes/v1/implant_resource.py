@@ -468,6 +468,9 @@ class ImplantTask(Resource):
         """
         Add a task to a single implant by its unique ID. Data is supplied in the body of the request.
 
+        Returns a task_uuid for tracking the task:
+
+        {"task_uuid": task_uuid}
         """
         ip = request.remote_addr
 
@@ -513,9 +516,10 @@ class ImplantTask(Resource):
 
         task_uuid = task_service.task.task_uuid
 
+        data = {"task_uuid": task_uuid}
+
         api_response = APIResponse(
-            status="200",
-            message="Queued task successfully",
+            status="200", message="Queued task successfully", data=data
         )
 
         api_logger.info(

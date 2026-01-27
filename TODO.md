@@ -188,6 +188,12 @@ Shorter goal:
  - [ ] build id
    - [ ] add proper docs/logging to endpoint, and sub funcs, then continue testing
 
+> here
+Note - with test, some tasks are failing to properly validate, aka they get sent, and processed,but seemingly don't come back. Clean this up, 
+find the issue. Seems to work *most* of the time with webbug.profile. 
+
+Way to verify this is not a oneoff, run each payload 3-5 times, record failures, etc?
+
 # Task Formatting (for reference):
 
 Note: Task_uuid and implant_uuid are included for task verification (right task to right agent),

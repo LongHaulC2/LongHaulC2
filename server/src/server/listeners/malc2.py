@@ -177,7 +177,7 @@ class HttpGetBlockServerParser:
             #     return "print", None
             # if multiple terminators, this will return the last one
 
-            if name in ("uri-append"):
+            if name == "uri-append":
                 return name, value
             elif name in ("parameter", "header"):
                 return name, stmt.key
@@ -330,7 +330,7 @@ class HttpGetBlockClientParser:
             #     return "print", None
             # if multiple terminators, this will return the last one
 
-            if name in ("uri-append"):
+            if name == "uri-append":
                 return name, value
             elif name in ("parameter", "header"):
                 return name, stmt.key
@@ -356,7 +356,7 @@ class HttpGetBlockClientParser:
             #     return "print", None
             # if multiple terminators, this will return the last one
 
-            if name in ("uri-append"):
+            if name == "uri-append":
                 return name, value
             elif name in ("parameter", "header"):
                 return name, stmt.key
@@ -526,7 +526,7 @@ class HttpPostBlockServerParser:
             #     return "print", None
             # if multiple terminators, this will return the last one
 
-            if name in ("uri-append"):
+            if name == "uri-append":
                 return name, value
             elif name in ("parameter", "header"):
                 return name, stmt.key
@@ -641,7 +641,7 @@ class HttpPostBlockClientParser:
             name = stmt.statement
             value = stmt.value
 
-            if name in ("uri-append"):
+            if name == "uri-append":
                 return name, value
             elif name in ("parameter", "header"):
                 return name, stmt.key
@@ -668,7 +668,7 @@ class HttpPostBlockClientParser:
             # [Statement(statement=base64url, value=""), Statement(statement=header, key="utmcc", value="")]
             # [Statement(statement=parameter, key="utmac", value="")]
 
-            if name in ("uri-append"):
+            if name == "uri-append":
                 return name, value
             elif name in ("parameter", "header"):
                 return name, stmt.key
