@@ -138,7 +138,105 @@ def xor_mask(data: bytes, key: bytes) -> bytes:
         raise ValueError(f"Error in xor_mask: {e}")
 
 
+# def netbios_encode(data: bytes) -> bytes:
+#     check_type(data, bytes, "data")
+
+#     try:
+#         server_logger.debug("NetBIOS Encode input: %r", data)
+#         out = bytearray()
+
+#         for b in data:
+#             high = (b >> 4) & 0x0F
+#             low = b & 0x0F
+#             out.append(ord("a") + high)
+#             out.append(ord("a") + low)
+
+#         out_bytes = bytes(out)
+#         server_logger.debug("NetBIOS Encode output: %r", out_bytes)
+#         return out_bytes
+#     except Exception as e:
+#         server_logger.exception("Error in netbios_encode")
+#         raise ValueError(f"Error in netbios_encode: {e}")
+
+
+# def netbios_decode(data: bytes) -> bytes:
+#     # Force conversion to bytes if not. suspicion that it's not bytes coming in
+#     # if isinstance(data, str):
+#     #    data = data.encode("ascii")
+
+#     check_type(data, bytes, "data")
+
+#     try:
+#         server_logger.debug("NetBIOS Decode input: %r", data)
+#         if len(data) % 2 != 0:
+#             raise ValueError("Invalid NetBIOS data length")
+
+#         out = bytearray()
+
+#         for i in range(0, len(data), 2):
+#             high = data[i] - ord("a")
+#             low = data[i + 1] - ord("a")
+#             out.append((high << 4) | low)
+
+#         out_bytes = bytes(out)
+#         server_logger.debug("NetBIOS Decode output: %r", out_bytes)
+#         return out_bytes
+#     except Exception as e:
+#         server_logger.exception("Error in netbios_decode")
+#         raise ValueError(f"Error in netbios_decode: {e}")
+
+
+# def netbiosu_encode(data: bytes) -> bytes:
+#     check_type(data, bytes, "data")
+
+#     try:
+#         server_logger.debug("NetBIOSU Encode input: %r", data)
+#         out = bytearray()
+
+#         for b in data:
+#             high = (b >> 4) & 0x0F
+#             low = b & 0x0F
+#             out.append(ord("A") + high)
+#             out.append(ord("A") + low)
+
+#         out_bytes = bytes(out)
+#         server_logger.debug("NetBIOSU Encode output: %r", out_bytes)
+#         return out_bytes
+#     except Exception as e:
+#         server_logger.exception("Error in netbiosu_encode")
+#         raise ValueError(f"Error in netbiosu_encode: {e}")
+
+
+# def netbiosu_decode(data: bytes) -> bytes:
+#     check_type(data, bytes, "data")
+
+#     try:
+#         server_logger.debug("NetBIOSU Decode input: %r", data)
+#         if len(data) % 2 != 0:
+#             raise ValueError("Invalid NetBIOSU data length")
+
+#         out = bytearray()
+
+#         for i in range(0, len(data), 2):
+#             high = data[i] - ord("A")
+#             low = data[i + 1] - ord("A")
+#             out.append((high << 4) | low)
+
+#         out_bytes = bytes(out)
+#         server_logger.debug("NetBIOSU Decode output: %r", out_bytes)
+#         return out_bytes
+#     except Exception as e:
+#         server_logger.exception("Error in netbiosu_decode")
+#         raise ValueError(f"Error in netbiosu_decode: {e}")
+
+
 def netbios_encode(data: bytes) -> bytes:
+    # FIX: Convert memoryview, bytearray, or str to immutable bytes immediately
+    if isinstance(data, str):
+        data = data.encode("utf-8")
+    else:
+        data = bytes(data)
+
     check_type(data, bytes, "data")
 
     try:
@@ -160,6 +258,12 @@ def netbios_encode(data: bytes) -> bytes:
 
 
 def netbios_decode(data: bytes) -> bytes:
+    # FIX: Convert memoryview or str to bytes
+    if isinstance(data, str):
+        data = data.encode("ascii")
+    else:
+        data = bytes(data)
+
     check_type(data, bytes, "data")
 
     try:
@@ -183,6 +287,12 @@ def netbios_decode(data: bytes) -> bytes:
 
 
 def netbiosu_encode(data: bytes) -> bytes:
+    # FIX: Convert memoryview, bytearray, or str to immutable bytes immediately
+    if isinstance(data, str):
+        data = data.encode("utf-8")
+    else:
+        data = bytes(data)
+
     check_type(data, bytes, "data")
 
     try:
@@ -204,6 +314,12 @@ def netbiosu_encode(data: bytes) -> bytes:
 
 
 def netbiosu_decode(data: bytes) -> bytes:
+    # FIX: Convert memoryview or str to bytes
+    if isinstance(data, str):
+        data = data.encode("ascii")
+    else:
+        data = bytes(data)
+
     check_type(data, bytes, "data")
 
     try:

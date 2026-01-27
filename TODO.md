@@ -189,10 +189,9 @@ Shorter goal:
    - [ ] add proper docs/logging to endpoint, and sub funcs, then continue testing
 
 > here
-Note - with test, some tasks are failing to properly validate, aka they get sent, and processed,but seemingly don't come back. Clean this up, 
-find the issue. Seems to work *most* of the time with webbug.profile. 
+Testing:
 
-Way to verify this is not a oneoff, run each payload 3-5 times, record failures, etc?
+Every test failed - lots of crashes, which means invalid data being sent back to server/it's interpreting it wrong. 
 
 # Task Formatting (for reference):
 

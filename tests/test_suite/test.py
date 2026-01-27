@@ -12,6 +12,7 @@ Steps:
 """
 
 import base64
+import concurrent.futures
 import glob
 import os
 import subprocess
@@ -26,8 +27,10 @@ API_BASE = f"{API_HOST}/api/v1"
 PROFILES_DIR = "./profiles"
 DOWNLOAD_DIR = "./downloads"
 SLEEP_INTERVAL = 5  # Seconds to wait between polls
-MAX_RETRIES = 12  # Max number of polls (12 * 5s = 60s total wait)
-CURRENT_LISTENER_PORT = 5180
+MAX_RETRIES = (
+    10  # Max number of polls (6 * 5s = 30s total wait) # should be fairly fast
+)
+CURRENT_LISTENER_PORT = 6500
 # Ensure directories exist
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 os.makedirs(PROFILES_DIR, exist_ok=True)
@@ -305,104 +308,243 @@ def step_7_check_output(implant_uuid, task_uuid):
     return False
 
 
-def main():
-    log("--- Starting Test Suite ---")
+# def main():
+#     log("--- Starting Test Suite ---")
 
-    # DICT to store results: { "ProfileName": "Success/Error Message" }
-    test_report = {}
+#     # DICT to store results: { "ProfileName": "Success/Error Message" }
+#     test_report = {}
 
-    # 1. Connect
-    if not step_1_connect():
-        print("CRITICAL: Cannot connect to server. Exiting.")
-        return
+#     # 1. Connect
+#     if not step_1_connect():
+#         print("CRITICAL: Cannot connect to server. Exiting.")
+#         return
 
-    # Get profiles
-    profiles = glob.glob(os.path.join(PROFILES_DIR, "*"))
-    if not profiles:
-        log("No profiles found. Creating dummy profile.", "WARNING")
-        with open(os.path.join(PROFILES_DIR, "default_test.prof"), "w") as f:
-            f.write("default_profile_content")
-        profiles = glob.glob(os.path.join(PROFILES_DIR, "*"))
+#     # Get profiles
+#     profiles = glob.glob(os.path.join(PROFILES_DIR, "*"))
+#     if not profiles:
+#         log("No profiles found. Creating dummy profile.", "WARNING")
+#         with open(os.path.join(PROFILES_DIR, "default_test.prof"), "w") as f:
+#             f.write("default_profile_content")
+#         profiles = glob.glob(os.path.join(PROFILES_DIR, "*"))
 
-    for profile_path in profiles:
-        profile_name = os.path.basename(profile_path)
+#     for profile_path in profiles:
+#         profile_name = os.path.basename(profile_path)
 
-        # Initialize status for this profile
-        test_report[profile_name] = "Incomplete (Unknown Error)"
+#         # Initialize status for this profile
+#         test_report[profile_name] = "Incomplete (Unknown Error)"
 
-        with open(profile_path, "r") as f:
+#         with open(profile_path, "r") as f:
+#             profile_content = f.read()
+
+#         log(f"\n--- Testing Profile: {profile_name} ---")
+
+#         # 2. Create Listener
+#         listener_id = step_2_create_listener(profile_name, profile_content)
+#         if not listener_id:
+#             test_report[profile_name] = "FAILURE: Step 2 (Create Listener)"
+#             continue # Skip to next profile
+
+#         # 3. Build Payload
+#         build_id = step_3_build_payload(listener_id)
+#         if not build_id:
+#             test_report[profile_name] = "FAILURE: Step 3 (Request Build)"
+#             continue
+
+#         # 3.5 Get Hash
+#         build_hash = step_3_5_get_hash(build_id)
+#         if not build_hash:
+#             test_report[profile_name] = "FAILURE: Step 3.5 (Build Job Failed/Timeout)"
+#             continue
+
+#         # 4. Download Payload
+#         exe_path = step_4_download_payload(build_hash)
+#         if not exe_path:
+#             test_report[profile_name] = "FAILURE: Step 4 (Download Payload)"
+#             continue
+
+#         # 5. Execute Payload (Includes 2s health check)
+#         process = step_5_execute_payload(exe_path)
+#         if not process:
+#             test_report[profile_name] = "FAILURE: Step 5 (Execution - Crashed/Exited)"
+#             continue
+
+#         # Wait for Check-in
+#         implant_uuid = wait_for_implant_checkin(listener_id)
+#         if not implant_uuid:
+#             process.kill() # Cleanup
+#             test_report[profile_name] = "FAILURE: Step 5b (No Check-in Received)"
+#             continue
+
+#         # 6. Queue Command
+#         task_uuid = step_6_queue_command(implant_uuid)
+#         if not task_uuid:
+#             process.kill()
+#             requests.delete(f"{API_BASE}/implants/{implant_uuid}")
+#             test_report[profile_name] = "FAILURE: Step 6 (Queue Command)"
+#             continue
+
+#         # 7. Check Output - re-enable when cmd works
+#         #current_user = os.getlogin()
+#         #output_verified = step_7_check_output(implant_uuid, current_user)
+
+#         output_verified = step_7_check_output(implant_uuid, task_uuid)
+
+
+#         # Cleanup
+#         requests.delete(f"{API_BASE}/implants/{implant_uuid}")
+#         process.kill()
+
+#         if output_verified:
+#             test_report[profile_name] = "SUCCESS"
+#         else:
+#             test_report[profile_name] = "FAILURE: Step 7 (Output Verification Failed)"
+
+#         log(f"--- Completed Profile: {profile_name} ---")
+
+#     # --- FINAL REPORT ---
+#     print("\n" + "="*40)
+#     print("      FINAL EXECUTION REPORT")
+#     print("="*40)
+#     for name, status in test_report.items():
+#         # Formatting for alignment
+#         print(f"{name:<30} | {status}")
+#     print("="*40 + "\n")
+
+
+def test_single_profile(profile_path):
+    """
+    Worker function to test a single profile.
+    Returns a tuple: (profile_name, status_message)
+    """
+    profile_name = os.path.basename(profile_path)
+
+    # Helper to prefix logs so we know which thread is talking
+    def thread_log(msg, level="INFO"):
+        log(f"[{profile_name}] {msg}", level)
+
+    try:
+        # 1. Read Profile (Added utf-8 fix from previous conversation)
+        with open(profile_path, "r", encoding="utf-8", errors="replace") as f:
             profile_content = f.read()
 
-        log(f"\n--- Testing Profile: {profile_name} ---")
+        thread_log("Starting test sequence...")
 
         # 2. Create Listener
         listener_id = step_2_create_listener(profile_name, profile_content)
         if not listener_id:
-            test_report[profile_name] = "FAILURE: Step 2 (Create Listener)"
-            continue  # Skip to next profile
+            return profile_name, "FAILURE: Step 2 (Create Listener)"
 
         # 3. Build Payload
         build_id = step_3_build_payload(listener_id)
         if not build_id:
-            test_report[profile_name] = "FAILURE: Step 3 (Request Build)"
-            continue
+            return profile_name, "FAILURE: Step 3 (Request Build)"
 
         # 3.5 Get Hash
         build_hash = step_3_5_get_hash(build_id)
         if not build_hash:
-            test_report[profile_name] = "FAILURE: Step 3.5 (Build Job Failed/Timeout)"
-            continue
+            return profile_name, "FAILURE: Step 3.5 (Build Job Failed/Timeout)"
 
         # 4. Download Payload
         exe_path = step_4_download_payload(build_hash)
         if not exe_path:
-            test_report[profile_name] = "FAILURE: Step 4 (Download Payload)"
-            continue
+            return profile_name, "FAILURE: Step 4 (Download Payload)"
 
-        # 5. Execute Payload (Includes 2s health check)
+        # 5. Execute Payload
         process = step_5_execute_payload(exe_path)
         if not process:
-            test_report[profile_name] = "FAILURE: Step 5 (Execution - Crashed/Exited)"
-            continue
+            return profile_name, "FAILURE: Step 5 (Execution - Crashed/Exited)"
 
-        # Wait for Check-in
-        implant_uuid = wait_for_implant_checkin(listener_id)
-        if not implant_uuid:
-            process.kill()  # Cleanup
-            test_report[profile_name] = "FAILURE: Step 5b (No Check-in Received)"
-            continue
+        # --- RESOURCE CLEANUP WRAPPER ---
+        # We wrap the rest in try/finally to ensure the process is KILLED
+        # and the implant is DELETED even if the test fails halfway through.
+        try:
+            # Wait for Check-in
+            implant_uuid = wait_for_implant_checkin(listener_id)
+            if not implant_uuid:
+                return profile_name, "FAILURE: Step 5b (No Check-in Received)"
 
-        # 6. Queue Command
-        task_uuid = step_6_queue_command(implant_uuid)
-        if not task_uuid:
-            process.kill()
-            requests.delete(f"{API_BASE}/implants/{implant_uuid}")
-            test_report[profile_name] = "FAILURE: Step 6 (Queue Command)"
-            continue
+            # 6. Queue Command
+            task_uuid = step_6_queue_command(implant_uuid)
+            if not task_uuid:
+                return profile_name, "FAILURE: Step 6 (Queue Command)"
 
-        # 7. Check Output - re-enable when cmd works
-        # current_user = os.getlogin()
-        # output_verified = step_7_check_output(implant_uuid, current_user)
+            # 7. Check Output
+            output_verified = step_7_check_output(implant_uuid, task_uuid)
 
-        output_verified = step_7_check_output(implant_uuid, task_uuid)
+            if output_verified:
+                thread_log("Test Passed!", "SUCCESS")
+                return profile_name, "SUCCESS"
+            else:
+                return profile_name, "FAILURE: Step 7 (Output Verification Failed)"
 
-        # Cleanup
-        requests.delete(f"{API_BASE}/implants/{implant_uuid}")
-        process.kill()
+        finally:
+            # Always clean up the implant and the process
+            if "implant_uuid" in locals() and implant_uuid:
+                try:
+                    requests.delete(f"{API_BASE}/implants/{implant_uuid}")
+                except Exception:
+                    pass
 
-        if output_verified:
-            test_report[profile_name] = "SUCCESS"
-        else:
-            test_report[profile_name] = "FAILURE: Step 7 (Output Verification Failed)"
+            if process:
+                try:
+                    process.kill()
+                except Exception:
+                    pass
 
-        log(f"--- Completed Profile: {profile_name} ---")
+    except Exception as e:
+        thread_log(f"Unhandled Exception: {e}", "ERROR")
+        return profile_name, f"CRITICAL EXCEPTION: {str(e)}"
+
+
+def main():
+    log("--- Starting Parallel Test Suite ---")
+
+    test_report = {}
+
+    # 1. Connect (Do this ONCE in the main thread)
+    if not step_1_connect():
+        print("CRITICAL: Cannot connect to server. Exiting.")
+        return
+
+    # 2. Get/Generate Profiles (Do this ONCE in the main thread)
+    profiles = glob.glob(os.path.join(PROFILES_DIR, "*"))
+    if not profiles:
+        log("No profiles found. Creating dummy profile.", "WARNING")
+        # Ensure directory exists
+        os.makedirs(PROFILES_DIR, exist_ok=True)
+        with open(
+            os.path.join(PROFILES_DIR, "default_test.prof"), "w", encoding="utf-8"
+        ) as f:
+            f.write("default_profile_content")
+        profiles = glob.glob(os.path.join(PROFILES_DIR, "*"))
+
+    # 3. ThreadPool Execution
+    # Adjust max_workers based on your CPU or Server load capacity.
+    # If the server is local, 3-5 is safe. If remote, you can go higher.
+    MAX_WORKERS = 5
+
+    print(f"\nProcessing {len(profiles)} profiles with {MAX_WORKERS} workers...\n")
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        # Submit all profiles to the executor
+        # future_to_profile maps the 'future' object to the profile path (for debugging if needed)
+        future_to_profile = {
+            executor.submit(test_single_profile, p): p for p in profiles
+        }
+
+        # Process results as they complete
+        for future in concurrent.futures.as_completed(future_to_profile):
+            profile_name, status = future.result()
+            test_report[profile_name] = status
+
+            # Optional: Print immediate result
+            print(f"Finished: {profile_name} -> {status}")
 
     # --- FINAL REPORT ---
     print("\n" + "=" * 40)
     print("      FINAL EXECUTION REPORT")
     print("=" * 40)
     for name, status in test_report.items():
-        # Formatting for alignment
         print(f"{name:<30} | {status}")
     print("=" * 40 + "\n")
 
