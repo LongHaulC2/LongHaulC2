@@ -202,6 +202,44 @@ Bugs:
 
  - [X] Extra / in URL's. YARL every URL string, check every point it could be at.
 
+Current test results:
+========================================
+      FINAL EXECUTION REPORT
+========================================
+amazon.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited):
+apt1_virtuallythere.profile    | FAILURE: Step 7 (Output Verification Failed):
+asprox.profile                 | FAILURE: Step 7 (Output Verification Failed)
+backoff.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
+bingsearch_getonly.profile     | FAILURE: Step 5 (Execution - Crashed/Exited)
+cnnvideo_getonly.profile       | SUCCESS
+comfoo.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
+etumbot.profile                | SUCCESS
+fiesta.profile                 | SUCCESS
+fiesta2.profile                | SUCCESS
+gmail.profile                  | FAILURE: Step 5 (Execution - Crashed/Exited)
+googledrive_getonly.profile    | FAILURE: Step 7 (Output Verification Failed)
+havex.profile                  | FAILURE: Step 5 (Execution - Crashed/Exited)
+magnitude.profile              | FAILURE: Step 7 (Output Verification Failed)
+meterpreter.profile            | SUCCESS
+microsoftupdate_getonly.profile | FAILURE: Step 7 (Output Verification Failed)
+msnbcvideo_getonly.profile     | SUCCESS
+ocsp copy.profile              | SUCCESS
+ocsp.profile                   | SUCCESS
+onedrive_getonly copy.profile  | FAILURE: Step 5 (Execution - Crashed/Exited)
+onedrive_getonly.profile       | FAILURE: Step 5 (Execution - Crashed/Exited)
+pandora.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
+pitty_tiger.profile            | SUCCESS
+reference.profile              | Incomplete (Unknown Error)
+rtmp.profile                   | FAILURE: Step 5 (Execution - Crashed/Exited)
+safebrowsing.profile           | FAILURE: Step 5 (Execution - Crashed/Exited)
+string_of_paerls.profile       | FAILURE: Step 5 (Execution - Crashed/Exited)
+taidoor.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
+webbug.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
+webbug_getonly.profile         | FAILURE: Step 5 (Execution - Crashed/Exited)
+wikipedia_getonly.profile      | FAILURE: Step 7 (Output Verification Failed)
+zeus.profile                   | FAILURE: Step 5 (Execution - Crashed/Exited)
+========================================
+
 Misc idea:
  - "melting pot" where all comms that come in, and have some data, etc, are stored, but don't have valid ID's, etc etc. Just so repsonses aren't lost?
 
