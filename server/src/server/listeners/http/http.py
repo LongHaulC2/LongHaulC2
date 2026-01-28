@@ -676,6 +676,9 @@ async def http_post(request: Request) -> Response:
             parser_class=HttpPostBlockClientParser,
         )
 
+        # can be fixed by decoding the data in teh appy_transform functions in each class,
+        # that way, on fallthrough, no conversion here is needed.
+
         # implantuuid, can be either bytes, or str. Str, if no transforms, bytes, if transform. Probaly should fix that.
         if isinstance(implant_uuid_bytes, bytes):
             implant_uuid_str = implant_uuid_bytes.decode()
@@ -754,6 +757,9 @@ async def http_post_uri(request: Request, data: str) -> Response:
             block_field=mp.http_post.client.id,
             parser_class=HttpPostBlockClientParser,
         )
+
+        # can be fixed by decoding the data in teh appy_transform functions in each class,
+        # that way, on fallthrough, no conversion here is needed.
 
         # note, implant_uuid is now bytes. Need to convert to a string before passing in to redis
         # implantuuid, can be either bytes, or str. Str, if no transforms, bytes, if transform. Probaly should fix that.

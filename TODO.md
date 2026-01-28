@@ -203,12 +203,12 @@ Bugs:
  - [X] Extra / in URL's. YARL every URL string, check every point it could be at.
 
 Current test results:
+
 ========================================
       FINAL EXECUTION REPORT
 ========================================
-amazon.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited): My guess; % and url encoded chars?
-apt1_virtuallythere.profile    | FAILURE: Step 7 (Output Verification Failed): [URI] 2026-01-28T03:33:11.133748Z [error    ] post_uri_id_error              [listener] error="'str' object has no attribute 'decode'" ip=10.0.0.24 method=POST_URI path=/BUYTHEAPTDETECTORNOW/019c02a9-61d9-7e25-ac0b-203c83c09398
-
+amazon.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
+apt1_virtuallythere.profile    | SUCCESS
 asprox.profile                 | FAILURE: Step 7 (Output Verification Failed)
 backoff.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
 bingsearch_getonly.profile     | FAILURE: Step 5 (Execution - Crashed/Exited)
@@ -218,11 +218,11 @@ etumbot.profile                | SUCCESS
 fiesta.profile                 | SUCCESS
 fiesta2.profile                | SUCCESS
 gmail.profile                  | FAILURE: Step 5 (Execution - Crashed/Exited)
-googledrive_getonly.profile    | FAILURE: Step 7 (Output Verification Failed)
+googledrive_getonly.profile    | SUCCESS
 havex.profile                  | FAILURE: Step 5 (Execution - Crashed/Exited)
 magnitude.profile              | FAILURE: Step 7 (Output Verification Failed)
 meterpreter.profile            | SUCCESS
-microsoftupdate_getonly.profile | FAILURE: Step 7 (Output Verification Failed)
+microsoftupdate_getonly.profile | SUCCESS
 msnbcvideo_getonly.profile     | SUCCESS
 ocsp copy.profile              | SUCCESS
 ocsp.profile                   | SUCCESS
@@ -237,7 +237,7 @@ string_of_paerls.profile       | FAILURE: Step 5 (Execution - Crashed/Exited)
 taidoor.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
 webbug.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
 webbug_getonly.profile         | FAILURE: Step 5 (Execution - Crashed/Exited)
-wikipedia_getonly.profile      | FAILURE: Step 7 (Output Verification Failed)
+wikipedia_getonly.profile      | FAILURE: Step 5 (Execution - Crashed/Exited)
 zeus.profile                   | FAILURE: Step 5 (Execution - Crashed/Exited)
 ========================================
 
