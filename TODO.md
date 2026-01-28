@@ -206,8 +206,9 @@ Current test results:
 ========================================
       FINAL EXECUTION REPORT
 ========================================
-amazon.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited):
-apt1_virtuallythere.profile    | FAILURE: Step 7 (Output Verification Failed):
+amazon.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited): My guess; % and url encoded chars?
+apt1_virtuallythere.profile    | FAILURE: Step 7 (Output Verification Failed): [URI] 2026-01-28T03:33:11.133748Z [error    ] post_uri_id_error              [listener] error="'str' object has no attribute 'decode'" ip=10.0.0.24 method=POST_URI path=/BUYTHEAPTDETECTORNOW/019c02a9-61d9-7e25-ac0b-203c83c09398
+
 asprox.profile                 | FAILURE: Step 7 (Output Verification Failed)
 backoff.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
 bingsearch_getonly.profile     | FAILURE: Step 5 (Execution - Crashed/Exited)

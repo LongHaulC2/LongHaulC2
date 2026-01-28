@@ -676,11 +676,18 @@ async def http_post(request: Request) -> Response:
             parser_class=HttpPostBlockClientParser,
         )
 
+        # implantuuid, can be either bytes, or str. Str, if no transforms, bytes, if transform. Probaly should fix that.
+        if isinstance(implant_uuid_bytes, bytes):
+            implant_uuid_str = implant_uuid_bytes.decode()
+
+        else:
+            # if for wahtever reason, it's not bytes (which shouldn't happen..., but does on no transform profiles)
+            implant_uuid_str = implant_uuid_bytes
+
         # note, implant_uuid is now bytes. Need to convert to a string before passing in to redis
-        implant_uuid = implant_uuid_bytes.decode()
 
         # STRUCTLOG: Bind ID
-        structlog.contextvars.bind_contextvars(implant_id=implant_uuid)
+        structlog.contextvars.bind_contextvars(implant_id=implant_uuid_str)
         listener_logger.info("implant_id_extracted")
 
     except Exception as e:
@@ -688,7 +695,7 @@ async def http_post(request: Request) -> Response:
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     response = http_post_response(
-        data_from_implant=data_from_implant, implant_uuid=implant_uuid
+        data_from_implant=data_from_implant, implant_uuid=implant_uuid_str
     )
     return response
 
@@ -749,10 +756,16 @@ async def http_post_uri(request: Request, data: str) -> Response:
         )
 
         # note, implant_uuid is now bytes. Need to convert to a string before passing in to redis
-        implant_uuid = implant_uuid_bytes.decode()
+        # implantuuid, can be either bytes, or str. Str, if no transforms, bytes, if transform. Probaly should fix that.
+        if isinstance(implant_uuid_bytes, bytes):
+            implant_uuid_str = implant_uuid_bytes.decode()
+
+        else:
+            # if for wahtever reason, it's not bytes (which shouldn't happen..., but does on no transform profiles)
+            implant_uuid_str = implant_uuid_bytes
 
         # STRUCTLOG: Bind ID
-        structlog.contextvars.bind_contextvars(implant_id=str(implant_uuid))
+        structlog.contextvars.bind_contextvars(implant_id=str(implant_uuid_str))
         listener_logger.info("implant_id_extracted")
 
     except Exception as e:
@@ -760,7 +773,7 @@ async def http_post_uri(request: Request, data: str) -> Response:
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
     response = http_post_response(
-        data_from_implant=data_from_implant, implant_uuid=implant_uuid
+        data_from_implant=data_from_implant, implant_uuid=implant_uuid_str
     )
     return response
 
