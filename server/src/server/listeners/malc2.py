@@ -14,6 +14,64 @@ This is currently purely for server side logic, does not have the logic to setup
 api_logger = logging.getLogger("api")
 server_logger = logging.getLogger("server")
 
+###################################
+# Profile Cleaning/Util funcs
+###################################
+
+"""
+TLDR: MPP dosen't delim strings, so profile values such as:
+
+`"<!DOCTYPE html><html lang=\"en\" xml:lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\"`
+
+show up with literal \" in the cPP jinja build. These functions below clean it up so they don't have this,
+and instead turn out like:
+
+`<!DOCTYPE html><html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml`
+
+"""
+
+
+def _clean_string(s):
+    """
+    Removes specific delimiter artifacts from a string.
+    Adjust the replace logic below if you strictly want to delete them
+    instead of unescaping them.
+    """
+    if isinstance(s, str):
+        # This unescapes \" to ", which is usually the intent for C2 profiles.
+        # If you strictly want to DELETE the characters, change '"' to ''
+        return s.replace('\\"', '"').replace('"\\', '"')
+    return s
+
+
+def clean_ast(node):
+    """
+    Recursively traverses the AST and cleans 'value' and 'key' fields.
+    """
+    # 1. Handle Dictionary (recurse into values)
+    if isinstance(node, dict):
+        for key, value in node.items():
+            clean_ast(value)
+
+    # 2. Handle List (recurse into items)
+    elif isinstance(node, list):
+        for item in node:
+            clean_ast(item)
+
+    # 3. Handle 'Block' objects (recurse into the 'data' attribute)
+    elif hasattr(node, "data") and isinstance(node.data, list):
+        clean_ast(node.data)
+
+    # 4. Handle 'Option' and 'Statement' objects (clean the 'value' and 'key')
+    # We check for 'value' attribute which both Option and Statement have.
+    elif hasattr(node, "value"):
+        # Clean the value
+        node.value = _clean_string(node.value)
+
+        # Statements also have a 'key' attribute (e.g., header name)
+        if hasattr(node, "key") and node.key:
+            node.key = _clean_string(node.key)
+
 
 ###################################
 # HTTP Parse

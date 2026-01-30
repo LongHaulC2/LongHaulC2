@@ -17,12 +17,12 @@
 
 [% macro trans_append(target, val) -%]
     // [Transform] Append Data
-    transform_append([[ target ]], "[[ val ]]");
+    transform_append([[ target ]], R"([[ val ]])");
 [%- endmacro %]
 
 [% macro trans_prepend(target, val) -%]
     // [Transform] Prepend Data
-    transform_prepend([[ target ]], "[[ val ]]");
+    transform_prepend([[ target ]], R"([[ val ]])");
 [%- endmacro %]
 
 [% macro trans_netbios(target) -%]

@@ -202,11 +202,17 @@ Bugs:
 
  - [X] Extra / in URL's. YARL every URL string, check every point it could be at.
 
+Note: may need to intergrate the special chars, \x, etc (see docs) that mc2 allows for, to get a 100% pass below.
+
 Current test results:
 
 ========================================
       FINAL EXECUTION REPORT
 ========================================
+my guess: 
+ - step 5 == likely have appends/prepends (bug: those are not delim'd, and don't decode right)
+ - Step 7: Unsure, somethign not matching the POST data as needed by server. test case by case
+
 amazon.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
 apt1_virtuallythere.profile    | SUCCESS
 asprox.profile                 | FAILURE: Step 7 (Output Verification Failed)

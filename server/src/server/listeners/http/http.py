@@ -47,6 +47,7 @@ from ..malc2 import (
     HttpGetBlockServerParser,
     HttpPostBlockClientParser,
     HttpPostBlockServerParser,
+    clean_ast,
 )
 
 app = FastAPI
@@ -85,6 +86,8 @@ def run(
         tmp_file.write(listener_profile_contents)
         tmp_file.flush()
         mp = MalleableProfile(profile=tmp_file.name)
+        # clean profile
+        clean_ast(mp.profile)
 
     # structlog: Bind global context for this listener process
     structlog.contextvars.bind_contextvars(listener_uuid=listener_uuid)

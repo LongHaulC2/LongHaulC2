@@ -25,12 +25,12 @@ IMPORTANT:
 
 [% macro rev_append(target, val) -%]
     // [Reverse Transform] Undo Append
-    undo_transform_append([[ target ]], "[[ val ]]");
+    undo_transform_append([[ target ]], R"([[ val ]])");
 [%- endmacro %]
 
 [% macro rev_prepend(target, val) -%]
     // [Reverse Transform] Undo Prepend
-    undo_transform_prepend([[ target ]], "[[ val ]]");
+    undo_transform_prepend([[ target ]], R"([[ val ]])");
 [%- endmacro %]
 
 [% macro rev_netbios(target) -%]

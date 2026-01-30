@@ -50,6 +50,8 @@ def _load_malleable_profile(malleable_c2_profile: str) -> MalleableProfile:
     """
     Helper to safely load the MalleableProfile.
     Handles the quirk where mpp requires a file path rather than a string.
+
+    Would make for a good util function for the listeners as well.
     """
     server_logger.debug(f"Parsing Malleable C2 profile.")
 
@@ -61,7 +63,11 @@ def _load_malleable_profile(malleable_c2_profile: str) -> MalleableProfile:
         with tempfile.NamedTemporaryFile("w+", suffix=".profile") as tmp_file:
             tmp_file.write(malleable_c2_profile)
             tmp_file.flush()
-            return MalleableProfile(profile=tmp_file.name)
+            mp = MalleableProfile(profile=tmp_file.name)
+            # clean up delims
+            clean_ast(mp.profile)
+
+            return mp
 
     except Exception as e:
         server_logger.error("Failed to parse Malleable Profile", error=str(e))
