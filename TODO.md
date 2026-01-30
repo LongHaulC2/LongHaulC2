@@ -207,6 +207,7 @@ Note: may need to intergrate the special chars, \x, etc (see docs) that mc2 allo
 
 - [X] delim \" and \"
 - [ ] \x byte conversion (\x00 -> bytes in string)
+      >: Example: `b = bytes("\x33", "latin-1")`, then take b and append to bytearray
 - [ ] other converstions in mc2
 Current test results:
 
@@ -219,11 +220,11 @@ my guess:
 
 amazon.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
 apt1_virtuallythere.profile    | SUCCESS
-asprox.profile                 | FAILURE: Step 7 (Output Verification Failed)
+asprox.profile                 | FAILURE: Step 7 (Output Verification Failed) # not sure why this one is failing, run it independently
 backoff.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
 bingsearch_getonly.profile     | SUCCESS
 cnnvideo_getonly.profile       | SUCCESS
-comfoo.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
+comfoo.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited) # might be a bad URI, has append and uri with `/somevalue/`. Can fix with better processing/logic?
 etumbot.profile                | SUCCESS
 fiesta.profile                 | SUCCESS
 fiesta2.profile                | SUCCESS

@@ -47,7 +47,8 @@ from ..malc2 import (
     HttpGetBlockServerParser,
     HttpPostBlockClientParser,
     HttpPostBlockServerParser,
-    clean_ast,
+    clean_ast_backslash_delimiters,
+    load_malleable_profile,
 )
 
 app = FastAPI
@@ -82,16 +83,18 @@ def run(
 
     Tried StringIO, didn't work either
     """
-    with tempfile.NamedTemporaryFile("w+", suffix=".profile") as tmp_file:
-        tmp_file.write(listener_profile_contents)
-        tmp_file.flush()
-        mp = MalleableProfile(profile=tmp_file.name)
-        # clean profile
-        clean_ast(mp.profile)
+    # with tempfile.NamedTemporaryFile("w+", suffix=".profile") as tmp_file:
+    #     tmp_file.write(listener_profile_contents)
+    #     tmp_file.flush()
+    #     mp = MalleableProfile(profile=tmp_file.name)
+    #     # clean profile
+    #     clean_ast_backslash_delimiters(mp.profile)
 
-    # structlog: Bind global context for this listener process
-    structlog.contextvars.bind_contextvars(listener_uuid=listener_uuid)
-    listener_logger.info("listener_startup", profile=str(mp.profile))
+    # # structlog: Bind global context for this listener process
+    # structlog.contextvars.bind_contextvars(listener_uuid=listener_uuid)
+    # listener_logger.info("listener_startup", profile=str(mp.profile))
+
+    mp = load_malleable_profile(listener_profile_contents)
 
     # to shutoff docs
     # app = FastAPI(

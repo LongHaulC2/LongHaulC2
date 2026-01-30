@@ -5,7 +5,7 @@ from pathlib import Path
 import structlog
 from mpp import *
 
-from ....listeners.malc2 import *
+from ....listeners.malc2 import *  # load_malleable_profile comes from here, along with a few others
 
 server_logger = logging.getLogger("server")
 
@@ -27,7 +27,7 @@ def generate_http_wininet_context(
     server_logger.info("Generating HTTP Wininet context")
 
     # 1. Load and Parse Profile
-    profile = _load_malleable_profile(malleable_c2_profile)
+    profile = load_malleable_profile(malleable_c2_profile)
 
     context = {}
 
@@ -44,34 +44,6 @@ def generate_http_wininet_context(
     server_logger.debug(f"Context generation complete")
 
     return context
-
-
-def _load_malleable_profile(malleable_c2_profile: str) -> MalleableProfile:
-    """
-    Helper to safely load the MalleableProfile.
-    Handles the quirk where mpp requires a file path rather than a string.
-
-    Would make for a good util function for the listeners as well.
-    """
-    server_logger.debug(f"Parsing Malleable C2 profile.")
-
-    try:
-        # with open(path, "r") as file:
-        #     content = file.read()
-
-        # Create a temporary file because mpp library requires a file path
-        with tempfile.NamedTemporaryFile("w+", suffix=".profile") as tmp_file:
-            tmp_file.write(malleable_c2_profile)
-            tmp_file.flush()
-            mp = MalleableProfile(profile=tmp_file.name)
-            # clean up delims
-            clean_ast(mp.profile)
-
-            return mp
-
-    except Exception as e:
-        server_logger.error("Failed to parse Malleable Profile", error=str(e))
-        raise e
 
 
 def _extract_common_options(profile: MalleableProfile, host: str, port: int) -> dict:

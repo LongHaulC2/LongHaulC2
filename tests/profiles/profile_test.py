@@ -16,23 +16,23 @@ def clean_string(s):
     return s
 
 
-def clean_ast(node):
+def clean_ast_backslash_delimiters(node):
     """
     Recursively traverses the AST and cleans 'value' and 'key' fields.
     """
     # 1. Handle Dictionary (recurse into values)
     if isinstance(node, dict):
         for key, value in node.items():
-            clean_ast(value)
+            clean_ast_backslash_delimiters(value)
 
     # 2. Handle List (recurse into items)
     elif isinstance(node, list):
         for item in node:
-            clean_ast(item)
+            clean_ast_backslash_delimiters(item)
 
     # 3. Handle 'Block' objects (recurse into the 'data' attribute)
     elif hasattr(node, "data") and isinstance(node.data, list):
-        clean_ast(node.data)
+        clean_ast_backslash_delimiters(node.data)
 
     # 4. Handle 'Option' and 'Statement' objects (clean the 'value' and 'key')
     # We check for 'value' attribute which both Option and Statement have.
@@ -46,7 +46,7 @@ def clean_ast(node):
 
 
 # Run the cleaning function on the profile root
-clean_ast(mp.profile)
+clean_ast_backslash_delimiters(mp.profile)
 
 # Verify the output
 print(mp.profile)

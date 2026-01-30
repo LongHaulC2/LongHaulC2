@@ -1,4 +1,5 @@
 import logging
+import tempfile
 
 from mpp import *
 
@@ -17,6 +18,37 @@ server_logger = logging.getLogger("server")
 ###################################
 # Profile Cleaning/Util funcs
 ###################################
+
+
+def load_malleable_profile(malleable_c2_profile: str) -> MalleableProfile:
+    """
+    Helper to safely load the MalleableProfile.
+    Handles the quirk where mpp requires a file path rather than a string.
+
+    Additionally, formats/cleans various quirks with Malleable profiles, ex, delimiters.
+
+    """
+    server_logger.debug(f"Parsing Malleable C2 profile.")
+
+    try:
+        # with open(path, "r") as file:
+        #     content = file.read()
+
+        # Create a temporary file because mpp library requires a file path
+        with tempfile.NamedTemporaryFile("w+", suffix=".profile") as tmp_file:
+            tmp_file.write(malleable_c2_profile)
+            tmp_file.flush()
+            mp = MalleableProfile(profile=tmp_file.name)
+
+            # clean up delims
+            clean_ast_backslash_delimiters(mp.profile)
+
+            return mp
+
+    except Exception as e:
+        server_logger.error("Failed to parse Malleable Profile", error=str(e))
+        raise e
+
 
 """
 TLDR: MPP dosen't delim strings, so profile values such as:
@@ -44,23 +76,23 @@ def _clean_string(s):
     return s
 
 
-def clean_ast(node):
+def clean_ast_backslash_delimiters(node):
     """
     Recursively traverses the AST and cleans 'value' and 'key' fields.
     """
     # 1. Handle Dictionary (recurse into values)
     if isinstance(node, dict):
         for key, value in node.items():
-            clean_ast(value)
+            clean_ast_backslash_delimiters(value)
 
     # 2. Handle List (recurse into items)
     elif isinstance(node, list):
         for item in node:
-            clean_ast(item)
+            clean_ast_backslash_delimiters(item)
 
     # 3. Handle 'Block' objects (recurse into the 'data' attribute)
     elif hasattr(node, "data") and isinstance(node.data, list):
-        clean_ast(node.data)
+        clean_ast_backslash_delimiters(node.data)
 
     # 4. Handle 'Option' and 'Statement' objects (clean the 'value' and 'key')
     # We check for 'value' attribute which both Option and Statement have.
