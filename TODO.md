@@ -223,12 +223,12 @@ my guess:
       FINAL EXECUTION REPORT
 ========================================
 amazon.profile                 | FAILURE: Step 7 (Output Verification Failed)
-apt1_virtuallythere.profile    | SUCCESS
+apt1_virtuallythere.profile    | FAILURE: Step 7 (Output Verification Failed)
 asprox.profile                 | FAILURE: Step 7 (Output Verification Failed)
 backoff.profile                | FAILURE: Step 7 (Output Verification Failed)
 bingsearch_getonly.profile     | SUCCESS
 cnnvideo_getonly.profile       | SUCCESS
-comfoo.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
+comfoo.profile                 | SUCCESS
 etumbot.profile                | SUCCESS
 fiesta.profile                 | SUCCESS
 fiesta2.profile                | SUCCESS
@@ -236,15 +236,15 @@ gmail.profile                  | FAILURE: Step 7 (Output Verification Failed)
 googledrive_getonly.profile    | SUCCESS
 havex.profile                  | FAILURE: Step 5 (Execution - Crashed/Exited)
 magnitude.profile              | FAILURE: Step 7 (Output Verification Failed)
-meterpreter.profile            | SUCCESS
-microsoftupdate_getonly.profile | SUCCESS
+meterpreter.profile            | FAILURE: Step 5 (Execution - Crashed/Exited)
+microsoftupdate_getonly.profile | FAILURE: Step 5 (Execution - Crashed/Exited)
 msnbcvideo_getonly.profile     | SUCCESS
 ocsp copy.profile              | SUCCESS
 ocsp.profile                   | SUCCESS
 onedrive_getonly copy.profile  | SUCCESS
 onedrive_getonly.profile       | SUCCESS
 pandora.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
-pitty_tiger.profile            | SUCCESS
+pitty_tiger.profile            | FAILURE: Step 5 (Execution - Crashed/Exited)
 reference.profile              | Incomplete (Unknown Error)
 rtmp.profile                   | SUCCESS
 safebrowsing.profile           | FAILURE: Step 7 (Output Verification Failed)
