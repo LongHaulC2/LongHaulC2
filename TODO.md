@@ -208,6 +208,7 @@ Note: may need to intergrate the special chars, \x, etc (see docs) that mc2 allo
 - [X] delim \" and \"
 - [ ] \x byte conversion (\x00 -> bytes in string)
       >: Example: `b = bytes("\x33", "latin-1")`, then take b and append to bytearray
+      > latin-1 because it maps from 0x00 to 0xFF
 - [ ] other converstions in mc2
 Current test results:
 
@@ -254,6 +255,8 @@ zeus.profile                   | FAILURE: Step 5b (No Check-in Received)      # 
 
 Misc idea:
  - "melting pot" where all comms that come in, and have some data, etc, are stored, but don't have valid ID's, etc etc. Just so repsonses aren't lost?
+
+notes: amazon, no cookie header for some reason in req, and url formatted url (% instead of -), may be the problem.
 
 # Task Formatting (for reference):
 

