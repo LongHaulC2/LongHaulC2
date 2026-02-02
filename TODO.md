@@ -216,21 +216,24 @@ Current test results:
       FINAL EXECUTION REPORT
 ========================================
 my guess: 
- - step 5 == likely have appends/prepends (bug: those are not delim'd, and don't decode right)
+ - step 5 == Was cookies, need to check profile by profile next.
  - Step 7: Unsure, somethign not matching the POST data as needed by server. test case by case
 
-amazon.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
+========================================
+      FINAL EXECUTION REPORT
+========================================
+amazon.profile                 | FAILURE: Step 7 (Output Verification Failed)
 apt1_virtuallythere.profile    | SUCCESS
-asprox.profile                 | FAILURE: Step 7 (Output Verification Failed) # not sure why this one is failing, run it independently
-backoff.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
+asprox.profile                 | FAILURE: Step 7 (Output Verification Failed)
+backoff.profile                | FAILURE: Step 7 (Output Verification Failed)
 bingsearch_getonly.profile     | SUCCESS
 cnnvideo_getonly.profile       | SUCCESS
-comfoo.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited) # might be a bad URI, has append and uri with `/somevalue/`. Can fix with better processing/logic?
+comfoo.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
 etumbot.profile                | SUCCESS
 fiesta.profile                 | SUCCESS
 fiesta2.profile                | SUCCESS
-gmail.profile                  | FAILURE: Step 5b (No Check-in Received)
-googledrive_getonly.profile    | SUCCESS                                      # Fixed, with delim. 
+gmail.profile                  | FAILURE: Step 7 (Output Verification Failed)
+googledrive_getonly.profile    | SUCCESS
 havex.profile                  | FAILURE: Step 5 (Execution - Crashed/Exited)
 magnitude.profile              | FAILURE: Step 7 (Output Verification Failed)
 meterpreter.profile            | SUCCESS
@@ -238,19 +241,19 @@ microsoftupdate_getonly.profile | SUCCESS
 msnbcvideo_getonly.profile     | SUCCESS
 ocsp copy.profile              | SUCCESS
 ocsp.profile                   | SUCCESS
-onedrive_getonly copy.profile  | FAILURE: Step 5 (Execution - Crashed/Exited)
-onedrive_getonly.profile       | FAILURE: Step 5b (No Check-in Received)
+onedrive_getonly copy.profile  | SUCCESS
+onedrive_getonly.profile       | SUCCESS
 pandora.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
 pitty_tiger.profile            | SUCCESS
 reference.profile              | Incomplete (Unknown Error)
-rtmp.profile                   | FAILURE: Step 5 (Execution - Crashed/Exited)
-safebrowsing.profile           | FAILURE: Step 5b (No Check-in Received)      # was step 5 before, liekly an output issue
-string_of_paerls.profile       | FAILURE: Step 5 (Execution - Crashed/Exited)
+rtmp.profile                   | SUCCESS
+safebrowsing.profile           | FAILURE: Step 7 (Output Verification Failed)
+string_of_paerls.profile       | FAILURE: Step 7 (Output Verification Failed)
 taidoor.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
-webbug.profile                 | FAILURE: Step 7 (Output Verification Failed)
+webbug.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
 webbug_getonly.profile         | FAILURE: Step 5 (Execution - Crashed/Exited)
 wikipedia_getonly.profile      | FAILURE: Step 7 (Output Verification Failed)
-zeus.profile                   | FAILURE: Step 5b (No Check-in Received)      # was step 5 before, liekly an output issue
+zeus.profile                   | FAILURE: Step 7 (Output Verification Failed)
 ========================================
 
 Misc idea:
