@@ -259,7 +259,16 @@ zeus.profile                   | FAILURE: Step 7 (Output Verification Failed)
 Misc idea:
  - "melting pot" where all comms that come in, and have some data, etc, are stored, but don't have valid ID's, etc etc. Just so repsonses aren't lost?
 
-notes: amazon, no cookie header for some reason in req, and url formatted url (% instead of -), may be the problem.
+Bug on post_uri:
+
+ID, and output confusion. TLDR: ID or output can be in uri OR in body. Unknown which.
+
+Need a way to find which is where, and then do proper data transforms on said data.
+
+Ex, if in uri, strip data, and then deobs. I don't think this should be done in apply_transforms,
+as that looks specifialyl at the transforms list. Goal should be to get the data into just the transformable state,
+then send it.  
+
 
 # Task Formatting (for reference):
 

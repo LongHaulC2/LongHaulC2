@@ -480,9 +480,16 @@ async def http_get_uri(request: Request) -> Response:
 
     try:
         path = request.url.path
-        # Last segment
-        data_in_uri = path.rstrip("/").split("/")[-1]
-        listener_logger.debug("extracting_uri_data", segment=data_in_uri)
+        # # Last segment
+        # data_in_uri = path.rstrip("/").split("/")[-1]
+        # listener_logger.debug("extracting_uri_data", segment=data_in_uri)
+
+        # new method: strip out URI, then take what's LEFT, and pass into transforms.
+        # Otherwise, something where there's a path after (ex, /data/b, will take b, instead of data)
+        base_uri = mp.http_get.uri.value
+        data_in_uri = path.replace(base_uri, "")
+        data_in_uri_bytes = data_in_uri.encode()
+
     except Exception as e:
         listener_logger.error("uri_parse_error", error=str(e))
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
@@ -493,7 +500,7 @@ async def http_get_uri(request: Request) -> Response:
     hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
     try:
         deobsfucated_data_from_implant = hce.apply_transforms(
-            data=data_in_uri, block_field=mp.http_get.client.metadata
+            data=data_in_uri_bytes, block_field=mp.http_get.client.metadata
         )
         listener_logger.debug(
             "deobfuscation_complete", len=len(deobsfucated_data_from_implant)
@@ -687,7 +694,7 @@ async def http_post(request: Request) -> Response:
 
         # implantuuid, can be either bytes, or str. Str, if no transforms, bytes, if transform. Probaly should fix that.
         if isinstance(implant_uuid_bytes, bytes):
-            implant_uuid_str = implant_uuid_bytes.decode()
+            implant_uuid_str = implant_uuid_bytes.decode("latin-1")
 
         else:
             # if for wahtever reason, it's not bytes (which shouldn't happen..., but does on no transform profiles)
@@ -717,61 +724,66 @@ async def http_post_uri(request: Request, data: str) -> Response:
         method="POST_URI", ip=request.client.host, path=request.url.path
     )
 
-    # we can assume URI terminator is uri-append.
-    # data is the /someendpoint/<HERE>, so we just need to transform it.
+    # 1. Get terminator of
 
-    # full_uri = str(
-    #     request.url
-    # )  # Full URL including the scheme, host, path, and query params. useful for logging
-
-    try:
-        hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
-        output_terminator_type, output_terminator_key = hce.get_output_terminator()
-
-        # check if keys, ifnot, throw a 400 (it's a server error though - so maybe change later)
-        check_if_data(output_terminator_type)
-        # check_if_data(output_terminator_key)
-
-        data_from_implant = await deobsfucate_malleable_c2_request_data(
-            request=request,
-            terminator_type=output_terminator_type,
-            terminator_key=output_terminator_key,
-            malleable_c2_block=mp.http_post.client,
-            block_field=mp.http_post.client.output,
-            parser_class=HttpPostBlockClientParser,
-        )
-        listener_logger.debug("post_uri_output_extracted")
-
-    except Exception as e:
-        listener_logger.error("post_uri_output_error", error=str(e))
-        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
-
+    # First, get ID (could be stored any valid location)
     try:
         # note, id is always in a header or param
         # https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_beacon-http-transaction-walkthru.htm#_Toc65482844
         # new note: Looks like it can be appended to URI as well, despite not being doc'd, at least it is in the etumbot profile.
+        hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
         id_terminator_type, id_terminator_key = hce.get_id_terminator()
 
         # only check for termiantor type, as uri-append does not have a key
         check_if_data(id_terminator_type)
 
-        implant_uuid_bytes = await deobsfucate_malleable_c2_request_data(
-            request=request,
-            terminator_type=id_terminator_type,
-            terminator_key=id_terminator_key,
-            malleable_c2_block=mp.http_post.client,
-            block_field=mp.http_post.client.id,
-            parser_class=HttpPostBlockClientParser,
-        )
+        # This means ID is in the URI
+        if id_terminator_type == "uri-append":
+            try:
+                # uri extract code
+                path = request.url.path
+                # new method: strip out URI, then take what's LEFT, and pass into transforms.
+                # Otherwise, something where there's a path after (ex, /data/b, will take b, instead of data)
+                base_uri = mp.http_post.uri.value
+                data_in_uri = path.replace(base_uri, "")
+                data_in_uri_bytes = data_in_uri.encode()
 
-        # can be fixed by decoding the data in teh appy_transform functions in each class,
-        # that way, on fallthrough, no conversion here is needed.
+            except Exception as e:
+                listener_logger.error("uri_parse_error", error=str(e))
+                raise HTTPException(
+                    status_code=400, detail="Invalid or malformed client data"
+                )
+
+            # transform to extract implant uuid
+            hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
+            try:
+                implant_uuid_bytes = hce.apply_transforms(
+                    data=data_in_uri_bytes, block_field=mp.http_post.client.id
+                )
+                listener_logger.debug(
+                    "deobfuscation_complete", len=len(implant_uuid_bytes)
+                )
+            except Exception as e:
+                listener_logger.error("deobfuscation_failed", error=str(e))
+                raise HTTPException(
+                    status_code=400, detail="Invalid or malformed client data"
+                )
+
+        # aka it's not in the URI, and apply normal transform
+        else:
+            implant_uuid_bytes = await deobsfucate_malleable_c2_request_data(
+                request=request,
+                terminator_type=id_terminator_type,
+                terminator_key=id_terminator_key,
+                malleable_c2_block=mp.http_post.client,
+                block_field=mp.http_post.client.id,
+                parser_class=HttpPostBlockClientParser,
+            )
 
         # note, implant_uuid is now bytes. Need to convert to a string before passing in to redis
-        # implantuuid, can be either bytes, or str. Str, if no transforms, bytes, if transform. Probaly should fix that.
+        # implantuuid, can be either bytes, or str. Str, if no transforms, bytes, if transform. Probaly should fix that.\
         if isinstance(implant_uuid_bytes, bytes):
-            implant_uuid_str = implant_uuid_bytes.decode()
-
+            implant_uuid_str = implant_uuid_bytes.decode("latin-1")
         else:
             # if for wahtever reason, it's not bytes (which shouldn't happen..., but does on no transform profiles)
             implant_uuid_str = implant_uuid_bytes
@@ -779,18 +791,95 @@ async def http_post_uri(request: Request, data: str) -> Response:
         # STRUCTLOG: Bind ID
         structlog.contextvars.bind_contextvars(implant_id=str(implant_uuid_str))
         listener_logger.info("implant_id_extracted")
-
     except Exception as e:
         listener_logger.error("post_uri_id_error", error=str(e))
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
+    # once we have ID, extract data:
+    try:
+        hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
+        output_terminator_type, output_terminator_key = hce.get_output_terminator()
+
+        # this means data is in uri, so extract it,
+        if output_terminator_type == "uri-append":
+            try:
+                # uri extract code
+                path = request.url.path
+                # new method: strip out URI, then take what's LEFT, and pass into transforms.
+                # Otherwise, something where there's a path after (ex, /data/b, will take b, instead of data)
+                base_uri = mp.http_post.uri.value
+                data_in_uri = path.replace(base_uri, "")
+                data_in_uri_bytes = data_in_uri.encode()
+
+            except Exception as e:
+                listener_logger.error("uri_parse_error", error=str(e))
+                raise HTTPException(
+                    status_code=400, detail="Invalid or malformed client data"
+                )
+
+            # transform to extract implant uuid
+            hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
+            try:
+                implant_output_bytes = hce.apply_transforms(
+                    data=data_in_uri_bytes, block_field=mp.http_post.client.output
+                )
+                listener_logger.debug(
+                    "deobfuscation_complete", len=len(implant_uuid_bytes)
+                )
+            except Exception as e:
+                listener_logger.error("deobfuscation_failed", error=str(e))
+                raise HTTPException(
+                    status_code=400, detail="Invalid or malformed client data"
+                )
+        # this means data is somewhere else, so also extract it.
+        else:
+            try:
+                hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
+                output_terminator_type, output_terminator_key = (
+                    hce.get_output_terminator()
+                )
+
+                # check if keys, ifnot, throw a 400 (it's a server error though - so maybe change later)
+                check_if_data(output_terminator_type)
+                # check_if_data(output_terminator_key)
+
+                implant_output_bytes = await deobsfucate_malleable_c2_request_data(
+                    request=request,
+                    terminator_type=output_terminator_type,
+                    terminator_key=output_terminator_key,
+                    malleable_c2_block=mp.http_post.client,
+                    block_field=mp.http_post.client.output,
+                    parser_class=HttpPostBlockClientParser,
+                )
+                listener_logger.debug("post_uri_output_extracted")
+
+            except Exception as e:
+                listener_logger.error("post_uri_output_error", error=str(e))
+                raise HTTPException(
+                    status_code=400, detail="Invalid or malformed client data"
+                )
+    except Exception as e:
+        listener_logger.error("post_uri_output_error", error=str(e))
+        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
+
+    # note, implant_uuid is now bytes. Need to convert to a string before passing in to redis
+    # implantuuid, can be either bytes, or str. Str, if no transforms, bytes, if transform. Probaly should fix that.\
+    # if isinstance(implant_output_bytes, bytes):
+    #     implant_output_data = implant_output_bytes.decode("latin-1")
+    # else:
+    #     # if for wahtever reason, it's not bytes (which shouldn't happen..., but does on no transform profiles)
+    #     implant_output_data = implant_output_bytes
+
+    # scrach that, redis wants bytes.
+
+    # store, and give a response
     response = http_post_response(
-        data_from_implant=data_from_implant, implant_uuid=implant_uuid_str
+        data_from_implant=implant_output_bytes, implant_uuid=implant_uuid_str
     )
     return response
 
 
-def http_post_response(data_from_implant, implant_uuid):
+def http_post_response(data_from_implant: bytes, implant_uuid):
     """
     Setup a response for the implant
 
@@ -867,7 +956,10 @@ def register_http_route(uri: URL, method: str, endpoint, uri_endpoint):
         # tags=["items"],
     )
 
-    full_uri = safe_join(str(uri), "{data}")
+    # note, was just "{data}", but then any appends after the URI fail/404 due to path not found.
+    # full_uri = safe_join(str(uri), "{data:path}")
+
+    full_uri = safe_join(str(uri), "{data:path}")
 
     # Register the route with the dynamic path
     app.add_api_route(
