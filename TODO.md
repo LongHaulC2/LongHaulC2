@@ -206,12 +206,17 @@ Bugs:
 Note: may need to intergrate the special chars, \x, etc (see docs) that mc2 allows for, to get a 100% pass below.
 
 - [X] delim \" and \"
-- [ ] \x byte conversion (\x00 -> bytes in string)
+- [X] \x byte conversion (\x00 -> bytes in string)
       >: Example: `b = bytes("\x33", "latin-1")`, then take b and append to bytearray
       > latin-1 because it maps from 0x00 to 0xFF
 - [ ] other converstions in mc2
 
 Current design choice: no space in URI's for multiple options. Later.
+
+big issue:
+ 1. c++ delims work fine
+ 2. in python, they do not. Need to strip all delims from mc2 in python code where it needs it.
+
 
 Current test results:
 
@@ -226,35 +231,39 @@ my guess:
       FINAL EXECUTION REPORT
 ========================================
 amazon.profile                 | SUCCESS
+apt1_virtually.profile         | SUCCESS
 apt1_virtuallythere.profile    | SUCCESS
 asprox.profile                 | SUCCESS
-backoff.profile                | FAILURE: Step 7 (Output Verification Failed)
-bingsearch_getonly.profile     | SUCCESS
+backoff.profile                | SUCCESS
+bingsearch_getonly.profile     | FAILURE: Step 3.5 (Build Job Failed/Timeout)
+bing_search.profile            | FAILURE: Step 3.5 (Build Job Failed/Timeout)
 cnnvideo_getonly.profile       | SUCCESS
 comfoo.profile                 | SUCCESS
+etumbot copy.profile           | SUCCESS
 etumbot.profile                | SUCCESS
 fiesta.profile                 | SUCCESS
 fiesta2.profile                | SUCCESS
-gmail.profile                  | SUCCESS
+gmail.profile                  | FAILURE: Step 3.5 (Build Job Failed/Timeout)
 googledrive_getonly.profile    | SUCCESS
-havex.profile                  | FAILURE: Step 5 (Execution - Crashed/Exited)
+havex.profile                  | FAILURE: Step 7 (Output Verification Failed)
 magnitude.profile              | SUCCESS
 meterpreter.profile            | FAILURE: Step 5 (Execution - Crashed/Exited)
 microsoftupdate_getonly.profile | FAILURE: Step 5 (Execution - Crashed/Exited)
 msnbcvideo_getonly.profile     | SUCCESS
 ocsp copy.profile              | SUCCESS
 ocsp.profile                   | SUCCESS
-onedrive_getonly copy.profile  | SUCCESS
-onedrive_getonly.profile       | SUCCESS
-pandora.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
+onedrive_getonly copy.profile  | FAILURE: Step 3.5 (Build Job Failed/Timeout)
+onedrive_getonly.profile       | FAILURE: Step 3.5 (Build Job Failed/Timeout)
+pandora.profile                | SUCCESS
 pitty_tiger.profile            | FAILURE: Step 5 (Execution - Crashed/Exited)
 reference.profile              | Incomplete (Unknown Error)
 rtmp.profile                   | SUCCESS
-safebrowsing.profile           | FAILURE: Step 5 (Execution - Crashed/Exited)
+safebrowsing.profile           | SUCCESS
 string_of_paerls.profile       | SUCCESS
 taidoor.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
-webbug.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
-webbug_getonly.profile         | FAILURE: Step 5 (Execution - Crashed/Exited)
+webbug.profile                 | SUCCESS
+webbug_getonly.profile         | SUCCESS
+webbug_getonly_v0.0.0.profile  | FAILURE: Step 5 (Execution - Crashed/Exited)
 wikipedia_getonly.profile      | FAILURE: Step 7 (Output Verification Failed)
 zeus.profile                   | SUCCESS
 ========================================

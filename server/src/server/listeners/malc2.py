@@ -80,6 +80,7 @@ def clean_ast_backslash_delimiters(node):
     """
     Recursively traverses the AST and cleans 'value' and 'key' fields.
     """
+    return  # temp disable
     # 1. Handle Dictionary (recurse into values)
     if isinstance(node, dict):
         for key, value in node.items():
@@ -338,10 +339,10 @@ class HttpGetBlockServerParser:
             server_logger.debug("Applying transform: %s %r", name, value)
 
             if name == "prepend":
-                data = transform_prepend(data, stmt.value)
+                data = transform_prepend(data, value)
 
             elif name == "append":
-                data = transform_append(data, stmt.value)
+                data = transform_append(data, value)
 
             elif name == "base64":
                 data = base64_encode(data)
@@ -520,10 +521,10 @@ class HttpGetBlockClientParser:
             server_logger.debug("Applying transform: %s %r", name, value)
 
             if name == "prepend":
-                data = undo_transform_prepend(data, stmt.value)
+                data = undo_transform_prepend(data, value)
 
             elif name == "append":
-                data = undo_transform_append(data, stmt.value)
+                data = undo_transform_append(data, value)
 
             elif name == "base64":
                 data = base64_decode(data)
@@ -694,10 +695,10 @@ class HttpPostBlockServerParser:
             server_logger.debug("Applying transform: %s %r", name, value)
 
             if name == "prepend":
-                data = transform_prepend(data, stmt.value)
+                data = transform_prepend(data, value)
 
             elif name == "append":
-                data = transform_append(data, stmt.value)
+                data = transform_append(data, value)
 
             elif name == "base64":
                 data = base64_encode(data)
@@ -839,10 +840,10 @@ class HttpPostBlockClientParser:
             server_logger.debug("Applying transform: %s %r", name, value)
 
             if name == "prepend":
-                data = undo_transform_prepend(data, stmt.value)
+                data = undo_transform_prepend(data, value)
 
             elif name == "append":
-                data = undo_transform_append(data, stmt.value)
+                data = undo_transform_append(data, value)
 
             elif name == "base64":
                 data = base64_decode(data)
