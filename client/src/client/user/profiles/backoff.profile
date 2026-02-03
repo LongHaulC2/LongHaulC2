@@ -20,7 +20,7 @@ set useragent "Mozilla/5.0 (Windows NT 6.1; rv:24.0) Gecko/20100101 Firefox/24.0
 
 # the relevant indicators
 http-post {
-	set uri "/windebug/updcheck.php /aircanada/dark.php /aero2/fly.php /windowsxp/updcheck.php /hello/flash.php";
+	set uri "/windebug/updcheck.php";
 
 	client {
 		header "Accept" "text/plain";

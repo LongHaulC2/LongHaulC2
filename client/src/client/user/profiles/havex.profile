@@ -78,7 +78,7 @@ stage {
 }
 
 http-get {
-	set uri "/include/template/isx.php /wp06/wp-includes/po.php /wp08/wp-includes/dtcla.php";
+	set uri "/include/template/isx.php";
 
 	client {
 		header "Referer" "http://www.google.com";
