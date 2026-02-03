@@ -222,9 +222,9 @@ my guess:
 ========================================
       FINAL EXECUTION REPORT
 ========================================
-amazon.profile                 | FAILURE: Step 7 (Output Verification Failed)
+amazon.profile                 | SUCCESS
 apt1_virtuallythere.profile    | FAILURE: Step 7 (Output Verification Failed)
-asprox.profile                 | FAILURE: Step 7 (Output Verification Failed)
+asprox.profile                 | SUCCESS
 backoff.profile                | FAILURE: Step 7 (Output Verification Failed)
 bingsearch_getonly.profile     | SUCCESS
 cnnvideo_getonly.profile       | SUCCESS
@@ -232,10 +232,10 @@ comfoo.profile                 | SUCCESS
 etumbot.profile                | SUCCESS
 fiesta.profile                 | SUCCESS
 fiesta2.profile                | SUCCESS
-gmail.profile                  | FAILURE: Step 7 (Output Verification Failed)
+gmail.profile                  | SUCCESS
 googledrive_getonly.profile    | SUCCESS
 havex.profile                  | FAILURE: Step 5 (Execution - Crashed/Exited)
-magnitude.profile              | FAILURE: Step 7 (Output Verification Failed)
+magnitude.profile              | SUCCESS
 meterpreter.profile            | FAILURE: Step 5 (Execution - Crashed/Exited)
 microsoftupdate_getonly.profile | FAILURE: Step 5 (Execution - Crashed/Exited)
 msnbcvideo_getonly.profile     | SUCCESS
@@ -246,14 +246,14 @@ onedrive_getonly.profile       | SUCCESS
 pandora.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
 pitty_tiger.profile            | FAILURE: Step 5 (Execution - Crashed/Exited)
 reference.profile              | Incomplete (Unknown Error)
-rtmp.profile                   | SUCCESS
-safebrowsing.profile           | FAILURE: Step 7 (Output Verification Failed)
-string_of_paerls.profile       | FAILURE: Step 7 (Output Verification Failed)
+rtmp.profile                   | FAILURE: Step 5 (Execution - Crashed/Exited)
+safebrowsing.profile           | SUCCESS
+string_of_paerls.profile       | SUCCESS
 taidoor.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
 webbug.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
 webbug_getonly.profile         | FAILURE: Step 5 (Execution - Crashed/Exited)
 wikipedia_getonly.profile      | FAILURE: Step 7 (Output Verification Failed)
-zeus.profile                   | FAILURE: Step 7 (Output Verification Failed)
+zeus.profile                   | SUCCESS
 ========================================
 
 Misc idea:
@@ -262,19 +262,6 @@ Misc idea:
 
  - latest bug: 
   - Amazon: paramter extraction screwed up on post... not sure why. likely me mistyping something somewhere. 
-
-```
-=== REQUEST DUMP ===
-METHOD: POST
-URL: http://www.amazon.com/N4215/adj/amzn.us.sr.aps?sn=019c20a6-c03f-7327-8403-5c94e4578b2a&sz=160x600&oe=oe=ISO-8859-1;&s=3717&dc_ref=http%3A%2F%2Fwww.amazon.com
-HEADERS: {'user-agent': 'GoogleChrome', 'accept': '*/*', 'content-type': 'text/xml', 'x-requested-with': 'XMLHttpRequest', 'host': 'www.amazon.com', 'content-length': '248', 'cache-control': 'no-cache'}
-QUERY: {'sn': '019c20a6-c03f-7327-8403-5c94e4578b2a', 'sz': '160x600', 'oe': 'oe=ISO-8859-1;', 's': '3717', 'dc_ref': 'http://www.amazon.com'}
-BODY: g6xpbXBsYW50X3V1aWTZJDAxOWMyMGE2LWMwM2YtNzMyNy04NDAzLTVjOTRlNDU3OGIyYaZyZXN1bHSCpGRhdGHZNklmIHlvdSBzZWUgdGhpcyBpdCBtZWFucyB0aGUgaW1wbGFudCBpcyB0YWxraW5nIHRvIHlvdalkYXRhX3R5cGWkdGV4dKl0YXNrX3V1aWTZJDAxOWMyMGE2LWRiZjEtN2U3MS1hYzMwLTNlMjBjNDU0YjBhMg==
-2026-02-02T23:18:55.185155Z [debug    ] incoming_request               [listener] ip=10.0.0.24 method=POST path=/N4215/adj/amzn.us.sr.aps ua=GoogleChrome
-2026-02-02T23:18:55.185399Z [debug    ] config_block_error             [listener] error="'http_config'" ip=10.0.0.24 method=POST path=/N4215/adj/amzn.us.sr.aps
-2026-02-02T23:18:55.185489Z [debug    ] http-config block not found    [listener] ip=10.0.0.24 method=POST path=/N4215/adj/amzn.us.sr.aps
-2026-02-02T23:18:55.185617Z [error    ] post_output_error              [listener] error='400: Missing required data' ip=10.0.0.24 method=POST path=/N4215/adj/amzn.us.sr.aps
-```
 
   - I saw a base64 error during testing too.
 
