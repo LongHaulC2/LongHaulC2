@@ -787,6 +787,7 @@ async def http_catchall(request: Request, full_path: str):
     except Exception as e:
         http_post_method = "POST"
 
+    # path check both GET and POST to make sure we are only letting through correct implant traffic
     if actual_path in http_get_uri and request.method == http_get_method:
         response = await http_get(request=request)
         return response

@@ -217,9 +217,6 @@ Current design choice: no space in URI's for multiple options. Later.
  1. c++ delims work fine
  2. in python, they do not. Need to strip all delims from mc2 in python code where it needs it. -->
 
-!! Major roadblock with current http listener, see bottom notes in http.py for how to fix, with a catchall route
- - tLDR, quick refactor of how it works. Condenses code too yay.
-
 Current test results:
 
 ========================================
@@ -233,36 +230,36 @@ my guess:
       FINAL EXECUTION REPORT
 ========================================
 amazon.profile                 | SUCCESS
-apt1_virtually.profile         | SUCCESS
-apt1_virtuallythere.profile    | SUCCESS
-asprox.profile                 | SUCCESS
+apt1_virtually.profile         | FAILURE: Step 7 (Output Verification Failed)
+apt1_virtuallythere.profile    | FAILURE: Step 7 (Output Verification Failed)
+asprox.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
 backoff.profile                | SUCCESS
 bingsearch_getonly.profile     | SUCCESS
 bing_search.profile            | SUCCESS
-cnnvideo_getonly.profile       | FAILURE: Step 5 (Execution - Crashed/Exited)
-comfoo.profile                 | SUCCESS
-etumbot copy.profile           | SUCCESS
-etumbot.profile                | SUCCESS
-fiesta.profile                 | SUCCESS
-fiesta2.profile                | SUCCESS
+cnnvideo_getonly.profile       | SUCCESS
+comfoo.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
+etumbot copy.profile           | FAILURE: Step 5 (Execution - Crashed/Exited)
+etumbot.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
+fiesta.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
+fiesta2.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
 gmail.profile                  | SUCCESS
 googledrive_getonly.profile    | SUCCESS
-havex.profile                  | FAILURE: Step 5 (Execution - Crashed/Exited)
+havex.profile                  | SUCCESS
 magnitude.profile              | SUCCESS
 meterpreter.profile            | FAILURE: Step 5 (Execution - Crashed/Exited)
 microsoftupdate_getonly.profile | FAILURE: Step 5 (Execution - Crashed/Exited)
 msnbcvideo_getonly.profile     | SUCCESS
-ocsp copy.profile              | SUCCESS
-ocsp.profile                   | SUCCESS
+ocsp copy.profile              | FAILURE: Step 5 (Execution - Crashed/Exited)
+ocsp.profile                   | FAILURE: Step 5 (Execution - Crashed/Exited)
 onedrive_getonly copy.profile  | SUCCESS
 onedrive_getonly.profile       | SUCCESS
 pandora.profile                | SUCCESS
 pitty_tiger.profile            | FAILURE: Step 5 (Execution - Crashed/Exited)
 reference.profile              | Incomplete (Unknown Error)
-rtmp.profile                   | SUCCESS
+rtmp.profile                   | FAILURE: Step 7 (Output Verification Failed)
 safebrowsing.profile           | SUCCESS
 string_of_paerls.profile       | SUCCESS
-taidoor.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
+taidoor.profile                | SUCCESS
 webbug.profile                 | SUCCESS
 webbug_getonly.profile         | SUCCESS
 webbug_getonly_v0.0.0.profile  | FAILURE: Step 5 (Execution - Crashed/Exited)
