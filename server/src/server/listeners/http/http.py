@@ -789,17 +789,17 @@ async def http_catchall(request: Request, full_path: str):
 
     # path check both GET and POST to make sure we are only letting through correct implant traffic
     # Also - use tuple() because .startswith() accepts a tuple of strings for multiple matches
-    if (
-        actual_path.startswith(tuple(http_get_uri))
-        and request.method == http_get_method
-    ):
+    # listener_logger.debug(
+    #     "CHECKING_TUPLE", tuple_contents=tuple(http_get_uri), actual_path=actual_path
+    # )
+    if actual_path.startswith(http_get_uri) and request.method == http_get_method:
+        listener_logger.debug("http_get_matched", path=actual_path, uri=http_get_uri)
         response = await http_get(request=request)
         return response
 
-    elif (
-        actual_path.startswith(tuple(http_post_uri))
-        and request.method == http_post_method
-    ):
+    elif actual_path.startswith(http_post_uri) and request.method == http_post_method:
+        listener_logger.debug("http_POST_matched", path=actual_path, uri=http_get_uri)
+
         response = await http_post(request=request)
         return response
 
