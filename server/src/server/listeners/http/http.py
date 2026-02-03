@@ -653,7 +653,7 @@ async def http_post(request: Request) -> Response:
 
         # check if keys
         check_if_data(id_terminator_type)
-        check_if_data(id_terminator_key)
+        # check_if_data(id_terminator_key) # may not always be a key, ex print
 
         implant_uuid_bytes = await deobsfucate_malleable_c2_request_data(
             request=request,
@@ -798,7 +798,7 @@ async def http_catchall(request: Request, full_path: str):
         return response
 
     elif actual_path.startswith(http_post_uri) and request.method == http_post_method:
-        listener_logger.debug("http_POST_matched", path=actual_path, uri=http_get_uri)
+        listener_logger.debug("http_post_matched", path=actual_path, uri=http_get_uri)
 
         response = await http_post(request=request)
         return response

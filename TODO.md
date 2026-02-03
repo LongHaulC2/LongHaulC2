@@ -230,9 +230,9 @@ my guess:
       FINAL EXECUTION REPORT
 ========================================
 amazon.profile                 | SUCCESS
-apt1_virtually.profile         | FAILURE: Step 7 (Output Verification Failed)
-apt1_virtuallythere.profile    | FAILURE: Step 7 (Output Verification Failed)
-asprox.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
+apt1_virtually.profile         | SUCCESS
+apt1_virtuallythere.profile    | SUCCESS
+asprox.profile                 | SUCCESS
 backoff.profile                | SUCCESS
 bingsearch_getonly.profile     | SUCCESS
 bing_search.profile            | SUCCESS
@@ -241,7 +241,7 @@ comfoo.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
 etumbot copy.profile           | FAILURE: Step 5 (Execution - Crashed/Exited)
 etumbot.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
 fiesta.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
-fiesta2.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
+fiesta2.profile                | FAILURE: Step 5b (No Check-in Received)
 gmail.profile                  | SUCCESS
 googledrive_getonly.profile    | SUCCESS
 havex.profile                  | SUCCESS
@@ -256,7 +256,7 @@ onedrive_getonly.profile       | SUCCESS
 pandora.profile                | SUCCESS
 pitty_tiger.profile            | FAILURE: Step 5 (Execution - Crashed/Exited)
 reference.profile              | Incomplete (Unknown Error)
-rtmp.profile                   | FAILURE: Step 7 (Output Verification Failed)
+rtmp.profile                   | SUCCESS
 safebrowsing.profile           | SUCCESS
 string_of_paerls.profile       | SUCCESS
 taidoor.profile                | SUCCESS
