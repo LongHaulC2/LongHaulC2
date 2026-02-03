@@ -261,11 +261,12 @@ Misc idea:
 
 
  - latest bug: 
-  - Amazon: paramter extraction screwed up on post... not sure why. likely me mistyping something somewhere. 
+  - [X}] Amazon: paramter extraction screwed up on post... not sure why. likely me mistyping something somewhere. 
 
   - I saw a base64 error during testing too.
 
-
+ - A lot of the checkin failures are due to data not comnig back. It appears to be fine in logs...not sure.
+   Might be this: ` [listener] implant_id=/019c20fe-5fa6-73cd-9c2e-7be322212c16` hmm
 # Task Formatting (for reference):
 
 Note: Task_uuid and implant_uuid are included for task verification (right task to right agent),

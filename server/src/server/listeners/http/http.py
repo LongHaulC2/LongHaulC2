@@ -266,10 +266,13 @@ async def deobsfucate_malleable_c2_request_data(
 
             check_if_data(data_from_request)
 
+            # convert to bytes, as URL is in string
+            data_from_request_bytes = data_from_request.encode()
+
             try:
                 hce = parser_class(malleable_c2_block)
                 data = hce.apply_transforms(
-                    data=data_from_request, block_field=block_field
+                    data=data_from_request_bytes, block_field=block_field
                 )
                 listener_logger.debug(
                     "deobfuscation_complete", type="parameter", len=len(data)
@@ -304,8 +307,22 @@ async def deobsfucate_malleable_c2_request_data(
         # for some reason
         case "uri-append":
             # get URI
-            url = URL(str(request.url))
-            data_from_request = url.path.rstrip("/").split("/")[-1]
+            # url = URL(str(request.url))
+            # data_from_request = url.path.rstrip("/").split("/")[-1]
+
+            path = request.url.path
+            # new method: strip out URI, then take what's LEFT, and pass into transforms.
+            # Otherwise, something where there's a path after (ex, /data/b, will take b, instead of data)
+            base_uri = mp.http_post.uri.value
+            data_from_request = path.replace(base_uri, "")
+            # data_in_uri_bytes = data_in_uri.encode()
+
+            # Strip the leading slash (and ensure it handles bytes)
+            if isinstance(data_from_request, bytes):
+                data_from_request = data_from_request.lstrip(b"/")
+            else:
+                data_from_request = data_from_request.lstrip("/")
+
             # return uri_append.encode()
             try:
                 hce = parser_class(client_block=malleable_c2_block)
@@ -702,6 +719,10 @@ async def http_post(request: Request) -> Response:
 
         # note, implant_uuid is now bytes. Need to convert to a string before passing in to redis
 
+        # PLACEHOLDER, remove / from id, whic seems to be an issue right now
+        # implant_uuid_str.replace("/", "")
+        # implant_uuid_str.replace("\\", "")
+
         # STRUCTLOG: Bind ID
         structlog.contextvars.bind_contextvars(implant_id=implant_uuid_str)
         listener_logger.info("implant_id_extracted")
@@ -787,6 +808,12 @@ async def http_post_uri(request: Request, data: str) -> Response:
         else:
             # if for wahtever reason, it's not bytes (which shouldn't happen..., but does on no transform profiles)
             implant_uuid_str = implant_uuid_bytes
+
+        # Strip the leading slash (and ensure it handles bytes). TLDR, for some reason, id in URI comes out as `/someid` instead of `id`
+        if isinstance(implant_uuid_str, bytes):
+            implant_uuid_str = implant_uuid_str.lstrip(b"/")
+        else:
+            implant_uuid_str = implant_uuid_str.lstrip("/")
 
         # STRUCTLOG: Bind ID
         structlog.contextvars.bind_contextvars(implant_id=str(implant_uuid_str))
