@@ -105,6 +105,53 @@ def clean_ast_backslash_delimiters(node):
             node.key = _clean_string(node.key)
 
 
+def unescape_malleable_bytes(data: bytes) -> bytes:
+    R"""
+    Parses a bytestring and replaces Malleable C2 escape sequences
+    (\n, \r, \t, \x##, \u####, \\) with their actual byte values.
+    """
+    # check_type(data, bytes, "data")
+    if isinstance(data, str):
+        # 'latin-1' is safest for C2 because it maps 1-to-1 to bytes without crashing on weird chars
+        data = data.encode("latin-1")
+
+    def replace_match(match):
+        seq = match.group(0)
+
+        # 1. Handle Standard Escapes
+        if seq == b"\\n":
+            return b"\n"
+        if seq == b"\\r":
+            return b"\r"
+        if seq == b"\\t":
+            return b"\t"
+        if seq == b'\\"':
+            return b'"'
+        if seq == b"\\\\":
+            return b"\\"
+
+        # 2. Handle Hex Bytes (\x41 -> A)
+        if seq.startswith(b"\\x"):
+            # Convert b'41' -> int 65 -> byte b'A'
+            return bytes([int(seq[2:], 16)])
+
+        # 3. Handle Unicode (\u1234 -> UTF-8 bytes)
+        if seq.startswith(b"\\u"):
+            # Convert hex -> int -> char -> utf-8 encoded bytes
+            char_code = int(seq[2:], 16)
+            return chr(char_code).encode("utf-8")
+
+        return seq
+
+    # Regex breakdown:
+    # \\x[0-9a-fA-F]{2}  -> Matches \x##
+    # \\u[0-9a-fA-F]{4}  -> Matches \u####
+    # \\[nrt"\\]         -> Matches \n, \r, \t, \", \\
+    pattern = re.compile(b'\\\\(?:x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|[nrt"\\\\])')
+
+    return pattern.sub(replace_match, data)
+
+
 ###################################
 # HTTP Parse
 ###################################
@@ -286,7 +333,7 @@ class HttpGetBlockServerParser:
         # loop over each transform
         for stmt in block_field.data:  # self.server.output.data:
             name = stmt.statement
-            value = stmt.value
+            value = unescape_malleable_bytes(stmt.value)
 
             server_logger.debug("Applying transform: %s %r", name, value)
 
@@ -468,7 +515,7 @@ class HttpGetBlockClientParser:
 
         for stmt in reversed(block_field.data):  # Reversed, see docstring
             name = stmt.statement
-            value = stmt.value
+            value = unescape_malleable_bytes(stmt.value)
 
             server_logger.debug("Applying transform: %s %r", name, value)
 
@@ -642,7 +689,7 @@ class HttpPostBlockServerParser:
         # loop over each transform
         for stmt in block_field.data:  # self.server.output.data:
             name = stmt.statement
-            value = stmt.value
+            value = unescape_malleable_bytes(stmt.value)
 
             server_logger.debug("Applying transform: %s %r", name, value)
 
@@ -787,7 +834,7 @@ class HttpPostBlockClientParser:
 
         for stmt in reversed(block_field.data):  # self.client.output.data:
             name = stmt.statement
-            value = stmt.value
+            value = unescape_malleable_bytes(stmt.value)
 
             server_logger.debug("Applying transform: %s %r", name, value)
 

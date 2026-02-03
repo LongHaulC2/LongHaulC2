@@ -210,6 +210,9 @@ Note: may need to intergrate the special chars, \x, etc (see docs) that mc2 allo
       >: Example: `b = bytes("\x33", "latin-1")`, then take b and append to bytearray
       > latin-1 because it maps from 0x00 to 0xFF
 - [ ] other converstions in mc2
+
+Current design choice: no space in URI's for multiple options. Later.
+
 Current test results:
 
 ========================================
@@ -260,16 +263,6 @@ Misc idea:
  - "melting pot" where all comms that come in, and have some data, etc, are stored, but don't have valid ID's, etc etc. Just so repsonses aren't lost?
 
 
- - latest bug: 
-  - [X}] Amazon: paramter extraction screwed up on post... not sure why. likely me mistyping something somewhere. 
-
-  - I saw a base64 error during testing too.
-
- - A lot of the checkin failures are due to data not comnig back. It appears to be fine in logs...not sure.
-   Might be this: ` [listener] implant_id=/019c20fe-5fa6-73cd-9c2e-7be322212c16` hmm
-
-
-Current design choice: no space in URI's for multiple options. Later.
 
 # Task Formatting (for reference):
 

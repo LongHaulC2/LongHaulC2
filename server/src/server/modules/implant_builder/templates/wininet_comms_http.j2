@@ -30,6 +30,7 @@ Required Keys:
 [% from 'transform_reverse.j2' import render_reverse_transform -%]
 [% from 'http_add_headers_or_parameters.j2' import render_add_headers_or_parameters -%]
 
+using namespace std::string_literals;
 
 nlohmann::json get(std::string implant_uuid) {
     // Note: pass a copy of implant_uuid in, as we are going to be potentially heavily editing it. 

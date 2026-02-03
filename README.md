@@ -114,6 +114,12 @@ LongHaul plans to introduce custom blocks for non-traditional listeners:
     * `ntp-post`
     * `ntp-config`
 
+### Known UNsupported components:
+ - beacon specific config settings (ex, ...) - focus is on network portions of malc2
+ - Multiple profiles in URI strings:
+    - `set uri "/include/template/isx.php /include/template/abc.php";`
+
+
 ### Supported Blocks
 
 #### http-get
