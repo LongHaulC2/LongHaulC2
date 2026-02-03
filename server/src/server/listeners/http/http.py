@@ -1039,3 +1039,44 @@ def safe_join(base_uri: str, append: str) -> str:
         return base_uri + append[1:]  # remove extra slash
     else:
         return base_uri + append
+
+
+"""
+Potential solution to chaos of multi routes/fastapi, use "one" route:
+
+(have one for get, one for post). Pass of to some logic func, that does what it needs to with the
+request object. This makes it way easier to jsut get all the URI data, and have simplified logic for this.
+
+from fastapi import FastAPI, Request
+
+app = FastAPI()
+
+# Your configured profile URIs (uri's from malleable c2 here)
+C2_URIS = ["/wiki", "/news", "/submit"]
+
+# 1. Capture EVERYTHING (The "Jetty" method)
+@app.api_route("/{full_path:path}", methods=["GET", "POST"])
+async def catch_all_c2_handler(request: Request, full_path: str):
+    # Important: The path might come in without the leading slash from the param
+    actual_path = request.url.path 
+
+    # 2. Iterate and match (The "Cobalt Strike" method)
+    for uri in C2_URIS:
+        if actual_path.startswith(uri):
+            
+            results = handle_this_data(request)
+
+
+            # Manually extract the data
+            # This handles "/wiki/123" AND "/wiki123" identically
+            #data = actual_path[len(uri):] 
+            
+            #return handle_beacon_data(data)
+
+    return {"error": "Not Found"}, 404
+
+def handle_beacon_data(data):
+    # Your decode logic here
+    return {"status": "processed", "payload": data}
+
+"""
