@@ -788,12 +788,24 @@ async def http_catchall(request: Request, full_path: str):
         http_post_method = "POST"
 
     # path check both GET and POST to make sure we are only letting through correct implant traffic
-    if actual_path in http_get_uri and request.method == http_get_method:
+    # Also - use tuple() because .startswith() accepts a tuple of strings for multiple matches
+    if (
+        actual_path.startswith(tuple(http_get_uri))
+        and request.method == http_get_method
+    ):
         response = await http_get(request=request)
         return response
 
-    if actual_path in http_post_uri and request.method == http_post_method:
+    elif (
+        actual_path.startswith(tuple(http_post_uri))
+        and request.method == http_post_method
+    ):
         response = await http_post(request=request)
         return response
 
-    return {"error": "Not Found"}, 404
+    else:
+        listener_logger.debug(
+            "URI did not match any configured endpoints",
+            extra={"path": actual_path, "method": request.method},
+        )
+        return {"error": "Not Found"}, 404
