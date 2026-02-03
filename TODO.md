@@ -230,8 +230,8 @@ my guess:
       FINAL EXECUTION REPORT
 ========================================
 amazon.profile                 | SUCCESS
-apt1_virtually.profile         | FAILURE: Step 7 (Output Verification Failed)
-apt1_virtuallythere.profile    | FAILURE: Step 7 (Output Verification Failed) # implant ID has leading / for some reason. Not sure why???? could be that the / is getting added somewehre in pasting it in
+apt1_virtually.profile         | SUCESS
+apt1_virtuallythere.profile    | SUCCESS
 asprox.profile                 | SUCCESS
 backoff.profile                | SUCCESS
 bingsearch_getonly.profile     | SUCCESS
@@ -246,15 +246,15 @@ gmail.profile                  | SUCCESS
 googledrive_getonly.profile    | SUCCESS
 havex.profile                  | SUCCESS
 magnitude.profile              | SUCCESS
-meterpreter.profile            | FAILURE: Step 5 (Execution - Crashed/Exited)
-microsoftupdate_getonly.profile | FAILURE: Step 5 (Execution - Crashed/Exited)
+meterpreter.profile            | SUCCESS
+microsoftupdate_getonly.profile | FAILURE: Checkin: URI did not match any configured endpoints... look closer. prepend might be doing something weird. CHECK WININET, this prepends a host header, and that might be getting messed with.
 msnbcvideo_getonly.profile     | SUCCESS
 ocsp copy.profile              | SUCCESS
 ocsp.profile                   | SUCCESS
 onedrive_getonly copy.profile  | SUCCESS
 onedrive_getonly.profile       | SUCCESS
 pandora.profile                | SUCCESS
-pitty_tiger.profile            | FAILURE: Step 5 (Execution - Crashed/Exited)
+pitty_tiger.profile            | SUCCESS
 reference.profile              | Incomplete (Unknown Error)
 rtmp.profile                   | SUCCESS
 safebrowsing.profile           | SUCCESS
@@ -262,8 +262,8 @@ string_of_paerls.profile       | SUCCESS
 taidoor.profile                | SUCCESS
 webbug.profile                 | SUCCESS
 webbug_getonly.profile         | SUCCESS
-webbug_getonly_v0.0.0.profile  | FAILURE: Step 5 (Execution - Crashed/Exited)
-wikipedia_getonly.profile      | FAILURE: Step 7 (Output Verification Failed)
+webbug_getonly_v0.0.0.profile  | SUCCESS
+wikipedia_getonly.profile      | SUCCESS
 zeus.profile                   | SUCCESS
 ========================================
 
