@@ -235,25 +235,25 @@ apt1_virtually.profile         | SUCCESS
 apt1_virtuallythere.profile    | SUCCESS
 asprox.profile                 | SUCCESS
 backoff.profile                | SUCCESS
-bingsearch_getonly.profile     | FAILURE: Step 3.5 (Build Job Failed/Timeout)
-bing_search.profile            | FAILURE: Step 3.5 (Build Job Failed/Timeout)
-cnnvideo_getonly.profile       | SUCCESS
+bingsearch_getonly.profile     | SUCCESS
+bing_search.profile            | SUCCESS
+cnnvideo_getonly.profile       | FAILURE: Step 5 (Execution - Crashed/Exited)
 comfoo.profile                 | SUCCESS
 etumbot copy.profile           | SUCCESS
 etumbot.profile                | SUCCESS
 fiesta.profile                 | SUCCESS
 fiesta2.profile                | SUCCESS
-gmail.profile                  | FAILURE: Step 3.5 (Build Job Failed/Timeout)
+gmail.profile                  | SUCCESS
 googledrive_getonly.profile    | SUCCESS
-havex.profile                  | FAILURE: Step 7 (Output Verification Failed)
+havex.profile                  | FAILURE: Step 5 (Execution - Crashed/Exited)
 magnitude.profile              | SUCCESS
 meterpreter.profile            | FAILURE: Step 5 (Execution - Crashed/Exited)
 microsoftupdate_getonly.profile | FAILURE: Step 5 (Execution - Crashed/Exited)
 msnbcvideo_getonly.profile     | SUCCESS
 ocsp copy.profile              | SUCCESS
 ocsp.profile                   | SUCCESS
-onedrive_getonly copy.profile  | FAILURE: Step 3.5 (Build Job Failed/Timeout)
-onedrive_getonly.profile       | FAILURE: Step 3.5 (Build Job Failed/Timeout)
+onedrive_getonly copy.profile  | SUCCESS
+onedrive_getonly.profile       | SUCCESS
 pandora.profile                | SUCCESS
 pitty_tiger.profile            | FAILURE: Step 5 (Execution - Crashed/Exited)
 reference.profile              | Incomplete (Unknown Error)
