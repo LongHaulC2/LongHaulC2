@@ -218,7 +218,7 @@ Current design choice: no space in URI's for multiple options. Later.
  2. in python, they do not. Need to strip all delims from mc2 in python code where it needs it. -->
 
 !! Major roadblock with current http listener, see bottom notes in http.py for how to fix, with a catchall route
-
+ - tLDR, quick refactor of how it works. Condenses code too yay.
 
 Current test results:
 

@@ -113,22 +113,26 @@ def run(
     app.add_middleware(HeadersMiddleware)
     app.add_middleware(DumpRequestMiddleware)
 
-    # setup get route
-    http_get_method = getattr(mp.http_get.verb, "value", "GET")
-    register_http_route(
-        method=http_get_method,
-        uri=URL(mp.http_get.uri.value),
-        endpoint=http_get,
-        uri_endpoint=http_get_uri,
-    )
+    print(mp.http_get)
 
-    # setup post route
-    http_post_method = getattr(mp.http_post.verb, "value", "POST")
-    register_http_route(
-        method=http_post_method,
-        uri=URL(mp.http_post.uri.value),
-        endpoint=http_post,
-        uri_endpoint=http_post_uri,
+    # pull out verbs, tldr, this is the safest way to do it
+    try:
+        get_verb = mp.http_get.verb.value if mp.http_get.verb.value else "GET"
+    except Exception as e:
+        get_verb = "GET"
+
+    try:
+        post_verb = mp.http_post.verb.value if mp.http_post.verb.value else "POST"
+    except Exception as e:
+        post_verb = "POST"
+
+    # add catchall route
+    app.add_api_route(
+        path="/{full_path:path}",
+        endpoint=http_catchall,  # logic for endpoint here
+        methods=[get_verb, post_verb],
+        # response_model=dict,
+        # tags=["items"],
     )
 
     # reload needs to be OFF.
@@ -484,52 +488,6 @@ async def http_get(request: Request) -> Response:
     return response
 
 
-async def http_get_uri(request: Request) -> Response:
-    """
-    Same as the http_get method, but URI specific, as that requires extra handling on the fastapi
-    side.
-    """
-    # STRUCTLOG: Clean context and bind Request info
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        method="GET_URI", ip=request.client.host, path=request.url.path
-    )
-
-    try:
-        path = request.url.path
-        # # Last segment
-        # data_in_uri = path.rstrip("/").split("/")[-1]
-        # listener_logger.debug("extracting_uri_data", segment=data_in_uri)
-
-        # new method: strip out URI, then take what's LEFT, and pass into transforms.
-        # Otherwise, something where there's a path after (ex, /data/b, will take b, instead of data)
-        base_uri = mp.http_get.uri.value
-        data_in_uri = path.replace(base_uri, "")
-        data_in_uri_bytes = data_in_uri.encode()
-
-    except Exception as e:
-        listener_logger.error("uri_parse_error", error=str(e))
-        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
-
-    # we can assume URI terminator is uri-append.
-    # data is the /someendpoint/<HERE>, so we just need to grab it, and transform it.
-
-    hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
-    try:
-        deobsfucated_data_from_implant = hce.apply_transforms(
-            data=data_in_uri_bytes, block_field=mp.http_get.client.metadata
-        )
-        listener_logger.debug(
-            "deobfuscation_complete", len=len(deobsfucated_data_from_implant)
-        )
-    except Exception as e:
-        listener_logger.error("deobfuscation_failed", error=str(e))
-        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
-
-    response = http_response(data_from_implant=deobsfucated_data_from_implant)
-    return response
-
-
 def http_response(data_from_implant):
     """
     Setup a response for the implant.
@@ -719,10 +677,6 @@ async def http_post(request: Request) -> Response:
 
         # note, implant_uuid is now bytes. Need to convert to a string before passing in to redis
 
-        # PLACEHOLDER, remove / from id, whic seems to be an issue right now
-        # implant_uuid_str.replace("/", "")
-        # implant_uuid_str.replace("\\", "")
-
         # STRUCTLOG: Bind ID
         structlog.contextvars.bind_contextvars(implant_id=implant_uuid_str)
         listener_logger.info("implant_id_extracted")
@@ -733,175 +687,6 @@ async def http_post(request: Request) -> Response:
 
     response = http_post_response(
         data_from_implant=data_from_implant, implant_uuid=implant_uuid_str
-    )
-    return response
-
-
-async def http_post_uri(request: Request, data: str) -> Response:
-    """POST endpoint specifially for the 'uri-append' option in malleable c2"""
-    # STRUCTLOG: Clean context and bind Request info
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        method="POST_URI", ip=request.client.host, path=request.url.path
-    )
-
-    # 1. Get terminator of
-
-    # First, get ID (could be stored any valid location)
-    try:
-        # note, id is always in a header or param
-        # https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/malleable-c2_beacon-http-transaction-walkthru.htm#_Toc65482844
-        # new note: Looks like it can be appended to URI as well, despite not being doc'd, at least it is in the etumbot profile.
-        hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
-        id_terminator_type, id_terminator_key = hce.get_id_terminator()
-
-        # only check for termiantor type, as uri-append does not have a key
-        check_if_data(id_terminator_type)
-
-        # This means ID is in the URI
-        if id_terminator_type == "uri-append":
-            try:
-                # uri extract code
-                path = request.url.path
-                # new method: strip out URI, then take what's LEFT, and pass into transforms.
-                # Otherwise, something where there's a path after (ex, /data/b, will take b, instead of data)
-                base_uri = mp.http_post.uri.value
-                data_in_uri = path.replace(base_uri, "")
-                data_in_uri_bytes = data_in_uri.encode()
-
-            except Exception as e:
-                listener_logger.error("uri_parse_error", error=str(e))
-                raise HTTPException(
-                    status_code=400, detail="Invalid or malformed client data"
-                )
-
-            # transform to extract implant uuid
-            hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
-            try:
-                implant_uuid_bytes = hce.apply_transforms(
-                    data=data_in_uri_bytes, block_field=mp.http_post.client.id
-                )
-                listener_logger.debug(
-                    "deobfuscation_complete", len=len(implant_uuid_bytes)
-                )
-            except Exception as e:
-                listener_logger.error("deobfuscation_failed", error=str(e))
-                raise HTTPException(
-                    status_code=400, detail="Invalid or malformed client data"
-                )
-
-        # aka it's not in the URI, and apply normal transform
-        else:
-            implant_uuid_bytes = await deobsfucate_malleable_c2_request_data(
-                request=request,
-                terminator_type=id_terminator_type,
-                terminator_key=id_terminator_key,
-                malleable_c2_block=mp.http_post.client,
-                block_field=mp.http_post.client.id,
-                parser_class=HttpPostBlockClientParser,
-            )
-
-        # note, implant_uuid is now bytes. Need to convert to a string before passing in to redis
-        # implantuuid, can be either bytes, or str. Str, if no transforms, bytes, if transform. Probaly should fix that.\
-        if isinstance(implant_uuid_bytes, bytes):
-            implant_uuid_str = implant_uuid_bytes.decode("latin-1")
-        else:
-            # if for wahtever reason, it's not bytes (which shouldn't happen..., but does on no transform profiles)
-            implant_uuid_str = implant_uuid_bytes
-
-        # Strip the leading slash (and ensure it handles bytes). TLDR, for some reason, id in URI comes out as `/someid` instead of `id`
-        if isinstance(implant_uuid_str, bytes):
-            implant_uuid_str = implant_uuid_str.lstrip(b"/")
-        else:
-            implant_uuid_str = implant_uuid_str.lstrip("/")
-
-        # STRUCTLOG: Bind ID
-        structlog.contextvars.bind_contextvars(implant_id=str(implant_uuid_str))
-        listener_logger.info("implant_id_extracted")
-    except Exception as e:
-        listener_logger.error("post_uri_id_error", error=str(e))
-        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
-
-    # once we have ID, extract data:
-    try:
-        hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
-        output_terminator_type, output_terminator_key = hce.get_output_terminator()
-
-        # this means data is in uri, so extract it,
-        if output_terminator_type == "uri-append":
-            try:
-                # uri extract code
-                path = request.url.path
-                # new method: strip out URI, then take what's LEFT, and pass into transforms.
-                # Otherwise, something where there's a path after (ex, /data/b, will take b, instead of data)
-                base_uri = mp.http_post.uri.value
-                data_in_uri = path.replace(base_uri, "")
-                data_in_uri_bytes = data_in_uri.encode()
-
-            except Exception as e:
-                listener_logger.error("uri_parse_error", error=str(e))
-                raise HTTPException(
-                    status_code=400, detail="Invalid or malformed client data"
-                )
-
-            # transform to extract implant uuid
-            hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
-            try:
-                implant_output_bytes = hce.apply_transforms(
-                    data=data_in_uri_bytes, block_field=mp.http_post.client.output
-                )
-                listener_logger.debug(
-                    "deobfuscation_complete", len=len(implant_uuid_bytes)
-                )
-            except Exception as e:
-                listener_logger.error("deobfuscation_failed", error=str(e))
-                raise HTTPException(
-                    status_code=400, detail="Invalid or malformed client data"
-                )
-        # this means data is somewhere else, so also extract it.
-        else:
-            try:
-                hce = HttpPostBlockClientParser(client_block=mp.http_post.client)
-                output_terminator_type, output_terminator_key = (
-                    hce.get_output_terminator()
-                )
-
-                # check if keys, ifnot, throw a 400 (it's a server error though - so maybe change later)
-                check_if_data(output_terminator_type)
-                # check_if_data(output_terminator_key)
-
-                implant_output_bytes = await deobsfucate_malleable_c2_request_data(
-                    request=request,
-                    terminator_type=output_terminator_type,
-                    terminator_key=output_terminator_key,
-                    malleable_c2_block=mp.http_post.client,
-                    block_field=mp.http_post.client.output,
-                    parser_class=HttpPostBlockClientParser,
-                )
-                listener_logger.debug("post_uri_output_extracted")
-
-            except Exception as e:
-                listener_logger.error("post_uri_output_error", error=str(e))
-                raise HTTPException(
-                    status_code=400, detail="Invalid or malformed client data"
-                )
-    except Exception as e:
-        listener_logger.error("post_uri_output_error", error=str(e))
-        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
-
-    # note, implant_uuid is now bytes. Need to convert to a string before passing in to redis
-    # implantuuid, can be either bytes, or str. Str, if no transforms, bytes, if transform. Probaly should fix that.\
-    # if isinstance(implant_output_bytes, bytes):
-    #     implant_output_data = implant_output_bytes.decode("latin-1")
-    # else:
-    #     # if for wahtever reason, it's not bytes (which shouldn't happen..., but does on no transform profiles)
-    #     implant_output_data = implant_output_bytes
-
-    # scrach that, redis wants bytes.
-
-    # store, and give a response
-    response = http_post_response(
-        data_from_implant=implant_output_bytes, implant_uuid=implant_uuid_str
     )
     return response
 
@@ -965,118 +750,49 @@ def http_post_response(data_from_implant: bytes, implant_uuid):
 # Route setup
 ###################################
 
+# Potential solution to chaos of multi routes/fastapi, use "one" route:
 
-def register_http_route(uri: URL, method: str, endpoint, uri_endpoint):
-    """
-    Registeres routes. Prevents these being called on import as well.
-    """
-    check_type(uri, URL, "uri")
-    check_type(method, str, "method")
-    # function is not defined, some weird python type only thing.
-    # check_type(uri_endpoint, function, "uri_endpoint")
+# (have one for get, one for post). Pass of to some logic func, that does what it needs to with the
+# request object. This makes it way easier to jsut get all the URI data, and have simplified logic for this.
 
-    app.add_api_route(
-        path=str(URL(uri)),
-        endpoint=endpoint,  # logic for endpoint here
-        methods=[method],
-        # response_model=dict,
-        # tags=["items"],
-    )
+# from fastapi import FastAPI, Request
 
-    # note, was just "{data}", but then any appends after the URI fail/404 due to path not found.
-    # full_uri = safe_join(str(uri), "{data:path}")
+# uri's here, load from profile
+# C2_GET_URI = ["/wiki", "/news", "/submit"]
+# C2_POST_URI = ["/wiki", "/news", "/submit"]
 
-    full_uri = safe_join(str(uri), "{data:path}")
-
-    # Register the route with the dynamic path
-    app.add_api_route(
-        path=str(full_uri),
-        endpoint=uri_endpoint,  # The handler function for this route
-        methods=[method],
-    )
-    """
-    Why Two Routes are Needed in FastAPI:
-
-    FastAPI resolves routes based on exact paths. When using Cobalt Strike's `uri-append` 
-        (e.g., `/myuri/some-random-data`), FastAPI treats `/myuri` as a fixed endpoint and doesn't automatically handle `/myuri/{data}`. 
-
-    To handle this, you need two routes:
-    1. One for the base path (`/myuri`). (note, /myuri/ will 307 -> /myuri, this is fine)
-    2. Another for the dynamic append (`/myuri/{data}`).
-
-    This way, FastAPI can process both the static and dynamic parts of the URL correctly.    
-    """
-
-
-def safe_join(base_uri: str, append: str) -> str:
-    """
-    Join two URI parts with exactly one '/' between them.
-
-    Args:
-        base_uri: The base URI or path segment (e.g., "https://example.com/api" or "https://example.com/api/").
-        append: The segment to append (e.g., "v1/data" or "/v1/data").
-
-    Returns:
-        A string representing the combined URI with a single slash separating the two parts.
-
-    Examples:
-        safe_join("https://example.com/api", "v1")       -> "https://example.com/api/v1"
-        safe_join("https://example.com/api/", "v1")      -> "https://example.com/api/v1"
-        safe_join("https://example.com/api", "/v1")      -> "https://example.com/api/v1"
-        safe_join("https://example.com/api/", "/v1")     -> "https://example.com/api/v1"
-
-    Also: For formatting fastapi urls:
-        safe_join(str(uri), "{data}")                   -> https://example.com/{data}
-
-        There was a bug here where the URI would be https://example.com//{data}, which leaves a blank path/an invalid path where the listener
-        was not getting the data because of it.
-
-
-    """
-    if not base_uri.endswith("/") and not append.startswith("/"):
-        return base_uri + "/" + append
-    elif base_uri.endswith("/") and append.startswith("/"):
-        return base_uri + append[1:]  # remove extra slash
-    else:
-        return base_uri + append
-
-
-"""
-Potential solution to chaos of multi routes/fastapi, use "one" route:
-
-(have one for get, one for post). Pass of to some logic func, that does what it needs to with the
-request object. This makes it way easier to jsut get all the URI data, and have simplified logic for this.
-
-from fastapi import FastAPI, Request
-
-app = FastAPI()
-
-# Your configured profile URIs (uri's from malleable c2 here)
-C2_URIS = ["/wiki", "/news", "/submit"]
 
 # 1. Capture EVERYTHING (The "Jetty" method)
-@app.api_route("/{full_path:path}", methods=["GET", "POST"])
-async def catch_all_c2_handler(request: Request, full_path: str):
+async def http_catchall(request: Request, full_path: str):
     # Important: The path might come in without the leading slash from the param
-    actual_path = request.url.path 
+    actual_path = request.url.path
 
-    # 2. Iterate and match (The "Cobalt Strike" method)
-    for uri in C2_URIS:
-        if actual_path.startswith(uri):
-            
-            results = handle_this_data(request)
+    # note, this technically uri could be a list. Could randomly choose from that list, but i think it's more geared towards letting the implant
+    # choose from the list instead...
 
+    # pull out the needed uri's
+    http_get_uri = mp.http_get.uri.value
+    http_post_uri = mp.http_post.uri.value
 
-            # Manually extract the data
-            # This handles "/wiki/123" AND "/wiki123" identically
-            #data = actual_path[len(uri):] 
-            
-            #return handle_beacon_data(data)
+    # pull out verbs, tldr, this is the safest way to do it
+    try:
+        http_get_method = mp.http_get.verb.value if mp.http_get.verb.value else "GET"
+    except Exception as e:
+        http_get_method = "GET"
+
+    try:
+        http_post_method = (
+            mp.http_post.verb.value if mp.http_post.verb.value else "POST"
+        )
+    except Exception as e:
+        http_post_method = "POST"
+
+    if actual_path in http_get_uri and request.method == http_get_method:
+        response = await http_get(request=request)
+        return response
+
+    if actual_path in http_post_uri and request.method == http_post_method:
+        response = await http_post(request=request)
+        return response
 
     return {"error": "Not Found"}, 404
-
-def handle_beacon_data(data):
-    # Your decode logic here
-    return {"status": "processed", "payload": data}
-
-"""

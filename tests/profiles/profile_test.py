@@ -2,6 +2,8 @@ from mpp import *
 
 mp = MalleableProfile("./bing_getonly.profile")
 
+print(mp.http_post.verb.value)
+
 
 def clean_string(s):
     """
@@ -49,4 +51,4 @@ def clean_ast_backslash_delimiters(node):
 clean_ast_backslash_delimiters(mp.profile)
 
 # Verify the output
-print(mp.profile)
+# print(mp.profile)
