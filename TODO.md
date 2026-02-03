@@ -230,18 +230,18 @@ my guess:
       FINAL EXECUTION REPORT
 ========================================
 amazon.profile                 | SUCCESS
-apt1_virtually.profile         | SUCCESS
-apt1_virtuallythere.profile    | SUCCESS
+apt1_virtually.profile         | FAILURE: Step 7 (Output Verification Failed)
+apt1_virtuallythere.profile    | FAILURE: Step 7 (Output Verification Failed) # implant ID has leading / for some reason. Not sure why???? could be that the / is getting added somewehre in pasting it in
 asprox.profile                 | SUCCESS
 backoff.profile                | SUCCESS
 bingsearch_getonly.profile     | SUCCESS
 bing_search.profile            | SUCCESS
 cnnvideo_getonly.profile       | SUCCESS
-comfoo.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
-etumbot copy.profile           | FAILURE: Step 5 (Execution - Crashed/Exited)
-etumbot.profile                | FAILURE: Step 5 (Execution - Crashed/Exited)
-fiesta.profile                 | FAILURE: Step 5 (Execution - Crashed/Exited)
-fiesta2.profile                | FAILURE: Step 5b (No Check-in Received)
+comfoo.profile                 | SUCCESS
+etumbot copy.profile           | SUCCESS
+etumbot.profile                | SUCCESS
+fiesta.profile                 | SUCCESS
+fiesta2.profile                | SUCCESS
 gmail.profile                  | SUCCESS
 googledrive_getonly.profile    | SUCCESS
 havex.profile                  | SUCCESS
@@ -249,8 +249,8 @@ magnitude.profile              | SUCCESS
 meterpreter.profile            | FAILURE: Step 5 (Execution - Crashed/Exited)
 microsoftupdate_getonly.profile | FAILURE: Step 5 (Execution - Crashed/Exited)
 msnbcvideo_getonly.profile     | SUCCESS
-ocsp copy.profile              | FAILURE: Step 5 (Execution - Crashed/Exited)
-ocsp.profile                   | FAILURE: Step 5 (Execution - Crashed/Exited)
+ocsp copy.profile              | SUCCESS
+ocsp.profile                   | SUCCESS
 onedrive_getonly copy.profile  | SUCCESS
 onedrive_getonly.profile       | SUCCESS
 pandora.profile                | SUCCESS
