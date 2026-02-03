@@ -210,6 +210,9 @@ Note: may need to intergrate the special chars, \x, etc (see docs) that mc2 allo
       >: Example: `b = bytes("\x33", "latin-1")`, then take b and append to bytearray
       > latin-1 because it maps from 0x00 to 0xFF
 
+Misc:
+ - [ ] Build, on fail, still says building. update to on fail, or on timeout, say failed in db.
+
 Current design choice: no space in URI's for multiple options. Later.
 
 Current test results:

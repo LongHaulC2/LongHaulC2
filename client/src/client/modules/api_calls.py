@@ -209,8 +209,25 @@ async def build_implant(
     structlog.contextvars.bind_contextvars(method="POST", url=url)
 
     async with httpx.AsyncClient() as client:
-        response = await client.post(url, json=build_request_data)
+        response = await client.post(url, json=build_request_data, timeout=60)
         data = response.json()
+        return data
+
+
+async def get_build_status(build_uuid: str) -> dict:
+    """Gets build status for a specific build UUID
+    Returns:
+        dict: _description_
+
+    """
+    url = generate_url(f"/api/v1/build/jobs/{build_uuid}")
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(method="GET", url=url)
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        data = response.json()  # .get("data")
         return data
 
 

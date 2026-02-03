@@ -7,6 +7,7 @@ from nicegui import ui
 from client.src.client.modules.api_calls import (
     build_implant,
     get_all_listener_data,
+    get_build_status,
     get_listener_data,
     get_payload_bytes,
     get_payload_data,
@@ -116,22 +117,12 @@ async def render_payloads(payload_data: dict):
     async def handle_download(e):
         row = e.args
         ui.notify(f"Retrieving {row['name']}...", type="info", color="grey-9")
-        file_bytes = await get_payload_bytes(row["hash"])
-        if file_bytes:
-            ui.download(file_bytes, filename=f'{row["name"]}.bin')
-            ui.notify("Transfer Complete", type="positive")
-        else:
-            ui.notify("Transfer Failed", type="negative")
+        await download_payload(hash=row["hash"], name=row["name"])
 
     async def handle_source_download(e):
         row = e.args
         ui.notify(f"Retrieving {row['name']}...", type="info", color="grey-9")
-        file_bytes = await get_payload_source_bytes(row["hash"])
-        if file_bytes:
-            ui.download(file_bytes, filename=f"{row["name"]}_source.zip")
-            ui.notify("Transfer Complete", type="positive")
-        else:
-            ui.notify("Transfer Failed", type="negative")
+        await download_payload_source(hash=row["hash"], name=row["name"])
 
     # 4. Render Groups
     listener_data = (await get_all_listener_data()).get("data")
@@ -235,7 +226,13 @@ async def start_payload_dialogue():
             ui.notify("MISSING REQUIRED FIELDS", type="warning", color="orange-9")
             return
 
+        # show prog bar
+        progress_bar.classes(remove="opacity-0")
+
         build_btn.props("loading")
+
+        # fake update progress bar
+        progress_bar.value = 0.25
 
         result = await build_implant(
             implant_name=name,
@@ -243,16 +240,66 @@ async def start_payload_dialogue():
             implant_variant=variant if variant_select.visible else None,
             output_format=fmt,
         )
+        # print(result)
+        build_uuid = result.get("data", {}).get("build_uuid")
+        # ui.notify(f"BUILD UUID: {build_uuid}", type="info", color="grey-9")
+
+        if build_uuid:
+            progress_bar.value = 0.75
 
         build_btn.props("loading=false")
 
-        if result:
-            ui.notify(
-                f"BUILD STARTED: {name}.{fmt}", type="positive", color="emerald-9"
-            )
-            dialog.close()
-        else:
-            ui.notify("COMPILATION FAILED", type="negative")
+        async def poll_build_status():
+            # Call your check function
+            result = await get_build_status(build_uuid)
+            print(result)
+            if result.get("data", {}).get("build_status") == "complete":
+                payload_hash = result.get("data", {}).get("payload_hash")
+                payload_name = result.get("data", {}).get("payload_name")
+
+                # complete bar and disable spinner
+                progress_bar.value = 1
+                progress_bar.color = "green-500"
+                build_btn.props("loading=false")
+
+                print(result)
+                # ui.notify("BUILD SUCCEDED", type="positive", color="emerald-9")
+                download_payload_button.enable()
+                download_payload_button.on_click(
+                    lambda: download_payload(hash=payload_hash, name=payload_name)
+                )
+                download_payload_source_button.enable()
+                download_payload_source_button.on_click(
+                    lambda: download_payload_source(
+                        hash=payload_hash, name=payload_name
+                    )
+                )
+
+                status_timer.deactivate()  # Stop polling
+                # dialog.close()
+
+                # hide bar again? design choice
+                # progress_bar.classes("opacity-0")
+                # progress_bar.value = 0
+
+            if result.get("data", {}).get("build_status") == "failed":
+                # progress_bar.value = 0
+                progress_bar.color = "red-500"
+                print(result)
+                ui.notify("BUILD FAILED", type="negative", color="red-9")
+                build_btn.props("loading=false")
+                status_timer.deactivate()  # Stop polling
+                # dialog.close()
+
+        status_timer = ui.timer(1.0, poll_build_status, active=True)
+
+        # if result:
+        #     ui.notify(
+        #         f"BUILD STARTED: {name}.{fmt}", type="positive", color="emerald-9"
+        #     )
+        #     dialog.close()
+        # else:
+        #     ui.notify("COMPILATION FAILED", type="negative")
 
     def _on_listener_change(e):
         allowed = VARIANT_MAP.get(listener_type_map.get(e.value), [])
@@ -310,9 +357,36 @@ async def start_payload_dialogue():
         with ui.row().classes(
             "w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"
         ):
-            ui.button("ABORT", on_click=dialog.close).props(
-                "flat dense color=grey no-caps"
+
+            # 2. The Progress Bar (Docked to top of footer)
+            # h-[2px]: Very thin "laser" line
+            # absolute top-0: Sits exactly on the border
+            # opacity-0: Hidden by default (we toggle this class instead of .visible to animate the fade)
+            progress_bar = (
+                ui.linear_progress(value=0, show_value=False, color="emerald-400")
+                .props("instant-feedback color=emerald track-color=transparent")
+                .classes("absolute top-0 left-0 w-full opacity-0 transition-opacity")
             )
+
+            download_payload_button = (
+                ui.button("PAYLOAD", icon="download")
+                .props("unelevated dense color=emerald text-color=white no-caps")
+                .classes("font-bold tracking-wide")
+            )
+            # disable returns none, so need to call separately
+            download_payload_button.disable()
+
+            download_payload_source_button = (
+                ui.button("SOURCE", icon="code")
+                .props("unelevated dense color=emerald text-color=white no-caps")
+                .classes("font-bold tracking-wide")
+            )
+            # disable returns none, so need to call separately
+            download_payload_source_button.disable()
+
+            # ui.button("ABORT", on_click=dialog.close).props(
+            #     "flat dense color=grey no-caps"
+            # )
 
             build_btn = (
                 ui.button("EXECUTE BUILD", on_click=_build_implant)
@@ -321,3 +395,21 @@ async def start_payload_dialogue():
             )
 
     dialog.open()
+
+
+async def download_payload(hash, name):
+    file_bytes = await get_payload_bytes(hash)
+    if file_bytes:
+        ui.download(file_bytes, filename=f"{name}.bin")
+        ui.notify("Transfer Complete", type="positive")
+    else:
+        ui.notify("Transfer Failed", type="negative")
+
+
+async def download_payload_source(hash, name):
+    file_bytes = await get_payload_source_bytes(hash)
+    if file_bytes:
+        ui.download(file_bytes, filename=f"{name}_source.zip")
+        ui.notify("Transfer Complete", type="positive")
+    else:
+        ui.notify("Transfer Failed", type="negative")
