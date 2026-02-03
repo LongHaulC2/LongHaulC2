@@ -209,13 +209,8 @@ Note: may need to intergrate the special chars, \x, etc (see docs) that mc2 allo
 - [X] \x byte conversion (\x00 -> bytes in string)
       >: Example: `b = bytes("\x33", "latin-1")`, then take b and append to bytearray
       > latin-1 because it maps from 0x00 to 0xFF
-- [ ] other converstions in mc2
 
 Current design choice: no space in URI's for multiple options. Later.
-
-<!-- big issue:
- 1. c++ delims work fine
- 2. in python, they do not. Need to strip all delims from mc2 in python code where it needs it. -->
 
 Current test results:
 
@@ -230,7 +225,7 @@ my guess:
       FINAL EXECUTION REPORT
 ========================================
 amazon.profile                 | SUCCESS
-apt1_virtually.profile         | SUCESS
+apt1_virtually.profile         | SUCESSS
 apt1_virtuallythere.profile    | SUCCESS
 asprox.profile                 | SUCCESS
 backoff.profile                | SUCCESS
@@ -247,7 +242,8 @@ googledrive_getonly.profile    | SUCCESS
 havex.profile                  | SUCCESS
 magnitude.profile              | SUCCESS
 meterpreter.profile            | SUCCESS
-microsoftupdate_getonly.profile | FAILURE: Checkin: URI did not match any configured endpoints... look closer. prepend might be doing something weird. CHECK WININET, this prepends a host header, and that might be getting messed with.
+microsoftupdate_getonly.profile | FAILURE: Checkin: URI did not match any configured endpoints... look closer. prepend might be doing something weird. CHECK WININET, this prepends a host header, and that might be getting messed with. Guess is that wininet protects the
+host header to prevent weird http stuff I guess. Maybe just note this in noteable exceptions
 msnbcvideo_getonly.profile     | SUCCESS
 ocsp copy.profile              | SUCCESS
 ocsp.profile                   | SUCCESS
