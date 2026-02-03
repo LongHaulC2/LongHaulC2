@@ -234,10 +234,20 @@ async def deobsfucate_malleable_c2_request_data(
     malleable_c2_block,
     parser_class,
     block_field,  # field to apply to,  ex, id, output, etc. mp.http_post.client.id otherwise parser doesn't know
+    malleable_c2_method_block,
     terminator_key=None,
 ) -> bytes:
     """
     Extracts data from the HTTP request based on the specified terminator type.
+
+    request: the fastAPI request
+    terminator_type: Type of terminator
+    malleable_c2_block: the mc2 block, ex, metadata, or id, or output (sorry, confusing)
+    parser_class: What class the malleable c2 is parsed with
+    block_field,  field to apply to, ex, id, output, etc. mp.http_post.client.id otherwise parser doesn't know
+    malleable_c2_method_block: The parent method block, ex mc2.http_get (sorry, confusing)
+    terminator_key=None, (optional) the key value that is the terminator, if applicable. Used in headers/params to locate data
+
     """
     match terminator_type:
         case "header":
@@ -317,21 +327,21 @@ async def deobsfucate_malleable_c2_request_data(
             path = request.url.path
             # new method: strip out URI, then take what's LEFT, and pass into transforms.
             # Otherwise, something where there's a path after (ex, /data/b, will take b, instead of data)
-            base_uri = mp.http_post.uri.value
+            base_uri = malleable_c2_method_block.uri.value
             data_from_request = path.replace(base_uri, "")
-            # data_in_uri_bytes = data_in_uri.encode()
+            data_in_uri_bytes = data_from_request.encode()
 
             # Strip the leading slash (and ensure it handles bytes)
-            if isinstance(data_from_request, bytes):
-                data_from_request = data_from_request.lstrip(b"/")
-            else:
-                data_from_request = data_from_request.lstrip("/")
+            # if isinstance(data_from_request, bytes):
+            #     data_from_request = data_from_request.lstrip(b"/")
+            # else:
+            #     data_from_request = data_from_request.lstrip("/")
 
             # return uri_append.encode()
             try:
                 hce = parser_class(client_block=malleable_c2_block)
                 data = hce.apply_transforms(
-                    data=data_from_request, block_field=block_field
+                    data=data_in_uri_bytes, block_field=block_field
                 )
                 listener_logger.debug(
                     "deobfuscation_complete", type="print", len=len(data)
@@ -476,6 +486,7 @@ async def http_get(request: Request) -> Response:
             malleable_c2_block=mp.http_get.client,
             block_field=mp.http_get.client.metadata,  # use metadata field to extract
             parser_class=HttpGetBlockClientParser,
+            malleable_c2_method_block=mp.http_get,
         )
         listener_logger.debug("payload_extracted", len=len(data_from_implant))
     except Exception as e:
@@ -640,6 +651,7 @@ async def http_post(request: Request) -> Response:
             malleable_c2_block=mp.http_post.client,
             block_field=mp.http_post.client.output,
             parser_class=HttpPostBlockClientParser,
+            malleable_c2_method_block=mp.http_post,
         )
         listener_logger.debug("post_output_extracted", len=len(data_from_implant))
     except Exception as e:
@@ -662,6 +674,7 @@ async def http_post(request: Request) -> Response:
             malleable_c2_block=mp.http_post.client,
             block_field=mp.http_post.client.id,
             parser_class=HttpPostBlockClientParser,
+            malleable_c2_method_block=mp.http_post,
         )
 
         # can be fixed by decoding the data in teh appy_transform functions in each class,
