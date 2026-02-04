@@ -6,12 +6,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
-
-// Assuming nlohmann/json is available via msgpack.h or directly
-// #include "../data/msgpack/msgpack.h" 
-// For this example to compile standalone, I am using nlohmann/json directly.
-// If you have it inside msgpack.h, keep your include.
-#include <nlohmann/json.hpp> 
+#include "../data/msgpack/msgpack.h"
 
 // --- Signatures ---
 
@@ -23,12 +18,14 @@ using EgressFunc = void (*)(std::string implant_uuid, std::string text_data, std
 
 // --- Settings Enums ---
 
+//jinja this
 enum class InMethod {
     HTTP,
     DNS,
     // Add others via Jinja
 };
 
+//jinja this
 enum class OutMethod {
     NTP,
     ICMP,
