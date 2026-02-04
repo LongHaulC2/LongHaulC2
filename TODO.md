@@ -158,71 +158,7 @@ Just remember, block == sender (ex, client, means sent from client). Transformat
 from the sender. 
 
 
-# Test planning - need before further development
- 3 VM's:
-
- 1. C2 Host (linux)
- 2. Operator ( (windows or lin) run scripts from - gui would be nice for debugging things.)
- 3. Victim ( (windows) where agents are run)
-
-Save/Revert; snapshots w proxmox
-
-Goals;
- - test Malleable c2 scripts (make sure nothing breaks)
- - tests install pattern
- - tests implant compilation, etc. 
- - load testing?
-
-Idea:
- - install server
- - start server
- - run script to create X listeners (various malleabel c2, that cover all test cases, params, output, etc)
- - compile implants for each listener
- - donwload implants
- - run on victim (somethign dumb like winrm or psexec or a way to just easily execute them, use a bad passwd for victim pc)
- - some sort of checker script that checks certain values to make sure everything is okay (this is a sanity check for the API as well to make sure Ihave everyhting)
-
-Shorter goal:
- - 1 script, with a profiles folder. Script does everything. 
-
- - [ ] build id
-   - [ ] add proper docs/logging to endpoint, and sub funcs, then continue testing
-
-
-
-> here
-Testing:
-
-Every test failed - lots of crashes, which means invalid data being sent back to server/it's interpreting it wrong. 
-
-
-Bugs:
- - [X] order: http_get metadata seems to be doing transforms in reverse order. 
- - [ ] Delim: Seems to be a problem that some profiels have delims, ex `"\"en-us\""`. TLDR: delims don't get escaped, and implant math on length of this datais wrong, which casues decode errors. 
-
- - [X] Extra / in URL's. YARL every URL string, check every point it could be at.
-
-
-Note: may need to intergrate the special chars, \x, etc (see docs) that mc2 allows for, to get a 100% pass below.
-
-- [X] delim \" and \"
-- [X] \x byte conversion (\x00 -> bytes in string)
-      >: Example: `b = bytes("\x33", "latin-1")`, then take b and append to bytearray
-      > latin-1 because it maps from 0x00 to 0xFF
-
-Misc:
- - [ ] Build, on fail, still says building. update to on fail, or on timeout, say failed in db.
-
-Current design choice: no space in URI's for multiple options. Later.
-
-Current test results:
-
-========================================
-      FINAL EXECUTION REPORT
-========================================
-my guess: 
- - step 5 == Was cookies, need to check profile by profile next.
- - Step 7: Unsure, somethign not matching the POST data as needed by server. test case by case
+# Tests output (2/2/2026)
 
 ========================================
       FINAL EXECUTION REPORT
@@ -265,9 +201,6 @@ webbug_getonly_v0.0.0.profile  | SUCCESS
 wikipedia_getonly.profile      | SUCCESS
 zeus.profile                   | SUCCESS
 ========================================
-
-Misc idea:
- - "melting pot" where all comms that come in, and have some data, etc, are stored, but don't have valid ID's, etc etc. Just so repsonses aren't lost?
 
 
 
