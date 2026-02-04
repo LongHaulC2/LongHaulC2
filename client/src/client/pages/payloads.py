@@ -57,9 +57,9 @@ async def payloads_view():
                     ui.label("COMPILE NEW").classes("text-xs font-bold tracking-wide")
 
                 # Refresh Button
-                ui.button(icon="refresh", on_click=lambda: ui.open("/payloads")).props(
-                    "dense flat size=sm"
-                ).classes("tech-btn-ghost")
+                ui.button(
+                    icon="refresh", on_click=lambda: ui.navigate.to("/payloads")
+                ).props("dense flat size=sm").classes("tech-btn-ghost")
 
         # --- CONTENT AREA ---
         with ui.scroll_area().classes("w-full flex-grow p-6 tech-scroll"):
@@ -91,6 +91,13 @@ async def render_payloads(payload_data: dict):
             "align": "left",
             "classes": "font-mono text-xs opacity-70",
         },
+        # {
+        #     "name": "build_status",
+        #     "label": "Build_status",
+        #     "field": "build_status",
+        #     "align": "right",
+        #     "classes": "font-mono text-xs opacity-70",
+        # },
         {"name": "actions", "label": "Op", "field": "actions", "align": "right"},
     ]
 
@@ -252,7 +259,7 @@ async def start_payload_dialogue():
         async def poll_build_status():
             # Call your check function
             result = await get_build_status(build_uuid)
-            print(result)
+            # print(result)
             if result.get("data", {}).get("build_status") == "complete":
                 payload_hash = result.get("data", {}).get("payload_hash")
                 payload_name = result.get("data", {}).get("payload_name")
@@ -262,7 +269,7 @@ async def start_payload_dialogue():
                 progress_bar.color = "green-500"
                 build_btn.props("loading=false")
 
-                print(result)
+                # print(result)
                 # ui.notify("BUILD SUCCEDED", type="positive", color="emerald-9")
                 download_payload_button.enable()
                 download_payload_button.on_click(
@@ -274,18 +281,16 @@ async def start_payload_dialogue():
                         hash=payload_hash, name=payload_name
                     )
                 )
-
                 status_timer.deactivate()  # Stop polling
                 # dialog.close()
 
-                # hide bar again? design choice
-                # progress_bar.classes("opacity-0")
-                # progress_bar.value = 0
-
             if result.get("data", {}).get("build_status") == "failed":
-                # progress_bar.value = 0
-                progress_bar.color = "red-500"
-                print(result)
+                # hide old green bar
+                progress_bar.classes("opacity-0")
+                # show failed red bar.
+                progress_bar_fail.value = 1
+                progress_bar_fail.classes(remove="opacity-0")
+
                 ui.notify("BUILD FAILED", type="negative", color="red-9")
                 build_btn.props("loading=false")
                 status_timer.deactivate()  # Stop polling
@@ -293,19 +298,11 @@ async def start_payload_dialogue():
 
         status_timer = ui.timer(1.0, poll_build_status, active=True)
 
-        # if result:
-        #     ui.notify(
-        #         f"BUILD STARTED: {name}.{fmt}", type="positive", color="emerald-9"
-        #     )
-        #     dialog.close()
-        # else:
-        #     ui.notify("COMPILATION FAILED", type="negative")
-
     def _on_listener_change(e):
         allowed = VARIANT_MAP.get(listener_type_map.get(e.value), [])
         variant_select.options = allowed
         variant_select.value = allowed[0] if allowed else None
-        variant_select.classes("hidden", remove=bool(allowed), add=not bool(allowed))
+        variant_select.visible = bool(allowed)
 
     # --- UI ---
     # "tech-dialog" handles the dark theme and borders
@@ -365,6 +362,12 @@ async def start_payload_dialogue():
             progress_bar = (
                 ui.linear_progress(value=0, show_value=False, color="emerald-400")
                 .props("instant-feedback color=emerald track-color=transparent")
+                .classes("absolute top-0 left-0 w-full opacity-0 transition-opacity")
+            )
+            # tldr, a fail one to have a red bar if it fails. I can't find a way to change the color once init'd
+            progress_bar_fail = (
+                ui.linear_progress(value=0, show_value=False, color="red-500")
+                .props("instant-feedback color=red track-color=transparent")
                 .classes("absolute top-0 left-0 w-full opacity-0 transition-opacity")
             )
 

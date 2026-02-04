@@ -84,8 +84,14 @@ def build_implant(implant_name, listener_uuid, variant, output_format, build_uui
         variant=variant,
     )
     # built the implant with docker
-    docker_build_implant(build_dir)
-    # and store in DB
+    if not docker_build_implant(build_dir):
+        server_logger.info(f"Implant build failed for {implant_name}")
+        # update build status to failed
+        with get_mysql_session() as session:
+            service = MySQLImplantPayloadService(session)
+            service.update_build_status(build_uuid=build_uuid, build_status="failed")
+
+    # and store in DB - even on fail, to capture source.
     store_data_post_build(
         build_dir=build_dir,
         payload_name=implant_name,
@@ -281,7 +287,15 @@ def copy_base_structure(source_dir: Path, dest_dir: Path):
         raise e
 
 
-def docker_build_implant(source_code_dir: Path):
+def docker_build_implant(source_code_dir: Path) -> bool:
+    """
+    Docstring for docker_build_implant
+
+    :param source_code_dir: The source code directory to build the implant from.
+    :type source_code_dir: Path (Pathlib)
+    :return: Boolean indicating success (True) or failure (False) of the build.
+    :rtype: bool
+    """
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(source_dir=str(source_code_dir))
 
@@ -337,9 +351,11 @@ def docker_build_implant(source_code_dir: Path):
         server_logger.info("Docker build completed successfully.")
         # Log full output at debug level to keep main logs clean, unless you want it always visible
         server_logger.debug(f"DOCKER LOGS:\n{logs}")
+        return True
     else:
         server_logger.error(f"Docker build failed with exit code {exit_code}.")
         server_logger.error(f"DOCKER LOGS:\n{logs}")
+        return False
 
     # clean up container object reference (optional if remove=True is uncommented above)
     # container.remove()

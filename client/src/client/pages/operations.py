@@ -229,7 +229,9 @@ async def implant_view():
     async def action_open_terminal():
         ids = [row["implant_uuid"] for row in table.selected]
         for implant_uuid in ids:
-            await terminal_add_tab(implant_uuid[:8], implant_uuid)
+            # FIX: Pass only the full UUID.
+            # The function now handles the slicing for the label internally.
+            await terminal_add_tab(implant_uuid)
 
     async def handle_notes():
         ids = [row["implant_uuid"] for row in table.selected]
@@ -279,6 +281,13 @@ async def terminal_view():
             )
             tabs.classes("bg-transparent h-full flex-grow")
 
+            ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
+            ui.button(icon="delete_sweep", on_click=terminal_close_all).props(
+                "flat dense round size=sm"
+            ).classes("text-neutral-500 hover:text-red-400 transition-colors").tooltip(
+                "Close All Terminals"
+            )
+
         # The Panel Container
         panels = (
             ui.tab_panels(tabs)
@@ -287,36 +296,43 @@ async def terminal_view():
         )
 
 
-async def terminal_add_tab(tab_name: str, implant_uuid: str):
+async def terminal_add_tab(implant_uuid: str):
     global tabs, panels, open_tabs
-    check_type(tab_name, str, "tab_name")
+    # Remove tab_name argument, we derive it here
     check_type(implant_uuid, str, "implant_uuid")
 
+    # 1. Define distinct ID vs Label
+    tab_id = implant_uuid  # Unique internal ID (Full UUID)
+    tab_label = implant_uuid[:8]  # Visual display name
+
+    # 2. Check using the full UUID key
     if implant_uuid in open_tabs:
-        panels.set_value(tab_name)  # Assuming tab_name is the key logic
+        panels.set_value(tab_id)
         return
 
-    # Create Tab
+    # 3. Create Tab with explicit 'name'
     with tabs:
-        with ui.tab(tab_name, label="").classes(
+        # name=tab_id ensures the tab system tracks it by full UUID
+        with ui.tab(name=tab_id, label="").classes(
             "h-full px-3 min-h-0 border-r border-white/5"
         ) as tab:
             tab.meta = {"implant_uuid": implant_uuid}
             with ui.row().classes("items-center gap-2"):
-                ui.label(tab_name).classes("text-xs font-mono text-emerald-500")
+                # Display the short label visually
+                ui.label(tab_label).classes("text-xs font-mono text-emerald-500")
                 ui.button(
                     "✕", on_click=lambda e: terminal_close_tab(implant_uuid)
                 ).props("flat dense size=xs").classes(
                     "text-neutral-600 hover:text-white px-0"
                 )
 
-    # Create Panel
+    # 4. Create Panel with matching 'name'
     with panels:
-        with ui.tab_panel(tab_name).classes("p-0 w-full h-full") as panel:
+        with ui.tab_panel(name=tab_id).classes("p-0 w-full h-full") as panel:
             await terminal(implant_uuid)
 
     open_tabs[implant_uuid] = {"tab_object": tab, "panel_object": panel}
-    panels.set_value(tab_name)
+    panels.set_value(tab_id)
 
 
 async def terminal_close_tab(implant_uuid: str):
@@ -326,16 +342,24 @@ async def terminal_close_tab(implant_uuid: str):
         tabs.remove(tab_data["tab_object"])
         panels.remove(tab_data["panel_object"])
 
-        if open_tabs:
-            # Logic to switch to next available tab (might need refinement based on how tab names are stored in panels)
-            # This is a bit rough since we keyed panels by tab_name but remove by uuid.
-            # Ideally next_uuid should trigger the tab name switch.
-            # For now, just setting to None if empty is safe.
-            pass
-        else:
+        # If we just closed the active tab, or any tab, we need to decide what to focus
+        if not open_tabs:
             panels.set_value(None)
+        # Optional: Else switch to the last opened tab
+        # else:
+        #    last_uuid = list(open_tabs.keys())[-1]
+        #    panels.set_value(last_uuid)
+
     except Exception as e:
         server_log.error(f"Error closing tab: {e}")
+
+
+async def terminal_close_all():
+    global open_tabs
+    # We must iterate over a list copy of keys because the dictionary
+    # changes size as we close tabs.
+    for implant_uuid in list(open_tabs.keys()):
+        await terminal_close_tab(implant_uuid)
 
 
 async def terminal(implant_uuid: str):
