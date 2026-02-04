@@ -31,6 +31,10 @@ tabs = None
 panels = None
 open_tabs = {}
 
+# for history per implant terminal
+command_history = {}
+history_index = {}
+
 
 def clear_state():
     global tabs, panels, open_tabs
@@ -303,7 +307,7 @@ async def terminal_add_tab(implant_uuid: str):
 
     # 1. Define distinct ID vs Label
     tab_id = implant_uuid  # Unique internal ID (Full UUID)
-    tab_label = implant_uuid[:8]  # Visual display name
+    tab_label = implant_uuid[-8:]  # Visual display name, get last 8 of uuid
 
     # 2. Check using the full UUID key
     if implant_uuid in open_tabs:
@@ -390,6 +394,8 @@ async def terminal(implant_uuid: str):
                     "dense borderless dark input-class=text-emerald-400 input-style=font-family:monospace"
                 )
                 .on("keydown.enter", lambda: handle_command())
+                .on("keydown.up", lambda: navigate_history("up"))  # <--- Add this
+                .on("keydown.down", lambda: navigate_history("down"))
             )
 
             ui.button("SEND", on_click=lambda: handle_command()).classes(
@@ -410,6 +416,10 @@ async def terminal(implant_uuid: str):
         user_input = ui_user_input.value
         if not user_input:
             return
+
+        # Save to history
+        command_history[implant_uuid].append(user_input)
+        history_index[implant_uuid] = -1  # Reset index
 
         await push_text_to_terminal(user_input)
         ui_user_input.value = ""
@@ -479,6 +489,31 @@ async def terminal(implant_uuid: str):
                 new_last_uuid = task.get("task_uuid")
 
         last_uuid = new_last_uuid
+
+    # command history
+    # Initialize history for this session if missing
+    if implant_uuid not in command_history:
+        command_history[implant_uuid] = []
+        history_index[implant_uuid] = -1
+
+    def navigate_history(direction):
+        hist = command_history[implant_uuid]
+        idx = history_index[implant_uuid]
+
+        if not hist:
+            return
+
+        if direction == "up":
+            idx = max(0, idx - 1) if idx != -1 else len(hist) - 1
+        elif direction == "down":
+            idx = min(len(hist), idx + 1)
+
+        history_index[implant_uuid] = idx
+
+        if 0 <= idx < len(hist):
+            ui_user_input.value = hist[idx]
+        else:
+            ui_user_input.value = ""  # Clear if we go past the end
 
     # --- INIT ---
     async def setup_terminal():
