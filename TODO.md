@@ -19,6 +19,7 @@
 
      # this is not needed yet, but would be a nice to have
    - [ ] Per-Implant page
+      - POC done, fill in/match with real data, etc. 
 
 
 #  server
@@ -61,6 +62,8 @@
  - [ ] Implant
    - not implementing implant specific options. Sticking to response/network shaping options
 
+   
+
 # Implant:
  - Reqs:
    - Windows:
@@ -76,6 +79,18 @@
 
       - [x] Decide project structure (folder struct, etc)
   
+
+
+   # Strategies:
+      - Compile implant with multiple strategies, i.e. multiple malleable c2 profiles
+      Implant then has it listed in its settings, that it can use those strats
+
+      user then:
+         `strat <name_of_strat>`
+         and implant switches to said strat. Ex, HTTP bingsearch -> http_cnnvideo | http->ntp, etc. 
+
+      Implementation...
+
    # Commands list:
       - cd (SetCurrentDirectoryA(path);): sets cwd of whole program
 
