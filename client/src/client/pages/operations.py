@@ -298,6 +298,27 @@ async def terminal_view():
             .classes("w-full h-full bg-neutral-900/40")
             .props("dense transition-duration=0")
         )
+    # Inside your terminal_view header or tab label
+    # label_checkin = ui.label("..").classes("font-mono text-xs text-neutral-500")
+
+    # async def update_timer():
+    #     # Fetch latest data for this implant
+    #     data = await get_implant_data(implant_uuid)
+    #     last_seen = data.get('last_seen') # timestamp
+    #     sleep = data.get('sleep', 5)      # seconds
+
+    #     # Calc logic (pseudo-code)
+    #     # seconds_ago = now - last_seen
+    #     # next_in = sleep - seconds_ago
+
+    #     if next_in > 0:
+    #         label_checkin.text = f"NEXT: {next_in}s"
+    #         label_checkin.classes(remove="text-red-500", add="text-neutral-500")
+    #     else:
+    #         label_checkin.text = f"LATE: {abs(next_in)}s"
+    #         label_checkin.classes(remove="text-neutral-500", add="text-red-500")
+
+    # ui.timer(1, update_timer)
 
 
 async def terminal_add_tab(implant_uuid: str):
