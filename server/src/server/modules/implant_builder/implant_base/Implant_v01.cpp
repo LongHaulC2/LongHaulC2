@@ -35,7 +35,7 @@
 #include "tests/test.h"
 #include "lifecycle/comms.h"
 #include "data/msgpack/msgpack.h"
-#include "data/control/c2.h"
+#include "control/c2.h"
 int temp_loop() {
     
     //note - do a while not registered?
