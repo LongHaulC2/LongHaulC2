@@ -18,7 +18,7 @@
    <!-- - [ ] Server should say warning if task is invalid format -->
 
      # this is not needed yet, but would be a nice to have
-   - [ ] Per-Agent page
+   - [ ] Per-Implant page
 
 
 #  server
@@ -101,10 +101,6 @@
     - [X] Post Task > not posting anythign back seemingly, or somethign is goign wrong. post is erroring out somehwere. missing req data.
     - [ ] Harden functions with checks.
 
-   - [ ] Figure out param field
-          [go with this, is a better idea]
-        - idea 1: Create an entirely seperate function with a "param" input (vector of strs) that auto adds params onto the request (stamped in at build)
-
  # Stamping in/templating:
     Goal: Only touch comms functions, make everything as generic as possible to "just work"/follow a schema. AKA, if you have an http implant vs ntp, the only thing that changes
         are the protocol calls (ex, for ntp, call get() -> ntp_get(), for http, call get() -> http_get())
@@ -114,45 +110,9 @@
     2. Format code blocks with data  (callback, transforms, etc)
     3. Paste into build files
 
-   >> here
+
    Left off: 
-      Working on jinja templating.
-      - [X] Make http_wininet_context into its own file, break up/clean up, and import into build.py
-      - [>] Make sure transform_?.j2 match c++ function calls
-         - [X] base64
-         - [X] base64url
-         - [X] append
-         - [X] prepend
-         - [ ] xor (still not sure about how the key works/where to get it from. Maybe generate on client side, OR pass in from server, in metadata/register)
-         - [X] netbios
-         - [X] netbiosu
-
-         - Keep in mind the reverse steps macros, make a reverse set of macros for reversing.
-            Name it "render_reverse_transform_metadata(object)
-            - [X] Reverse are there, need to use where to reverse (ex, data coming back from server)
-               - Just http-get.server has this at the moment, as that's where tasks are retrieved from.
-               - This could, and probably should be added onto http-post server output, but it doesn't matter too much, as 
-                  no meaningful data is transfered on that channel afaik. (some profiles do use it for some seemingly blank data)
-
-      - [ ] cleanup build.py <<<<<
-         - [X] DELTE OLD TEMP FILES AFTER USING THEM (after write to DB in payload.py)
-
-         - implant vs payload naming: payload: unran implant. Implant: Active implant
-         - [ ] Server: Clean up, add output options/logic (exe, etc)
-            - Going to need to get that logic into the build process, for which verson of main to include (dll, vs exe main - have a template for both)
-
-         - [ ] Add variant back to GUI, seemingly not showing up in payload build
-
-         - [ ] move register to comms. 
-
-      - note... containers not removed atm as they bugged out and would vanish before execution done? 
-
-         >> Works - just continue building out/testing:
-      - [ ] Implant Formatting/Jinja Options
-         - [ ] Update keys needed at ehader of j2
-         http_comms.cpp
-            - [ ] http-config:
-               - Add user agent (parser, in jinja, etc. )
+   - [ ] xor (still not sure about how the key works/where to get it from. Maybe generate on client side, OR pass in from server, in metadata/
 
 Just remember, block == sender (ex, client, means sent from client). Transformations are top down
 from the sender. 

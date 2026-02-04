@@ -24,7 +24,6 @@ async def queue_task(implant_uuid: str, task: dict):
         httpx.Response: The HTTP response object. A successful task queueing (200 OK) returns the task details.
         Example return data structure (response.json()):
         {
-            "task_uuid": "019baff9-37fd-759d-8203-a8a5bd505028",
             "taskname": "shell",
             "args": {"cli": "whoami"},
             "status": "queued"
