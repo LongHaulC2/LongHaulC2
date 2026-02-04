@@ -91,6 +91,23 @@
 
       Implementation...
 
+      - [X] Code outline/poc
+      - [ ] jinja template it
+         - going to need:
+            - list of profiles that need to be compiled
+            - A rendered copy of each profile in c++ (store all these funcs in a comms.cpp/comms.h I guess)
+               > funcs will need to be named `protocol_get|post_<name_of_profile>`
+               ex: `http_post_amazon` (need conversion to c++ safe var names)
+         Files to be rendered:
+            - c2.cpp -> /control/c2.cpp
+               > init function with mappings.
+                  Name of profile, mapped to function name. (need to add function name to jinja template for http_wininet)
+                  `s_ingress_map["http_get_amazon"] = get_HTTP;`
+                  `s_egress_map["http_post_amazon"] = post_HTTP;`
+
+            settings... eventually. 
+
+
    # Commands list:
       - cd (SetCurrentDirectoryA(path);): sets cwd of whole program
 
