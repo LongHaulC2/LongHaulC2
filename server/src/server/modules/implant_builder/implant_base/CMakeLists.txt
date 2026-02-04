@@ -30,6 +30,9 @@ set(SOURCES
     "protocols/base64/base64.h"
     "lifecycle/comms.cpp"
     "lifecycle/comms.h"
+    "control/c2.h"
+    "control/c2.cpp"
+
 )
 
 add_executable (Implant_v01 ${SOURCES})
