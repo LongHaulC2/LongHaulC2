@@ -13,6 +13,23 @@ api_log = logging.getLogger("api")
 
 
 async def queue_task(implant_uuid: str, task: dict):
+    """
+    Submit a new task to be executed by a specific implant.
+
+    Args:
+        implant_uuid (str): The unique identifier (UUID) of the target implant.
+        task (dict): The task definition. Expected to contain 'taskname' (str) and 'args' (dict).
+
+    Returns:
+        httpx.Response: The HTTP response object. A successful task queueing (200 OK) returns the task details.
+        Example return data structure (response.json()):
+        {
+            "task_uuid": "019baff9-37fd-759d-8203-a8a5bd505028",
+            "taskname": "shell",
+            "args": {"cli": "whoami"},
+            "status": "queued"
+        }
+    """
     check_type(implant_uuid, str, "implant_uuid")
     # switch task to dataclass
     check_type(task, dict, "task")
@@ -31,6 +48,21 @@ async def queue_task(implant_uuid: str, task: dict):
 
 
 async def update_implant(implant_uuid: str, data: dict):
+    """
+    Update the metadata or status information for a specific implant.
+
+    Args:
+        implant_uuid (str): The unique identifier (UUID) of the implant to update.
+        data (dict): The update data, such as notes or status changes.
+
+    Returns:
+        httpx.Response: The HTTP response object.
+        Example return data structure (200 OK):
+        {
+            "status": "success",
+            "message": "Implant updated"
+        }
+    """
     check_type(implant_uuid, str, "implant_uuid")
     check_type(data, dict, "data")
 
@@ -48,6 +80,22 @@ async def update_implant(implant_uuid: str, data: dict):
 
 
 async def get_implant_data(implant_uuid: str) -> dict:
+    """
+    Retrieve detailed information and current status for a specific implant.
+
+    Args:
+        implant_uuid (str): The unique identifier (UUID) of the implant.
+
+    Returns:
+        dict: A dictionary containing the implant's metadata and check-in history.
+        Example structure:
+        {
+            "implant_uuid": 00000000-0000-0000-0000-000000000000,
+            "hostname": "WORKSTATION-01",
+            "last_checkin": "2023-10-27T10:00:00Z",
+            "ip_address": "192.168.1.5"
+        }
+    """
     check_type(implant_uuid, str, "implant_uuid")
 
     url = generate_url(f"/api/v1/implants/{implant_uuid}")
@@ -65,6 +113,17 @@ async def get_implant_data(implant_uuid: str) -> dict:
 
 
 async def get_all_implant_data() -> dict:
+    """
+    Retrieve a list of all implants currently registered in the database.
+
+    Returns:
+        dict: A dictionary (or list of dicts) containing data for all implants.
+        Example structure:
+        [
+            {"implant_uuid": "uuid-1", "hostname": "PC-A"},
+            {"implant_uuid": "uuid-2", "hostname": "PC-B"}
+        ]
+    """
     url = generate_url("/api/v1/implants/")
 
     structlog.contextvars.clear_contextvars()
@@ -79,6 +138,17 @@ async def get_all_implant_data() -> dict:
 
 
 async def get_all_listener_data() -> dict:
+    """
+    Retrieve a list of all active and inactive listeners.
+
+    Returns:
+        dict: A dictionary containing the configuration and status of all listeners.
+        Example structure:
+        [
+            {"listener_uuid": 00000000-0000-0000-0000-000000000000, "listener_name": "HTTP-80", "status": "running"},
+            {"listener_uuid": 00000000-0000-0000-0000-000000000000, "listener_name": "HTTPS-443", "status": "stopped"}
+        ]
+    """
     url = generate_url("/api/v1/listeners/")
 
     structlog.contextvars.clear_contextvars()
@@ -93,6 +163,24 @@ async def get_all_listener_data() -> dict:
 
 
 async def get_listener_data(listener_uuid: str) -> dict:
+    """
+    Retrieve the configuration and status details for a specific listener.
+
+    Args:
+        listener_uuid (str): The unique identifier (UUID) of the listener.
+
+    Returns:
+        dict: Information regarding the listener host, port, type, and profile.
+        Example structure:
+        {
+            "listener_name": "C2_Primary",
+            "listener_host": "0.0.0.0",
+            "listener_port": 8080,
+            "listener_type": "http",
+            "listener_profile_name": "default",
+            "listener_profile_contents": "http-get {\n  ... \n}..."
+        }
+    """
     check_type(listener_uuid, str, "listener_uuid")
 
     url = generate_url(f"/api/v1/listeners/{listener_uuid}")
@@ -110,6 +198,20 @@ async def get_listener_data(listener_uuid: str) -> dict:
 
 
 async def stop_listener(listener_uuid: str) -> dict:
+    """
+    Terminate/Stop a running listener.
+
+    Args:
+        listener_uuid (str): The unique identifier (UUID) of the listener to stop.
+
+    Returns:
+        dict: A status message indicating if the listener was successfully stopped.
+        Example structure:
+        {
+            "status": "success",
+            "message": "Listener stopped"
+        }
+    """
     check_type(listener_uuid, str, "listener_uuid")
 
     url = generate_url(f"/api/v1/listeners/{listener_uuid}")
@@ -136,10 +238,24 @@ async def start_listener(
     listener_profile_contents: str,
 ) -> dict:
     """
-    Start a listener with the given configuration.
+    Start/Spawn a new listener with the specified configuration.
+
+    Args:
+        listener_host (str): Host/IP the listener will bind to.
+        listener_port (int): Port for the listener.
+        listener_type (str): Type of listener (e.g., 'http').
+        listener_name (str): Friendly name for the listener.
+        listener_notes (str): Additional notes.
+        listener_profile_name (str): Malleable C2 profile name.
+        listener_profile_contents (str): The raw string content of the C2 profile.
 
     Returns:
-        dict: status/result payload
+        dict: The created listener's details, including its new UUID.
+        Example structure:
+        {
+            "listener_uuid": "019baffa-c8c7-76ff-a40d-d2ec6c99306e",
+            "status": "running"
+        }
     """
 
     # --- validate inputs ---
@@ -182,10 +298,21 @@ async def build_implant(
     implant_name, implant_listener_uuid, implant_variant, output_format
 ) -> dict:
     """
-    Start a listener with the given configuration.
+    Submit a task to build a new implant payload tailored to a specific listener.
+
+    Args:
+        implant_name (str): The name to give the built implant.
+        implant_listener_uuid (str): The UUID of the listener this implant should connect to.
+        implant_variant (str): The variant or architecture of the implant.
+        output_format (str): The desired file format (e.g., 'exe', 'dll').
 
     Returns:
-        dict: status/result payload
+        dict: Details of the build job, including a 'build_uuid' to track status.
+        Example structure:
+        {
+            "build_uuid": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "status": "building"
+        }
     """
 
     # --- validate inputs ---
@@ -215,10 +342,20 @@ async def build_implant(
 
 
 async def get_build_status(build_uuid: str) -> dict:
-    """Gets build status for a specific build UUID
-    Returns:
-        dict: _description_
+    """
+    Get the current status of an ongoing or completed build job.
 
+    Args:
+        build_uuid (str): The unique identifier (UUID) for the build job.
+
+    Returns:
+        dict: Information regarding build status, logs, and if finished, the payload hash.
+        Example structure:
+        {
+            "build_uuid": 00000000-0000-0000-0000-000000000000,
+            "status": "completed",
+            "payload_hash": "abc123def..."
+        }
     """
     url = generate_url(f"/api/v1/build/jobs/{build_uuid}")
 
@@ -232,10 +369,16 @@ async def get_build_status(build_uuid: str) -> dict:
 
 
 async def get_payload_data() -> dict:
-    """Gets list of payloads
-    Returns:
-        dict: _description_
+    """
+    Retrieve a list of all built payloads available in the database.
 
+    Returns:
+        dict: Metadata for all payloads.
+        Example structure:
+        [
+            {"payload_hash": "abcdabcdabcd==", "implant_name": "Alpha", "build_date": "..."},
+            {"payload_hash": "abcdabcdabcd==", "implant_name": "Beta", "build_date": "..."}
+        ]
     """
     url = generate_url(f"/api/v1/build/")
 
@@ -249,10 +392,16 @@ async def get_payload_data() -> dict:
 
 
 async def get_payload_bytes(payload_hash: str) -> dict:
-    """Gets the bytes of a payload
-    Returns:
-        dict: _description_
+    """
+    Retrieve the actual compiled binary/bytes of a specific payload.
 
+    Args:
+        payload_hash (str): The unique hash identifying the payload.
+
+    Returns:
+        bytes: The raw binary content of the payload, or None if download fails.
+        Example structure:
+        b'\\x4d\\x5a\\x90...' (The actual executable bytes)
     """
     url = generate_url(f"/api/v1/build/{payload_hash}")
     structlog.contextvars.clear_contextvars()
@@ -269,10 +418,16 @@ async def get_payload_bytes(payload_hash: str) -> dict:
 
 
 async def get_payload_source_bytes(payload_hash: str) -> dict:
-    """Gets the bytes of a payload
-    Returns:
-        dict: _description_
+    """
+    Retrieve the source code (typically as a zip) for a specific built payload.
 
+    Args:
+        payload_hash (str): The unique hash identifying the payload.
+
+    Returns:
+        bytes: The raw bytes of the source code archive, or None if download fails.
+        Example structure:
+        b'PK\\x03\\x04...' (The bytes of a ZIP file)
     """
     url = generate_url(f"/api/v1/build/{payload_hash}/source")
     structlog.contextvars.clear_contextvars()
@@ -291,13 +446,19 @@ async def get_payload_source_bytes(payload_hash: str) -> dict:
 async def get_implant_task_history_since_uuid(
     implant_uuid: str, since_task_uuid: str
 ) -> dict:
-    """Gets list of tasks sinec a specific UUID. This is enabled by UUID7
+    """
+    Retrieve task history for an implant that occurred after a specific task UUID.
+
+    Args:
+        implant_uuid (str): The unique identifier of the implant.
+        since_task_uuid (str): The task UUID to start the history from.
 
     Returns:
-        dict: _description_
-
-    Ex: /api/v1/implants/019baff9-37fd-759d-8203-a8a5bd505028/tasks/history?since=019baffa-c8c7-76ff-a40d-d2ec6c99306e
-
+        dict: A list of tasks and their results following the 'since' UUID.
+        Example structure:
+        [
+            {"task_uuid":"", "implant_uuid": 9999, "result":{"data_type":binary|text, "data":"somedata"}}
+        ]
     """
     url_params = {"since": since_task_uuid}
     url = generate_url(
@@ -314,12 +475,19 @@ async def get_implant_task_history_since_uuid(
 
 
 async def get_implant_task_history(implant_uuid: str) -> dict:
-    """Gets list of all tasks for an implant
+    """
+    Retrieve the full task and execution history for a specific implant.
+
+    Args:
+        implant_uuid (str): The unique identifier (UUID) of the implant.
+
     Returns:
-        dict: _description_
-
-    Ex: /api/v1/implants/019baff9-37fd-759d-8203-a8a5bd505028/tasks/history
-
+        dict: A collection of all tasks issued to and returned by the implant.
+        Example structure:
+        [
+            {"task_uuid":"", "implant_uuid": 9999, "result":{"data_type":binary|text, "data":"somedata"}},
+            {"task_uuid":"", "implant_uuid": 9999, "result":{"data_type":binary|text, "data":"somedata"}}
+        ]
     """
     url = generate_url(f"/api/v1/implants/{implant_uuid}/tasks/history")
 
