@@ -56,8 +56,8 @@ void C2Implant::init() {
     [%- endfor %]
 
     //set default options
-    SettingsManager::instance().set("comms_get_function", "[[ init_get_function.value ]]");
-    SettingsManager::instance().set("comms_post_function", "[[ init_post_function.value ]]");
+    SettingsManager::instance().set("comms_get_function", "[[ init_get_function ]]");
+    SettingsManager::instance().set("comms_post_function", "[[ init_post_function ]]");
 }
 
 int C2Implant::register_implant() {

@@ -293,7 +293,15 @@ async def start_listener(
         return data
 
 
-async def build_implant(implant_name, listener_dict, output_format) -> dict:
+async def build_implant(
+    implant_name,
+    listener_dict,
+    output_format,
+    initial_get_profile_listener_uuid,
+    initial_post_profile_listener_uuid,
+) -> dict:
+    print(initial_get_profile_listener_uuid)
+    print(initial_post_profile_listener_uuid)
     """
     Submit a task to build a new implant payload tailored to a specific listener.
 
@@ -307,6 +315,9 @@ async def build_implant(implant_name, listener_dict, output_format) -> dict:
             implant_listener_uuid (str): The UUID of the listener this implant should connect to.
             implant_variant (str): The variant or architecture of the implant.
         output_format (str): The desired file format (e.g., 'exe', 'dll').
+
+        initial_get_profile_listener_uuid (str): The listener UUID to use for the initial GET profile.
+        initial_post_profile_listener_uuid (str): The listener UUID to use for the initial POST profile
 
     Returns:
         dict: Details of the build job, including a 'build_uuid' to track status.
@@ -324,11 +335,20 @@ async def build_implant(implant_name, listener_dict, output_format) -> dict:
     check_type(output_format, str, "output_format")
     check_type(listener_dict, dict, "listener_dict")
 
+    check_type(
+        initial_get_profile_listener_uuid, str, "initial_get_profile_listener_uuid"
+    )
+    check_type(
+        initial_post_profile_listener_uuid, str, "initial_post_profile_listener_uuid"
+    )
+
     build_request_data = {
         # "implant_name": implant_name,
         "listener_dict": listener_dict,
         "implant_name": implant_name,
         "output_format": output_format,
+        "initial_get_profile_listener_uuid": initial_get_profile_listener_uuid,
+        "initial_post_profile_listener_uuid": initial_post_profile_listener_uuid,
     }
 
     url = generate_url(f"/api/v1/build/")

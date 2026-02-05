@@ -118,11 +118,13 @@
          [x] add intial listener value which specifies which the initial callbacks should be done with
          Done! It works
 
-         > here. 
          Cleanup & user fix time:
-          - [ ] Remove variant from form/api
+          - [X] Remove variant from form/api
           - [ ] Add "initial callback strategy" field, which is the initial callback profile to use. 
             -> add this to build API, and have it be its own var, etc. This will be set as the init method 
+               - [x] GUI
+               > here
+               - [ ] API/logic
           - [ ] test switching, add auto swtich after like 3 loops in main as a testing method (set the setting via setting setters)
           - [ ] Fix the payload menu in GUI. It was not my fav before, maybe make it a big list of payloads, and it has a list of listeners as one of the fields. 
 

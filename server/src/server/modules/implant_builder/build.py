@@ -21,7 +21,14 @@ IMPLANT_BASE = Path(__file__).parent / "implant_base"
 server_logger = logging.getLogger("server")
 
 
-def build_implant(implant_name: str, listeners_dict: dict, output_format, build_uuid):
+def build_implant(
+    implant_name: str,
+    listeners_dict: dict,
+    output_format,
+    build_uuid,
+    init_get_profile_listener_uuid,
+    init_post_profile_listener_uuid,
+) -> None:
     """
     Function to call to build implant. API calls this.
 
@@ -94,7 +101,9 @@ def build_implant(implant_name: str, listeners_dict: dict, output_format, build_
 
     # setup build enviornment, creates a temp dir in /tmp/, and renders files
     build_dir = setup_implant_build_enviornment_and_render_code(
-        listeners_data_dict=listeners_data_dict
+        listeners_data_dict=listeners_data_dict,
+        initial_get_profile_listener_uuid=init_get_profile_listener_uuid,
+        initial_post_profile_listener_uuid=init_post_profile_listener_uuid,
     )
 
     # built the implant with docker
@@ -214,6 +223,8 @@ def store_data_post_build(
 
 def setup_implant_build_enviornment_and_render_code(
     listeners_data_dict,
+    initial_get_profile_listener_uuid,
+    initial_post_profile_listener_uuid,
 ) -> Path:
 
     listener_type = listeners_data_dict.get("listener_type")
@@ -237,6 +248,8 @@ def setup_implant_build_enviornment_and_render_code(
             listeners_data_dict=listeners_data_dict,  # lsiteners data
             # protocol_variant = whatever
             # variant="variant",  # holdover
+            initial_get_profile_listener_uuid=initial_get_profile_listener_uuid,
+            initial_post_profile_listener_uuid=initial_post_profile_listener_uuid,
         )
     return Path(tmp_dir)
 

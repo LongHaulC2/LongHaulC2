@@ -31,6 +31,8 @@ env = Environment(
 def render_implant(
     output_dir: Path,
     listeners_data_dict,
+    initial_get_profile_listener_uuid: str,
+    initial_post_profile_listener_uuid: str,
 ):
     # server_logger.debug(f"Rendering Implant: {listeners_data_dict}")
 
@@ -88,13 +90,6 @@ def render_implant(
         # Add Listener Specific files to the render list, based on variant.
         match listener_type:
             case "http":
-                # files_to_render[output_dir / "lifecycle/comms.cpp"] = {
-                #     "jinja_template_file": "wininet_comms_http.j2",
-                #     # Wrap it in a key (e.g. 'profiles') so Jinja can iterate:
-                #     # {% for name, ctx in profiles.items() %}
-                #     "context": context,
-                # }
-
                 current_render_job = {
                     output_dir
                     / "lifecycle/comms.cpp": {
@@ -129,14 +124,37 @@ def render_implant(
                 server_logger.error(f"Invalid listener type: {listener_type}")
                 raise ValueError(f"Invalid listener type: {listener_type}")
 
-    # okay goal here - dump rendered items into theier files,
-    # however, comms.cpp needs to all go into one file, not sure how to do that with
-    # this logic yet. Maybe a list of rendered files, then use the templting to do that ig.
+    # =============
+    # retriteve initial profile function names
+    # =============
 
+    # tldr, use uuid to get info for this listener. Then, get the name of that profile from said data. Finally, use the name of that profile to lookup the mapping.
+    # this is choas im sorry.
+    get_profile_data = listeners_data_dict.get(initial_get_profile_listener_uuid)
+    get_mc2_name = get_profile_data.get("listener_profile_name")
+
+    init_get_profile_function_name = dict_of_get_function_mappings.get(
+        get_mc2_name, {}
+    ).get("value")
+
+    post_profile_data = listeners_data_dict.get(initial_post_profile_listener_uuid)
+    post_mc2_name = post_profile_data.get("listener_profile_name")
+    init_post_profile_function_name = dict_of_post_function_mappings.get(
+        post_mc2_name, {}
+    ).get("value")
+
+    # =============
+    # render the c2_j2 file
+    # =============
     render_and_write_c2_j2(
-        output_dir, dict_of_get_function_mappings, dict_of_post_function_mappings
+        output_dir,
+        dict_of_get_function_mappings,
+        dict_of_post_function_mappings,
+        init_get_profile_function_name,
+        init_post_profile_function_name,
     )
 
+    # not rendering here, as we render comms.cpp per listener above.
     # render_and_write_comms_cpp(files_to_render)
 
 
@@ -225,6 +243,8 @@ def render_and_write_c2_j2(
     output_dir: Path,
     dict_of_get_function_mappings: dict,
     dict_of_post_function_mappings: dict,
+    init_get_profile_function_name,
+    init_post_profile_function_name,
 ):
     # =============
     # c2.cpp render chain
@@ -242,12 +262,8 @@ def render_and_write_c2_j2(
         {
             "get_function_mappings": dict_of_get_function_mappings,
             "post_function_mappings": dict_of_post_function_mappings,
-            "init_get_function": next(
-                iter(dict_of_get_function_mappings.values()), None
-            ),  # get first item. Have user specified later?
-            "init_post_function": next(
-                iter(dict_of_post_function_mappings.values()), None
-            ),  # also first item. Have user specified later?, i.e., choose a starter listener, then have extras in there for chanign
+            "init_get_function": init_get_profile_function_name,
+            "init_post_function": init_post_profile_function_name,
         },
     )
 

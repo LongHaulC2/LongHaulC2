@@ -453,7 +453,15 @@ async def start_payload_dialogue():
         profile_post_select.update()
 
     async def _build_implant():
-        if not all([name_input.value, listener_select.value, format_select.value]):
+        if not all(
+            [
+                name_input.value,
+                listener_select.value,
+                format_select.value,
+                profile_get_select.value,
+                profile_post_select.value,
+            ]
+        ):
             ui.notify("MISSING REQUIRED FIELDS", type="warning", color="orange-9")
             return
 
@@ -476,6 +484,12 @@ async def start_payload_dialogue():
             implant_name=name_input.value,
             listener_dict=listener_dict,
             output_format=format_select.value,
+            initial_get_profile_listener_uuid=listener_uuid_map.get(
+                profile_get_select.value
+            ),
+            initial_post_profile_listener_uuid=listener_uuid_map.get(
+                profile_post_select.value
+            ),
         )
 
         # Build Status Polling Logic

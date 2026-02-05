@@ -119,6 +119,13 @@ class Build(Resource):
         output_format = data["output_format"]
         listener_dict = data.get("listener_dict", {})
 
+        initial_get_profile_listener_uuid = data.get(
+            "initial_get_profile_listener_uuid", None
+        )
+        initial_post_profile_listener_uuid = data.get(
+            "initial_post_profile_listener_uuid", None
+        )
+
         api_logger.info(
             f"Build requested",
             extra={"caller_ip": request.remote_addr},
@@ -128,7 +135,14 @@ class Build(Resource):
         # 3. Trigger Build
         build_uuid = str(uuid7())
 
-        build_implant(implant_name, listener_dict, output_format, build_uuid)
+        build_implant(
+            implant_name,
+            listener_dict,
+            output_format,
+            build_uuid,
+            initial_get_profile_listener_uuid,
+            initial_post_profile_listener_uuid,
+        )
 
         response = {"build_uuid": build_uuid}
         # 4. Return immediately
