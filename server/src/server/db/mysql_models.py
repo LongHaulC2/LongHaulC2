@@ -163,7 +163,7 @@ class ImplantPayload(Base):
         LONGBLOB
     )  # LONGBLOB is 4gb (massive, intentional for expandability)
     payload_source_code_bytes = Column(LONGBLOB)
-    payload_listener_uuid = Column(String(36))  # matches Listener model uuid
+    # payload_listener_uuid = Column(String(36))  # matches Listener model uuid
 
     payload_name = Column(Text)
 

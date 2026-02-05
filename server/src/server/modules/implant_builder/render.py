@@ -1,288 +1,179 @@
 import logging
+import re
 from pathlib import Path
+from typing import Any, Dict, Tuple
 
 import structlog
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
-from mpp import MalleableProfile
 
+# Assumed imports based on your file
 from ...listeners.malc2 import *
 from .context_generators.http_wininet import generate_http_wininet_context
+from .types import FunctionMapping, ListenerProfile  # Import your types
 
 server_logger = logging.getLogger("server")
-# this file, up one dir, to templates
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 
-env = Environment(
+# Initialize Jinja Environment once
+ENV = Environment(
     loader=FileSystemLoader(TEMPLATE_DIR.resolve()),
-    # distinct brackets to avoid C++ conflicts
     block_start_string="[%",
     block_end_string="%]",
     variable_start_string="[[",
     variable_end_string="]]",
     comment_start_string="[#",
     comment_end_string="#]",
-    # clean up whitespace so generated code looks not like shit
     trim_blocks=True,
     lstrip_blocks=True,
-    undefined=StrictUndefined,  # Fail fast if a var is missing
+    undefined=StrictUndefined,
 )
 
 
 def render_implant(
     output_dir: Path,
-    listeners_data_dict,
+    listeners_data_dict: Dict[str, ListenerProfile],
     initial_get_profile_listener_uuid: str,
     initial_post_profile_listener_uuid: str,
 ):
-    # server_logger.debug(f"Rendering Implant: {listeners_data_dict}")
-
-    # dict to hold all the contexts for each profile
-    dict_of_contexts = {}
-    # 3. Define the File Map
-    files_to_render = {}
-    # ex, {"output/path/file.cpp": {"jinja_template_file": "template.j2", "context": {...}}}
-
-    # construct malleable_c2_profile_dict (dict of {"name":"contents_of_profile"})
-    malleable_c2_profile_dict = {}
-
-    dict_of_post_function_mappings = {}  # {"http_get_amazon":"http_get_profname"}
-    dict_of_get_function_mappings = {}  # {"http_get_amazon":"http_get_profname"}
-
-    # move to functions later:
-    # =============
-    # comms.cpp render chain
-    # =============
-    for listener_key, listener_data in listeners_data_dict.items():
-        # server_logger.debug(f"listener_data: {listener_data}")
-
-        print(listener_key)
-        print(listener_data)
-        mc2_name = listener_data.get("listener_profile_name")
-        mc2_contents = listener_data.get("listener_profile_contents")
-        # add to dict
-        malleable_c2_profile_dict[mc2_name] = mc2_contents
-
-        # extract listener info
-        listener_type = listener_data.get("listener_type")
-        callback_host = listener_data.get("listener_host")
-        callback_port = listener_data.get("listener_port")
-
-        # 1. Logging Setup
-        structlog.contextvars.clear_contextvars()
-        structlog.contextvars.bind_contextvars(
-            output_dir=output_dir,
-            listener_type=listener_type,
-        )
-        server_logger.debug("_create_implant")
-
-        # 2. Build the Aggregate Context, from this profile
-        # We build a master dictionary containing the specific context for EVERY profile.
-        # for name, content in malleable_c2_profile_dict.items():
-        # dict_of_contexts[mc2_name] =
-        context = extract_context(
-            mc2_contents,
-            listener_type,
-            callback_host,
-            callback_port,
-            mc2_name,
-        )
-
-        # Add Listener Specific files to the render list, based on variant.
-        match listener_type:
-            case "http":
-                current_render_job = {
-                    output_dir
-                    / "lifecycle/comms.cpp": {
-                        "jinja_template_file": "wininet_comms_http.j2",
-                        "context": context,
-                    }
-                }
-                # render and write immediately to avoid overwriting comms.cpp from multiple listeners
-                # a previous bug was using the same dict key, this fixes it without a big refactor
-                render_and_write_comms_cpp(current_render_job)
-
-                # add to mappings, this is used for the c2.j2, to map these func names to the implant.
-                get_function_name = (
-                    f"http_get_{callback_host}_{callback_port}_{mc2_name}"
-                )
-                post_function_name = (
-                    f"http_post_{callback_host}_{callback_port}_{mc2_name}"
-                )
-                dict_of_get_function_mappings[mc2_name] = {
-                    # I know I'm assigning these to themselves, tldr, it's easier.
-                    # output: "http_get_amason.com_6769_amazongetprofile": "http_get_amason.com_6769_amazongetprofile",
-                    "key": sanitize_cpp_name(get_function_name),
-                    "value": sanitize_cpp_name(get_function_name),
-                }
-                dict_of_post_function_mappings[mc2_name] = {
-                    # I know I'm assigning these to themselves, tldr, it's easier.
-                    # output: "http_get_amason.com_6769_amazongetprofile": "http_get_amason.com_6769_amazongetprofile",
-                    "key": sanitize_cpp_name(post_function_name),
-                    "value": sanitize_cpp_name(post_function_name),
-                }
-            case _:
-                server_logger.error(f"Invalid listener type: {listener_type}")
-                raise ValueError(f"Invalid listener type: {listener_type}")
-
-    # =============
-    # retriteve initial profile function names
-    # =============
-
-    # tldr, use uuid to get info for this listener. Then, get the name of that profile from said data. Finally, use the name of that profile to lookup the mapping.
-    # this is choas im sorry.
-    get_profile_data = listeners_data_dict.get(initial_get_profile_listener_uuid)
-    get_mc2_name = get_profile_data.get("listener_profile_name")
-
-    init_get_profile_function_name = dict_of_get_function_mappings.get(
-        get_mc2_name, {}
-    ).get("value")
-
-    post_profile_data = listeners_data_dict.get(initial_post_profile_listener_uuid)
-    post_mc2_name = post_profile_data.get("listener_profile_name")
-    init_post_profile_function_name = dict_of_post_function_mappings.get(
-        post_mc2_name, {}
-    ).get("value")
-
-    # =============
-    # render the c2_j2 file
-    # =============
-    render_and_write_c2_j2(
-        output_dir,
-        dict_of_get_function_mappings,
-        dict_of_post_function_mappings,
-        init_get_profile_function_name,
-        init_post_profile_function_name,
-    )
-
-    # not rendering here, as we render comms.cpp per listener above.
-    # render_and_write_comms_cpp(files_to_render)
-
-
-def render_file(template_file: str, context: dict) -> str:
-    """Render a file based on the template provided
-
-    NOTE: When saving a file, this will APPEND to existing files, not overwrite.
-    This is a hack to allow multiple templates to contribute to the same output file... it's fine.
-
-    Args:
-        template_file (str): Path to template file
-        context (dict): context to fill in template with
-
-    Raises:
-        e: error
     """
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(template=str(template_file), context=context)
-    server_logger.debug("Rendering file")
-
-    try:
-        # Load by name
-        template = env.get_template(template_file)
-        rendered_code = template.render(**context)
-
-        return rendered_code
-
-        server_logger.debug(f"Rendered successfully")
-
-    except Exception as e:
-        server_logger.error(f"Error rendering: {e}")
-        raise e
-
-
-def extract_context(
-    malleable_c2_profile,
-    listener_type,
-    callback_host,
-    callback_port,
-    malleable_c2_profile_name,
-) -> dict:
+    Main entry point for rendering C++ files.
+    1. Renders individual comms files (comms.cpp)
+    2. Maps function names for polymorphism
+    3. Renders the main controller (c2.cpp)
     """
-    Extracts and returns the context for a given listener type
-    """
-    global_context = {}
-    match listener_type:
-        case "http":
-            global_context = generate_http_wininet_context(
-                malleable_c2_profile,
-                callback_host,
-                callback_port,
-                malleable_c2_profile_name,
-            )
 
-        case _:
-            server_logger.error(f"Invalid listener type: {listener_type}")
-    return global_context
+    # Mappings for c2.cpp: { "profile_name": { "key": sanitized, "value": actual } }
+    get_func_mappings: Dict[str, FunctionMapping] = {}
+    post_func_mappings: Dict[str, FunctionMapping] = {}
 
+    # 1. Render Listener Communication Modules (comms.cpp)
+    # This loop appends code to comms.cpp for every listener
+    for uuid, listener in listeners_data_dict.items():
 
-# individualized render functions for each file type - TLDR, makes code much cleaner & seperation "more better"
+        # Setup Logger Context
+        # print(listeners_data_dict)
+        structlog.contextvars.bind_contextvars(listener_type=listener["listener_type"])
 
+        # Generate Context & Mappings
+        try:
+            mappings = _render_listener_variant(output_dir, listener)
 
-def render_and_write_comms_cpp(files_to_render):
-    # write the comms.cpp file first - note, this appends.
-    for dest_file, render_dict in files_to_render.items():
-        # Ensure directory exists
-        dest_file.parent.mkdir(parents=True, exist_ok=True)
+            # Update the master mapping dicts
+            profile_name = listener["listener_profile_name"]
+            get_func_mappings[profile_name] = mappings["get"]
+            post_func_mappings[profile_name] = mappings["post"]
 
-        render_context = render_dict.get("context")
-        jinja_template_file = render_dict.get("jinja_template_file")
+        except Exception as e:
+            server_logger.error(f"Failed to render listener {uuid}: {e}")
+            raise e
 
-        # name of .j2 file
-        jinja_template_file = jinja_template_file
-        # the dict with all the context *for* the file
-        jinja_template_context = render_context
+    # 2. Determine Initial Profile Functions
+    # Retrieve the profile name associated with the initial UUIDs
+    init_get_name = listeners_data_dict[initial_get_profile_listener_uuid][
+        "listener_profile_name"
+    ]
+    init_post_name = listeners_data_dict[initial_post_profile_listener_uuid][
+        "listener_profile_name"
+    ]
+    # Lookup the sanitized C++ function name
+    init_get_func = get_func_mappings.get(init_get_name, {}).get("value")
+    init_post_func = post_func_mappings.get(init_post_name, {}).get("value")
 
-        rendered_code = render_file(jinja_template_file, jinja_template_context)
-
-        # Ensure output directory exists & write to file
-        dest_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(dest_file, "a") as f:
-            f.write(rendered_code)
-
-
-def render_and_write_c2_j2(
-    output_dir: Path,
-    dict_of_get_function_mappings: dict,
-    dict_of_post_function_mappings: dict,
-    init_get_profile_function_name,
-    init_post_profile_function_name,
-):
-    # =============
-    # c2.cpp render chain
-    # =============
-    #  See todo, tldr; `s_ingress_map["http_get_amazon"] = get_HTTP;` rendering here.
-    # ex: `s_ingress_map["profile_name"] = profile_function_name;`
-    # take the mappings
-
-    # 4. Execution Loop
-    server_logger.info("Rendering Implant Files")
-    dest_file = output_dir / "control/c2.cpp"
-
-    rendered_code = render_file(
+    # 3. Render Controller (c2.cpp)
+    _render_file(
+        output_dir / "control/c2.cpp",
         "c2.j2",
         {
-            "get_function_mappings": dict_of_get_function_mappings,
-            "post_function_mappings": dict_of_post_function_mappings,
-            "init_get_function": init_get_profile_function_name,
-            "init_post_function": init_post_profile_function_name,
+            "get_function_mappings": get_func_mappings,
+            "post_function_mappings": post_func_mappings,
+            "init_get_function": init_get_func,
+            "init_post_function": init_post_func,
         },
+        mode="w",  # overwrite if there was a file in the template dir
     )
 
-    dest_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(dest_file, "w") as f:
-        f.write(rendered_code)
+
+def _render_listener_variant(
+    output_dir: Path, listener: ListenerProfile
+) -> Dict[str, FunctionMapping]:
+    """
+    Handles the logic for a specific listener type (e.g. HTTP).
+    Renders the comms code and returns the function names generated.
+    """
+    listener_type = listener.get("listener_type")
+    host = listener.get("listener_host")
+    port = listener.get("listener_port")
+    prof_name = listener.get("listener_profile_name")
+
+    # 1. Generate Context
+    context = _get_listener_context(listener)
+
+    # 2. Render based on type
+    if listener_type == "http":
+        # Render comms.cpp (Append mode)
+        _render_file(
+            output_dir / "lifecycle/comms.cpp",
+            "wininet_comms_http.j2",
+            context,
+            mode="a",  # append here, as there are multiple profiles being added to the file.
+        )
+
+        # Generate Function Names for the map
+        # Naming convention: http_get_HOST_PORT_PROFILENAME
+        base_name = f"{host}_{port}_{prof_name}"
+        get_func = sanitize_cpp_name(f"http_get_{base_name}")
+        post_func = sanitize_cpp_name(f"http_post_{base_name}")
+
+        return {
+            "get": {"key": get_func, "value": get_func},
+            "post": {"key": post_func, "value": post_func},
+        }
+
+    else:
+        raise ValueError(f"Unsupported listener type: {listener_type}")
+
+
+def _get_listener_context(listener: ListenerProfile) -> dict:
+    """Delegates context generation to specific modules."""
+    listener_type = listener.get("listener_type")
+
+    if listener_type == "http":
+        return generate_http_wininet_context(
+            listener.get("listener_profile_contents"),
+            listener.get("listener_host"),
+            listener.get("listener_port"),
+            listener.get("listener_profile_name"),
+        )
+    return {}
+
+
+def _render_file(dest_path: Path, template_name: str, context: dict, mode: str = "w"):
+    """
+    Generic render helper.
+    mode='w' for write/overwrite
+    mode='a' for append
+    """
+    structlog.contextvars.bind_contextvars(template=template_name)
+
+    try:
+        template = ENV.get_template(template_name)
+        rendered_code = template.render(**context)
+
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(dest_path, mode) as f:
+            f.write(rendered_code)
+
+    except Exception as e:
+        server_logger.error(f"Template render error ({template_name}): {e}")
+        raise e
 
 
 def sanitize_cpp_name(name: str) -> str:
     """
     Converts a string into a valid C++ function/variable name.
-    1. Replaces non-alphanumeric chars (like . - @ spaces) with underscores.
-    2. Ensures it doesn't start with a number.
     """
-    # Replace anything that isn't a-z, A-Z, 0-9, or _ with an underscore
-    clean_name = re.sub(r"[^a-zA-Z0-9_]", "_", name)
-
-    # If the first character is a number, prepend an underscore
+    clean_name = re.sub(r"[^a-zA-Z0-9_]", "_", str(name))
     if clean_name[0].isdigit():
         clean_name = f"_{clean_name}"
-
     return clean_name

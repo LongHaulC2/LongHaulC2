@@ -591,7 +591,7 @@ class MySQLImplantPayloadService:
         self,
         payload_name: str,
         payload_bytes: bytes,
-        listener_uuid: str,
+        # listener_uuid: str,
         source_code_bytes: bytes,
         build_uuid: str = None,
     ) -> str:
@@ -603,10 +603,10 @@ class MySQLImplantPayloadService:
 
         returns: The MD5 hex string of the payload
         """
-        server_logger.info(f"Registering new payload for listener {listener_uuid}")
+        server_logger.info(f"Registering new payload {payload_name}")
 
         check_type(payload_bytes, bytes, "payload_bytes")
-        check_type(listener_uuid, str, "listener_uuid")
+        # check_type(listener_uuid, str, "listener_uuid")
         check_type(payload_name, str, "payload_name")
 
         # get hash of payload
@@ -636,7 +636,7 @@ class MySQLImplantPayloadService:
                 payload_entry.payload_bytes = payload_bytes
                 payload_entry.payload_source_code_bytes = source_code_bytes
                 payload_entry.payload_name = payload_name
-                payload_entry.payload_listener_uuid = listener_uuid
+                # payload_entry.payload_listener_uuid = listener_uuid
                 payload_entry.build_status = "complete"  # Mark job as done
 
                 self.session.commit()
@@ -667,7 +667,7 @@ class MySQLImplantPayloadService:
         payload_entry = ImplantPayload(
             payload_hash=hash_bytes,
             payload_bytes=payload_bytes,
-            payload_listener_uuid=listener_uuid,
+            # payload_listener_uuid=listener_uuid,
             payload_name=payload_name,
             payload_source_code_bytes=source_code_bytes,
             # If we fell through to here, it's a direct upload or successful "immediate" build
@@ -699,7 +699,7 @@ class MySQLImplantPayloadService:
         payload_entry = ImplantPayload(
             build_uuid=build_uuid,  # Saving the UUID instead of a Hash
             payload_name=payload_name,
-            payload_listener_uuid=None,  # switch to a list of uuids
+            # payload_listener_uuid=None,  # switch to a list of uuids
             payload_bytes=None,  # Data not ready yet
             payload_source_code_bytes=None,  # Data not ready yet
         )

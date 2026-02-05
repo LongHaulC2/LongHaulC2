@@ -138,7 +138,7 @@ class Build(Resource):
         build_implant(
             implant_name,
             listener_dict,
-            output_format,
+            # output_format,
             build_uuid,
             initial_get_profile_listener_uuid,
             initial_post_profile_listener_uuid,
