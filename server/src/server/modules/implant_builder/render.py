@@ -242,12 +242,12 @@ def render_and_write_c2_j2(
         {
             "get_function_mappings": dict_of_get_function_mappings,
             "post_function_mappings": dict_of_post_function_mappings,
-            "init_get_function": dict_of_get_function_mappings[
-                1
-            ],  # get first item. Have user specified later?
-            "init_post_function": dict_of_post_function_mappings[
-                1
-            ],  # also first item. Have user specified later?, i.e., choose a starter listener, then have extras in there for chanign
+            "init_get_function": next(
+                iter(dict_of_get_function_mappings.values()), None
+            ),  # get first item. Have user specified later?
+            "init_post_function": next(
+                iter(dict_of_post_function_mappings.values()), None
+            ),  # also first item. Have user specified later?, i.e., choose a starter listener, then have extras in there for chanign
         },
     )
 

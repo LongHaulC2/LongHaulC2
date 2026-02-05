@@ -100,7 +100,7 @@
                ex: `http_post_amazon` (need conversion to c++ safe var names)
          Files to be rendered:
             > here. Need to render c2.cpp to have mappings, then it'll hopefully complile (see render.py)
-            - [ ] c2.cpp -> /control/c2.cpp
+            - [X] c2.cpp -> /control/c2.cpp
                > init function with mappings.
                   Name of profile, mapped to function name. (need to add function name to jinja template for http_wininet)
                   `s_ingress_map["http_get_amazon"] = get_HTTP;`
@@ -112,8 +112,19 @@
 
             settings... eventually. 
 
-         bug: not all functions showing up in comms.cpp, just one, which seems to eb the first. 
-         bug: remove pop from dict, it pops it instead of jsut peaking, and you lose it as an option
+         [x] bug: not all functions showing up in comms.cpp, just one, which seems to eb the first. 
+         [x] bug: remove pop from dict, it pops it instead of jsut peaking, and you lose it as an option
+
+         [x] add intial listener value which specifies which the initial callbacks should be done with
+         Done! It works
+
+         > here. 
+         Cleanup & user fix time:
+          - [ ] Remove variant from form/api
+          - [ ] Add "initial callback strategy" field, which is the initial callback profile to use. 
+            -> add this to build API, and have it be its own var, etc. This will be set as the init method 
+          - [ ] test switching, add auto swtich after like 3 loops in main as a testing method (set the setting via setting setters)
+          - [ ] Fix the payload menu in GUI. It was not my fav before, maybe make it a big list of payloads, and it has a list of listeners as one of the fields. 
 
    # Commands list:
       - cd (SetCurrentDirectoryA(path);): sets cwd of whole program

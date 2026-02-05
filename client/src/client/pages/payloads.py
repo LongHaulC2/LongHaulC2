@@ -403,51 +403,85 @@ async def render_payloads(payload_data: dict):
 async def start_payload_dialogue():
     """Opens the Build Dialog"""
 
-    # --- Data Setup ---
-    VARIANT_MAP = {"http": ["http_wininet"]}
+    # --- 1. Fetch Data ---
     response = await get_all_listener_data()
     listeners_list = response.get("data", [])
-    listener_type_map = {l["listener_name"]: l["listener_type"] for l in listeners_list}
+
+    # Map Name -> UUID
     listener_uuid_map = {l["listener_name"]: l["listener_uuid"] for l in listeners_list}
 
-    # --- Logic ---
-    async def _build_implant():
-        name = name_input.value
-        selected_listeners = listener_select.value  # This is now a list
-        variant = variant_select.value
-        fmt = format_select.value
+    # --- 2. Event Handlers ---
 
-        if not all([name, selected_listeners, fmt]):
+    def _on_listener_change(e):
+        """
+        Updates GET/POST options to match the selected listeners list.
+        """
+        # Ensure we are working with a clean list of strings
+        selected_names = e.value if e.value else []
+
+        # --- Update GET Dropdown ---
+        profile_get_select.options = selected_names
+
+        if selected_names:
+            profile_get_select.enable()
+            # If current value is invalid or empty, default to the first available
+            if (
+                not profile_get_select.value
+                or profile_get_select.value not in selected_names
+            ):
+                profile_get_select.value = selected_names[0]
+        else:
+            profile_get_select.value = None
+            profile_get_select.disable()
+
+        # --- Update POST Dropdown ---
+        profile_post_select.options = selected_names
+
+        if selected_names:
+            profile_post_select.enable()
+            if (
+                not profile_post_select.value
+                or profile_post_select.value not in selected_names
+            ):
+                profile_post_select.value = selected_names[0]
+        else:
+            profile_post_select.value = None
+            profile_post_select.disable()
+
+        # KEY FIX: Force UI refresh to show the new options immediately
+        profile_get_select.update()
+        profile_post_select.update()
+
+    async def _build_implant():
+        if not all([name_input.value, listener_select.value, format_select.value]):
             ui.notify("MISSING REQUIRED FIELDS", type="warning", color="orange-9")
             return
 
-        # show prog bar
         progress_bar.classes(remove="opacity-0")
         build_btn.props("loading")
-        progress_bar.value = 0.25
+        progress_bar.set_value(0.25)
 
-        # --- Construct the Listener Dict ---
-        # Structure: { uuid: { "listener_variant": variant } }
+        # Build Data
         listener_dict = {}
-
-        for lst_name in selected_listeners:
+        for lst_name in listener_select.value:
             uuid = listener_uuid_map.get(lst_name)
             if uuid:
                 listener_dict[uuid] = {
-                    "listener_variant": variant if variant_select.visible else None
+                    "profile_get": profile_get_select.value,
+                    "profile_post": profile_post_select.value,
                 }
 
+        # API Call
         result = await build_implant(
-            implant_name=name,
-            listener_dict=listener_dict,  # Passed as the new dict structure
-            output_format=fmt,
+            implant_name=name_input.value,
+            listener_dict=listener_dict,
+            output_format=format_select.value,
         )
 
+        # Build Status Polling Logic
         build_uuid = result.get("data", {}).get("build_uuid")
-
         if build_uuid:
-            progress_bar.value = 0.75
-
+            progress_bar.set_value(0.75)
         build_btn.props("loading=false")
 
         async def poll_build_status():
@@ -458,127 +492,159 @@ async def start_payload_dialogue():
                 payload_hash = result.get("data", {}).get("payload_hash")
                 payload_name = result.get("data", {}).get("payload_name")
 
-                # complete bar and disable spinner
-                progress_bar.value = 1
-                progress_bar.color = "green-500"
+                progress_bar.set_value(1)
+                progress_bar.props("color=emerald-4")
                 build_btn.props("loading=false")
 
                 download_payload_button.enable()
                 download_payload_button.on_click(
                     lambda: download_payload(hash=payload_hash, name=payload_name)
                 )
+
                 download_payload_source_button.enable()
                 download_payload_source_button.on_click(
                     lambda: download_payload_source(
                         hash=payload_hash, name=payload_name
                     )
                 )
+
                 status_timer.deactivate()
 
             elif status == "failed":
                 progress_bar.classes("opacity-0")
-                progress_bar_fail.value = 1
                 progress_bar_fail.classes(remove="opacity-0")
+                progress_bar_fail.set_value(1)
 
-                ui.notify("BUILD FAILED", type="negative", color="red-9")
+                ui.notify("BUILD FAILED", type="negative")
                 build_btn.props("loading=false")
                 status_timer.deactivate()
 
         status_timer = ui.timer(1.0, poll_build_status, active=True)
 
-    def _on_listener_change(e):
-        # e.value is now a list. We take the first one to determine variants
-        # (Assuming user selects homogenous listeners, e.g. all HTTP)
-        if not e.value:
-            variant_select.visible = False
-            return
-
-        first_listener = e.value[0]
-        allowed = VARIANT_MAP.get(listener_type_map.get(first_listener), [])
-
-        variant_select.options = allowed
-        variant_select.value = allowed[0] if allowed else None
-        variant_select.visible = bool(allowed)
-
-    # --- UI ---
+    # --- 3. UI Layout ---
     with ui.dialog() as dialog, ui.card().classes(
-        "tech-dialog w-[500px] p-0 rounded overflow-hidden"
+        "tech-dialog w-[600px] p-0 rounded overflow-hidden"
     ):
-        # Dialog Header
+
+        # Header
         with ui.row().classes(
             "w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"
         ):
             with ui.row().classes("gap-2 items-center"):
                 ui.icon("terminal", color="emerald-500")
-                ui.label("BUILD_IMPLANT_PAYLOAD").classes(
+                ui.label("COMPILE_ARTIFACT").classes(
                     "text-sm font-bold tracking-widest text-emerald-500 font-mono"
                 )
             ui.button(icon="close", on_click=dialog.close).props(
                 "dense flat size=sm color=grey"
             )
 
-        # Dialog Body
-        with ui.column().classes("p-6 gap-6 w-full"):
-            name_input = (
-                ui.input("IDENTITY", placeholder="agent_filename")
-                .props("outlined dense dark color=emerald")
-                .classes("w-full")
-            )
+        # Body
+        with ui.column().classes("p-6 gap-5 w-full"):
 
-            with ui.grid().classes("grid-cols-2 gap-4 w-full"):
-                format_select = ui.select(
-                    options=["exe", "dll", "ps1", "shellcode", "all"],
-                    value="exe",
-                    label="FORMAT",
-                ).props("outlined dense dark color=emerald options-dense")
+            # IDENTITY & FORMAT
+            with ui.row().classes("w-full gap-4"):
+                name_input = (
+                    ui.input("IDENTITY", placeholder="filename (no ext)")
+                    .props("outlined dense dark color=emerald")
+                    .classes("flex-grow")
+                )
 
-                # UPDATED: Multiple selection enabled
-                listener_select = ui.select(
-                    options=list(listener_type_map.keys()),
-                    label="LISTENERS",
-                    multiple=True,  # Enable multiple selection
+                format_select = (
+                    ui.select(
+                        options=["exe", "dll", "ps1", "shellcode", "all"],
+                        value="exe",
+                        label="FORMAT",
+                    )
+                    .props("outlined dense dark color=emerald options-dense")
+                    .classes("w-1/3")
+                )
+
+            # LISTENER SELECTION
+            listener_select = (
+                ui.select(
+                    options=list(listener_uuid_map.keys()),
+                    label="Implant Profiles",
+                    multiple=True,
                     on_change=_on_listener_change,
-                ).props("outlined dense dark color=emerald options-dense use-chips")
-
-            variant_select = (
-                ui.select(label="VARIANT", options=[])
-                .props("outlined dense dark color=emerald")
-                #.classes("w-full hidden")
+                )
+                .props(
+                    "outlined dense dark color=emerald options-dense use-chips stack-label"
+                )
                 .classes("w-full")
             )
+            with listener_select:
+                ui.tooltip("The profiles to include in the payload").classes(
+                    "bg-green-700"
+                )
 
-        # Dialog Footer
+            # PROFILE CONFIG
+            with ui.row().classes("w-full"):  # bg-white/5 rounded border border-white/5
+
+                profile_get_select = (
+                    ui.select(label="Initial Get Profile", options=[])
+                    .props("outlined dense dark color=emerald options-dense")
+                    .classes("flex-1")
+                )
+                profile_get_select.disable()
+
+                profile_post_select = (
+                    ui.select(label="Initial Post Profile", options=[])
+                    .props("outlined dense dark color=emerald options-dense")
+                    .classes("flex-1")
+                )
+                profile_post_select.disable()
+
+                with profile_get_select:
+                    ui.tooltip(
+                        "The profile to use for the initial GET requests"
+                    ).classes("bg-green-700")
+                with profile_post_select:
+                    ui.tooltip(
+                        "The profile to use for the initial POST requests"
+                    ).classes("bg-green-700")
+
+        # Footer
         with ui.row().classes(
-            "w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"
+            "w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3 relative"
         ):
+
             # Progress Bars
             progress_bar = (
                 ui.linear_progress(value=0, show_value=False, color="emerald-400")
-                .props("instant-feedback color=emerald track-color=transparent")
-                .classes("absolute top-0 left-0 w-full opacity-0 transition-opacity")
-            )
-            progress_bar_fail = (
-                ui.linear_progress(value=0, show_value=False, color="red-500")
-                .props("instant-feedback color=red track-color=transparent")
-                .classes("absolute top-0 left-0 w-full opacity-0 transition-opacity")
+                .props("instant-feedback track-color=transparent")
+                .classes(
+                    "absolute top-0 left-0 w-full h-[2px] opacity-0 transition-opacity"
+                )
             )
 
+            progress_bar_fail = (
+                ui.linear_progress(value=0, show_value=False, color="red-500")
+                .props("instant-feedback track-color=transparent")
+                .classes(
+                    "absolute top-0 left-0 w-full h-[2px] opacity-0 transition-opacity"
+                )
+            )
+
+            # Buttons
             download_payload_button = (
-                ui.button("PAYLOAD", icon="download")
+                ui.button("BINARY", icon="download")
                 .props("unelevated dense color=emerald text-color=white no-caps")
-                .classes("font-bold tracking-wide")
+                .classes("font-bold tracking-wide disabled:opacity-50")
             )
             download_payload_button.disable()
 
             download_payload_source_button = (
                 ui.button("SOURCE", icon="code")
                 .props("unelevated dense color=emerald text-color=white no-caps")
-                .classes("font-bold tracking-wide")
+                .classes("font-bold tracking-wide disabled:opacity-50")
             )
             download_payload_source_button.disable()
 
+            ui.separator().classes("vertical mx-2 bg-white/10")
+
             build_btn = (
-                ui.button("EXECUTE BUILD", on_click=_build_implant)
+                ui.button("COMPILE", on_click=_build_implant)
                 .props("unelevated dense color=emerald text-color=white no-caps")
                 .classes("font-bold tracking-wide")
             )
