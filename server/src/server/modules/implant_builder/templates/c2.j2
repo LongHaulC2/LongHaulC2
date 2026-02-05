@@ -29,17 +29,20 @@ void C2Implant::init() {
     //Init C2. This is effectively the "entry point" going forward with any c2 ops. 
 
     [%- for c2_get_profile in get_function_mappings.values() %]
+
     s_ingress_map["[[ c2_get_profile.key ]]"] = [[ c2_get_profile.value ]];
+
     [%- endfor %]
 
-
     [%- for c2_post_profile in post_function_mappings.values() %]
+
     s_egress_map["[[ c2_post_profile.key ]]"] = [[ c2_post_profile.value ]];
+
     [%- endfor %]
 
     //set default options
-    SettingsManager::instance().set("comms_get_function", "[[ init_get_function]]");
-    SettingsManager::instance().set("comms_post_function", "[[ init_post_function]]");
+    SettingsManager::instance().set("comms_get_function", "[[ init_get_function.value ]]");
+    SettingsManager::instance().set("comms_post_function", "[[ init_post_function.value ]]");
 }
 
 int C2Implant::register_implant() {

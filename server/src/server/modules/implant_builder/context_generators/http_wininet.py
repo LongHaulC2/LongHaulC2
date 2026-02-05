@@ -53,8 +53,12 @@ def generate_http_wininet_context(
     # need to safely format these names (no dots, etc)
     context.update(
         {
-            "http_get_function_name": f"http_get_{callback_host}_{callback_port}_{malleable_c2_profile_name}",
-            "http_post_function_name": f"http_post_{callback_host}_{callback_port}_{malleable_c2_profile_name}",
+            "http_get_function_name": sanitize_cpp_name(
+                f"http_get_{callback_host}_{callback_port}_{malleable_c2_profile_name}"
+            ),
+            "http_post_function_name": sanitize_cpp_name(
+                f"http_post_{callback_host}_{callback_port}_{malleable_c2_profile_name}"
+            ),
         }
     )
 
@@ -230,3 +234,19 @@ def _extract_http_post_options(profile: MalleableProfile) -> dict:
             context_dict["http_post_client_output_terminator"] = "print"
 
     return context_dict
+
+
+def sanitize_cpp_name(name: str) -> str:
+    """
+    Converts a string into a valid C++ function/variable name.
+    1. Replaces non-alphanumeric chars (like . - @ spaces) with underscores.
+    2. Ensures it doesn't start with a number.
+    """
+    # Replace anything that isn't a-z, A-Z, 0-9, or _ with an underscore
+    clean_name = re.sub(r"[^a-zA-Z0-9_]", "_", name)
+
+    # If the first character is a number, prepend an underscore
+    if clean_name[0].isdigit():
+        clean_name = f"_{clean_name}"
+
+    return clean_name

@@ -681,9 +681,7 @@ class MySQLImplantPayloadService:
 
         return hash_str
 
-    def register_build_start(
-        self, payload_name: str, listener_uuid: str, build_uuid: str
-    ) -> str:
+    def register_build_start(self, payload_name: str, build_uuid: str) -> str:
         """
         Creates an initial 'placeholder' entry for a new payload build.
         Generates a UUID to track the build job, allowing the API to return immediately
@@ -691,9 +689,9 @@ class MySQLImplantPayloadService:
 
         returns: The new Build UUID (str)
         """
-        server_logger.info(f"Registering new build task for listener {listener_uuid}")
+        server_logger.info(f"Registering new build task for payload {payload_name}")
 
-        check_type(listener_uuid, str, "listener_uuid")
+        # check_type(listener_uuid, str, "listener_uuid")
         check_type(payload_name, str, "payload_name")
 
         # Create the row with the UUID, but leave the payload bytes Empty/Null for now.
@@ -701,7 +699,7 @@ class MySQLImplantPayloadService:
         payload_entry = ImplantPayload(
             build_uuid=build_uuid,  # Saving the UUID instead of a Hash
             payload_name=payload_name,
-            payload_listener_uuid=listener_uuid,
+            payload_listener_uuid=None,  # switch to a list of uuids
             payload_bytes=None,  # Data not ready yet
             payload_source_code_bytes=None,  # Data not ready yet
         )

@@ -64,13 +64,13 @@ def build_implant(implant_name: str, listeners_dict: dict, output_format, build_
         for listener_key, listener_data in listeners_dict.items():
             # go ahead and register build job too
             # Generate a tracking UUID for this build job
-            # service = MySQLImplantPayloadService(session)
-            # service.register_build_start(
-            #     payload_name=implant_name,
-            #     listener_uuid=listener_uuid,
-            #     build_uuid=build_uuid,
-            # )
-            # service.update_build_status(build_uuid=build_uuid, build_status="building")
+            service = MySQLImplantPayloadService(session)
+            service.register_build_start(
+                payload_name=implant_name,
+                # listener_uuid=listener_uuid, # eventually be a list of ID's
+                build_uuid=build_uuid,
+            )
+            service.update_build_status(build_uuid=build_uuid, build_status="building")
 
             ls = ListenerService(session)
             listener_data = ls.get_by_id(listener_key)
@@ -83,6 +83,11 @@ def build_implant(implant_name: str, listeners_dict: dict, output_format, build_
 
             listener_data = listener_data.to_dict()
             listener_uuid = listener_data.get("listener_uuid")
+
+            # sanitize profile name for cpp function names, BEOFRE sending it off to other funcs
+            listener_data["listener_profile_name"] = sanitize_cpp_name(
+                listener_data["listener_profile_name"]
+            )
 
             # put together the dict with listener data
             listeners_data_dict[listener_uuid] = listener_data
@@ -361,3 +366,19 @@ def docker_build_implant(source_code_dir: Path) -> bool:
 
     # clean up container object reference (optional if remove=True is uncommented above)
     # container.remove()
+
+
+def sanitize_cpp_name(name: str) -> str:
+    """
+    Converts a string into a valid C++ function/variable name.
+    1. Replaces non-alphanumeric chars (like . - @ spaces) with underscores.
+    2. Ensures it doesn't start with a number.
+    """
+    # Replace anything that isn't a-z, A-Z, 0-9, or _ with an underscore
+    clean_name = re.sub(r"[^a-zA-Z0-9_]", "_", name)
+
+    # If the first character is a number, prepend an underscore
+    if clean_name[0].isdigit():
+        clean_name = f"_{clean_name}"
+
+    return clean_name

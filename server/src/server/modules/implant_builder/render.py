@@ -105,14 +105,14 @@ def render_implant(
                 dict_of_get_function_mappings[mc2_name] = {
                     # I know I'm assigning these to themselves, tldr, it's easier.
                     # output: "http_get_amason.com_6769_amazongetprofile": "http_get_amason.com_6769_amazongetprofile",
-                    "key": get_function_name,
-                    "value": get_function_name,
+                    "key": sanitize_cpp_name(get_function_name),
+                    "value": sanitize_cpp_name(get_function_name),
                 }
                 dict_of_post_function_mappings[mc2_name] = {
                     # I know I'm assigning these to themselves, tldr, it's easier.
                     # output: "http_get_amason.com_6769_amazongetprofile": "http_get_amason.com_6769_amazongetprofile",
-                    "key": post_function_name,
-                    "value": post_function_name,
+                    "key": sanitize_cpp_name(post_function_name),
+                    "value": sanitize_cpp_name(post_function_name),
                 }
             case _:
                 server_logger.error(f"Invalid listener type: {listener_type}")
@@ -243,3 +243,19 @@ def render_and_write_c2_j2(
     dest_file.parent.mkdir(parents=True, exist_ok=True)
     with open(dest_file, "w") as f:
         f.write(rendered_code)
+
+
+def sanitize_cpp_name(name: str) -> str:
+    """
+    Converts a string into a valid C++ function/variable name.
+    1. Replaces non-alphanumeric chars (like . - @ spaces) with underscores.
+    2. Ensures it doesn't start with a number.
+    """
+    # Replace anything that isn't a-z, A-Z, 0-9, or _ with an underscore
+    clean_name = re.sub(r"[^a-zA-Z0-9_]", "_", name)
+
+    # If the first character is a number, prepend an underscore
+    if clean_name[0].isdigit():
+        clean_name = f"_{clean_name}"
+
+    return clean_name
