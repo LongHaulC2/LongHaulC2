@@ -21,16 +21,17 @@ IMPLANT_BASE = Path(__file__).parent / "implant_base"
 server_logger = logging.getLogger("server")
 
 
-def build_implant(implant_name, listener_uuid, variant, output_format, build_uuid):
+def build_implant(implant_name: str, listeners_dict: dict, output_format, build_uuid):
     """
     Function to call to build implant. API calls this.
 
     Need:
-    listener_uuid (this will extract malleablec2, callback_host, callback_port, and listener type)
+    ~~listener_uuid (this will extract malleablec2, callback_host, callback_port, and listener type)
 
+    listeners: dict: {"listener_uuid":..., "listener_variant":...}
     """
     structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(variant=variant, listener_uuid=listener_uuid)
+    # structlog.contextvars.bind_contextvars(variant=variant, listener_uuid=listener_uuid)
 
     server_logger.info("Building implant")
     server_logger.warning(
@@ -38,51 +39,59 @@ def build_implant(implant_name, listener_uuid, variant, output_format, build_uui
     )
 
     # lookup listener data
+    # with get_mysql_session() as session:
+    #     ls = ListenerService(session)
+    #     listener_data = ls.get_by_id(listener_uuid)
+
+    #     if not listener_data:
+    #         server_logger.error(f"Could not find listener with provided listener_uuid.")
+    #         return
+
+    #     listener_data = listener_data.to_dict()
+
+    # print(listener_data.keys())
+    """
+    dict_keys(['listener_uuid', 'listener_host', 'listener_port', 
+    'listener_type', 'listener_name', 'listener_notes', 'listener_active', 
+    'listener_profile_name', 'listener_profile_contents'])
+    """
+    # malleable_c2_profile_dict =
+
+    listeners_data_dict = {}  # {uuid:{}}
+
+    # get associated listener data, from the listeners dict.
     with get_mysql_session() as session:
-        ls = ListenerService(session)
-        listener_data = ls.get_by_id(listener_uuid)
+        for listener_key, listener_data in listeners_dict.items():
+            # go ahead and register build job too
+            # Generate a tracking UUID for this build job
+            # service = MySQLImplantPayloadService(session)
+            # service.register_build_start(
+            #     payload_name=implant_name,
+            #     listener_uuid=listener_uuid,
+            #     build_uuid=build_uuid,
+            # )
+            # service.update_build_status(build_uuid=build_uuid, build_status="building")
 
-        if not listener_data:
-            server_logger.error(f"Could not find listener with provided listener_uuid.")
-            return
+            ls = ListenerService(session)
+            listener_data = ls.get_by_id(listener_key)
 
-        listener_data = listener_data.to_dict()
+            if not listener_data:
+                server_logger.error(
+                    f"Could not find listener with provided listener_uuid."
+                )
+                return
 
-        # print(listener_data.keys())
-        """
-        dict_keys(['listener_uuid', 'listener_host', 'listener_port', 
-        'listener_type', 'listener_name', 'listener_notes', 'listener_active', 
-        'listener_profile_name', 'listener_profile_contents'])
-        """
+            listener_data = listener_data.to_dict()
+            listener_uuid = listener_data.get("listener_uuid")
 
-        # go ahead and register build job too
-        # Generate a tracking UUID for this build job
-        service = MySQLImplantPayloadService(session)
-        service.register_build_start(
-            payload_name=implant_name,
-            listener_uuid=listener_uuid,
-            build_uuid=build_uuid,
-        )
-        service.update_build_status(build_uuid=build_uuid, build_status="building")
+            # put together the dict with listener data
+            listeners_data_dict[listener_uuid] = listener_data
 
-    # note - difference betwen lsitener type (http) and listenert type for build (http_wininet)
-    # OR - less complicated for user, have a "http" listener, then specify which method
-    # done - cleint has a field to specfy variant.
-    # add in a field to api, and here, for which variant to build/use.
-
-    listener_type = listener_data.get("listener_type")
-    listener_host = listener_data.get("listener_host")
-    listener_port = listener_data.get("listener_port")
-    malleable_c2_profile = listener_data.get("listener_profile_contents")
-
-    # setup build enviornment, creates a temp dir in /tmp/...
-    build_dir = setup_implant_build_enviornment(
-        malleable_c2_profile=malleable_c2_profile,
-        listener_type=listener_type,
-        callback_host=listener_host,
-        callback_port=int(listener_port),
-        variant=variant,
+    # setup build enviornment, creates a temp dir in /tmp/, and renders files
+    build_dir = setup_implant_build_enviornment_and_render_code(
+        listeners_data_dict=listeners_data_dict
     )
+
     # built the implant with docker
     if not docker_build_implant(build_dir):
         server_logger.info(f"Implant build failed for {implant_name}")
@@ -198,16 +207,13 @@ def store_data_post_build(
         # shutil.rmtree(build_path)
 
 
-def setup_implant_build_enviornment(
-    malleable_c2_profile,
-    listener_type,
-    callback_host,
-    variant,
-    callback_port=0,
+def setup_implant_build_enviornment_and_render_code(
+    listeners_data_dict,
 ) -> Path:
 
-    # temp overwrite for mallc2
-    # mc2_path = Path("/home/ubuntu-dev/LongHaulC2/tests/profiles/webbug.profile")
+    listener_type = listeners_data_dict.get("listener_type")
+    # callback_host = listeners_data_dict.get("listener_host")
+    # callback_port = listeners_data_dict.get("listener_port")
 
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(
@@ -221,15 +227,11 @@ def setup_implant_build_enviornment(
         # creat base implant structure
         copy_base_structure(source_dir=IMPLANT_BASE, dest_dir=Path(tmp_dir).resolve())
 
-        # print(f"File created: {temp_file}")
         render_implant(
-            output_dir=Path(tmp_dir).resolve(),
-            malleable_c2_profile=malleable_c2_profile,
-            listener_type=listener_type,
-            callback_host=callback_host,
-            callback_port=callback_port,
+            output_dir=Path(tmp_dir).resolve(),  # where to save sourcecode
+            listeners_data_dict=listeners_data_dict,  # lsiteners data
             # protocol_variant = whatever
-            variant=variant,
+            # variant="variant",  # holdover
         )
     return Path(tmp_dir)
 

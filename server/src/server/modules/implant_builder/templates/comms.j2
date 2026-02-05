@@ -1,0 +1,18 @@
+[#
+
+Final output for comms.cpp
+
+#]
+
+[# Include common headers here, each indivudual will have comms specific ones too #]
+#include <vector>
+#include <iostream>
+#include "../data/transforms/transforms.h"
+#include "../data/msgpack/msgpack.h"
+#include "../protocols/json/json.h"
+
+
+
+[%- for comms_code in comms_code_list %]
+{{ comms_code }}
+[%- endfor %]

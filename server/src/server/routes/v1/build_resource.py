@@ -96,27 +96,39 @@ class Build(Resource):
             405: "Method Not Allowed",
         },
     )
-    @build_ns.expect(build_implant_model, validate=True)  # flip to True to enforce
+    @build_ns.expect(build_implant_model, validate=False)  # flip to True to enforce
     def post(self):
         """
         Submit a build task to build a payload.
         """
         data = build_ns.payload
 
-        listener_uuid = data["implant_listener_uuid"]
-        variant = data["implant_variant"]
+        # change this to a dict
+        """
+        listener_dict = {
+            listener_uuid: {"listener_variant":""},
+            listener_uuid: {"listener_variant":""},
+
+        }
+        
+        """
+        # print(data)
+        # listener_uuid = data["implant_listener_uuid"]
+        # variant = data["implant_variant"]
         implant_name = data["implant_name"]
         output_format = data["output_format"]
+        listener_dict = data.get("listener_dict", {})
 
         api_logger.info(
-            f"Build requested for listener {listener_uuid} (Variant: {variant})",
+            f"Build requested",
             extra={"caller_ip": request.remote_addr},
+            # listener_dict=listener_dict,
         )
 
         # 3. Trigger Build
         build_uuid = str(uuid7())
 
-        build_implant(implant_name, listener_uuid, variant, output_format, build_uuid)
+        build_implant(implant_name, listener_dict, output_format, build_uuid)
 
         response = {"build_uuid": build_uuid}
         # 4. Return immediately

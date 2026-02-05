@@ -293,16 +293,19 @@ async def start_listener(
         return data
 
 
-async def build_implant(
-    implant_name, implant_listener_uuid, implant_variant, output_format
-) -> dict:
+async def build_implant(implant_name, listener_dict, output_format) -> dict:
     """
     Submit a task to build a new implant payload tailored to a specific listener.
 
     Args:
         implant_name (str): The name to give the built implant.
-        implant_listener_uuid (str): The UUID of the listener this implant should connect to.
-        implant_variant (str): The variant or architecture of the implant.
+        listener_dict: dict of listener data: {
+            listener_uuid: {"listener_variant":""},
+            listener_uuid: {"listener_variant":""},
+
+        }
+            implant_listener_uuid (str): The UUID of the listener this implant should connect to.
+            implant_variant (str): The variant or architecture of the implant.
         output_format (str): The desired file format (e.g., 'exe', 'dll').
 
     Returns:
@@ -316,14 +319,14 @@ async def build_implant(
 
     # --- validate inputs ---
     check_type(implant_name, str, "implant_name")
-    check_type(implant_listener_uuid, str, "implant_listener_uuid")
-    check_type(implant_variant, str, "implant_variant")
+    # check_type(implant_listener_uuid, str, "implant_listener_uuid")
+    # check_type(implant_variant, str, "implant_variant")
     check_type(output_format, str, "output_format")
+    check_type(listener_dict, dict, "listener_dict")
 
     build_request_data = {
         # "implant_name": implant_name,
-        "implant_variant": implant_variant,
-        "implant_listener_uuid": implant_listener_uuid,
+        "listener_dict": listener_dict,
         "implant_name": implant_name,
         "output_format": output_format,
     }

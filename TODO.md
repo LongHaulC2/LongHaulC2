@@ -99,11 +99,14 @@
                > funcs will need to be named `protocol_get|post_<name_of_profile>`
                ex: `http_post_amazon` (need conversion to c++ safe var names)
          Files to be rendered:
-            - c2.cpp -> /control/c2.cpp
+            - [ ] c2.cpp -> /control/c2.cpp
                > init function with mappings.
                   Name of profile, mapped to function name. (need to add function name to jinja template for http_wininet)
                   `s_ingress_map["http_get_amazon"] = get_HTTP;`
                   `s_egress_map["http_post_amazon"] = post_HTTP;`
+
+            - [ ] wininet_comms_http.j2 Update context to add function names 
+            - [ ] comms.j2 Update to add a list of generated code to this
 
             settings... eventually. 
 
