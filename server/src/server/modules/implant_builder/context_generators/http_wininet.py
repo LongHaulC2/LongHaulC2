@@ -44,11 +44,18 @@ def generate_http_wininet_context(
     context.update(_extract_http_post_options(profile))
 
     # add in function names for mangling
-    context["http_get_function_name"] = (
-        f"http_get_{callback_host}_{callback_port}_{malleable_c2_profile_name}"
-    )
-    context["http_post_function_name"] = (
-        f"http_post_{callback_host}_{callback_port}_{malleable_c2_profile_name}"
+    # context["http_get_function_name"] = (
+    #     f"http_get_{callback_host}_{callback_port}_{malleable_c2_profile_name}"
+    # )
+    # context["http_post_function_name"] = (
+    #     f"http_post_{callback_host}_{callback_port}_{malleable_c2_profile_name}"
+    # )
+    # need to safely format these names (no dots, etc)
+    context.update(
+        {
+            "http_get_function_name": f"http_get_{callback_host}_{callback_port}_{malleable_c2_profile_name}",
+            "http_post_function_name": f"http_post_{callback_host}_{callback_port}_{malleable_c2_profile_name}",
+        }
     )
 
     # Debug output for verification
