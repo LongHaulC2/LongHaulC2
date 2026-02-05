@@ -212,6 +212,194 @@ async def render_payloads(payload_data: dict):
             table.on("source_download", handle_source_download)
 
 
+# async def start_payload_dialogue():
+#     """Opens the Build Dialog"""
+
+#     # --- Data Setup ---
+#     VARIANT_MAP = {"http": ["http_wininet"]}
+#     response = await get_all_listener_data()
+#     listeners_list = response.get("data", [])
+#     listener_type_map = {l["listener_name"]: l["listener_type"] for l in listeners_list}
+#     listener_uuid_map = {l["listener_name"]: l["listener_uuid"] for l in listeners_list}
+
+#     # --- Logic ---
+#     async def _build_implant():
+#         name = name_input.value
+#         listener_name = listener_select.value
+#         variant = variant_select.value
+#         fmt = format_select.value
+
+#         if not all([name, listener_name, fmt]):
+#             ui.notify("MISSING REQUIRED FIELDS", type="warning", color="orange-9")
+#             return
+
+#         # show prog bar
+#         progress_bar.classes(remove="opacity-0")
+
+#         build_btn.props("loading")
+
+#         # fake update progress bar
+#         progress_bar.value = 0.25
+
+#         result = await build_implant(
+#             implant_name=name,
+#             implant_listener_uuid=listener_uuid_map.get(listener_name),
+#             implant_variant=variant if variant_select.visible else None,
+#             output_format=fmt,
+#         )
+#         # print(result)
+#         build_uuid = result.get("data", {}).get("build_uuid")
+#         # ui.notify(f"BUILD UUID: {build_uuid}", type="info", color="grey-9")
+
+#         if build_uuid:
+#             progress_bar.value = 0.75
+
+#         build_btn.props("loading=false")
+
+#         async def poll_build_status():
+#             # Call your check function
+#             result = await get_build_status(build_uuid)
+#             # print(result)
+#             if result.get("data", {}).get("build_status") == "complete":
+#                 payload_hash = result.get("data", {}).get("payload_hash")
+#                 payload_name = result.get("data", {}).get("payload_name")
+
+#                 # complete bar and disable spinner
+#                 progress_bar.value = 1
+#                 progress_bar.color = "green-500"
+#                 build_btn.props("loading=false")
+
+#                 # print(result)
+#                 # ui.notify("BUILD SUCCEDED", type="positive", color="emerald-9")
+#                 download_payload_button.enable()
+#                 download_payload_button.on_click(
+#                     lambda: download_payload(hash=payload_hash, name=payload_name)
+#                 )
+#                 download_payload_source_button.enable()
+#                 download_payload_source_button.on_click(
+#                     lambda: download_payload_source(
+#                         hash=payload_hash, name=payload_name
+#                     )
+#                 )
+#                 status_timer.deactivate()  # Stop polling
+#                 # dialog.close()
+
+#             if result.get("data", {}).get("build_status") == "failed":
+#                 # hide old green bar
+#                 progress_bar.classes("opacity-0")
+#                 # show failed red bar.
+#                 progress_bar_fail.value = 1
+#                 progress_bar_fail.classes(remove="opacity-0")
+
+#                 ui.notify("BUILD FAILED", type="negative", color="red-9")
+#                 build_btn.props("loading=false")
+#                 status_timer.deactivate()  # Stop polling
+#                 # dialog.close()
+
+#         status_timer = ui.timer(1.0, poll_build_status, active=True)
+
+#     def _on_listener_change(e):
+#         allowed = VARIANT_MAP.get(listener_type_map.get(e.value), [])
+#         variant_select.options = allowed
+#         variant_select.value = allowed[0] if allowed else None
+#         variant_select.visible = bool(allowed)
+
+#     # --- UI ---
+#     # "tech-dialog" handles the dark theme and borders
+#     with ui.dialog() as dialog, ui.card().classes(
+#         "tech-dialog w-[500px] p-0 rounded overflow-hidden"
+#     ):
+
+#         # Dialog Header
+#         with ui.row().classes(
+#             "w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"
+#         ):
+#             with ui.row().classes("gap-2 items-center"):
+#                 ui.icon("terminal", color="emerald-500")
+#                 ui.label("BUILD_IMPLANT_PAYLOAD").classes(
+#                     "text-sm font-bold tracking-widest text-emerald-500 font-mono"
+#                 )
+#             ui.button(icon="close", on_click=dialog.close).props(
+#                 "dense flat size=sm color=grey"
+#             )
+
+#         # Dialog Body
+#         with ui.column().classes("p-6 gap-6 w-full"):
+#             name_input = (
+#                 ui.input("IDENTITY", placeholder="agent_filename")
+#                 .props("outlined dense dark color=emerald")
+#                 .classes("w-full")
+#             )
+
+#             with ui.grid().classes("grid-cols-2 gap-4 w-full"):
+#                 format_select = ui.select(
+#                     options=["exe", "dll", "ps1", "shellcode", "all"],
+#                     value="exe",
+#                     label="FORMAT",
+#                 ).props("outlined dense dark color=emerald options-dense")
+
+#                 listener_select = ui.select(
+#                     options=list(listener_type_map.keys()),
+#                     label="LISTENER",
+#                     on_change=_on_listener_change,
+#                 ).props("outlined dense dark color=emerald options-dense")
+
+#             variant_select = (
+#                 ui.select(label="VARIANT", options=[])
+#                 .props("outlined dense dark color=emerald")
+#                 .classes("w-full hidden")
+#             )
+
+#         # Dialog Footer
+#         with ui.row().classes(
+#             "w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"
+#         ):
+
+#             # 2. The Progress Bar (Docked to top of footer)
+#             # h-[2px]: Very thin "laser" line
+#             # absolute top-0: Sits exactly on the border
+#             # opacity-0: Hidden by default (we toggle this class instead of .visible to animate the fade)
+#             progress_bar = (
+#                 ui.linear_progress(value=0, show_value=False, color="emerald-400")
+#                 .props("instant-feedback color=emerald track-color=transparent")
+#                 .classes("absolute top-0 left-0 w-full opacity-0 transition-opacity")
+#             )
+#             # tldr, a fail one to have a red bar if it fails. I can't find a way to change the color once init'd
+#             progress_bar_fail = (
+#                 ui.linear_progress(value=0, show_value=False, color="red-500")
+#                 .props("instant-feedback color=red track-color=transparent")
+#                 .classes("absolute top-0 left-0 w-full opacity-0 transition-opacity")
+#             )
+
+#             download_payload_button = (
+#                 ui.button("PAYLOAD", icon="download")
+#                 .props("unelevated dense color=emerald text-color=white no-caps")
+#                 .classes("font-bold tracking-wide")
+#             )
+#             # disable returns none, so need to call separately
+#             download_payload_button.disable()
+
+#             download_payload_source_button = (
+#                 ui.button("SOURCE", icon="code")
+#                 .props("unelevated dense color=emerald text-color=white no-caps")
+#                 .classes("font-bold tracking-wide")
+#             )
+#             # disable returns none, so need to call separately
+#             download_payload_source_button.disable()
+
+#             # ui.button("ABORT", on_click=dialog.close).props(
+#             #     "flat dense color=grey no-caps"
+#             # )
+
+#             build_btn = (
+#                 ui.button("EXECUTE BUILD", on_click=_build_implant)
+#                 .props("unelevated dense color=emerald text-color=white no-caps")
+#                 .classes("font-bold tracking-wide")
+#             )
+
+#     dialog.open()
+
+
 async def start_payload_dialogue():
     """Opens the Build Dialog"""
 
@@ -225,31 +413,37 @@ async def start_payload_dialogue():
     # --- Logic ---
     async def _build_implant():
         name = name_input.value
-        listener_name = listener_select.value
+        selected_listeners = listener_select.value  # This is now a list
         variant = variant_select.value
         fmt = format_select.value
 
-        if not all([name, listener_name, fmt]):
+        if not all([name, selected_listeners, fmt]):
             ui.notify("MISSING REQUIRED FIELDS", type="warning", color="orange-9")
             return
 
         # show prog bar
         progress_bar.classes(remove="opacity-0")
-
         build_btn.props("loading")
-
-        # fake update progress bar
         progress_bar.value = 0.25
+
+        # --- Construct the Listener Dict ---
+        # Structure: { uuid: { "listener_variant": variant } }
+        listener_dict = {}
+
+        for lst_name in selected_listeners:
+            uuid = listener_uuid_map.get(lst_name)
+            if uuid:
+                listener_dict[uuid] = {
+                    "listener_variant": variant if variant_select.visible else None
+                }
 
         result = await build_implant(
             implant_name=name,
-            implant_listener_uuid=listener_uuid_map.get(listener_name),
-            implant_variant=variant if variant_select.visible else None,
+            listener_dict=listener_dict,  # Passed as the new dict structure
             output_format=fmt,
         )
-        # print(result)
+
         build_uuid = result.get("data", {}).get("build_uuid")
-        # ui.notify(f"BUILD UUID: {build_uuid}", type="info", color="grey-9")
 
         if build_uuid:
             progress_bar.value = 0.75
@@ -257,10 +451,10 @@ async def start_payload_dialogue():
         build_btn.props("loading=false")
 
         async def poll_build_status():
-            # Call your check function
             result = await get_build_status(build_uuid)
-            # print(result)
-            if result.get("data", {}).get("build_status") == "complete":
+            status = result.get("data", {}).get("build_status")
+
+            if status == "complete":
                 payload_hash = result.get("data", {}).get("payload_hash")
                 payload_name = result.get("data", {}).get("payload_name")
 
@@ -269,8 +463,6 @@ async def start_payload_dialogue():
                 progress_bar.color = "green-500"
                 build_btn.props("loading=false")
 
-                # print(result)
-                # ui.notify("BUILD SUCCEDED", type="positive", color="emerald-9")
                 download_payload_button.enable()
                 download_payload_button.on_click(
                     lambda: download_payload(hash=payload_hash, name=payload_name)
@@ -281,35 +473,37 @@ async def start_payload_dialogue():
                         hash=payload_hash, name=payload_name
                     )
                 )
-                status_timer.deactivate()  # Stop polling
-                # dialog.close()
+                status_timer.deactivate()
 
-            if result.get("data", {}).get("build_status") == "failed":
-                # hide old green bar
+            elif status == "failed":
                 progress_bar.classes("opacity-0")
-                # show failed red bar.
                 progress_bar_fail.value = 1
                 progress_bar_fail.classes(remove="opacity-0")
 
                 ui.notify("BUILD FAILED", type="negative", color="red-9")
                 build_btn.props("loading=false")
-                status_timer.deactivate()  # Stop polling
-                # dialog.close()
+                status_timer.deactivate()
 
         status_timer = ui.timer(1.0, poll_build_status, active=True)
 
     def _on_listener_change(e):
-        allowed = VARIANT_MAP.get(listener_type_map.get(e.value), [])
+        # e.value is now a list. We take the first one to determine variants
+        # (Assuming user selects homogenous listeners, e.g. all HTTP)
+        if not e.value:
+            variant_select.visible = False
+            return
+
+        first_listener = e.value[0]
+        allowed = VARIANT_MAP.get(listener_type_map.get(first_listener), [])
+
         variant_select.options = allowed
         variant_select.value = allowed[0] if allowed else None
         variant_select.visible = bool(allowed)
 
     # --- UI ---
-    # "tech-dialog" handles the dark theme and borders
     with ui.dialog() as dialog, ui.card().classes(
         "tech-dialog w-[500px] p-0 rounded overflow-hidden"
     ):
-
         # Dialog Header
         with ui.row().classes(
             "w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"
@@ -338,33 +532,31 @@ async def start_payload_dialogue():
                     label="FORMAT",
                 ).props("outlined dense dark color=emerald options-dense")
 
+                # UPDATED: Multiple selection enabled
                 listener_select = ui.select(
                     options=list(listener_type_map.keys()),
-                    label="LISTENER",
+                    label="LISTENERS",
+                    multiple=True,  # Enable multiple selection
                     on_change=_on_listener_change,
-                ).props("outlined dense dark color=emerald options-dense")
+                ).props("outlined dense dark color=emerald options-dense use-chips")
 
             variant_select = (
                 ui.select(label="VARIANT", options=[])
                 .props("outlined dense dark color=emerald")
-                .classes("w-full hidden")
+                #.classes("w-full hidden")
+                .classes("w-full")
             )
 
         # Dialog Footer
         with ui.row().classes(
             "w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"
         ):
-
-            # 2. The Progress Bar (Docked to top of footer)
-            # h-[2px]: Very thin "laser" line
-            # absolute top-0: Sits exactly on the border
-            # opacity-0: Hidden by default (we toggle this class instead of .visible to animate the fade)
+            # Progress Bars
             progress_bar = (
                 ui.linear_progress(value=0, show_value=False, color="emerald-400")
                 .props("instant-feedback color=emerald track-color=transparent")
                 .classes("absolute top-0 left-0 w-full opacity-0 transition-opacity")
             )
-            # tldr, a fail one to have a red bar if it fails. I can't find a way to change the color once init'd
             progress_bar_fail = (
                 ui.linear_progress(value=0, show_value=False, color="red-500")
                 .props("instant-feedback color=red track-color=transparent")
@@ -376,7 +568,6 @@ async def start_payload_dialogue():
                 .props("unelevated dense color=emerald text-color=white no-caps")
                 .classes("font-bold tracking-wide")
             )
-            # disable returns none, so need to call separately
             download_payload_button.disable()
 
             download_payload_source_button = (
@@ -384,12 +575,7 @@ async def start_payload_dialogue():
                 .props("unelevated dense color=emerald text-color=white no-caps")
                 .classes("font-bold tracking-wide")
             )
-            # disable returns none, so need to call separately
             download_payload_source_button.disable()
-
-            # ui.button("ABORT", on_click=dialog.close).props(
-            #     "flat dense color=grey no-caps"
-            # )
 
             build_btn = (
                 ui.button("EXECUTE BUILD", on_click=_build_implant)

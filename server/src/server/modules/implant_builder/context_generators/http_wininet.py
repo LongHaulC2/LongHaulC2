@@ -11,7 +11,10 @@ server_logger = logging.getLogger("server")
 
 
 def generate_http_wininet_context(
-    malleable_c2_profile: str, callback_host: str, callback_port: int
+    malleable_c2_profile: str,
+    callback_host: str,
+    callback_port: int,
+    malleable_c2_profile_name,
 ) -> dict:
     """
     Main entry point to generate the Jinja2 context for HTTP Wininet listeners.
@@ -39,6 +42,21 @@ def generate_http_wininet_context(
 
     # 4. Extract HTTP POST Options
     context.update(_extract_http_post_options(profile))
+
+    # add in function names for mangling
+    # context["http_get_function_name"] = (
+    #     f"http_get_{callback_host}_{callback_port}_{malleable_c2_profile_name}"
+    # )
+    # context["http_post_function_name"] = (
+    #     f"http_post_{callback_host}_{callback_port}_{malleable_c2_profile_name}"
+    # )
+    # need to safely format these names (no dots, etc)
+    context.update(
+        {
+            "http_get_function_name": f"http_get_{callback_host}_{callback_port}_{malleable_c2_profile_name}",
+            "http_post_function_name": f"http_post_{callback_host}_{callback_port}_{malleable_c2_profile_name}",
+        }
+    )
 
     # Debug output for verification
     server_logger.debug(f"Context generation complete")
