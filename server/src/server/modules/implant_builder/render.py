@@ -42,6 +42,11 @@ def render_implant(
 
     # construct malleable_c2_profile_dict (dict of {"name":"contents_of_profile"})
     malleable_c2_profile_dict = {}
+
+    # move to functions later:
+    # =============
+    # comms.cpp render chain
+    # =============
     for listener_key, listener_data in listeners_data_dict.items():
         # server_logger.debug(f"listener_data: {listener_data}")
 
@@ -91,8 +96,18 @@ def render_implant(
                 server_logger.error(f"Invalid listener type: {listener_type}")
                 raise ValueError(f"Invalid listener type: {listener_type}")
 
+    # =============
+    # c2.cpp render chain
+    # =============
+    #  See todo, tldr; `s_ingress_map["http_get_amazon"] = get_HTTP;` rendering here.
+    # ex: `s_ingress_map["profile_name"] = profile_function_name;`
+
     # 4. Execution Loop
     server_logger.info("Rendering Implant Files")
+
+    # okay goal here - dump rendered items into theier files,
+    # however, comms.cpp needs to all go into one file, not sure how to do that with
+    # this logic yet. Maybe a list of rendered files, then use the templting to do that ig.
 
     for dest_file, render_dict in files_to_render.items():
         # Ensure directory exists
@@ -106,10 +121,15 @@ def render_implant(
         # the dict with all the context *for* the file
         jinja_template_context = render_context
 
-        render_file(jinja_template_file, dest_file, jinja_template_context)
+        rendered_code = render_file(jinja_template_file, jinja_template_context)
+
+        # Ensure output directory exists & write to file
+        dest_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(dest_file, "a") as f:
+            f.write(rendered_code)
 
 
-def render_file(template_file: str, output_path: Path, context: dict):
+def render_file(template_file: str, context: dict) -> str:
     """Render a file based on the template provided
 
     NOTE: When saving a file, this will APPEND to existing files, not overwrite.
@@ -117,16 +137,13 @@ def render_file(template_file: str, output_path: Path, context: dict):
 
     Args:
         template_file (str): Path to template file
-        output_path (Path): where to store template output
         context (dict): context to fill in template with
 
     Raises:
         e: error
     """
     structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        template=str(template_file), output_path=str(output_path), context=context
-    )
+    structlog.contextvars.bind_contextvars(template=str(template_file), context=context)
     server_logger.debug("Rendering file")
 
     try:
@@ -134,11 +151,7 @@ def render_file(template_file: str, output_path: Path, context: dict):
         template = env.get_template(template_file)
         rendered_code = template.render(**context)
 
-        # Ensure output directory exists
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        with open(output_path, "a") as f:
-            f.write(rendered_code)
+        return rendered_code
 
         server_logger.debug(f"Rendered successfully")
 
