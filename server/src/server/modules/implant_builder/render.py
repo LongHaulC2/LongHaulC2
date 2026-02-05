@@ -88,12 +88,23 @@ def render_implant(
         # Add Listener Specific files to the render list, based on variant.
         match listener_type:
             case "http":
-                files_to_render[output_dir / "lifecycle/comms.cpp"] = {
-                    "jinja_template_file": "wininet_comms_http.j2",
-                    # Wrap it in a key (e.g. 'profiles') so Jinja can iterate:
-                    # {% for name, ctx in profiles.items() %}
-                    "context": context,
+                # files_to_render[output_dir / "lifecycle/comms.cpp"] = {
+                #     "jinja_template_file": "wininet_comms_http.j2",
+                #     # Wrap it in a key (e.g. 'profiles') so Jinja can iterate:
+                #     # {% for name, ctx in profiles.items() %}
+                #     "context": context,
+                # }
+
+                current_render_job = {
+                    output_dir
+                    / "lifecycle/comms.cpp": {
+                        "jinja_template_file": "wininet_comms_http.j2",
+                        "context": context,
+                    }
                 }
+                # render and write immediately to avoid overwriting comms.cpp from multiple listeners
+                # a previous bug was using the same dict key, this fixes it without a big refactor
+                render_and_write_comms_cpp(current_render_job)
 
                 # add to mappings, this is used for the c2.j2, to map these func names to the implant.
                 get_function_name = (
@@ -126,7 +137,7 @@ def render_implant(
         output_dir, dict_of_get_function_mappings, dict_of_post_function_mappings
     )
 
-    render_and_write_comms_cpp(files_to_render)
+    # render_and_write_comms_cpp(files_to_render)
 
 
 def render_file(template_file: str, context: dict) -> str:
@@ -231,10 +242,10 @@ def render_and_write_c2_j2(
         {
             "get_function_mappings": dict_of_get_function_mappings,
             "post_function_mappings": dict_of_post_function_mappings,
-            "init_get_function": dict_of_get_function_mappings.popitem()[
+            "init_get_function": dict_of_get_function_mappings[
                 1
             ],  # get first item. Have user specified later?
-            "init_post_function": dict_of_post_function_mappings.popitem()[
+            "init_post_function": dict_of_post_function_mappings[
                 1
             ],  # also first item. Have user specified later?, i.e., choose a starter listener, then have extras in there for chanign
         },

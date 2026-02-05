@@ -112,6 +112,8 @@
 
             settings... eventually. 
 
+         bug: not all functions showing up in comms.cpp, just one, which seems to eb the first. 
+         bug: remove pop from dict, it pops it instead of jsut peaking, and you lose it as an option
 
    # Commands list:
       - cd (SetCurrentDirectoryA(path);): sets cwd of whole program

