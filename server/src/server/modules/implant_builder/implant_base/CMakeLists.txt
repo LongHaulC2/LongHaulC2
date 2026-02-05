@@ -18,7 +18,7 @@ set(SOURCES
     "Implant_v01.cpp"
     "Implant_v01.h"
     "systems/memtrack.cpp"
-    "control/settings/settings.cpp"
+    "control/settings.h"
     "protocols/json/json.h"
     "data/msgpack/msgpack.cpp"
     "data/msgpack/msgpack.h"
