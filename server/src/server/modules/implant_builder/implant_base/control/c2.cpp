@@ -8,36 +8,6 @@
 std::map<std::string, IngressFunc> C2Implant::s_ingress_map;
 std::map<std::string, EgressFunc> C2Implant::s_egress_map;
 
-// ======================================================================================
-// 2. STRATEGIES (Jinja Generated)
-// ======================================================================================
-
-// --- Ingress Strategies ---
-
-nlohmann::json get_HTTP(std::string implant_uuid) {
-    std::cout << "[HTTP GET] Checking for orders for UUID: " << implant_uuid << "...\n";
-    return nullptr; // No orders
-
-}
-
-nlohmann::json get_DNS(std::string implant_uuid) {
-    std::cout << "[DNS TXT] Querying for orders...\n";
-    return nullptr; // No orders
-}
-
-// --- Egress Strategies ---
-// Note: These must match EgressFunc signature: (uuid, text, task_id)
-
-void post_NTP(std::string implant_uuid, std::string text_data, std::string task_uuid) {
-    std::cout << "[NTP] Smuggling data inside timestamp fields.\n";
-    std::cout << "      ID: " << implant_uuid << " | Task: " << task_uuid << "\n";
-    std::cout << "      Data: " << text_data << "\n";
-
-}
-
-void post_ICMP(std::string implant_uuid, std::string text_data, std::string task_uuid) {
-    std::cout << "[ICMP] Packing data into ping payload: " << text_data << "\n";
-}
 
 // ======================================================================================
 // 3. CLASS IMPLEMENTATION

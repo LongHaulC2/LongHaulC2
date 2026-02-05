@@ -1,0 +1,70 @@
+#pragma once
+#include <map>
+#include <variant>
+#include <string>
+#include <vector>
+#include <iostream>
+#include "c2.h" //ingress,egress definitions
+
+// 1. Define allowed types
+using SettingValue = std::variant<bool, int, double, std::string, IngressFunc, EgressFunc>;
+
+class SettingsManager {
+public:
+    // --- THE SINGLETON PART ---
+
+    // This is the global access point. 
+    // It creates the instance the first time it's called, and returns it forever after.
+    static SettingsManager& instance() {
+        static SettingsManager instance; // Guaranteed to be destroyed, instantiated on first use.
+        return instance;
+    }
+
+    // Delete copy constructor and assignment operator to prevent duplicates
+    SettingsManager(const SettingsManager&) = delete;
+    void operator=(const SettingsManager&) = delete;
+
+
+    // --- YOUR SETTINGS LOGIC (Same as before) ---
+
+    template <typename T>
+    void set(const std::string& key, T value) {
+        settingsMap_[key] = value;
+    }
+
+    // Special overload for string literals
+    void set(const std::string& key, const char* value) {
+        settingsMap_[key] = std::string(value);
+    }
+
+    template <typename T>
+    T get(const std::string& key, const T& defaultValue) const {
+        auto it = settingsMap_.find(key);
+        //if not found
+        if (it == settingsMap_.end()) {
+            return defaultValue;
+        }
+        //if found
+        if (const T* valPtr = std::get_if<T>(&(it->second))) {
+            return *valPtr;
+        }
+            
+        return defaultValue;
+    }
+
+private:
+    // Private Constructor: Only the instance() method can create this.
+    //init's the class, which allows the instance to be available
+    SettingsManager() {
+    }
+
+    std::map<std::string, SettingValue> settingsMap_;
+};
+
+/*
+Usage:
+
+#include "control/SettingsManager.h"
+SettingsManager::instance().set("host_ip", "192.168.1.50");
+int port = SettingsManager::instance().get<int>("port", 80);
+*/
