@@ -6,6 +6,10 @@ def login_page():
     # 1. Clear default padding to allow full-screen centering
     ui.context.client.content.classes("h-full p-0 gap-0")
 
+    # set bg image
+    ui.element("div").classes(
+        "fixed inset-0 -z-10 bg-[url('/static/world.png')] bg-cover bg-center"
+    )
     # 2. Main Container (Centers the card vertically & horizontally)
     with ui.column().classes("w-full h-full items-center justify-center"):
 
