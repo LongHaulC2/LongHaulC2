@@ -18,6 +18,7 @@ import client.src.client.pages.search
 server_log = logging.getLogger("server")
 
 # attempt at css
+print("HARDCODED STATIC DIRECTORY FOR CSS LOADING!")
 app.add_static_files(
     local_directory="/home/ubuntu-dev/LongHaulC2/client/src/client/static",
     url_path="/static",

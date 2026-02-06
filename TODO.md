@@ -89,44 +89,16 @@
          `strat <name_of_strat>`
          and implant switches to said strat. Ex, HTTP bingsearch -> http_cnnvideo | http->ntp, etc. 
 
-      Implementation...
+   # Command Tree:
+      Create a command tree for the implant. 
+         Commands to add:
+         `strat get|post <name_of_strat>`
+         `strat get|post <name_of_strat>`
+         `sleep`: sleeps (use a dedicated sleep method... not just Sleep())
+         `ls`: Current dir
+         `cd`: change dir
+         `exit`: Quits & deletes itself (there's a module in maldev)
 
-      - [X] Code outline/poc
-      - [ ] jinja template it
-         - going to need:
-            - list of profiles that need to be compiled
-            - A rendered copy of each profile in c++ (store all these funcs in a comms.cpp/comms.h I guess)
-               > funcs will need to be named `protocol_get|post_<name_of_profile>`
-               ex: `http_post_amazon` (need conversion to c++ safe var names)
-         Files to be rendered:
-            > here. Need to render c2.cpp to have mappings, then it'll hopefully complile (see render.py)
-            - [X] c2.cpp -> /control/c2.cpp
-               > init function with mappings.
-                  Name of profile, mapped to function name. (need to add function name to jinja template for http_wininet)
-                  `s_ingress_map["http_get_amazon"] = get_HTTP;`
-                  `s_egress_map["http_post_amazon"] = post_HTTP;`
-
-            - [X] wininet_comms_http.j2 Update context to add function names 
-               > need to render .h - scratch it no .h, all in .cpp
-            - [X] comms.j2 Update to add a list of generated code to this
-
-            settings... eventually. 
-
-         [x] bug: not all functions showing up in comms.cpp, just one, which seems to eb the first. 
-         [x] bug: remove pop from dict, it pops it instead of jsut peaking, and you lose it as an option
-
-         [x] add intial listener value which specifies which the initial callbacks should be done with
-         Done! It works
-
-         Cleanup & user fix time:
-          - [X] Remove variant from form/api
-          - [X] Add "initial callback strategy" field, which is the initial callback profile to use. 
-            -> add this to build API, and have it be its own var, etc. This will be set as the init method 
-               - [x] GUI
-               > here
-               - [X] API/logic
-          - [ ] test switching, add auto swtich after like 3 loops in main as a testing method (set the setting via setting setters)
-          - [ ] Fix the payload menu in GUI. It was not my fav before, maybe make it a big list of payloads, and it has a list of listeners as one of the fields. 
 
    # Commands list:
       - cd (SetCurrentDirectoryA(path);): sets cwd of whole program
