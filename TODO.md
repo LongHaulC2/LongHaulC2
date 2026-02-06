@@ -99,6 +99,8 @@
          `cd`: change dir
          `exit`: Quits & deletes itself (there's a module in maldev)
 
+      THEN:
+         - [ ] validate switching strats. 
 
    # Commands list:
       - cd (SetCurrentDirectoryA(path);): sets cwd of whole program
