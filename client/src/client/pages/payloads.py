@@ -18,6 +18,24 @@ from client.src.client.pages.menu import setup_menu
 server_log = logging.getLogger("server")
 
 
+# ==============================================================================
+#   UI HELPERS
+# ==============================================================================
+def stat_widget(label: str, value: str, icon: str, color: str = "emerald"):
+    """Creates a small tech-styled stat card"""
+    with ui.card().classes(
+        "flex-1 min-w-[150px] p-3 gap-1 bg-white/5 border border-white/10 rounded-sm no-shadow"
+    ):
+        with ui.row().classes("w-full items-center justify-between"):
+            ui.label(label).classes(
+                "text-[10px] font-mono tracking-widest text-neutral-500 uppercase"
+            )
+            ui.icon(icon, size="xs", color=f"{color}-500").classes("opacity-80")
+        ui.label(str(value)).classes(
+            "text-xl font-bold font-mono tracking-wide text-neutral-200 truncate"
+        )
+
+
 @ui.page("/payloads")
 async def payloads():
     # 1. Full Screen Layout Setup
@@ -33,15 +51,11 @@ async def payloads():
 
 
 async def payloads_view():
-
     # --- MAIN GLASS PANEL ---
-    # Using 'tech-glass-panel' from CSS to handle the visuals
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
 
         # --- HEADER BAR ---
-        # Using 'tech-header-bar' from CSS
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
-
             # Left: Identity
             with ui.row().classes("items-center gap-3"):
                 ui.icon("layers", color="emerald-500").classes("text-xl")
@@ -49,78 +63,88 @@ async def payloads_view():
 
             # Right: Controls
             with ui.row().classes("items-center gap-2"):
-                # "Compile New" Button
                 with ui.button(on_click=start_payload_dialogue).classes(
                     "tech-btn-action px-4"
                 ).props("flat no-caps dense"):
                     ui.icon("add_circle", size="xs").classes("mr-2")
                     ui.label("COMPILE NEW").classes("text-xs font-bold tracking-wide")
 
-                # Refresh Button
                 ui.button(
                     icon="refresh", on_click=lambda: ui.navigate.to("/payloads")
                 ).props("dense flat size=sm").classes("tech-btn-ghost")
 
         # --- CONTENT AREA ---
-        with ui.scroll_area().classes("w-full flex-grow p-6 tech-scroll"):
+        with ui.column().classes("w-full flex-grow p-6 gap-6 overflow-hidden"):
 
+            # Fetch Data
             payload_data_response = await get_payload_data()
             payload_data = payload_data_response.get("data", [])
 
-            if not payload_data:
-                # Empty State
-                with ui.column().classes(
-                    "w-full h-64 items-center justify-center opacity-30"
-                ):
-                    ui.icon("inbox", size="4em")
-                    ui.label("NO ARTIFACTS FOUND").classes("font-mono text-sm mt-2")
-            else:
-                await render_payloads(payload_data=payload_data)
+            # --- 1. ARSENAL STATS ROW ---
+            # Calculate metrics client-side
+            total_count = len(payload_data)
+            listeners = set(p.get("payload_listener_uuid") for p in payload_data)
+            last_built = payload_data[-1].get("payload_name") if payload_data else "N/A"
+
+            with ui.row().classes("w-full gap-4"):
+                stat_widget("TOTAL ARTIFACTS", str(total_count), "storage", "emerald")
+                stat_widget("ACTIVE LISTENERS", str(len(listeners)), "hub", "blue")
+                stat_widget("LATEST BUILD", last_built, "history", "purple")
+
+            # --- 2. MAIN TABLE AREA ---
+            with ui.card().classes(
+                "w-full flex-grow bg-white/5 border border-white/5 p-0 rounded overflow-hidden flex flex-col"
+            ):
+                if not payload_data:
+                    with ui.column().classes(
+                        "w-full h-full items-center justify-center opacity-30"
+                    ):
+                        ui.icon("inbox", size="4em")
+                        ui.label("NO ARTIFACTS FOUND").classes("font-mono text-sm mt-2")
+                else:
+                    await render_payloads(payload_data=payload_data)
 
 
 async def render_payloads(payload_data: dict):
-    """Renders the list of payloads using the Tech Expansion component"""
+    """Renders the list of payloads in a dashboard table"""
 
-    # 1. Define Columns
-    columns = [
-        {"name": "name", "label": "Artifact", "field": "name", "align": "left"},
-        {
-            "name": "hash",
-            "label": "Checksum (MD5)",
-            "field": "hash",
-            "align": "left",
-            "classes": "font-mono text-xs opacity-70",
-        },
-        # {
-        #     "name": "build_status",
-        #     "label": "Build_status",
-        #     "field": "build_status",
-        #     "align": "right",
-        #     "classes": "font-mono text-xs opacity-70",
-        # },
-        {"name": "actions", "label": "Op", "field": "actions", "align": "right"},
-    ]
-
-    # Get all lsiteenrs at once, create a lookup dictionary: { 'uuid_string': 'Listener Name', ... }
+    # Fetch Listener Data for Lookup
     all_listeners_resp = await get_all_listener_data()
     all_listeners = all_listeners_resp.get("data", [])
-    # Map UUID -> Name for O(1) lookup inside the loop
     listener_map = {
         l.get("listener_uuid"): l.get("listener_name", "Unknown") for l in all_listeners
     }
 
-    # 2. Group Data by Listener
-    sorted_data = sorted(
-        payload_data, key=lambda x: x.get("payload_listener_uuid", "Unknown")
-    )
-    grouped_payloads = {
-        k: list(v)
-        for k, v in groupby(
-            sorted_data, key=lambda x: x.get("payload_listener_uuid", "Unknown")
-        )
-    }
+    # Helper to guess format for badge styling
+    def get_fmt(name):
+        if name.endswith(".exe"):
+            return "EXE"
+        if name.endswith(".dll"):
+            return "DLL"
+        if name.endswith(".bin"):
+            return "BIN"
+        if name.endswith(".ps1"):
+            return "PS1"
+        return "RAW"
 
-    # 3. Action Handlers
+    # Prepare Rows
+    table_rows = []
+    for p in payload_data:
+        l_uuid = p.get("payload_listener_uuid", "Unknown")
+        p_name = p.get("payload_name", "Unnamed")
+
+        table_rows.append(
+            {
+                "id": p.get("id"),
+                "name": p_name,
+                "fmt": get_fmt(p_name),
+                "hash": p.get("payload_hash", ""),
+                "listener": listener_map.get(l_uuid, "Unknown"),
+                "uuid": l_uuid,
+            }
+        )
+
+    # Action Handlers
     async def handle_download(e):
         row = e.args
         ui.notify(f"Retrieving {row['name']}...", type="info", color="grey-9")
@@ -131,275 +155,120 @@ async def render_payloads(payload_data: dict):
         ui.notify(f"Retrieving {row['name']}...", type="info", color="grey-9")
         await download_payload_source(hash=row["hash"], name=row["name"])
 
-    # 4. Render Groups
-    listener_data = (await get_all_listener_data()).get("data")
-    for listener_uuid, payloads in grouped_payloads.items():
-        # Prepare Rows
-        table_rows = [
-            {
-                "id": p.get("id"),
-                "name": p.get("payload_name", "Unnamed"),
-                "hash": p.get("payload_hash", ""),
-                "uuid": listener_uuid,
-            }
-            for p in payloads
-        ]
+    # Search Bar Logic
+    filter_text = (
+        ui.input(placeholder="SEARCH ARTIFACTS...")
+        .props("outlined dense dark color=emerald input-class=text-xs")
+        .classes("m-3 w-96")
+    )
 
-        # Fetch Context
-        # listener_data = await get_listener_data(listener_uuid)
-        listener_name = listener_map.get(listener_uuid, "Unknown")
+    # Define Columns
+    columns = [
+        {
+            "name": "name",
+            "label": "IDENTITY",
+            "field": "name",
+            "align": "left",
+            "sortable": True,
+        },
+        {
+            "name": "fmt",
+            "label": "FORMAT",
+            "field": "fmt",
+            "align": "left",
+            "sortable": True,
+        },
+        {
+            "name": "listener",
+            "label": "LINKED LISTENER",
+            "field": "listener",
+            "align": "left",
+            "sortable": True,
+        },
+        {
+            "name": "hash",
+            "label": "HASH (MD5)",
+            "field": "hash",
+            "align": "left",
+            "classes": "font-mono text-[10px] opacity-50 tracking-tighter",
+        },
+        {"name": "actions", "label": "Downloads", "field": "actions", "align": "right"},
+    ]
 
-        # --- TECH EXPANSION COMPONENT ---
-        # "tech-expansion" class handles all the border/background logic in CSS
-        with ui.expansion().classes("w-full tech-expansion group") as expansion:
+    # Render Table
+    table = (
+        ui.table(columns=columns, rows=table_rows, row_key="id", pagination=10)
+        .classes("w-full bg-transparent no-shadow text-neutral-300")
+        .bind_filter_from(filter_text, "value")
+    )
 
-            # Header Slot
-            with expansion.add_slot("header"):
-                with ui.row().classes("w-full items-center py-2 px-1"):
-                    ui.icon("dns", size="sm").classes(
-                        "mr-4 text-neutral-600 group-hover:text-emerald-400 transition-colors"
-                    )
+    # --- CUSTOM SLOTS ---
 
-                    with ui.column().classes("gap-0"):
-                        ui.label(listener_name).classes(
-                            "text-sm font-bold text-neutral-200 tracking-wide uppercase"
-                        )
-                        ui.label(f"UUID: {listener_uuid}").classes(
-                            "tech-label-subtitle"
-                        )
+    # Header Styling
+    table.add_slot(
+        "header",
+        r"""
+        <q-tr :props="props" class="bg-black/20 text-neutral-500 uppercase text-[10px] font-bold tracking-widest border-b border-white/10">
+            <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+            </q-th>
+        </q-tr>
+    """,
+    )
 
-                    ui.space()
+    # Format Badge Slot
+    table.add_slot(
+        "body-cell-fmt",
+        r"""
+        <q-td :props="props">
+            <q-badge :color="props.value === 'EXE' ? 'blue-9' : props.value === 'DLL' ? 'purple-9' : 'grey-8'" 
+                     text-color="white" :label="props.value" class="font-mono text-[10px] px-2 py-0.5 rounded-sm" />
+        </q-td>
+    """,
+    )
 
-                    # Badge
-                    with ui.row().classes("items-center gap-2"):
-                        ui.label(f"{len(table_rows)} ITEMS").classes(
-                            "text-[10px] font-bold text-neutral-600 bg-black/20 px-2 py-1 rounded-sm"
-                        )
+    # Listener Slot
+    table.add_slot(
+        "body-cell-listener",
+        r"""
+        <q-td :props="props">
+            <div class="row items-center gap-2">
+                <q-icon name="hub" size="xs" class="text-emerald-600" />
+                <span class="text-xs font-mono">{{ props.value }}</span>
+            </div>
+        </q-td>
+    """,
+    )
 
-            # Table ("tech-table-flush" handles zero-margin logic)
-            table = ui.table(columns=columns, rows=table_rows, row_key="id").classes(
-                "tech-table-flush"
-            )
+    # Action Buttons Slot
+    table.add_slot(
+        "body-cell-actions",
+        r"""
+        <q-td :props="props">
+            <div class="row items-center justify-end no-wrap gap-1">
+                <q-btn icon="download" flat dense size="sm" color="grey-5" 
+                    class="hover:text-emerald-400 transition-colors"
+                    @click="$parent.$emit('download', props.row)">
+                    <q-tooltip class="bg-neutral-900 text-xs">BINARY</q-tooltip>
+                </q-btn>
+                <q-btn icon="code" flat dense size="sm" color="grey-5" 
+                    class="hover:text-emerald-400 transition-colors"
+                    @click="$parent.$emit('source_download', props.row)">
+                    <q-tooltip class="bg-neutral-900 text-xs">SOURCE</q-tooltip>
+                </q-btn>
+            </div>
+        </q-td>
+        """,
+    )
 
-            # Inject Download Buttons
-            table.add_slot(
-                "body-cell-actions",
-                r"""
-                <q-td :props="props">
-                    <div class="row items-center justify-end no-wrap gap-1">
-                        
-                        <q-btn icon="download" flat dense size="sm" color="grey-5" 
-                            class="hover:text-emerald-400 transition-colors"
-                            @click="$parent.$emit('download', props.row)">
-                            <q-tooltip class="bg-neutral-900 text-xs">DOWNLOAD BINARY</q-tooltip>
-                        </q-btn>
-
-                        <q-btn icon="code" flat dense size="sm" color="grey-5" 
-                            class="hover:text-emerald-400 transition-colors"
-                            @click="$parent.$emit('source_download', props.row)">
-                            <q-tooltip class="bg-neutral-900 text-xs">DOWNLOAD SOURCE</q-tooltip>
-                        </q-btn>
-
-                    </div>
-                </q-td>
-                """,
-            )
-
-            # Register Listeners for both events
-            table.on("download", handle_download)
-
-            # Make sure you have this function defined above!
-            table.on("source_download", handle_source_download)
-
-
-# async def start_payload_dialogue():
-#     """Opens the Build Dialog"""
-
-#     # --- Data Setup ---
-#     VARIANT_MAP = {"http": ["http_wininet"]}
-#     response = await get_all_listener_data()
-#     listeners_list = response.get("data", [])
-#     listener_type_map = {l["listener_name"]: l["listener_type"] for l in listeners_list}
-#     listener_uuid_map = {l["listener_name"]: l["listener_uuid"] for l in listeners_list}
-
-#     # --- Logic ---
-#     async def _build_implant():
-#         name = name_input.value
-#         listener_name = listener_select.value
-#         variant = variant_select.value
-#         fmt = format_select.value
-
-#         if not all([name, listener_name, fmt]):
-#             ui.notify("MISSING REQUIRED FIELDS", type="warning", color="orange-9")
-#             return
-
-#         # show prog bar
-#         progress_bar.classes(remove="opacity-0")
-
-#         build_btn.props("loading")
-
-#         # fake update progress bar
-#         progress_bar.value = 0.25
-
-#         result = await build_implant(
-#             implant_name=name,
-#             implant_listener_uuid=listener_uuid_map.get(listener_name),
-#             implant_variant=variant if variant_select.visible else None,
-#             output_format=fmt,
-#         )
-#         # print(result)
-#         build_uuid = result.get("data", {}).get("build_uuid")
-#         # ui.notify(f"BUILD UUID: {build_uuid}", type="info", color="grey-9")
-
-#         if build_uuid:
-#             progress_bar.value = 0.75
-
-#         build_btn.props("loading=false")
-
-#         async def poll_build_status():
-#             # Call your check function
-#             result = await get_build_status(build_uuid)
-#             # print(result)
-#             if result.get("data", {}).get("build_status") == "complete":
-#                 payload_hash = result.get("data", {}).get("payload_hash")
-#                 payload_name = result.get("data", {}).get("payload_name")
-
-#                 # complete bar and disable spinner
-#                 progress_bar.value = 1
-#                 progress_bar.color = "green-500"
-#                 build_btn.props("loading=false")
-
-#                 # print(result)
-#                 # ui.notify("BUILD SUCCEDED", type="positive", color="emerald-9")
-#                 download_payload_button.enable()
-#                 download_payload_button.on_click(
-#                     lambda: download_payload(hash=payload_hash, name=payload_name)
-#                 )
-#                 download_payload_source_button.enable()
-#                 download_payload_source_button.on_click(
-#                     lambda: download_payload_source(
-#                         hash=payload_hash, name=payload_name
-#                     )
-#                 )
-#                 status_timer.deactivate()  # Stop polling
-#                 # dialog.close()
-
-#             if result.get("data", {}).get("build_status") == "failed":
-#                 # hide old green bar
-#                 progress_bar.classes("opacity-0")
-#                 # show failed red bar.
-#                 progress_bar_fail.value = 1
-#                 progress_bar_fail.classes(remove="opacity-0")
-
-#                 ui.notify("BUILD FAILED", type="negative", color="red-9")
-#                 build_btn.props("loading=false")
-#                 status_timer.deactivate()  # Stop polling
-#                 # dialog.close()
-
-#         status_timer = ui.timer(1.0, poll_build_status, active=True)
-
-#     def _on_listener_change(e):
-#         allowed = VARIANT_MAP.get(listener_type_map.get(e.value), [])
-#         variant_select.options = allowed
-#         variant_select.value = allowed[0] if allowed else None
-#         variant_select.visible = bool(allowed)
-
-#     # --- UI ---
-#     # "tech-dialog" handles the dark theme and borders
-#     with ui.dialog() as dialog, ui.card().classes(
-#         "tech-dialog w-[500px] p-0 rounded overflow-hidden"
-#     ):
-
-#         # Dialog Header
-#         with ui.row().classes(
-#             "w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"
-#         ):
-#             with ui.row().classes("gap-2 items-center"):
-#                 ui.icon("terminal", color="emerald-500")
-#                 ui.label("BUILD_IMPLANT_PAYLOAD").classes(
-#                     "text-sm font-bold tracking-widest text-emerald-500 font-mono"
-#                 )
-#             ui.button(icon="close", on_click=dialog.close).props(
-#                 "dense flat size=sm color=grey"
-#             )
-
-#         # Dialog Body
-#         with ui.column().classes("p-6 gap-6 w-full"):
-#             name_input = (
-#                 ui.input("IDENTITY", placeholder="agent_filename")
-#                 .props("outlined dense dark color=emerald")
-#                 .classes("w-full")
-#             )
-
-#             with ui.grid().classes("grid-cols-2 gap-4 w-full"):
-#                 format_select = ui.select(
-#                     options=["exe", "dll", "ps1", "shellcode", "all"],
-#                     value="exe",
-#                     label="FORMAT",
-#                 ).props("outlined dense dark color=emerald options-dense")
-
-#                 listener_select = ui.select(
-#                     options=list(listener_type_map.keys()),
-#                     label="LISTENER",
-#                     on_change=_on_listener_change,
-#                 ).props("outlined dense dark color=emerald options-dense")
-
-#             variant_select = (
-#                 ui.select(label="VARIANT", options=[])
-#                 .props("outlined dense dark color=emerald")
-#                 .classes("w-full hidden")
-#             )
-
-#         # Dialog Footer
-#         with ui.row().classes(
-#             "w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"
-#         ):
-
-#             # 2. The Progress Bar (Docked to top of footer)
-#             # h-[2px]: Very thin "laser" line
-#             # absolute top-0: Sits exactly on the border
-#             # opacity-0: Hidden by default (we toggle this class instead of .visible to animate the fade)
-#             progress_bar = (
-#                 ui.linear_progress(value=0, show_value=False, color="emerald-400")
-#                 .props("instant-feedback color=emerald track-color=transparent")
-#                 .classes("absolute top-0 left-0 w-full opacity-0 transition-opacity")
-#             )
-#             # tldr, a fail one to have a red bar if it fails. I can't find a way to change the color once init'd
-#             progress_bar_fail = (
-#                 ui.linear_progress(value=0, show_value=False, color="red-500")
-#                 .props("instant-feedback color=red track-color=transparent")
-#                 .classes("absolute top-0 left-0 w-full opacity-0 transition-opacity")
-#             )
-
-#             download_payload_button = (
-#                 ui.button("PAYLOAD", icon="download")
-#                 .props("unelevated dense color=emerald text-color=white no-caps")
-#                 .classes("font-bold tracking-wide")
-#             )
-#             # disable returns none, so need to call separately
-#             download_payload_button.disable()
-
-#             download_payload_source_button = (
-#                 ui.button("SOURCE", icon="code")
-#                 .props("unelevated dense color=emerald text-color=white no-caps")
-#                 .classes("font-bold tracking-wide")
-#             )
-#             # disable returns none, so need to call separately
-#             download_payload_source_button.disable()
-
-#             # ui.button("ABORT", on_click=dialog.close).props(
-#             #     "flat dense color=grey no-caps"
-#             # )
-
-#             build_btn = (
-#                 ui.button("EXECUTE BUILD", on_click=_build_implant)
-#                 .props("unelevated dense color=emerald text-color=white no-caps")
-#                 .classes("font-bold tracking-wide")
-#             )
-
-#     dialog.open()
+    # Register Listeners
+    table.on("download", handle_download)
+    table.on("source_download", handle_source_download)
 
 
+# ==============================================================================
+#   DIALOG & BUILD LOGIC
+# ==============================================================================
 async def start_payload_dialogue():
     """Opens the Build Dialog"""
 
@@ -416,7 +285,6 @@ async def start_payload_dialogue():
         """
         Updates GET/POST options to match the selected listeners list.
         """
-        # Ensure we are working with a clean list of strings
         selected_names = e.value if e.value else []
 
         # --- Update GET Dropdown ---
@@ -424,7 +292,6 @@ async def start_payload_dialogue():
 
         if selected_names:
             profile_get_select.enable()
-            # If current value is invalid or empty, default to the first available
             if (
                 not profile_get_select.value
                 or profile_get_select.value not in selected_names
@@ -448,7 +315,7 @@ async def start_payload_dialogue():
             profile_post_select.value = None
             profile_post_select.disable()
 
-        # KEY FIX: Force UI refresh to show the new options immediately
+        # Force UI refresh
         profile_get_select.update()
         profile_post_select.update()
 
@@ -496,6 +363,7 @@ async def start_payload_dialogue():
         build_uuid = result.get("data", {}).get("build_uuid")
         if build_uuid:
             progress_bar.set_value(0.75)
+
         build_btn.props("loading=false")
 
         async def poll_build_status():
