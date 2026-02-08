@@ -65,7 +65,7 @@ task = Task(
 
 @dataclass
 class TaskDetail:
-    taskname: str
+    task_name: str
     args: dict
 
 

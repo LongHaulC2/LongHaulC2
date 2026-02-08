@@ -473,9 +473,9 @@ async def terminal(implant_uuid: str):
             task_response = task.get("task_response") or {}
 
             if task_request:
-                taskname = task_request.get("task", {}).get("taskname", "?")
+                task_name = task_request.get("task", {}).get("task_name", "?")
                 args = task_response.get("task", {}).get("args", {})
-                fmt_req = taskname + (
+                fmt_req = task_name + (
                     " " + " ".join(f"{k}={v}" for k, v in args.items()) if args else ""
                 )
                 await push_text_to_terminal(fmt_req)

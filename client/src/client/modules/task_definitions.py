@@ -137,7 +137,7 @@ async def task_tree(command, args, implant_uuid):
 
 @dataclass
 class TaskDetail:
-    taskname: str
+    task_name: str
     args: dict
 
 
@@ -153,7 +153,7 @@ def create_and_verify_task(implant_uuid: str, task: TaskDetail):
 
     Args:
         implant_uuid (str): implant uuid
-        task (dict): task dict: `{task: {'taskname':'task', 'args':{...}}}
+        task (dict): task dict: `{task: {'task_name':'task', 'args':{...}}}
 
     Returns:
         _type_: _description_
@@ -184,7 +184,7 @@ class Cmd:
         """Convert the dataclass to a task style dictionary structure."""
 
         task_args = {"cli": self.cli}
-        task_detail = TaskDetail(taskname="cmd", args=task_args)
+        task_detail = TaskDetail(task_name="cmd", args=task_args)
 
         final_task = create_and_verify_task(
             implant_uuid=self.implant_uuid, task=task_detail

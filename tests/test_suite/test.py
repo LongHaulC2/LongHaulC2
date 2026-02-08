@@ -247,7 +247,7 @@ def step_6_queue_command(implant_uuid):
     task_data = {
         "implant_uuid": implant_uuid,
         "task": {
-            "taskname": "cmd",
+            "task_name": "cmd",
             "args": {"cli": command_str},
         },
     }

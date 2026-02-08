@@ -331,7 +331,7 @@ def render_history_row(task: dict):
     task_req = task.get("task_request", {}) or {}
     task_res = task.get("task_response", {}) or {}
 
-    task_name = task_req.get("task", {}).get("taskname", "UNKNOWN")
+    task_name = task_req.get("task", {}).get("task_name", "UNKNOWN")
     task_args = task_req.get("task", {}).get("args", {})
     task_out = task_res.get("data", "")
     args_str = " ".join([f"{k}={v}" for k, v in task_args.items()])

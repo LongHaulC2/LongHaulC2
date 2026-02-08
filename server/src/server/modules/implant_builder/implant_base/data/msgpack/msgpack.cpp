@@ -44,7 +44,7 @@ int create_metadata(const std::map<std::string, std::string>& metadata, std::vec
 /*
 Task structure:
 
-{task_uuid: 1234, implant_uuid: 9999, "task":{"taskname":"cmd" "args":{"cli":"whoami"}}}
+{task_uuid: 1234, implant_uuid: 9999, "task":{"task_name":"cmd" "args":{"cli":"whoami"}}}
 
 */
 

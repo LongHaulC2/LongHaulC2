@@ -98,6 +98,14 @@
          `ls`: Current dir
          `cd`: change dir
          `exit`: Quits & deletes itself (there's a module in maldev)
+      Note, in downloads -> building, not tracked by git yet. 
+
+         Files changed:
+            - commandtree.h/cpp (added)
+            c2.cpp: In cycle
+            Cmake (add in new items)
+            new folder: Modules, meant for holding command logic. Ex, cmd, would be in modules -> cmd.cpp/h
+               > cd.h/cpp are an example of this. All logic for that command should be in said file. 
 
       THEN:
          - [ ] validate switching strats. 
@@ -196,12 +204,12 @@ Note: Task_uuid and implant_uuid are included for task verification (right task 
 and for potential pivoting (to know which tasks go to which agents)
 
 ## Task  Structure
-- `{task_uuid: <some_uuid>, implant_uuid: <intended_target>, "task":{"taskname":"somename" "args":{"arg1":"value1"}}}`
+- `{task_uuid: <some_uuid>, implant_uuid: <intended_target>, "task":{"task_name":"somename" "args":{"arg1":"value1"}}}`
 
-Ex: `{task_uuid: 1234, implant_uuid: 9999, "task":{"taskname":"cmd" "args":{"cli":"whoami"}}}`
+Ex: `{task_uuid: 1234, implant_uuid: 9999, "task":{"task_name":"cmd" "args":{"cli":"whoami"}}}`
 
 List of tasks:
-- `[{task_uuid: 1234, implant_uuid: 9999, "task":{"taskname":"cmd" "args":{"cli":"whoami"}}}, {task_uuid: 1234, implant_uuid: 9999, "task":{"taskname":"cmd" "args":{"cli":"whoami"}}}]`
+- `[{task_uuid: 1234, implant_uuid: 9999, "task":{"task_name":"cmd" "args":{"cli":"whoami"}}}, {task_uuid: 1234, implant_uuid: 9999, "task":{"task_name":"cmd" "args":{"cli":"whoami"}}}]`
 
 ## Task Response Structure:
 - `{"task_uuid":"", "implant_uuid": 9999, "result":{"data_type":binary|text, "data":"somedata"}}`

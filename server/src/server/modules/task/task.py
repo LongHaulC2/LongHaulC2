@@ -80,7 +80,7 @@ class TaskService:
         check_type(convert_to_msgpack, bool, "convert_to_msgpack")
 
         # using dataclass for sanity here
-        task_detail = TaskDetail(taskname=task_name, args=task_args)
+        task_detail = TaskDetail(task_name=task_name, args=task_args)
         task = Task(task_uuid=task_uuid, implant_uuid=implant_uuid, task=task_detail)
 
         if convert_to_msgpack:

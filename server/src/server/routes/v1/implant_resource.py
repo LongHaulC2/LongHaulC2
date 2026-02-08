@@ -78,7 +78,7 @@ task_args_model = api.model(
 task_detail_model = api.model(
     "TaskDetail",
     {
-        "taskname": fields.String(required=True, description="Task type/name"),
+        "task_name": fields.String(required=True, description="Task type/name"),
         "args": fields.Nested(
             task_args_model, required=True, description="Task arguments"
         ),

@@ -18,13 +18,13 @@ async def queue_task(implant_uuid: str, task: dict):
 
     Args:
         implant_uuid (str): The unique identifier (UUID) of the target implant.
-        task (dict): The task definition. Expected to contain 'taskname' (str) and 'args' (dict).
+        task (dict): The task definition. Expected to contain 'task_name' (str) and 'args' (dict).
 
     Returns:
         httpx.Response: The HTTP response object. A successful task queueing (200 OK) returns the task details.
         Example return data structure (response.json()):
         {
-            "taskname": "shell",
+            "task_name": "shell",
             "args": {"cli": "whoami"},
             "status": "queued"
         }
