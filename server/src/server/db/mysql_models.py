@@ -11,7 +11,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.mysql import LONGBLOB, TINYBLOB
+from sqlalchemy.dialects.mysql import LONGBLOB, MEDIUMTEXT, TINYBLOB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.inspection import inspect
 
@@ -85,12 +85,12 @@ class ImplantTask(Base):
 
     # Add generated columns for full-text indexing because json can't be indexed by itself
     task_request_text = Column(
-        String(255),
+        MEDIUMTEXT,  # up to 16mb of text, should be enough for most requests, and allows for indexing. Can change to longtext if needed later, but that adds a lot of overhead.
         Computed("JSON_UNQUOTE(JSON_EXTRACT(task_request, '$'))", persisted=True),
         nullable=True,
     )
     task_response_text = Column(
-        String(255),
+        MEDIUMTEXT,  # up to 16mb of text, should be enough for most responses, and allows for indexing. Can change to longtext if needed later, but that adds a lot of overhead.
         Computed("JSON_UNQUOTE(JSON_EXTRACT(task_response, '$'))", persisted=True),
         nullable=True,
     )
