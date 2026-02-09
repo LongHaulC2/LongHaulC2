@@ -106,9 +106,25 @@
             Cmake (add in new items)
             new folder: Modules, meant for holding command logic. Ex, cmd, would be in modules -> cmd.cpp/h
                > cd.h/cpp are an example of this. All logic for that command should be in said file. 
+               BUG: NO OUTPUT: > ls.cpp/h????? weird. Worked once. 
+
+            Everyhitng related to std::string input_text -> nlohmann::json response_json (c2.h, c2.cpp, templates)
+            
+
+         - [ ] Switch to named args in response. Ex:
+         `{"task_uuid":"", "implant_uuid": 9999, "result":{command_output:{"type":"text", "value":"somedata"}, other_value:{"type":"text", "value":"abcd"}}}`
+
+         tentative: Use generics, ex: "value" as value of response, use "message" as a message for the user? error for errors. Could add others in there too based on other values, etc. 
 
       THEN:
          - [ ] validate switching strats. 
+
+      CURRENT BUG:
+         Task responses not being written to db. Not sure why.
+            checking:
+               -> listener
+               okay wtf... I restarted server and it showed up. I dunno lol. Maybe a task_batch_job failure?
+               My theory is that the DB was full or something
 
    # Commands list:
       - cd (SetCurrentDirectoryA(path);): sets cwd of whole program

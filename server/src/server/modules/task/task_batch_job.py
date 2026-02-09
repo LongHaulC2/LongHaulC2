@@ -61,6 +61,13 @@ def _task_batch_job():
                     )
                     msits.bulk_update_responses(responses=responses_to_insert)
 
+        # Commit the changes for all implants processed in this batch
+        try:
+            session.commit()
+        except Exception as e:
+            server_logger.error(f"Failed to commit batch: {e}")
+            session.rollback()
+
         time.sleep(1)
 
     # get all current implant ID's from DB
