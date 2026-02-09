@@ -18,6 +18,7 @@ from client.src.client.pages.notes import open_notes_dialog
 from client.src.client.pages.payloads import start_payload_dialogue
 from client.src.client.style import BUTTON_COLOR, ICON_COLOR, TEXT_COLOR
 from client.src.client.utils.url import generate_url
+from server.src.server.utils import response
 
 from ..utils.checks import check_type
 
@@ -508,10 +509,26 @@ async def terminal(implant_uuid: str):
             task_response = task.get("task_response") or {}
             if task_response:
                 for key, value in task_response.items():
-                    output = f"{key}:{'-'*10}\n {value}"
+                    # output = f"{key}:\n{'-'*10}\n {value}"
                     # await push_output_to_terminal(task_response.get("data", ""))
                     # temp push dict to terminal for debugging
-                    await push_output_to_terminal(output)
+                    data_type = value.get("type")
+                    data_value = value.get("value")
+
+                    # error is a special case, push to error stream
+                    if key == "error":
+                        await push_error_to_terminal(data_value)
+                        continue
+
+                    # then, print out the rest as needed.
+                    if data_type == "text":
+                        await push_output_to_terminal(f"--- {key} ---")
+
+                        await push_output_to_terminal(data_value)
+
+                    if data_type == "bytes":
+                        await push_output_to_terminal(data_value)
+                        # change to push_hex_output to term or something
 
                 new_last_uuid = task.get("task_uuid")
 
