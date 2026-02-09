@@ -44,7 +44,7 @@ int create_metadata(const std::map<std::string, std::string>& metadata, std::vec
 /*
 Task structure:
 
-{task_uuid: 1234, implant_uuid: 9999, "task":{"task_name":"cmd" "args":{"cli":"whoami"}}}
+{task_uuid: 1234, implant_uuid: 9999, "task":{"taskname":"cmd" "args":{"cli":"whoami"}}}
 
 */
 
@@ -102,13 +102,17 @@ int pack_final_response(const std::string& implant_uuid, const std::string& task
  * @param [OUT] response_buffer: A buffer where the msgpack data will be stored. 
  * @return 0 on success, 1 on fail
  */
-int create_task_response(const std::string& implant_uuid,const std::string& task_uuid,const std::string& text_data, std::vector<uint8_t>& response_buffer) {
+int create_task_response(const std::string& implant_uuid,const std::string& task_uuid,const nlohmann::json& result_json, std::vector<uint8_t>& response_buffer) {
 
-    json result;
-    result["data_type"] = "text";
-    result["data"] = text_data; // Simple string assignment
+    //json result;
+    //result["data_type"] = "text";
+    //result["data"] = text_data; // Simple string assignment
 
-    return pack_final_response(implant_uuid, task_uuid, result, response_buffer);
+    //result["response"] = result_json;
+
+    //probably can rename pack_final_response -> create_task_response. This is no longer needed wiht named args
+
+    return pack_final_response(implant_uuid, task_uuid, result_json, response_buffer);
 }
 
 /**
@@ -119,12 +123,24 @@ int create_task_response(const std::string& implant_uuid,const std::string& task
  * @param [OUT] response_buffer: A buffer where the msgpack data will be stored.
  * @return 0 on success, 1 on fail
  */
-int create_task_response(const std::string& implant_uuid, const std::string& task_uuid, const std::vector<uint8_t>& binary_data, std::vector<uint8_t>& response_buffer) {
+//int create_task_response(const std::string& implant_uuid, const std::string& task_uuid, const std::vector<uint8_t>& binary_data, std::vector<uint8_t>& response_buffer) {
+//
+//    json result;
+//    result["data_type"] = "bytes";
+//    // json::bin so it actually uses binary
+//    result["data"] = json::binary(binary_data);
+//
+//    return pack_final_response(implant_uuid, task_uuid, result, response_buffer);
+//}
 
-    json result;
-    result["data_type"] = "bytes";
-    // json::bin so it actually uses binary
-    result["data"] = json::binary(binary_data);
 
-    return pack_final_response(implant_uuid, task_uuid, result, response_buffer);
+//helpers: Add a text result to a json object
+void add_text_result(nlohmann::json& result,
+    const std::string& key,
+    const std::string& value)
+{
+    result[key] = {
+        {"type", "text"},
+        {"value", value}
+    };
 }

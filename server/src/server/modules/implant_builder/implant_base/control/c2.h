@@ -14,7 +14,7 @@
 using IngressFunc = nlohmann::json(*)(std::string implant_uuid);
 
 // Output: Takes the result string and sends it back to server
-using EgressFunc = int (*)(std::string implant_uuid, std::string text_data, std::string task_uuid);
+using EgressFunc = int (*)(std::string implant_uuid, nlohmann::json response_json, std::string task_uuid);
 
 
 // --- The Dispatcher Class ---

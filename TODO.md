@@ -107,24 +107,24 @@
             new folder: Modules, meant for holding command logic. Ex, cmd, would be in modules -> cmd.cpp/h
                > cd.h/cpp are an example of this. All logic for that command should be in said file. 
                BUG: NO OUTPUT: > ls.cpp/h????? weird. Worked once. 
-
-            Everyhitng related to std::string input_text -> nlohmann::json response_json (c2.h, c2.cpp, templates)
-            
-
-         - [ ] Switch to named args in response. Ex:
+         - [X] Switch to named args in response. Ex:
          `{"task_uuid":"", "implant_uuid": 9999, "result":{command_output:{"type":"text", "value":"somedata"}, other_value:{"type":"text", "value":"abcd"}}}`
-
          tentative: Use generics, ex: "value" as value of response, use "message" as a message for the user? error for errors. Could add others in there too based on other values, etc. 
 
       THEN:
          - [ ] validate switching strats. 
 
-      CURRENT BUG:
+      - [x] CURRENT BUG:
          Task responses not being written to db. Not sure why.
             checking:
                -> listener
                okay wtf... I restarted server and it showed up. I dunno lol. Maybe a task_batch_job failure?
-               My theory is that the DB was full or something
+               My theory is that the DB was full or something.
+               Looks like committing after each loop fixed it. Who would've thunk. There's definently perf inmprovements inthe db area.
+
+      - Addtl:
+         - response qeueu. This allows tasks to run in the background, and hwen they complete, pop the data into the queue and it'll get sent back. 
+         - A vector of tasks should do this fine. 
 
    # Commands list:
       - cd (SetCurrentDirectoryA(path);): sets cwd of whole program
@@ -228,12 +228,12 @@ List of tasks:
 - `[{task_uuid: 1234, implant_uuid: 9999, "task":{"task_name":"cmd" "args":{"cli":"whoami"}}}, {task_uuid: 1234, implant_uuid: 9999, "task":{"task_name":"cmd" "args":{"cli":"whoami"}}}]`
 
 ## Task Response Structure:
-- `{"task_uuid":"", "implant_uuid": 9999, "result":{"data_type":binary|text, "data":"somedata"}}`
+- `{"task_uuid":"", "implant_uuid": 9999, "result":{command_output:{"type":"text", "value":"somedata"}, other_value:{"type":"text", "value":"abcd"}}}`
 
 Ex: `{"task_uuid":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}`
 
 List of task responses:
-- `[{"task_uuid":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}, {"task_uuid":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}]`
+- `[{"task_uuid":"", "implant_uuid": 9999, "result":{command_output:{"type":"text", "value":"somedata"}, other_value:{"type":"text", "value":"abcd"}}},{"task_uuid":"", "implant_uuid": 9999, "result":{command_output:{"type":"text", "value":"somedata"}, other_value:{"type":"text", "value":"abcd"}}}]`
 
 ## Metadata Structure:
 - `{"implant_uuid":"uuid", ...}`

