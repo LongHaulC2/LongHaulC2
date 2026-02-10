@@ -143,6 +143,47 @@ async def task_tree(command, args, implant_uuid):
             except ParseError as e:
                 return (ResultType.ERROR, str(e))
 
+        case "sleep":
+            try:
+                task = Sleep(implant_uuid=implant_uuid, sleep_time=args).to_task()
+                return (ResultType.TASK, task)
+            # if not all args are present, or there's a bug, this will bubble up and be put on screen
+            except ParseError as e:
+                return (ResultType.ERROR, str(e))
+
+        case "strat":
+            if args.startswith("post"):
+                strategy_name = args[5:]  # Extract strategy name after "post "
+                try:
+                    task = StratPost(
+                        implant_uuid=implant_uuid, strategy_name=strategy_name
+                    ).to_task()
+                    return (ResultType.TASK, task)
+                except ParseError as e:
+                    return (ResultType.ERROR, str(e))
+
+            elif args.startswith("get"):
+                strategy_name = args[4:]  # Extract strategy name after "get "
+                try:
+                    task = StratGet(
+                        implant_uuid=implant_uuid, strategy_name=strategy_name
+                    ).to_task()
+                    return (ResultType.TASK, task)
+                except ParseError as e:
+                    return (ResultType.ERROR, str(e))
+
+            elif args.startswith("list"):
+                try:
+                    task = StratList(implant_uuid=implant_uuid).to_task()
+                    return (ResultType.TASK, task)
+                except ParseError as e:
+                    return (ResultType.ERROR, str(e))
+            else:
+                return (
+                    ResultType.ERROR,
+                    "Invalid strat command. Use `strat post <strategy_name>`, `strat get <strategy_name>`, or `strat list`",
+                )
+
         case "data_command":
             data = "somedata"
             return (ResultType.TEXT, data)  # Use Enum for clarity
@@ -230,6 +271,116 @@ class Cd:
 
         task_args = {"directory": self.directory}
         task_detail = TaskDetail(task_name="cd", args=task_args)
+
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+
+
+@dataclass
+class Sleep:
+    R"""
+    Sleep for a specified number of seconds on the host. Ex: `sleep 5`
+    """
+
+    implant_uuid: str
+    sleep_time: str
+
+    def __post_init__(self):
+        """Automatically run something when the dataclass is created."""
+        if not self.sleep_time:
+            raise ParseError(
+                "The 'sleep_time' argument cannot be None or empty. Ex: `sleep <sleep_time>`: `sleep 5`"
+            )
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+
+        task_args = {"sleep_time": int(self.sleep_time)}
+        task_detail = TaskDetail(task_name="sleep", args=task_args)
+
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+
+
+@dataclass
+class StratPost:
+    R"""
+    Set the post strategy for the implant. Ex: `strat post my_post_strategy`
+    """
+
+    implant_uuid: str
+    strategy_name: str
+
+    def __post_init__(self):
+        """Automatically run something when the dataclass is created."""
+        if not self.strategy_name:
+            raise ParseError(
+                "The 'strategy_name' argument cannot be None or empty. Ex: `strat post <strategy_name>`: `strat post my_post_strategy`"
+            )
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+
+        task_args = {"strategy_name": self.strategy_name}
+        task_detail = TaskDetail(task_name="strat post", args=task_args)
+
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+
+
+class StratGet:
+    R"""
+    Set the get strategy for the implant. Ex: `strat get my_get_strategy`
+    """
+
+    implant_uuid: str
+    strategy_name: str
+
+    def __post_init__(self):
+        """Automatically run something when the dataclass is created."""
+        if not self.strategy_name:
+            raise ParseError(
+                "The 'strategy_name' argument cannot be None or empty. Ex: `strat get <strategy_name>`: `strat get my_get_strategy`"
+            )
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+
+        task_args = {"strategy_name": self.strategy_name}
+        task_detail = TaskDetail(task_name="strat get", args=task_args)
+
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+
+
+@dataclass
+class StratList:
+    R"""
+    List the available strategies for the implant.
+    """
+
+    implant_uuid: str
+
+    # def __post_init__(self):
+    #     """Automatically run something when the dataclass is created."""
+    #     if not self.strategy_name:
+    #         raise ParseError(
+    #             "The 'strategy_name' argument cannot be None or empty. Ex: `strat get <strategy_name>`: `strat get my_get_strategy`"
+    #         )
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+
+        task_args = {}
+        task_detail = TaskDetail(task_name="strat list", args=task_args)
 
         final_task = create_and_verify_task(
             implant_uuid=self.implant_uuid, task=task_detail

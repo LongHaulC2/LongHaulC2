@@ -7,7 +7,8 @@
 #include "c2.h" //ingress,egress definitions
 
 // 1. Define allowed types
-using SettingValue = std::variant<bool, int, double, std::string, IngressFunc, EgressFunc>;
+//std::map<std::string, EgressFunc> and std::map<std::string, IngressFunc> are included as allowed types, so that we can store the strategy maps in the settings manager to get later. Kinda hacky
+using SettingValue = std::variant<bool, int, double, std::string, IngressFunc, EgressFunc, std::map<std::string, EgressFunc>, std::map<std::string, IngressFunc>>;
 
 class SettingsManager {
 public:

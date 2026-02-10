@@ -96,6 +96,8 @@ if(WIN32)
         #add_compile_options(-ffunction-sections -fdata-sections)
         #add_link_options(-Wl,--gc-sections)
 
+        # notes, can switch to non-iostream/non-std libs for even smaller stuff if I need to. 
+
     endif()
 
 endif()
