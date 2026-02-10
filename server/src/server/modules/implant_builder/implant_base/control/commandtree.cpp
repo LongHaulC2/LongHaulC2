@@ -80,7 +80,6 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         return result;
     }
-
     else if (task_name == "sleep") {
         nlohmann::json result;
 
@@ -148,9 +147,8 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
     }
     else if (task_name == "exit") {
-        nlohmann::json result;
-        add_text_result(result, "error", "exit not implemented");
-        return result;
+        //no return, just kill it
+        exit(0);
     }
     else {
         nlohmann::json result;

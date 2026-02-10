@@ -91,14 +91,7 @@ async def task_tree(command, args, implant_uuid):
         # special command
         case "help":
             # uses this list to pull the docstrings from, and turn into a help menu
-            dataclasses = [
-                Cd,
-                Sleep,
-                StratPost,
-                StratGet,
-                StratList,
-                Ls,
-            ]
+            dataclasses = [Cd, Sleep, StratPost, StratGet, StratList, Ls, Exit]
             descriptions: list = get_description_of_dataclasses(dataclasses)
 
             # add in barriers:
@@ -193,9 +186,12 @@ async def task_tree(command, args, implant_uuid):
                     "Invalid strat command. Use `strat post <strategy_name>`, `strat get <strategy_name>`, or `strat list`",
                 )
 
-        case "data_command":
-            data = "somedata"
-            return (ResultType.TEXT, data)  # Use Enum for clarity
+        case "exit":
+            try:
+                task = Exit(implant_uuid=implant_uuid).to_task()
+                return (ResultType.TASK, task)
+            except ParseError as e:
+                return (ResultType.ERROR, str(e))
 
         case _:
             return (ResultType.ERROR, "Invalid command")  # Or some other response
@@ -397,6 +393,28 @@ class StratList:
 
         task_args = {}
         task_detail = TaskDetail(task_name="strat list", args=task_args)
+
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+
+
+@dataclass
+class Exit:
+    R"""
+    Exit the implant. This will kill the implant process on the host, don't expect a response back from the implant with this command.
+    """
+
+    command_name = "exit"
+
+    implant_uuid: str
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+
+        task_args = {}
+        task_detail = TaskDetail(task_name="exit", args=task_args)
 
         final_task = create_and_verify_task(
             implant_uuid=self.implant_uuid, task=task_detail
