@@ -67,7 +67,7 @@
 # Implant:
  - Reqs:
    - Windows:
-      - [ ] Statically compiled
+      - [X] Statically compiled
       - [ ] DLL Based (windows)
       - [x] CMAKE based
 
@@ -90,19 +90,21 @@
          and implant switches to said strat. Ex, HTTP bingsearch -> http_cnnvideo | http->ntp, etc. 
 
    # Command Tree:
-      Create a command tree for the implant. 
-         Commands to add:
-         `strat get|post <name_of_strat>`
-         `strat get|post <name_of_strat>`
-         `sleep`: sleeps (use a dedicated sleep method... not just Sleep())
-         `ls`: Current dir
-         `cd`: change dir
-         `exit`: Quits & deletes itself (there's a module in maldev)
-
-      THEN:
+      `strat get/post`:
          - [X] validate switching strats. 
-            -> Add safeguards, ex, user requesting get for post, vice versa.
-            -> add a strat current that shows `current set` strats
+            -> [ ] Add safeguards, ex, user requesting get for post, vice versa.
+            -> [ ] add a strat current that shows `current set` strats
+
+      `upload`: Upload file to host disk
+      `download`: Download file from host disk
+   
+      `mem_upload`: Upload file to host memory store
+      `mem_download`: Get file from host memory store
+
+      `shexecute`: Executes shellcode, inline? Ran into issues with this in previous projects. Maybe in a new thread
+
+      Maybe...:
+         `bof`: runs bofs... but that takes a lot of work to do. (and needs upload/download funcs first anyways. )
 
       - Addtl:
          - response qeueu. This allows tasks to run in the background, and hwen they complete, pop the data into the queue and it'll get sent back. 
