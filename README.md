@@ -87,6 +87,11 @@ So, what actually makes this suitable for long-haul operations? The entire archi
   * **Beacon (The Heartbeat):** A lightweight, minimal packet sent periodically just to ask, *"Is there work for me?"*
   * **Check-in (The Heavy Lift):** A full data connection that opens **only** when the server confirms tasks are pending. This prevents sending large, suspicious packets when the implant is idle
 
+
+=============
+clean this up:
+=============
+
 ### Implant Design
 
 * **Language:** C++
