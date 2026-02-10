@@ -51,7 +51,7 @@ So, what actually makes this suitable for long-haul operations? The entire archi
 
  - Task Structure:
     ```
-        {
+    {
         "task_uuid": "1234",
         "implant_uuid": "9999",
         "task": {
@@ -60,7 +60,7 @@ So, what actually makes this suitable for long-haul operations? The entire archi
             "cli": "whoami"
             }
         }
-        }
+    }
     ```
 
  - Task Response Structure:
