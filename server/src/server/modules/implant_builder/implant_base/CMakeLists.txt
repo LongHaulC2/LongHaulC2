@@ -83,6 +83,19 @@ if(WIN32)
             ws2_32 
             crypt32
         )
+
+        # set some stuff for optimizations
+        set(CMAKE_CXX_FLAGS_RELEASE "-Os")
+        set(CMAKE_C_FLAGS_RELEASE "-Os")
+
+        # strip 
+        set(CMAKE_EXE_LINKER_FLAGS "-s")
+
+        # dead code elim
+        # this might knock out those extra funcs in comms... needs testing. 
+        #add_compile_options(-ffunction-sections -fdata-sections)
+        #add_link_options(-Wl,--gc-sections)
+
     endif()
 
 endif()
