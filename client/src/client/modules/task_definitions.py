@@ -59,10 +59,20 @@ def get_description_of_dataclasses(dataclasses):
     """
 
     descriptions = []
+
+    # 1. Find the length of the longest command name to set the column width
+    # We add a buffer (e.g., +4) so the longest command still has a gap before the description
+    if dataclasses:
+        max_len = max(len(cls.command_name) for cls in dataclasses) + 4
+    else:
+        max_len = 0
+
     for cls in dataclasses:
-        # Format the string as "classname_lower: docstring"
-        description = f"{cls.__name__.lower()}: {cls.__doc__.strip()}"
+        # 2. Use f-string padding to left-align the name
+        # syntax: {value : < width}
+        description = f"{cls.command_name:<{max_len}}: {cls.__doc__.strip()}"
         descriptions.append(description)
+
     return descriptions
 
 
@@ -81,7 +91,14 @@ async def task_tree(command, args, implant_uuid):
         # special command
         case "help":
             # uses this list to pull the docstrings from, and turn into a help menu
-            dataclasses = [Cmd, Powershell]
+            dataclasses = [
+                Cd,
+                Sleep,
+                StratPost,
+                StratGet,
+                StratList,
+                Ls,
+            ]
             descriptions: list = get_description_of_dataclasses(dataclasses)
 
             # add in barriers:
@@ -118,14 +135,6 @@ async def task_tree(command, args, implant_uuid):
             task_history_list.insert(len(task_history_list) + 3, line)
 
             return (ResultType.LIST, task_history_list)
-
-        case "cmd":
-            try:
-                task = Cmd(implant_uuid=implant_uuid, cli=args).to_task()
-                return (ResultType.TASK, task)
-            # if not all args are present, or there's a bug, this will bubble up and be put on screen
-            except ParseError as e:
-                return (ResultType.ERROR, str(e))
 
         case "cd":
             try:
@@ -220,33 +229,34 @@ def create_and_verify_task(implant_uuid: str, task: TaskDetail):
     return task_as_dict
 
 
-@dataclass
-class Cmd:
-    """
-    [placeholder command for dev] Run a command on the host via cmd.exe
-    """
+# @dataclass
+# class Cmd:
+#     """
+#     [placeholder command for dev] Run a command on the host via cmd.exe
+#     """
+#     command_name = "sleep"
 
-    implant_uuid: str
-    cli: str
+#     implant_uuid: str
+#     cli: str
 
-    def __post_init__(self):
-        """Automatically run something when the dataclass is created."""
-        if not self.cli:
-            # Raise a ParseError exception if cli is None or empty
-            raise ParseError(
-                "The 'cli' argument cannot be None or empty. Ex: `cmd <cli arg>`: `cmd whoami`"
-            )
+#     def __post_init__(self):
+#         """Automatically run something when the dataclass is created."""
+#         if not self.cli:
+#             # Raise a ParseError exception if cli is None or empty
+#             raise ParseError(
+#                 "The 'cli' argument cannot be None or empty. Ex: `cmd <cli arg>`: `cmd whoami`"
+#             )
 
-    def to_task(self) -> dict:
-        """Convert the dataclass to a task style dictionary structure."""
+#     def to_task(self) -> dict:
+#         """Convert the dataclass to a task style dictionary structure."""
 
-        task_args = {"cli": self.cli}
-        task_detail = TaskDetail(task_name="cmd", args=task_args)
+#         task_args = {"cli": self.cli}
+#         task_detail = TaskDetail(task_name="cmd", args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
-        return final_task
+#         final_task = create_and_verify_task(
+#             implant_uuid=self.implant_uuid, task=task_detail
+#         )
+#         return final_task
 
 
 @dataclass
@@ -255,6 +265,7 @@ class Cd:
     Change the current working directory on the host. Ex: `cd C:\\Users\\`
     """
 
+    command_name = "cd"
     implant_uuid: str
     directory: str
 
@@ -284,6 +295,7 @@ class Sleep:
     Sleep for a specified number of seconds on the host. Ex: `sleep 5`
     """
 
+    command_name = "sleep"
     implant_uuid: str
     sleep_time: str
 
@@ -312,6 +324,7 @@ class StratPost:
     Set the post strategy for the implant. Ex: `strat post my_post_strategy`
     """
 
+    command_name = "strat post"
     implant_uuid: str
     strategy_name: str
 
@@ -339,6 +352,7 @@ class StratGet:
     Set the get strategy for the implant. Ex: `strat get my_get_strategy`
     """
 
+    command_name = "strat get"
     implant_uuid: str
     strategy_name: str
 
@@ -367,6 +381,8 @@ class StratList:
     List the available strategies for the implant.
     """
 
+    command_name = "strat list"
+
     implant_uuid: str
 
     # def __post_init__(self):
@@ -394,6 +410,8 @@ class Ls:
     List the contents of a directory on the host. Ex: `ls C:\\Users\\`
     """
 
+    command_name = "ls"
+
     implant_uuid: str
     directory: str
 
@@ -418,27 +436,27 @@ class Ls:
         return final_task
 
 
-@dataclass
-class Powershell:
-    """
-    [placeholder command for dev] Run a command on the host via powershell.exe. Ex: `powershell -c "<your_command>"`
-    """
+# @dataclass
+# class Powershell:
+#     """
+#     [placeholder command for dev] Run a command on the host via powershell.exe. Ex: `powershell -c "<your_command>"`
+#     """
 
-    cli: str
+#     cli: str
 
-    def __post_init__(self):
-        """Automatically run something when the dataclass is created."""
-        if not self.cli:
-            # Raise a ParseError exception if cli is None or empty
-            raise ParseError(
-                "The 'cli' argument cannot be None or empty. Ex: `cmd <cli arg>`: `cmd whoami`"
-            )
+#     def __post_init__(self):
+#         """Automatically run something when the dataclass is created."""
+#         if not self.cli:
+#             # Raise a ParseError exception if cli is None or empty
+#             raise ParseError(
+#                 "The 'cli' argument cannot be None or empty. Ex: `cmd <cli arg>`: `cmd whoami`"
+#             )
 
-    def to_task(self) -> dict:
-        """Convert the dataclass to a task style dictionary structure."""
-        return {
-            "task": "powershell",
-            "data": {
-                "cli": self.cli,
-            },
-        }
+#     def to_task(self) -> dict:
+#         """Convert the dataclass to a task style dictionary structure."""
+#         return {
+#             "task": "powershell",
+#             "data": {
+#                 "cli": self.cli,
+#             },
+#         }

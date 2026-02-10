@@ -112,7 +112,9 @@
          tentative: Use generics, ex: "value" as value of response, use "message" as a message for the user? error for errors. Could add others in there too based on other values, etc. 
 
       THEN:
-         - [ ] validate switching strats. 
+         - [X] validate switching strats. 
+            -> Add safeguards, ex, user requesting get for post, vice versa.
+            -> add a strat current that shows `current set` strats
 
       - [x] CURRENT BUG:
          Task responses not being written to db. Not sure why.
