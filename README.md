@@ -50,13 +50,37 @@ So, what actually makes this suitable for long-haul operations? The entire archi
 * **Data Serialization:** Uses **MessagePack** for binary data encoding. It offers the structure of JSON but is significantly smaller and faster to parse. 
 
  - Task Structure:
-    `{task_uuid: 1234, implant_uuid: 9999, "task":{"task_name":"cmd" "args":{"cli":"whoami"}}}`
+    ```
+        {
+        "task_uuid": "1234",
+        "implant_uuid": "9999",
+        "task": {
+            "task_name": "cmd",
+            "args": {
+            "cli": "whoami"
+            }
+        }
+        }
+    ```
 
  - Task Response Structure:
-    `{"task_uuid":"", "implant_uuid": 9999, "result":{command_output:{"type":"text", "value":"somedata"}, other_value:{"type":"text", "value":"abcd"}}}`
+    ```
+    {
+        "task_uuid": "1234",
+        "implant_uuid": "9999",
+        "result": {
+            "data_type": "text",
+            "data": "somedomain\\bob"
+        }
+    }
+    ```
 
  - Metadata strucutre:
-    `{"implant_uuid":"1234", other....}`
+    ```
+    {
+    "implant_uuid": "1234"
+    }
+    ```
 
 
 * **Two-Stage Comm Logic:** To minimize noise, the implant separates "status checks" from "data transfer":
