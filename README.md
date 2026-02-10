@@ -15,9 +15,14 @@ So, what actually makes this suitable for long-haul operations? The entire archi
 
 - **Granular Profile Binding:** Supports distinct Malleable C2 profiles per listener, enabling various traffic signatures across a single campaign infrastructure. No need for multiple servers, one will do it all.
 - **Dynamic Profile Switching:** Implants support multiple communication profiles. Operators can "hot-swap" strategies inline (e.g., changing protocols, or MalleableC2 profiles) without spawning new artifacts, significantly reducing the detection surface.
-  - *Note:* This allows for complex emulation scenarios. Theoretically, you could script a "workday" rotation: mimic Spotify traffic in the morning, switch to a Slack profile at noon, and switch to a Windows Update profile at night.
+  - *Note:* This allows for complex emulation scenarios. Via the API, you could script a "workday" rotation: mimic Spotify traffic in the morning, switch to a Slack profile at noon, and switch to a Windows Update profile at night.
 
-## Table of Contents
+## Images
+
+
+
+
+## Dev Table of Contents
 
 1. [Introduction](#longhaulc2-persistent-access-management)
 2. [Objectives](#objectives)
@@ -40,18 +45,28 @@ So, what actually makes this suitable for long-haul operations? The entire archi
 
 ## Implementation Details
 
-### Communication
+### Communication & Data Flow
 
-* **MessagePack:** Utilizes MessagePack for a simple, binary-encoded, JSON-like structure that is easy to parse.
-* **Beacon vs. Checkin Logic:** Adopts the Cobalt Strike model of separating status checks from data transmission.
-* **Beacon:** Minimal proof of life; checks for available tasks.
-* **Checkin:** Bi-directional data transfer; occurs only if a task is available.
+* **Data Serialization:** Uses **MessagePack** for binary data encoding. It offers the structure of JSON but is significantly smaller and faster to parse. 
+
+ - Task Structure:
+    `{task_uuid: 1234, implant_uuid: 9999, "task":{"task_name":"cmd" "args":{"cli":"whoami"}}}`
+
+ - Task Response Structure:
+    `{"task_uuid":"", "implant_uuid": 9999, "result":{command_output:{"type":"text", "value":"somedata"}, other_value:{"type":"text", "value":"abcd"}}}`
+
+ - Metadata strucutre:
+    `{"implant_uuid":"1234", other....}`
+
+
+* **Two-Stage Comm Logic:** To minimize noise, the implant separates "status checks" from "data transfer":
+  * **Beacon (The Heartbeat):** A lightweight, minimal packet sent periodically just to ask, *"Is there work for me?"*
+  * **Check-in (The Heavy Lift):** A full data connection that opens **only** when the server confirms tasks are pending. This prevents sending large, suspicious packets when the implant is idle
 
 ### Implant Design
 
 * **Language:** C++
 * **Platform Support:** Windows-first, with Linux support planned for long-term versatility.
-* **Source Structure:** Designed for platform agnosticism with conditional compilation options (e.g., `win_func.cpp`, `lin_func.cpp`).
 
 ### Server Architecture
 
@@ -69,21 +84,13 @@ So, what actually makes this suitable for long-haul operations? The entire archi
 
 The backend utilizes a containerized approach for caching and persistent storage.
 
-* **[Container] Redis:** Acts as a high-performance cache layer.
+* **[Container or external] Redis:** Acts as a high-performance cache layer.
 
   * Stores queued commands.
   * Caches responses destined for implants.
-* **[Container] MySQL:** Handles long-term storage and structured data.
-* **Active Listener List**
+* **[Container or external] MySQL:** Handles long-term storage and structured data.
 * **Task Logs:** Long-term archival of executed tasks.
-* **Implant Metadata:**
-
-  * ID (Primary Key)
-  * External IP / Internal IP
-  * Listener ID
-  * User / System Hostname
-  * Process / PID / Arch
-  * Last Checkin / Sleep Value
+* Various other imporant operational storage
 
 ### Encryption
 
