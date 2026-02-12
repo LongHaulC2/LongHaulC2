@@ -78,16 +78,24 @@
             - https://learn.microsoft.com/en-us/cpp/mfc/wininet-basics?view=msvc-170
 
       - [x] Decide project structure (folder struct, etc)
-  
+
+   > Here - continue with capabilities dev
+   # task queeus.
+      Nope. TLDR: one command one output is easier to track/build on IMO/more explicit/predictable to users. 
+      Maybe later. IN meantime, `bg` command, new thread, runs task in bacgkround if operator wants to.  
+      <!-- inbox, and otubox.
+      inboux has inbox tasks, outbox has outbox.
+      Both are singlton clsses for easy access.
+      
+      inbox:
+         > Enqueue: Takes task object retrieved by GET, iterates over each task, and enqueues to inbox. 
 
 
-   # Strategies:
-      - Compile implant with multiple strategies, i.e. multiple malleable c2 profiles
-      Implant then has it listed in its settings, that it can use those strats
-
-      user then:
-         `strat <name_of_strat>`
-         and implant switches to said strat. Ex, HTTP bingsearch -> http_cnnvideo | http->ntp, etc. 
+      Flow:
+         server -> inbox
+         inbox -> implant actions
+         implant actions -> outbox
+         outbox -> network -->
 
    # Command Tree:
       `strat get/post`:
@@ -95,6 +103,7 @@
             -> [ ] Add safeguards, ex, user requesting get for post, vice versa.
             -> [ ] add a strat current that shows `current set` strats
 
+      > here - CreateFileW, ReadFileW. Should be fairly easy, download takes a path, upload takes a file/bin and path.
       `upload`: Upload file to host disk
       `download`: Download file from host disk
    
@@ -103,12 +112,23 @@
 
       `shexecute`: Executes shellcode, inline? Ran into issues with this in previous projects. Maybe in a new thread
 
+      `setting`: Generic setting chagner  
+         > `setting setting_name setting_new_value`
+         > start with int, and string. 
+         > Then do map/vector.   
+            > these would need to be `setting setting_name add/remove value`
+         `setting list`
+
       Maybe...:
          `bof`: runs bofs... but that takes a lot of work to do. (and needs upload/download funcs first anyways. )
 
       - Addtl:
          - response qeueu. This allows tasks to run in the background, and hwen they complete, pop the data into the queue and it'll get sent back. 
          - A vector of tasks should do this fine. 
+
+         - Switchable callback domains, like cs, has, where there's a list of callback hosts to randomly try, etc. Just adds addtl reasurance for long term.
+            > note, make this list editable, with an "add" and "remove" opption for this list. Make it a setting as well 
+            By default, it shuold auto fill to the listener address, but have the ability to add options at compile time
 
    # Commands list:
       - cd (SetCurrentDirectoryA(path);): sets cwd of whole program

@@ -80,6 +80,18 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         return result;
     }
+    else if (task_name == "strat active") {
+        nlohmann::json result;
+
+        std::string get_strategy = SettingsManager::instance().get<std::string>("comms_get_function", "");
+        std::string post_strategy = SettingsManager::instance().get<std::string>("comms_post_function", "");
+
+
+        add_text_result(result, "comms_get_strategy", get_strategy);
+        add_text_result(result, "comms_post_strategy", post_strategy);
+
+        return result;
+    }
     else if (task_name == "sleep") {
         nlohmann::json result;
 
