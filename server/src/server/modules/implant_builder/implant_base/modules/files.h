@@ -1,3 +1,7 @@
+#pragma once
 #include <string>
+#include <windows.h>
+#include "../data/structs.h"
 
-std::string get_file(std::string file_path);
+ModuleResult get_file(std::string file_path);
+ModuleResult put_file(std::vector<uint8_t> file_contents, std::string file_path);

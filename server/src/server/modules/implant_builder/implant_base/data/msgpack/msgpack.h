@@ -12,4 +12,5 @@ int create_task_response(const std::string& implant_uuid, const std::string& tas
 
 //helpers
 void add_text_result(nlohmann::json& result,const std::string& key,const std::string& value);
-void add_bytes_result(nlohmann::json& result,const std::string& key,const std::string& value);
+void add_int_result(nlohmann::json& result, const std::string& key, const int value);
+void add_bytes_result(nlohmann::json& result, const std::string& key, const std::string& value);

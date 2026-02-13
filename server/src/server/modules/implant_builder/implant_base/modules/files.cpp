@@ -1,8 +1,14 @@
 #include <string>
 #include <vector>
 #include <windows.h>
+#include "../data/structs.h"
 
-std::string get_file(std::string file_path) {
+/**
+ * @brief Gets a file from the OS, and returns the content to the caller
+ * @param std::string file_path: The path of the file. Ex: C:\Temp\myfile.txt
+ * @return ModuleResult. data=file contents, windows_error_code=Any windows error codes if error occured, else 0.
+*/
+ModuleResult get_file(std::string file_path) {
 	//https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
 	
 	//convert to w string cuz windows
@@ -10,7 +16,7 @@ std::string get_file(std::string file_path) {
 
 	//get file handle first
 	HANDLE h_file = CreateFileW(
-		(LPCWSTR)w_file_path.c_str(),
+		static_cast<LPCWSTR>(w_file_path.c_str()), //static cast cuz it's safer than just (LPCWSTR)
 		GENERIC_READ, //only need to read file
 		FILE_SHARE_READ, //let other processes read, my thoguhts are to not inhibit other processes/users
 		NULL, //dw sec attibutes, optional
@@ -19,8 +25,8 @@ std::string get_file(std::string file_path) {
 		NULL // template file, don't need
 
 	);
-	if (!h_file) {
-		return "";
+	if (h_file == INVALID_HANDLE_VALUE) {
+		return { "Could not get a handle to the file", GetLastError()};
 	}
 
 	//get file size cus the winapi is barbaric and wants you to tell it how much of the file to read. 
@@ -28,7 +34,7 @@ std::string get_file(std::string file_path) {
 	LARGE_INTEGER size;
 	if (!GetFileSizeEx(h_file, &size)) {
 		CloseHandle(h_file);
-		return "";
+		return { "Could not get size of file", GetLastError() };
 	}
 
 	std::string file_contents_buffer;
@@ -48,12 +54,57 @@ std::string get_file(std::string file_path) {
 	);
 
 	if (!read_success) {
-		return "";
+		return { "File read failed", GetLastError() };
 	}
 
 	//could do a comparison of bytes to read, vs bytes read, and error if not fully read. 
 
+	CloseHandle(h_file);
 	//return contents as str. 
-	return file_contents_buffer;
+	return { file_contents_buffer, 0 };
+
+}
+
+/**
+ * @brief Writes a file to the OS. 
+ * @param std::vector<uint8_t> file_contents: The file bytes to write to the file. 
+ * @param std::string file_path: The path of the file to write. Ex: C:\Temp\myfile.txt
+ * @return ModuleResult. data: A message if successful, windows_error_code=Any windows error codes if error occured, else 0.
+*/
+ModuleResult put_file(std::vector<uint8_t> file_contents, std::string file_path) {
+	//convert to w string cuz windows
+	std::wstring w_file_path(file_path.begin(), file_path.end());
+
+	HANDLE h_file = CreateFileW(
+		static_cast<LPCWSTR>(w_file_path.c_str()),//static cast cuz it's safer than just (LPCWSTR)
+		GENERIC_WRITE, //might need read as well
+		0, //Tell every other process to fuck off while we write. 
+		NULL, //dw sec attibutes, optional
+		CREATE_NEW, //Create new if not exist, CREATE_ALWAYS may be worth looking into as well
+		FILE_ATTRIBUTE_NORMAL, //docs say this is most common.
+		NULL // template file, don't need
+
+	);
+	if (h_file == INVALID_HANDLE_VALUE) {
+		//int return_code = static_cast<DWORD>(GetLastError());
+		return { "Invalid handle to file", GetLastError()};
+	}
+
+	LPDWORD bytes_written = 0;
+
+	BOOL write_file = WriteFile(
+		h_file,
+		static_cast<LPCVOID>(file_contents.data()), //get pointer of array, then cast to LPCVOID
+		static_cast<DWORD>(file_contents.size()),
+		bytes_written,
+		NULL //lpoverlapped, optional, not including
+
+	);
+
+	//check if bytes written != array.size, throw something/err. 
+
+	CloseHandle(h_file);
+	//success
+	return { "File written successfully", 0 };
 
 }

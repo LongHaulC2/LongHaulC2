@@ -1,1 +1,4 @@
-int cd(std::string pathname);
+#pragma once
+#include "../data/structs.h"
+
+ModuleResult cd(std::string pathname);

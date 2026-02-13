@@ -145,6 +145,16 @@ void add_text_result(nlohmann::json& result,
     };
 }
 
+void add_int_result(nlohmann::json& result,
+    const std::string& key,
+    const int value)
+{
+
+    result[key] = {
+        {"type", "int"},
+        {"value", value}
+    };
+}
 
 void add_bytes_result(nlohmann::json& result,
     const std::string& key,

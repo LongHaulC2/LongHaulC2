@@ -2,11 +2,12 @@
 #include <iostream>
 #include <string>
 #include <filesystem>
-
+#include <windows.h>
+#include "../data/structs.h"
+#include "ls.h"
 namespace fs = std::filesystem;
 
-//not getting output for soem eraosn
-std::string ls(std::string path) {
+ModuleResult ls(std::string path) {
     std::string output;
 
     // Check if path exists and is a directory
@@ -34,8 +35,9 @@ std::string ls(std::string path) {
     }
 
     else {
-        return "Path `" + path + "` does not exist";
+        //no data to send back, just send back error
+        return { "", ERROR_PATH_NOT_FOUND};
     }
 
-    return output;
+    return { output, ERROR_SUCCESS };
 }

