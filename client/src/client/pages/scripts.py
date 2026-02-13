@@ -41,7 +41,7 @@ def clear_state():
 
 @ui.page("/scripts")
 async def scripts():
-    # 1. Full Screen Layout Setup
+    # Full Screen Layout Setup
     ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
@@ -50,7 +50,7 @@ async def scripts():
     clear_state()
     setup_menu("Scripts")
 
-    # 2. Main Layout (Splitter)
+    # Main Layout (Splitter)
     # Using a container that matches the background
     with ui.element().classes("w-full h-full gap-0"):
 

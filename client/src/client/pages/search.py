@@ -17,7 +17,7 @@ server_log.info("Loading /search page")
 
 @ui.page("/search")
 async def search():
-    # 1. Full Screen Layout Setup
+    # Full Screen Layout Setup
     ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
@@ -35,16 +35,16 @@ async def search_view():
 
     # --- UI LAYOUT ---
 
-    # 1. Main Glass Panel
+    # Main Glass Panel
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
 
-        # 2. Header Bar
+        # Header Bar
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
             with ui.row().classes("items-center gap-3"):
                 ui.icon("manage_search", color="emerald-500").classes("text-xl")
                 ui.label("GLOBAL_SEARCH //").classes("tech-label-title")
 
-        # 3. Command Bar (Search Inputs)
+        # Command Bar (Search Inputs)
         with ui.row().classes(
             "w-full p-4 border-b border-white/5 bg-black/20 gap-4 items-center"
         ):
@@ -80,7 +80,7 @@ async def search_view():
                 "opacity-0 transition-opacity"
             )
 
-        # 4. Results Area
+        # Results Area
         with ui.column().classes(
             "w-full flex-grow relative overflow-hidden bg-transparent"
         ) as results_container:

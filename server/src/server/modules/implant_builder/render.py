@@ -46,7 +46,7 @@ def render_implant(
     get_func_mappings: Dict[str, FunctionMapping] = {}
     post_func_mappings: Dict[str, FunctionMapping] = {}
 
-    # 1. Render Listener Communication Modules (comms.cpp)
+    # Render Listener Communication Modules (comms.cpp)
     # This loop appends code to comms.cpp for every listener
     for uuid, listener in listeners_data_dict.items():
 
@@ -67,7 +67,7 @@ def render_implant(
             server_logger.error(f"Failed to render listener {uuid}: {e}")
             raise e
 
-    # 2. Determine Initial Profile Functions
+    # Determine Initial Profile Functions
     # Retrieve the profile name associated with the initial UUIDs
     init_get_name = listeners_data_dict[initial_get_profile_listener_uuid][
         "listener_profile_name"
@@ -79,7 +79,7 @@ def render_implant(
     init_get_func = get_func_mappings.get(init_get_name, {}).get("value")
     init_post_func = post_func_mappings.get(init_post_name, {}).get("value")
 
-    # 3. Render Controller (c2.cpp)
+    # Render Controller (c2.cpp)
     _render_file(
         output_dir / "control/c2.cpp",
         "c2.j2",
@@ -105,10 +105,10 @@ def _render_listener_variant(
     port = listener.get("listener_port")
     prof_name = listener.get("listener_profile_name")
 
-    # 1. Generate Context
+    # Generate Context
     context = _get_listener_context(listener)
 
-    # 2. Render based on type
+    # Render based on type
     if listener_type == "http":
         # Render comms.cpp (Append mode)
         _render_file(

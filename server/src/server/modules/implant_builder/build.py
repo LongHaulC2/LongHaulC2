@@ -85,7 +85,7 @@ def build_implant(
             )
             return
 
-    # 2. Build Environment & Logic (Now using full_listeners_data)
+    # Build Environment & Logic (Now using full_listeners_data)
     with tempfile.TemporaryDirectory(delete=False) as tmp_dir_str:
         build_dir = Path(tmp_dir_str).resolve()
 

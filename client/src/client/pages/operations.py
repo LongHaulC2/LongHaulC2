@@ -47,7 +47,7 @@ def clear_state():
 @ui.page("/")
 @ui.page("/operations")
 async def operations():
-    # 1. Full Screen Layout Setup
+    # Full Screen Layout Setup
     ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
@@ -56,7 +56,7 @@ async def operations():
     clear_state()
     setup_menu("Operations")
 
-    # 2. Main Layout (Splitter)
+    # Main Layout (Splitter)
     # Using a container that matches the background
     with ui.element().classes("w-full h-full gap-0"):
 
@@ -327,16 +327,16 @@ async def terminal_add_tab(implant_uuid: str):
     # Remove tab_name argument, we derive it here
     check_type(implant_uuid, str, "implant_uuid")
 
-    # 1. Define distinct ID vs Label
+    # Define distinct ID vs Label
     tab_id = implant_uuid  # Unique internal ID (Full UUID)
     tab_label = implant_uuid[-8:]  # Visual display name, get last 8 of uuid
 
-    # 2. Check using the full UUID key
+    # Check using the full UUID key
     if implant_uuid in open_tabs:
         panels.set_value(tab_id)
         return
 
-    # 3. Create Tab with explicit 'name'
+    # Create Tab with explicit 'name'
     with tabs:
         # name=tab_id ensures the tab system tracks it by full UUID
         with ui.tab(name=tab_id, label="").classes(
@@ -352,7 +352,7 @@ async def terminal_add_tab(implant_uuid: str):
                     "text-neutral-600 hover:text-white px-0"
                 )
 
-    # 4. Create Panel with matching 'name'
+    # Create Panel with matching 'name'
     with panels:
         with ui.tab_panel(name=tab_id).classes("p-0 w-full h-full") as panel:
             await terminal(implant_uuid)
@@ -395,13 +395,13 @@ async def terminal(implant_uuid: str):
     # Layout: Output gets all space, Input gets fixed bottom
     with ui.column().classes("w-full h-full gap-0"):
 
-        # 1. LOG OUTPUT (Scrollable)
+        # LOG OUTPUT (Scrollable)
         # Using flex-grow to take up all available space
         ui_log = ui.log().classes(
             "w-full flex-grow p-2 font-mono text-xs text-emerald-500/90 bg-transparent overflow-auto"
         )
 
-        # 2. INPUT BAR (Fixed Bottom)
+        # INPUT BAR (Fixed Bottom)
         with ui.row().classes(
             "w-full bg-black/40 border-t border-white/10 p-2 gap-2 items-center"
         ):

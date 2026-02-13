@@ -29,18 +29,18 @@ def generate_http_wininet_context(
 
     server_logger.info("Generating HTTP Wininet context")
 
-    # 1. Load and Parse Profile
+    # Load and Parse Profile
     profile = load_malleable_profile(malleable_c2_profile)
 
     context = {}
 
-    # 2. Extract Common Options
+    # Extract Common Options
     context.update(_extract_common_options(profile, callback_host, callback_port))
 
-    # 3. Extract HTTP GET Options
+    # Extract HTTP GET Options
     context.update(_extract_http_get_options(profile))
 
-    # 4. Extract HTTP POST Options
+    # Extract HTTP POST Options
     context.update(_extract_http_post_options(profile))
 
     # add in function names for mangling

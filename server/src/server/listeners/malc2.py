@@ -81,21 +81,21 @@ def clean_ast_backslash_delimiters(node):
     Recursively traverses the AST and cleans 'value' and 'key' fields.
     """
     return  # temp disable
-    # 1. Handle Dictionary (recurse into values)
+    # Handle Dictionary (recurse into values)
     if isinstance(node, dict):
         for key, value in node.items():
             clean_ast_backslash_delimiters(value)
 
-    # 2. Handle List (recurse into items)
+    # Handle List (recurse into items)
     elif isinstance(node, list):
         for item in node:
             clean_ast_backslash_delimiters(item)
 
-    # 3. Handle 'Block' objects (recurse into the 'data' attribute)
+    # Handle 'Block' objects (recurse into the 'data' attribute)
     elif hasattr(node, "data") and isinstance(node.data, list):
         clean_ast_backslash_delimiters(node.data)
 
-    # 4. Handle 'Option' and 'Statement' objects (clean the 'value' and 'key')
+    # Handle 'Option' and 'Statement' objects (clean the 'value' and 'key')
     # We check for 'value' attribute which both Option and Statement have.
     elif hasattr(node, "value"):
         # Clean the value
@@ -119,7 +119,7 @@ def unescape_malleable_bytes(data: bytes) -> bytes:
     def replace_match(match):
         seq = match.group(0)
 
-        # 1. Handle Standard Escapes
+        # Handle Standard Escapes
         if seq == b"\\n":
             return b"\n"
         if seq == b"\\r":
@@ -131,12 +131,12 @@ def unescape_malleable_bytes(data: bytes) -> bytes:
         if seq == b"\\\\":
             return b"\\"
 
-        # 2. Handle Hex Bytes (\x41 -> A)
+        # Handle Hex Bytes (\x41 -> A)
         if seq.startswith(b"\\x"):
             # Convert b'41' -> int 65 -> byte b'A'
             return bytes([int(seq[2:], 16)])
 
-        # 3. Handle Unicode (\u1234 -> UTF-8 bytes)
+        # Handle Unicode (\u1234 -> UTF-8 bytes)
         if seq.startswith(b"\\u"):
             # Convert hex -> int -> char -> utf-8 encoded bytes
             char_code = int(seq[2:], 16)

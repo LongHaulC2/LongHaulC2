@@ -722,7 +722,7 @@ class MySQLImplantPayloadService:
         check_type(build_status, str, "status")
         check_type(build_uuid, str, "build_uuid")
 
-        # 1. FETCH the existing row
+        # FETCH the existing row
         payload_entry = (
             self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid).first()
         )
@@ -731,10 +731,10 @@ class MySQLImplantPayloadService:
             server_logger.error(f"Could not find build job {build_uuid} to update!")
             return
 
-        # 2. UPDATE the field on the existing object
+        # UPDATE the field on the existing object
         payload_entry.build_status = build_status
 
-        # 3. COMMIT (SQLAlchemy detects the change on the dirty object)
+        # COMMIT (SQLAlchemy detects the change on the dirty object)
         self.session.commit()
 
         server_logger.info(

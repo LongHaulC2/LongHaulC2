@@ -55,7 +55,7 @@ def info_row(key: str, value: str):
 @ui.page("/implant/{implant_uuid}")
 async def implant_details(implant_uuid: str):
 
-    # 1. Layout Setup
+    # Layout Setup
     ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
@@ -63,7 +63,7 @@ async def implant_details(implant_uuid: str):
 
     setup_menu("Operations")
 
-    # 2. Fetch Implant Metadata
+    # Fetch Implant Metadata
     api_res = await get_implant_data(implant_uuid)
     data = api_res.get("data", {})
 
@@ -84,7 +84,7 @@ async def implant_details(implant_uuid: str):
             "arch": "x64",
         }
 
-    # 3. Render Dashboard
+    # Render Dashboard
     await render_dashboard(data, implant_uuid)
 
 

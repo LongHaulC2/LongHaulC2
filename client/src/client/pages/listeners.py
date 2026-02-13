@@ -39,7 +39,7 @@ def stat_widget(label: str, value: str, icon: str, color: str = "emerald"):
 
 @ui.page("/listeners")
 async def listeners():
-    # 1. Full Screen Layout Setup
+    # Full Screen Layout Setup
     ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'

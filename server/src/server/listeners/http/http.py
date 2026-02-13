@@ -775,7 +775,7 @@ def http_post_response(data_from_implant: bytes, implant_uuid):
 # C2_POST_URI = ["/wiki", "/news", "/submit"]
 
 
-# 1. Capture EVERYTHING (The "Jetty" method)
+# Capture EVERYTHING (The "Jetty" method)
 async def http_catchall(request: Request, full_path: str):
     # Important: The path might come in without the leading slash from the param
     actual_path = request.url.path

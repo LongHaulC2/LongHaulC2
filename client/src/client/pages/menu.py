@@ -10,7 +10,7 @@ from ..utils.checks import check_type
 def setup_menu(title: str):
     check_type(title, str, "title")
 
-    # 1. Drawer Setup
+    # Drawer Setup
     # width=280: Standard width for tech consoles
     # behavior='mobile': Forces it to overlay content (smoother for this style)
     left_drawer = (
@@ -19,7 +19,7 @@ def setup_menu(title: str):
         .classes("bg-[#0F0F0F]")
     )
 
-    # 2. Header (Glassmorphism)
+    # Header (Glassmorphism)
     with ui.header().classes(
         "bg-black/40 backdrop-blur-md border-b border-white/5 h-16 row items-center px-4"
     ) as header:
@@ -36,7 +36,7 @@ def setup_menu(title: str):
                 "text-sm font-bold font-mono tracking-[0.2em] text-white uppercase opacity-90"
             )
 
-    # 3. Smooth Navigation Helper
+    # Smooth Navigation Helper
     # This is the magic sauce. It plays the close animation BEFORE killing the page.
     async def smooth_navigate(target_url):
         left_drawer.hide()  # Trigger close animation
@@ -45,7 +45,7 @@ def setup_menu(title: str):
         )  # Wait for animation (200ms is usually enough for the slide)
         ui.navigate.to(target_url)
 
-    # 4. Drawer Content
+    # Drawer Content
     with left_drawer:
         with ui.column().classes("h-full w-full p-6 gap-1"):
 

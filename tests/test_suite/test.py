@@ -308,7 +308,7 @@ def main():
 
     test_report = {}
 
-    # 1. Connect
+    # Connect
     if not step_1_connect():
         print("CRITICAL: Cannot connect to server. Exiting.")
         return
@@ -332,19 +332,19 @@ def main():
 
             log(f"\n--- Testing Profile: {profile_name} ---")
 
-            # 2. Create Listener
+            # Create Listener
             listener_id = step_2_create_listener(profile_name, profile_content)
             if not listener_id:
                 test_report[profile_name] = "FAILURE: Step 2 (Create Listener)"
                 continue
 
-            # 3. Build Payload
+            # Build Payload
             build_id = step_3_build_payload(listener_id)
             if not build_id:
                 test_report[profile_name] = "FAILURE: Step 3 (Request Build)"
                 continue
 
-            # 3.5 Get Hash
+            # 5 Get Hash
             build_hash = step_3_5_get_hash(build_id)
             if not build_hash:
                 test_report[profile_name] = (
@@ -352,7 +352,7 @@ def main():
                 )
                 continue
 
-            # 4. Download Payload
+            # Download Payload
             exe_path = step_4_download_payload(build_hash)
             if not exe_path:
                 test_report[profile_name] = "FAILURE: Step 4 (Download Payload)"
@@ -367,7 +367,7 @@ def main():
             )
             # --- SNAPSHOT END ---
 
-            # 5. Execute Payload
+            # Execute Payload
             process = step_5_execute_payload(exe_path)
             if not process:
                 test_report[profile_name] = (
@@ -383,7 +383,7 @@ def main():
                 test_report[profile_name] = "FAILURE: Step 5b (No Check-in Received)"
                 continue
 
-            # 6. Queue Command
+            # Queue Command
             task_uuid = step_6_queue_command(implant_uuid)
             if not task_uuid:
                 process.kill()
@@ -391,7 +391,7 @@ def main():
                 test_report[profile_name] = "FAILURE: Step 6 (Queue Command)"
                 continue
 
-            # 7. Check Output
+            # Check Output
             output_verified = step_7_check_output(implant_uuid, task_uuid)
 
             # Cleanup

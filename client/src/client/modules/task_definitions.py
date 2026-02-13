@@ -60,7 +60,7 @@ def get_description_of_dataclasses(dataclasses):
 
     descriptions = []
 
-    # 1. Find the length of the longest command name to set the column width
+    # Find the length of the longest command name to set the column width
     # We add a buffer (e.g., +4) so the longest command still has a gap before the description
     if dataclasses:
         max_len = max(len(cls.command_name) for cls in dataclasses) + 4
@@ -68,7 +68,7 @@ def get_description_of_dataclasses(dataclasses):
         max_len = 0
 
     for cls in dataclasses:
-        # 2. Use f-string padding to left-align the name
+        # Use f-string padding to left-align the name
         # syntax: {value : < width}
         description = f"{cls.command_name:<{max_len}}: {cls.__doc__.strip()}"
         descriptions.append(description)

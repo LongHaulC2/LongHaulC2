@@ -5,11 +5,11 @@ from pathlib import Path
 
 import structlog
 
-# 1. SETUP DIRECTORIES
+# SETUP DIRECTORIES
 log_dir = Path(__file__).parent / "logs"
 log_dir.mkdir(parents=True, exist_ok=True)
 
-# 2. SHARED PROCESSORS
+# SHARED PROCESSORS
 # These run for EVERY log entry, regardless of where it goes.
 shared_processors = [
     structlog.contextvars.merge_contextvars,  # Async context (IP, UUID)
@@ -22,7 +22,7 @@ shared_processors = [
     structlog.processors.UnicodeDecoder(),
 ]
 
-# 3. CONFIGURE STRUCTLOG BACKEND
+# CONFIGURE STRUCTLOG BACKEND
 structlog.configure(
     processors=shared_processors
     + [
@@ -34,7 +34,7 @@ structlog.configure(
     cache_logger_on_first_use=True,
 )
 
-# 4. DEFINE FORMATTERS
+# DEFINE FORMATTERS
 # Both use ConsoleRenderer now.
 
 # Console: Colors = True (Pretty for Terminal)
@@ -50,7 +50,7 @@ file_formatter = structlog.stdlib.ProcessorFormatter(
 )
 
 
-# 5. BUILD LOGGERS
+# BUILD LOGGERS
 def setup_logger(name, filename):
     """
     Configures a logger to write to a specific file and the console.
@@ -82,7 +82,7 @@ def setup_logger(name, filename):
     return structlog.wrap_logger(logger)
 
 
-# 6. EXPORT LOGGERS
+# EXPORT LOGGERS
 api_logger = setup_logger("api", "api.log")
 server_logger = setup_logger("server", "server.log")
 listener_logger = setup_logger("listener", "listener.log")

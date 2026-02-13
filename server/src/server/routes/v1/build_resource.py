@@ -132,7 +132,7 @@ class Build(Resource):
             # listener_dict=listener_dict,
         )
 
-        # 3. Trigger Build
+        # Trigger Build
         build_uuid = str(uuid7())
 
         build_implant(
@@ -145,7 +145,7 @@ class Build(Resource):
         )
 
         response = {"build_uuid": build_uuid}
-        # 4. Return immediately
+        # Return immediately
         return APIResponse(
             status="200", message="Build process initiated successfully", data=response
         ).jsonify()
@@ -243,7 +243,7 @@ class BinaryActions(Resource):
         """
         ip = request.remote_addr
 
-        # 1. Validation
+        # Validation
         check_type(hash, str, "hash")
 
         api_logger.info(
@@ -251,7 +251,7 @@ class BinaryActions(Resource):
             extra={"caller_ip": ip},
         )
 
-        # 2. Fetch Data
+        # Fetch Data
         with get_mysql_session() as session:
             service = MySQLImplantPayloadService(session)
             payload = service.get_payload_by_hash(hash)
@@ -260,7 +260,7 @@ class BinaryActions(Resource):
                 api_logger.warning(f"Payload not found: {hash}")
                 return APIResponse(status="404", message="Payload not found").jsonify()
 
-            # 3. Serve File
+            # Serve File
             # We wrap the bytes in BytesIO so Flask can treat it like a file
             return send_file(
                 io.BytesIO(payload.payload_bytes),
@@ -334,7 +334,7 @@ class SourceActions(Resource):
         """
         ip = request.remote_addr
 
-        # 1. Validation
+        # Validation
         check_type(hash, str, "hash")
 
         api_logger.info(
@@ -342,7 +342,7 @@ class SourceActions(Resource):
             extra={"caller_ip": ip},
         )
 
-        # 2. Fetch Data
+        # Fetch Data
         with get_mysql_session() as session:
             service = MySQLImplantPayloadService(session)
             payload = service.get_payload_by_hash(hash)
@@ -351,7 +351,7 @@ class SourceActions(Resource):
                 api_logger.warning(f"Payload not found: {hash}")
                 return APIResponse(status="404", message="Payload not found").jsonify()
 
-            # 3. Serve File
+            # Serve File
             # We wrap the bytes in BytesIO so Flask can treat it like a file
             return send_file(
                 io.BytesIO(payload.payload_source_code_bytes),
