@@ -486,6 +486,7 @@ class ImplantTask(Resource):
         check_type(uuid, str, "uuid")
 
         # tldr, allow messagepack, which may be passed sometimes, for binary data.
+
         if request.content_type == "application/msgpack":
             data = msgpack.unpackb(request.data, raw=False)
         else:
