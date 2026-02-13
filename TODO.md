@@ -114,6 +114,7 @@
       note; command upload/download is based on operators perspective, they are *uploading* a file. 
       [ ] `file upload`: Upload file to host disk
          > gui note, maybe an upload button, or take local file path?
+         > Have file be in bytes, just easier all around. 
       [x] `file download`: Download file from host disk
          > server note, have an archive of files pulled from device? in a file store/db? this would support long term goals. 
          > maybe even a `file watch` command, that pulls new versions/checks every so often

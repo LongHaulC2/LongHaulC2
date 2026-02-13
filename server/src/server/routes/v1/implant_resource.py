@@ -1,6 +1,7 @@
 import base64
 import logging
 
+import msgpack
 from edwh_uuid7 import uuid7
 from flask import request
 from flask_restx import Namespace, Resource, fields
@@ -471,6 +472,8 @@ class ImplantTask(Resource):
         Returns a task_uuid for tracking the task:
 
         {"task_uuid": task_uuid}
+
+        Note, this accepts a task in the form of a JSON body, OR a MSGPACK blob (with content-type header of application/msgpack). The server will convert the task into a MSGPACK blob before putting it in the queue, so either format can be used by the client.
         """
         ip = request.remote_addr
 
@@ -482,13 +485,18 @@ class ImplantTask(Resource):
         )
         check_type(uuid, str, "uuid")
 
+        # tldr, allow messagepack, which may be passed sometimes, for binary data.
+        if request.content_type == "application/msgpack":
+            data = msgpack.unpackb(request.data, raw=False)
+        else:
+            data = request.json
         try:
             # create task ID here
             # Need to stringify as msgpack needs it as a str, and it's stored as a str in mysql db
             task_uuid = str(uuid7())
             task = Task(
                 # unwrap data into a dataclass
-                **api.payload,
+                **data,
                 # add on a task uuid
                 task_uuid=task_uuid,
             )

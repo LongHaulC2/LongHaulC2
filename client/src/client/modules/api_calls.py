@@ -1,6 +1,7 @@
 import logging
 
 import httpx
+import msgpack
 import structlog
 
 from client.src.client.utils.url import generate_url
@@ -15,6 +16,8 @@ api_log = logging.getLogger("api")
 async def queue_task(implant_uuid: str, task: dict):
     """
     Submit a new task to be executed by a specific implant.
+
+    Note, this converts the task to msgpack, for sending binary data in the tasks. The server is setup to accept both json and msgpack, but msgpack is preferred for tasks to allow for more flexible data structures and binary data.
 
     Args:
         implant_uuid (str): The unique identifier (UUID) of the target implant.
@@ -41,8 +44,13 @@ async def queue_task(implant_uuid: str, task: dict):
     )
     api_log.debug(f"Queueing a task for implant")
 
+    task_msgpack = msgpack.packb(task)
+
     async with httpx.AsyncClient() as client:
-        response = await client.post(url, json=task)
+        # send as msgpack
+        response = await client.post(
+            url, content=task_msgpack, headers={"Content-Type": "application/msgpack"}
+        )
         return response
 
 
