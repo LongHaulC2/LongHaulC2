@@ -1,18 +1,42 @@
+import base64
+import json
 import logging
 import traceback
-from sqlalchemy import create_engine, text, exc
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import SQLAlchemyError
 import urllib.parse
 from contextlib import contextmanager
 
-from ..instance import env_config
+from sqlalchemy import create_engine, exc, text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import sessionmaker
 
 #!! Importing base, as re-declaring it makes it so there are 2 different bases, and create_all does not work (tables do  not get created)
 from ..db.mysql_models import Base
+from ..instance import env_config
 
 # Logger setup
 logger = logging.getLogger("server")
+
+
+# = Serializer for bytes ======================================
+# Add a serializer for bytes, so they are stored as base64 in db. this is needed for storing task responses, which can commonly have binary data (ex: file download response)
+# it also makes it easier on clients/api, to get this data as base64 string, rather than raw bytes.
+class BytesEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, bytes):
+            logger.debug(
+                "Encoding bytes to base64 string for JSON serialization in MySQL"
+            )
+            return base64.b64encode(o).decode(
+                "ascii"
+            )  # ascii cuz A-Z, a-z, 0-9, +, /, = only, so no risk of decode issues.
+        return super().default(o)
+
+
+def json_serializer(obj):
+    return json.dumps(obj, cls=BytesEncoder)
+
+
+# ============================================================
 
 
 # defined ABOVE engine and SessionLocal module vars, so it is in scope
@@ -41,7 +65,7 @@ def get_mysql_engine() -> object | None:
 
         # Create SQLAlchemy engine
         engine = create_engine(
-            connection_string, echo=False
+            connection_string, echo=False, json_serializer=json_serializer
         )  # echo=True for debug output
 
         # Test the connection

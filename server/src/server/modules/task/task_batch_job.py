@@ -15,6 +15,7 @@ def start_task_batch_job():
     t.start()
 
 
+# bug - if this crashes, no messages come in as there's nothing parsing anymore.
 def _task_batch_job():
     server_logger.info("Starting task batch job")
 
@@ -53,12 +54,14 @@ def _task_batch_job():
                 responses_to_insert = []
                 for _ in range(0, response_queue_length):
                     task_response_dict = rits.dequeue_response_dict()
+                    # convert from bytes to
                     responses_to_insert.append(task_response_dict)
 
                 if responses_to_insert:
                     msits = MySQLImplantTaskService(
                         implant_uuid=implant.implant_uuid, session=session
                     )
+                    print(responses_to_insert)
                     msits.bulk_update_responses(responses=responses_to_insert)
 
         # Commit the changes for all implants processed in this batch

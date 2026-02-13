@@ -30,6 +30,10 @@
       - [ ] Convert everything to structlogger (with binds, etc.) Big tasks
       - [X] Add `check_type` on modules/other server code where applicable
 
+   # cleanup/refinement:
+    Fix/Move of the tasks/watchdogs, to a service folder, and a way to monitor if they are alive or not. (and viewable via gui, api)
+      > stems from a bug where the task_wastchdog would crash
+
 ## Mal c2:
 
  - [ ] Server
@@ -61,6 +65,8 @@
 
  - [ ] Implant
    - not implementing implant specific options. Sticking to response/network shaping options
+
+
 
    
 

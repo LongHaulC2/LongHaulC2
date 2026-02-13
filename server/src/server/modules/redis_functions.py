@@ -75,6 +75,7 @@ class RedisImplantTaskService:
         packed = self.dequeue_response()
         if packed is None:
             return None
+        # Raw true to support binary data in responses, which can be common (ex: file download response)
         return msgpack.unpackb(packed, raw=False)
 
     def clear_response_queue(self) -> int:
