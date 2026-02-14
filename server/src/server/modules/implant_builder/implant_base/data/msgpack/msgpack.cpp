@@ -168,3 +168,14 @@ void add_bytes_result(nlohmann::json& result,
         {"value", json::binary(value_vector)}
     };
 }
+
+void add_bytes_result(nlohmann::json& result,
+    const std::string& key,
+    const std::vector<uint8_t>& value)
+{
+
+    result[key] = {
+        {"type", "bytes"},
+        {"value", json::binary(value)}
+    };
+}

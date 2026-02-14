@@ -17,7 +17,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "/output")
 set(SOURCES
     "Implant_v01.cpp"
     "Implant_v01.h"
-    "systems/memtrack.cpp"
+    
     "control/settings.h"
     "protocols/json/json.h"
     "data/msgpack/msgpack.cpp"
@@ -36,7 +36,7 @@ set(SOURCES
 
 )
 
-add_executable (Implant_v01 ${SOURCES} "modules/cd.cpp" "modules/cd.h" "modules/strategy.cpp" "modules/ls.cpp" "modules/files.cpp" "modules/files.h" "data/structs.h")
+add_executable (Implant_v01 ${SOURCES} "modules/cd.cpp" "modules/cd.h" "modules/strategy.cpp" "modules/ls.cpp" "modules/files.cpp" "modules/files.h" "data/structs.h"  "systems/memstore.h")
 
 # ==========================================
 # 3. Target Platform Logic (Windows)

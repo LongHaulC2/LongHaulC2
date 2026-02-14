@@ -104,15 +104,22 @@
          outbox -> network -->
 
    # Command Tree:
+      [ ] Revised output to data, windows_error_code, and message. 
+         > data has command result data
+         > windows_error_code is err code
+         > message is either custom message, or the error code converted to a win error msg. 
+         > This needs to be documented somehwere better. Maybe an `implant.md` guide for modifying it, etc. This style of
+         return should be final
+
       `strat get/post`:
          - [X] validate switching strats. 
             -> [ ] Add safeguards, ex, user requesting get for post, vice versa.
             -> [ ] add a strat current that shows `current set` strats
       [X] `strat active`: Shows active strat
 
-      > here - CreateFileW, ReadFileW. Should be fairly easy, download takes a path, upload takes a file/bin and path.
+      CreateFileW, ReadFileW. Should be fairly easy, download takes a path, upload takes a file/bin and path.
       note; command upload/download is based on operators perspective, they are *uploading* a file. 
-      [ ] `file upload`: Upload file to host disk
+      [X] `file upload`: Upload file to host disk
          > gui note, maybe an upload button, or take local file path?
          > Have file be in bytes, just easier all around. 
       [x] `file download`: Download file from host disk
@@ -120,8 +127,21 @@
          > maybe even a `file watch` command, that pulls new versions/checks every so often
          > [x] For now/simplicity, just retrieve file and download to operator. can do a storage later. 
    
-      `memory upload`: Upload file to host memory store
-      `memory download`: Get file from host memory store
+
+         Not meant to be super secure, just to evade mem scans
+      [ ] `memstore upload`: Upload file to host memory store
+         > works
+         > GUI: error on missing variable in task tree
+      [ ] `memstore download`: Get file from host memory store
+      [ ] `memstore list`: List file names of memory store
+         > bugs out, mem err, outof bounds
+      [ ] `memstore delete`: Nuke file from memory
+      [ ] `memstore clear`: Nuke all files from memory
+         > bugs out, mem err. out of bounds
+
+         > here, bug with list and clears. has a read violation, not sure why. XOR is disabled too, as a sanity check.
+         
+      [ ] fix cmd descs in gui
 
       `shexecute`: Executes shellcode, inline? Ran into issues with this in previous projects. Maybe in a new thread
 
@@ -142,6 +162,13 @@
          - Switchable callback domains, like cs, has, where there's a list of callback hosts to randomly try, etc. Just adds addtl reasurance for long term.
             > note, make this list editable, with an "add" and "remove" opption for this list. Make it a setting as well 
             By default, it shuold auto fill to the listener address, but have the ability to add options at compile time
+
+   # Implant Hardening:
+   - [ ] String Encryption
+      > https://github.com/skadro-official/skCrypter - encrypts strings at compiletime
+
+   - [ ] Memory Store encryption:
+      - [x] XOR via key name, basic, but works for now.
 
    # Commands list:
       - cd (SetCurrentDirectoryA(path);): sets cwd of whole program
