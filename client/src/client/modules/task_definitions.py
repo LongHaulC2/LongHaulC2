@@ -589,7 +589,7 @@ class FileUpload:
 @dataclass(frozen=True)
 class MemStoreUpload:
     R"""
-    Upload a file to the host the implant is running on. Ex: `memstore upload <file_name> <base64 file contents>`
+    Upload a file to the implant memstore. Ex: `memstore upload <file_name> <base64 file contents>`
     """
 
     command_name = "memstore upload"
@@ -632,7 +632,7 @@ class MemStoreUpload:
 @dataclass(frozen=True)
 class MemStoreDownload:
     R"""
-    Download a file from the host the implant is running on. Ex: `memstore download <file_name>`
+    Download a file from the implant memory store. Ex: `memstore download <file_name>`
     """
 
     command_name = "memstore download"
@@ -664,7 +664,7 @@ class MemStoreDownload:
 @dataclass(frozen=True)
 class MemStoreDelete:
     R"""
-    Delete a file from the host the implant is running on. Ex: `memstore delete <file_name>`
+    Delete a file from the implants memory store. Ex: `memstore delete <file_name>`
     """
 
     command_name = "memstore delete"
@@ -694,7 +694,7 @@ class MemStoreDelete:
 @dataclass(frozen=True)
 class MemStoreClear:
     R"""
-    Delete a file from the host the implant is running on. Ex: `memstore delete <file_name>`
+    Clear *all* files in the implants memory store. Ex: `memstore clear <file_name>`
     """
 
     command_name = "memstore clear"
@@ -716,7 +716,7 @@ class MemStoreClear:
 @dataclass(frozen=True)
 class MemStoreList:
     R"""
-    List all files in the memstore. Ex: `memstore list`
+    List all file names in the memstore. Ex: `memstore list`
     """
 
     command_name = "memstore list"

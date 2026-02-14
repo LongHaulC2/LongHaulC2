@@ -111,13 +111,13 @@
          > This needs to be documented somehwere better. Maybe an `implant.md` guide for modifying it, etc. This style of
          return should be final
 
+      - move strat storage to a dedicated system in .h? instead of hacky settings, but it kinda fits in settings. 
       `strat get/post`:
          - [X] validate switching strats. 
             -> [ ] Add safeguards, ex, user requesting get for post, vice versa.
             -> [ ] add a strat current that shows `current set` strats
       [X] `strat active`: Shows active strat
 
-      CreateFileW, ReadFileW. Should be fairly easy, download takes a path, upload takes a file/bin and path.
       note; command upload/download is based on operators perspective, they are *uploading* a file. 
       [X] `file upload`: Upload file to host disk
          > gui note, maybe an upload button, or take local file path?
@@ -128,20 +128,17 @@
          > [x] For now/simplicity, just retrieve file and download to operator. can do a storage later. 
    
 
-         Not meant to be super secure, just to evade mem scans
-      [ ] `memstore upload`: Upload file to host memory store
-         > works
-         > GUI: error on missing variable in task tree
-      [ ] `memstore download`: Get file from host memory store
-      [ ] `memstore list`: List file names of memory store
-         > bugs out, mem err, outof bounds
-      [ ] `memstore delete`: Nuke file from memory
-      [ ] `memstore clear`: Nuke all files from memory
-         > bugs out, mem err. out of bounds
+      Memstore: hold data in memory
+      Not meant to be super secure, just to evade mem scans:
+      [x] `memstore upload`: Upload file to host memory store
+      [x] `memstore download`: Get file from host memory store
+      [x] `memstore list`: List file names of memory store
+      [x] `memstore delete`: Nuke file from memory
+      [x] `memstore clear`: Nuke all files from memory
+      
+      [ ] add generic error handling/base64 err handling when a command input doesn't pass/fails
 
-         > here, bug with list and clears. has a read violation, not sure why. XOR is disabled too, as a sanity check.
-         
-      [ ] fix cmd descs in gui
+      [X] fix cmd descs in gui
 
       `shexecute`: Executes shellcode, inline? Ran into issues with this in previous projects. Maybe in a new thread
 
