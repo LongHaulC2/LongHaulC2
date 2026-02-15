@@ -47,30 +47,19 @@ class ResultType(Enum):
     # maybe add a PARSE_ERROR if needed later.
 
 
-def get_description_of_dataclasses(dataclasses):
-    """
-    Dynamic help menu generation. Takes class name, and docstring, and ties them together as the help menu
-    This works, as the class name is the comand (just lower case).
-
-    If needed, can forgo this process, and instead just take the docstring, if class names ever do not match
-    their commands
-
-    Ex new docstring:
-        powershell: blah blah
-    """
-
+def get_description_of_dataclasses(dataclasses, fixed_width=None):
     descriptions = []
 
-    # Find the length of the longest command name to set the column width
-    # We add a buffer (e.g., +4) so the longest command still has a gap before the description
-    if dataclasses:
+    # Calculate max length or use the fixed global width
+    if fixed_width:
+        max_len = fixed_width
+    elif dataclasses:
         max_len = max(len(cls.command_name) for cls in dataclasses) + 4
     else:
         max_len = 0
 
     for cls in dataclasses:
-        # Use f-string padding to left-align the name
-        # syntax: {value : < width}
+        # Format: "commandname    : description..."
         description = f"{cls.command_name:<{max_len}}: {cls.__doc__.strip()}"
         descriptions.append(description)
 
@@ -91,33 +80,50 @@ async def task_tree(command, args, implant_uuid):
     match command:
         # special command
         case "help":
-            # uses this list to pull the docstrings from, and turn into a help menu
-            dataclasses = [
-                Cd,
-                Sleep,
-                StratPost,
-                StratGet,
-                StratList,
-                StratActive,
-                FileDownload,
-                FileUpload,
+            system_cmds = [Exit, Sleep]
+            fs_cmds = [Cd, Ls, FileDownload, FileUpload]
+            mem_cmds = [
+                MemStoreList,
                 MemStoreUpload,
                 MemStoreDownload,
                 MemStoreDelete,
                 MemStoreClear,
-                MemStoreList,
-                Exit,
             ]
-            descriptions: list = get_description_of_dataclasses(dataclasses)
+            strat_cmds = [StratActive, StratList, StratPost, StratGet]
 
-            # add in barriers:
-            line = "-" * 50
-            descriptions.insert(0, line)
-            descriptions.insert(1, "Help Menu")
-            descriptions.insert(2, line)
+            # get the longest command, use that as ref for spacing the :desc
+            all_cmds = system_cmds + fs_cmds + mem_cmds + strat_cmds
 
-            return (ResultType.LIST, descriptions)
+            # Use max length + 4 buffer for the colon alignment
+            global_max_len = max(len(cls.command_name) for cls in all_cmds) + 4
 
+            # 3. Helper to format the group
+            def format_group(header, cmd_list):
+                # Get the command lines using the global width
+                lines = get_description_of_dataclasses(
+                    cmd_list, fixed_width=global_max_len
+                )
+
+                # Return:
+                # [Newline + Header Name]
+                # [Underline (same length as header)]
+                # [Command List...]
+                return ["-" * len(header), f"\n{header}", "-" * len(header)] + lines
+
+            final_output = []
+
+            final_output.append("-" * 50)
+            final_output.append("Implant Help Menu")
+            final_output.append("-" * 50)
+
+            final_output.extend(format_group("System", system_cmds))
+            final_output.extend(format_group("File System", fs_cmds))
+            final_output.extend(format_group("Memory Store", mem_cmds))
+            final_output.extend(format_group("C2 Strategy", strat_cmds))
+
+            final_output.append("\n")
+
+            return (ResultType.LIST, final_output)
         case "history":
             # add a json object for json dump, and a plaintext option (default)  for parsed output
             # uses this list to pull the docstrings from, and turn into a help menu

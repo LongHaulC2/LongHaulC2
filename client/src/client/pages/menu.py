@@ -92,6 +92,8 @@ def setup_menu(title: str):
             nav_btn("LISTENERS", "rss_feed", "/listeners")
             nav_btn("SEARCH", "manage_search", "/search")
             nav_btn("SCRIPTS", "terminal", "/scripts")
+            # ui.separator()
+            nav_btn("DOCS", "docs", "/docs")
 
             # --- FOOTER ---
             ui.space()

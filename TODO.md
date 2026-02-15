@@ -136,6 +136,9 @@
       [x] `memstore delete`: Nuke file from memory
       [x] `memstore clear`: Nuke all files from memory
       
+      > here
+      > Docs in gui, as commands are added. 
+
       [ ] add generic error handling/base64 err handling when a command input doesn't pass/fails
 
       [X] fix cmd descs in gui
