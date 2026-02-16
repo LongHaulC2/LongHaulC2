@@ -268,8 +268,8 @@ async def task_tree(command, args, implant_uuid):
                 try:
                     task = MemStoreUpload(
                         implant_uuid=implant_uuid,
-                        file_name=file_name,
-                        file_contents=file_contents,
+                        file_name=file_name.strip(),
+                        file_contents=file_contents.strip(),
                     ).to_task()
                     return (ResultType.TASK, task)
                 except ParseError as e:
@@ -581,15 +581,30 @@ class FileUpload:
     def to_task(self) -> dict:
         """Convert the dataclass to a task style dictionary structure."""
         # convert from base64, to bytes, for easier CLI handling
-        bytes_file_contents = base64.b64decode(self.file_contents)
+        try:
+            # if user is trying to deref...
+            print(self.file_contents)
+            if self.file_contents[0] == "*":
+                task_args = {
+                    "file_path": self.file_path,
+                    "file_contents": self.file_contents,
+                }
+            # otherwise they are passing base64 data
+            else:
+                bytes_file_contents = base64.b64decode(self.file_contents)
+                task_args = {
+                    "file_path": self.file_path,
+                    "file_contents": bytes_file_contents,
+                }
 
-        task_args = {"file_path": self.file_path, "file_contents": bytes_file_contents}
-        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
-
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
-        return final_task
+            task_detail = TaskDetail(task_name=self.command_name, args=task_args)
+            final_task = create_and_verify_task(
+                implant_uuid=self.implant_uuid, task=task_detail
+            )
+            return final_task
+        except Exception as e:
+            # likely base64 err. could  handle this better.
+            raise ParseError
 
 
 @dataclass(frozen=True)
@@ -617,22 +632,15 @@ class MemStoreUpload:
     def to_task(self) -> dict:
         """Convert the dataclass to a task style dictionary structure."""
         # convert from base64, to bytes, for easier CLI handling
-        try:
-            bytes_file_contents = base64.b64decode(self.file_contents)
+        bytes_file_contents = base64.b64decode(self.file_contents)
 
-            task_args = {
-                "file_name": self.file_name,
-                "file_contents": bytes_file_contents,
-            }
-            task_detail = TaskDetail(task_name=self.command_name, args=task_args)
+        task_args = {"file_name": self.file_name, "file_contents": bytes_file_contents}
+        task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-            final_task = create_and_verify_task(
-                implant_uuid=self.implant_uuid, task=task_detail
-            )
-            return final_task
-        except Exception as e:
-            # likely base64 err. could  handle this better.
-            raise ParseError
+        final_task = create_and_verify_task(
+            implant_uuid=self.implant_uuid, task=task_detail
+        )
+        return final_task
 
 
 @dataclass(frozen=True)

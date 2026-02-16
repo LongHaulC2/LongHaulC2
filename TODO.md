@@ -138,6 +138,17 @@
       
       > here
       > Docs in gui, as commands are added. 
+         > in progress
+
+      - [ ] Deref operator: Find a good way to "squeeze" it in, i.e. `format_command` func that takes whatever special chars exist, and formats it
+
+      Ex:
+         store_command = "whoami"
+         cmd = cmd *store_command
+         format_command(cmd)
+            > does lookup, based on *
+         returns: `cmd whoami`
+         problem - if stored data is in bin, it won't fit the command very well. shoot. Maybe just have it store binary data and only be applicable there. 
 
       [ ] add generic error handling/base64 err handling when a command input doesn't pass/fails
 
