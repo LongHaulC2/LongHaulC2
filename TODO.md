@@ -143,21 +143,11 @@
          - [ ] Move assistance funcs to better location?
          - [ ] Add to other commands that support binary data
 
-      > here
       - [ ] Metadata:
-         Left off in comms.cpp, creating metadata func / map
-         idea: haev the `populate_metadata` be in some file somehwer, but have modules for all the things,
-         such as getusername, etc. for functionailty changes. 
-
-         ex, std::string get_user() {
-            //wincall
-            ret { user, ERROR_SUCCESS };
-         }
-
-         map["user"] = get_user.data()
-
-         TLDR: Goal is to have these in a module format for use elsewhere. 
-         Metadata just calls these and treats them like a module.
+         - > here, most options implemented, still need:
+            - [ ] internal ip
+            - [ ] architecture
+            - [ ] docs about metadata.
 
 
       [ ] add generic error handling/base64 err handling when a command input doesn't pass/fails? tldr, bad command in, sometimes a blank output on term
