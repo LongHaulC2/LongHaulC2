@@ -36,7 +36,7 @@ set(SOURCES
 
 )
 
-add_executable (Implant_v01 ${SOURCES} "modules/cd.cpp" "modules/cd.h" "modules/strategy.cpp" "modules/ls.cpp" "modules/files.cpp" "modules/files.h" "data/structs.h"  "systems/memstore.h")
+add_executable (Implant_v01 ${SOURCES} "modules/cd.cpp" "modules/cd.h" "modules/strategy.cpp" "modules/ls.cpp" "modules/files.cpp" "modules/files.h" "data/structs.h"  "systems/memstore.h" "modules/metadata.cpp" "modules/metadata.h")
 
 # ==========================================
 # 3. Target Platform Logic (Windows)

