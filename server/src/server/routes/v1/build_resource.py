@@ -9,7 +9,13 @@ from flask_restx import Namespace, Resource, fields
 from ...db.mysql_connector import get_mysql_session
 from ...instance import api
 from ...listeners.supervisor import start_listener, stop_listener
+from ...models.build import *
 from ...modules.implant_builder.build import build_implant
+from ...modules.implant_builder.types import (  # Assuming you created the types above
+    BuildJobConfig,
+    BuildRequestListener,
+    ListenerProfile,
+)
 from ...modules.mysql_functions import MySQLImplantPayloadService
 from ...schemas.listeners import ListenerCreate
 from ...utils.checks import check_type
@@ -19,69 +25,10 @@ build_ns = Namespace("build", description="Build related operations")
 api_logger = logging.getLogger("api")
 server_logger = logging.getLogger("server")
 
-# listener_spawn_model = api.model(
-#     "ListenerSpawnModel",
-#     {
-#         "listener_host": fields.String(
-#             required=True,
-#             description="Host the listener will listen on (DNS Host, or IP address)",
-#         ),
-#         "listener_port": fields.Integer(
-#             required=False, description="Port to spawn the listener on"
-#         ),
-#         "listener_type": fields.String(
-#             required=True, description="What type of listener to spawn"
-#         ),
-#         "listener_name": fields.String(required=True, description="Name of listener"),
-#         "listener_notes": fields.String(required=False, description="Listener notes"),
-#         "listener_profile": fields.String(
-#             required=False,
-#             description="Listener malleable c2 profile",
-#         ),
-#     },
-# )
 
-# Api outline:
-# POST /build          → generate a new implant
-# GET /build           → list available builds
-# GET /build/{HASH}      → download a specific implant binary
-# DELETE /build/{HASH}   → remove a build
-
-build_implant_model = build_ns.model(
-    "BuildImplantInput",
-    {
-        "implant_variant": fields.String(
-            required=True,
-            description="The communication variant to use",
-            example="http_wininet",
-            # enum=["http_wininet", "http_curl"] # Optional: strictly enforce options
-        ),
-        "output_format": fields.String(
-            required=True,
-            description="The communication variant to use",
-            example="exe",
-            # enum=["http_wininet", "http_curl"] # Optional: strictly enforce options
-        ),
-        "implant_name": fields.String(
-            required=True,
-            description="The name of the implant",
-            example="my_implant",
-            # enum=["http_wininet", "http_curl"] # Optional: strictly enforce options
-        ),
-        "implant_listener_uuid": fields.String(
-            required=True,
-            description="The listener the implant will call back to. Important, as the implant is formatted with listener specific data.",
-            example="0000000-0000-0000-0000-000000000000",
-            # enum=["http_wininet", "http_curl"] # Optional: strictly enforce options
-        ),
-    },
-)
-
-
+# come back to this for models later lol
 class Build(Resource):
     @build_ns.doc(
-        summary="Build an Implant",
-        description="Builds an Implant to the spec of a listener",
         params={
             "uuid": {
                 "description": "Listener ID (uuid) to build implant to",
@@ -96,22 +43,29 @@ class Build(Resource):
             405: "Method Not Allowed",
         },
     )
-    @build_ns.expect(build_implant_model, validate=False)  # flip to True to enforce
+    # @build_ns.expect(BUILD_POST_INPUT_MODEL, validate=False)  # flip to True to enforce
     def post(self):
         """
-        Submit a build task to build a payload.
+        Submit a task to build a new C2 implant payload.
+
+        This endpoint accepts a JSON configuration defining the implant's properties,
+        including its name, output format, and a dictionary of listeners it should communicate with.
+
+        The build process is asynchronous. This endpoint returns immediately with a `build_uuid`
+        which can be used to poll the status via `GET /builds/{build_uuid}`.
         """
+
         data = build_ns.payload
 
         # change this to a dict
         """
-        listener_dict = {
-            listener_uuid: {"listener_variant":""},
-            listener_uuid: {"listener_variant":""},
-
-        }
         
+        listeners_dict: Dict[
+            str, BuildRequestListener
+        ]
+
         """
+
         # print(data)
         # listener_uuid = data["implant_listener_uuid"]
         # variant = data["implant_variant"]
@@ -150,6 +104,7 @@ class Build(Resource):
             status="200", message="Build process initiated successfully", data=response
         ).jsonify()
 
+    @api.marshal_with(BUILD_GET)
     def get(self):  # get one implant
         """
         Get a list of all payloads in the Database
@@ -174,6 +129,7 @@ class Build(Resource):
 
 
 class BuildJobs(Resource):
+    @api.marshal_with(BUILDJOBS_GET_MODEL)
     def get(self, build_uuid):  # get one implant
         """
         Get the status of a build job
@@ -182,6 +138,7 @@ class BuildJobs(Resource):
 
         If you are looking for the payload/source code,
         Please use:
+
          - `GET /api/v1/build/{payload_hash}` to get the payload as a file (bytes)
          - `GET /api/v1/build/{payload_hash}/source` to get the source code zip
 
@@ -230,13 +187,18 @@ class BinaryActions(Resource):
             }
         },
         responses={
-            200: "Success",
-            404: "Not found",
             400: "Bad request",
             500: "Server Error",
             405: "Method Not Allowed",
         },
     )
+    @build_ns.produces(["application/octet-stream"])
+    @build_ns.response(
+        200,
+        "Binary File Stream",
+        headers={"Content-Disposition": "attachment; filename=payload.bin"},
+    )
+    @build_ns.response(404, "Payload Not Found")
     def get(self, hash):
         """
         Download a specific payload artifact, based on the provided hash
@@ -270,7 +232,7 @@ class BinaryActions(Resource):
             )
 
     @build_ns.doc(
-        summary="[Not Implemented] Delete an implant",
+        summary="Delete an implant",
         description="Deletes a single implant",
         params={
             "hash": {
@@ -279,14 +241,17 @@ class BinaryActions(Resource):
             }
         },
         responses={
-            200: "Success",
-            404: "Not found",
             400: "Bad request",
             500: "Server Error",
             405: "Method Not Allowed",
         },
     )
-    def delete(self, hash):  # get one implant
+    # show a model for what happens when nothing is here
+    @build_ns.response(200, "Deletion Successful", BINARYACTIONS_DELETE_SUCCESS_MODEL)
+    @build_ns.response(404, "Payload Not Found")
+    # and then what to actually filter the output by
+    @build_ns.marshal_with(BINARYACTIONS_DELETE_SUCCESS_MODEL)
+    def delete(self, hash):
         """
         Delete a specific payload artifact, based on the provided hash
 
@@ -312,25 +277,27 @@ class BinaryActions(Resource):
 
 class SourceActions(Resource):
     @build_ns.doc(
-        summary="Download the source of an implant",
-        description="Download the source of an implant",
-        params={
-            "hash": {
-                "description": "Hash of implant",
-                "in": "path",
-            }
-        },
+        summary="Download Implant Source Code",
+        description="Retrieves the source code archive (ZIP) for a specific implant build.",
+        params={"hash": "The MD5 hash of the payload source to download"},
+        # keeping simpler responses here
         responses={
-            200: "Success",
-            404: "Not found",
             400: "Bad request",
             500: "Server Error",
             405: "Method Not Allowed",
         },
     )
+    @build_ns.produces(["application/octet-stream", "application/zip"])
+    # important to response options here
+    @build_ns.response(
+        200,
+        "Source Code Archive (ZIP)",
+        headers={"Content-Disposition": "attachment; filename=..._source.zip"},
+    )
+    @build_ns.response(404, "Source Code Not Found")
     def get(self, hash):
         """
-        Download a specific payload artifact, based on the provided hash
+        Download the source code zip for a specific payload.
         """
         ip = request.remote_addr
 
@@ -338,7 +305,7 @@ class SourceActions(Resource):
         check_type(hash, str, "hash")
 
         api_logger.info(
-            f"Download requested for hash {hash}",
+            f"Source download requested for hash {hash}",
             extra={"caller_ip": ip},
         )
 
@@ -348,8 +315,9 @@ class SourceActions(Resource):
             payload = service.get_payload_by_hash(hash)
 
             if not payload:
-                api_logger.warning(f"Payload not found: {hash}")
-                return APIResponse(status="404", message="Payload not found").jsonify()
+                api_logger.warning(f"Payload source not found: {hash}")
+                # Return JSON error
+                return {"message": "Payload source not found"}, 404
 
             # Serve File
             # We wrap the bytes in BytesIO so Flask can treat it like a file
@@ -357,7 +325,11 @@ class SourceActions(Resource):
                 io.BytesIO(payload.payload_source_code_bytes),
                 mimetype="application/octet-stream",
                 as_attachment=True,
-                download_name=f"{payload.payload_name}_source.zip" or f"{hash}.zip",
+                download_name=(
+                    f"{payload.payload_name}_source.zip"
+                    if payload.payload_name
+                    else f"{hash}.zip"
+                ),
             )
 
 

@@ -221,4 +221,8 @@ def _store_artifacts(build_dir: Path, implant_name: str, build_uuid: str):
                 # listener_uuid=primary_listener_uuid,
                 build_uuid=build_uuid,
             )
+
+        # Update the build status to complete/success
+        service.update_build_status(build_uuid=build_uuid, build_status="complete")
+
     server_logger.info(f"Stored {len(artifacts)} artifacts for {implant_name}")

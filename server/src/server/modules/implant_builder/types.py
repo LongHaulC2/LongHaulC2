@@ -19,8 +19,8 @@ class ListenerProfile(TypedDict):
 
 # what the API sends in
 class BuildRequestListener(TypedDict):
-    profile_get: str
-    profile_post: str
+    # profile_get: str
+    # profile_post: str
     listener_profile_name: str
 
 

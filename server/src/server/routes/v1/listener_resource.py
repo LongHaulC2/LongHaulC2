@@ -8,6 +8,7 @@ from flask_restx import Namespace, Resource, fields
 from ...db.mysql_connector import get_mysql_session
 from ...instance import api
 from ...listeners.supervisor import start_listener, stop_listener
+from ...models.listener import *
 from ...modules.mysql_functions import ListenerService
 from ...schemas.listeners import ListenerCreate
 from ...utils.checks import check_type
@@ -50,14 +51,17 @@ class Listener(Resource):
         description="Retrieve a single listener by its unique ID.",
         params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
         responses={
-            200: "Success",
             404: "Not found",
             400: "Bad request",
             500: "Server Error",
             405: "Method Not Allowed",
         },
     )
-    def get(self, uuid):  # get one implant
+    @listener_ns.response(
+        200, "Retrieved listener data successfully", LISTENER_GET_SUCCESS_MODEL
+    )
+    @api.marshal_with(LISTENER_GET_SUCCESS_MODEL)
+    def get(self, uuid):
         """
         Gets one listener based on user supplied ID
 
@@ -101,13 +105,16 @@ class Listener(Resource):
         description="Stops one listener based on user supplied ID",
         params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
         responses={
-            200: "Success",
             404: "Not found",
             400: "Bad request",
             500: "Server Error",
             405: "Method Not Allowed",
         },
     )
+    @listener_ns.response(
+        200, "The listener was deleted successfully", LISTENER_DELETE_SUCCESS_MODEL
+    )
+    @listener_ns.marshal_with(LISTENER_DELETE_SUCCESS_MODEL)
     def delete(self, uuid):  # delete one implant based on ID
         """
         Deletes/Stops one listener based on user supplied ID
