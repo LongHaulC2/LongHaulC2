@@ -136,13 +136,28 @@
       [x] `memstore delete`: Nuke file from memory
       [x] `memstore clear`: Nuke all files from memory
       
-      > here
       > Docs in gui, as commands are added. 
          > in progress
 
       - [ ] Deref operator: Find a good way to "squeeze" it in, i.e. `format_command` func that takes whatever special chars exist, and formats it
          - [ ] Move assistance funcs to better location?
          - [ ] Add to other commands that support binary data
+
+      > here
+      - [ ] Metadata:
+         Left off in comms.cpp, creating metadata func / map
+         idea: haev the `populate_metadata` be in some file somehwer, but have modules for all the things,
+         such as getusername, etc. for functionailty changes. 
+
+         ex, std::string get_user() {
+            //wincall
+            ret { user, ERROR_SUCCESS };
+         }
+
+         map["user"] = get_user.data()
+
+         TLDR: Goal is to have these in a module format for use elsewhere. 
+         Metadata just calls these and treats them like a module.
 
 
       [ ] add generic error handling/base64 err handling when a command input doesn't pass/fails? tldr, bad command in, sometimes a blank output on term
