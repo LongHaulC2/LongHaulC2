@@ -145,7 +145,7 @@
          - [ ] Add to other commands that support binary data
 
 
-      [ ] add generic error handling/base64 err handling when a command input doesn't pass/fails
+      [ ] add generic error handling/base64 err handling when a command input doesn't pass/fails? tldr, bad command in, sometimes a blank output on term
 
       [X] fix cmd descs in gui
 

@@ -11,6 +11,7 @@ This prevents any unintended fields from slipping through.
 """
 
 
+# Explicitly does NOT have implant_uuid, as this is meant for the creation of implants. TLDR: DB adds the implant uuid, and if we had one here, this would overwrite it.
 @dataclass
 class ImplantCreate:
     external_ip: Optional[str] = None
@@ -28,6 +29,7 @@ class ImplantCreate:
 
 @dataclass
 class ImplantUpdate:
+    implant_uuid: str
     external_ip: Optional[str] = None
     internal_ip: Optional[str] = None
     listener: Optional[str] = None
@@ -92,3 +94,4 @@ class TaskResponse:
 @dataclass
 class ImplantMetadata:
     implant_uuid: str
+    user: str

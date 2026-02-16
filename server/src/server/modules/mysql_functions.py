@@ -78,12 +78,12 @@ class ImplantService:
             server_logger.error(f"{self.__class__.__name__} Error: {e}")
             raise
 
-    def update(self, implant_uuid: int, data: ImplantUpdate) -> Implant | None:
+    def update(self, implant_uuid: str, data: ImplantUpdate) -> Implant | None:
         """
         Update an implant by primary key.
         """
 
-        check_type(implant_uuid, int, "implant_uuid")
+        check_type(implant_uuid, str, "implant_uuid")
         check_type(data, ImplantUpdate, "data")
 
         server_logger.debug(

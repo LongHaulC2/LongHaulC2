@@ -22,7 +22,7 @@ How this bubbles down:
 
 2. Command is split into 2 parts, 1: command, and arguments. 
 
-3. Based on command, a class is chosed to handle it. 
+3. Based on command, a class is chosen to handle it. 
 
 4. That class does further processing on the command,a nd its arguments, to get it in a task ready form. 
 
@@ -559,7 +559,7 @@ class FileDownload:
 @dataclass(frozen=True)
 class FileUpload:
     R"""
-    Upload a file to the host the implant is running on. Ex: `file upload C:\\Users\\user\\file.txt <base64 file contents>`
+    Upload a file to the host the implant is running on. Ex: `file upload C:\\Users\\user\\file.txt <base64 file contents>` (or, just use the file upload button)
     """
 
     command_name = "file upload"
@@ -619,7 +619,7 @@ class FileUpload:
 @dataclass(frozen=True)
 class MemStoreUpload:
     R"""
-    Upload a file to the implant memstore. Ex: `memstore upload <file_name> <base64 file contents>`
+    Upload a file to the implant memstore. Ex: `memstore upload <file_name> <base64 file contents>` (or, just use the file upload button, and switch it to memstore)
     """
 
     command_name = "memstore upload"
