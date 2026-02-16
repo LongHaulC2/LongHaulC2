@@ -154,6 +154,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
     }
     /*
     System/Systems commands
+    For now, have hardcoded message, data, and windows_error_code. Not module based
     */
     else if (task_name == "exit") {
         //no return, just kill it
@@ -284,6 +285,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
     }
     /*
     Modules
+    Note: return values are directly pulled from modules, message, data and windows_error_code
     */
     else if (task_name == "ls") {
         nlohmann::json result;
@@ -331,7 +333,6 @@ nlohmann::json command_tree(nlohmann::json task_data) {
     }
     else if (task_name == "file download") {
         nlohmann::json result;
-        add_text_result(result, "message", "yunowork");
 
         //check for correct values
         auto& args = task_data["task"]["args"];
