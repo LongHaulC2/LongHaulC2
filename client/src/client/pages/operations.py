@@ -12,6 +12,7 @@ from client.src.client.modules.api_calls import (
     update_implant,
 )
 from client.src.client.modules.task_definitions import ResultType, task_tree
+from client.src.client.pages.dialogues import *
 from client.src.client.pages.listeners import start_listener_dialogue
 from client.src.client.pages.menu import setup_menu
 from client.src.client.pages.notes import open_notes_dialog
@@ -130,14 +131,28 @@ async def implant_view():
                 )
 
                 # God Shell
+                # ui.button(
+                #     icon="present_to_all", on_click=lambda: action_open_terminal()
+                # ).classes(
+                #     "text-orange-400 hover:text-orange-200 transition-colors"
+                # ).props(
+                #     "dense flat size=sm round disabled"
+                # ).tooltip(
+                #     "God Shell (Coming Soon)"
+                # )
+
                 ui.button(
-                    icon="present_to_all", on_click=lambda: action_open_terminal()
+                    # get all selected to upload to
+                    icon="present_to_all",
+                    on_click=lambda: upload_dialog(
+                        [row["implant_uuid"] for row in table.selected]
+                    ),
                 ).classes(
                     "text-orange-400 hover:text-orange-200 transition-colors"
                 ).props(
-                    "dense flat size=sm round disabled"
+                    "dense flat size=sm round"
                 ).tooltip(
-                    "God Shell (Coming Soon)"
+                    "Upload File"
                 )
 
                 # Notes

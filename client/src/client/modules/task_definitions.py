@@ -565,7 +565,7 @@ class FileUpload:
     command_name = "file upload"
     implant_uuid: str
     file_path: str
-    file_contents: str  # start with base64. figure out the upload button later
+    file_contents: str | bytes  # start with base64. figure out the upload button later
 
     def __post_init__(self):
         """Automatically run something when the dataclass is created."""
@@ -582,20 +582,29 @@ class FileUpload:
         """Convert the dataclass to a task style dictionary structure."""
         # convert from base64, to bytes, for easier CLI handling
         try:
-            # if user is trying to deref...
-            print(self.file_contents)
-            if self.file_contents[0] == "*":
+            # option to pass in raw file contents. This is used by the upload buttons
+            if isinstance(self.file_contents, bytes):
                 task_args = {
                     "file_path": self.file_path,
                     "file_contents": self.file_contents,
                 }
-            # otherwise they are passing base64 data
+
+            # if file contents are not raw, aka, some form of text.
             else:
-                bytes_file_contents = base64.b64decode(self.file_contents)
-                task_args = {
-                    "file_path": self.file_path,
-                    "file_contents": bytes_file_contents,
-                }
+                # if user is trying to deref...
+                print(self.file_contents)
+                if self.file_contents[0] == "*":
+                    task_args = {
+                        "file_path": self.file_path,
+                        "file_contents": self.file_contents,
+                    }
+                # otherwise they are passing base64 data
+                else:
+                    bytes_file_contents = base64.b64decode(self.file_contents)
+                    task_args = {
+                        "file_path": self.file_path,
+                        "file_contents": bytes_file_contents,
+                    }
 
             task_detail = TaskDetail(task_name=self.command_name, args=task_args)
             final_task = create_and_verify_task(
@@ -616,7 +625,7 @@ class MemStoreUpload:
     command_name = "memstore upload"
     implant_uuid: str
     file_name: str
-    file_contents: str  # start with base64. figure out the upload button later
+    file_contents: str | bytes  # start with base64. figure out the upload button later
 
     def __post_init__(self):
         """Automatically run something when the dataclass is created."""
@@ -631,10 +640,23 @@ class MemStoreUpload:
 
     def to_task(self) -> dict:
         """Convert the dataclass to a task style dictionary structure."""
-        # convert from base64, to bytes, for easier CLI handling
-        bytes_file_contents = base64.b64decode(self.file_contents)
 
-        task_args = {"file_name": self.file_name, "file_contents": bytes_file_contents}
+        # option to pass in raw file contents. This is used by the upload buttons
+        if isinstance(self.file_contents, bytes):
+            task_args = {
+                "file_name": self.file_name,
+                "file_contents": self.file_contents,
+            }
+
+        else:
+            # convert from base64, to bytes, for easier CLI handling
+            bytes_file_contents = base64.b64decode(self.file_contents)
+
+            task_args = {
+                "file_name": self.file_name,
+                "file_contents": bytes_file_contents,
+            }
+
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
         final_task = create_and_verify_task(

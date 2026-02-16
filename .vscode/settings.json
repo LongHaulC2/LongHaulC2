@@ -5,6 +5,7 @@
         "commandtree",
         "literalyl",
         "memstore",
+        "nicegui",
         "strat",
         "useage",
         "winbase"
