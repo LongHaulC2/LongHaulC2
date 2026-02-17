@@ -3,7 +3,7 @@
 # Road to beta:
  - [ ] API Auth
  - [ ] Implant Encryption
- - [ ] Listener Restarts
+ - [X] Listener Restarts
  - [X] Implant Build Path
  - [ ] Cleanup of old artifacts in /tmp (check if still a thing, don't remeber)
 

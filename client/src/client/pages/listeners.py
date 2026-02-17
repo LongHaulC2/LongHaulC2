@@ -177,7 +177,7 @@ async def render_listeners_table():  # 'data' arg is kept for compatibility, but
             selection="multiple",
             pagination=15,
         )
-        .classes("w-full bg-transparent no-shadow text-neutral-300")
+        .classes("w-full bg-transparent no-shadow text-neutral-300 flex-grow")
         .bind_filter_from(filter_text, "value")
     )
 
