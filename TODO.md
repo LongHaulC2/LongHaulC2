@@ -23,10 +23,12 @@
 
 
 #  server
-   # API cleanup:
+   # Listeners:
+      - [ ] Auto restarting listeners (and add a restart endpoint for a quick teardown/spin up)
+         - [ ] Fix active flag in db while at it
+         - idea: If listener marked active at startup, start it on startup.
 
    #### Logging:
-      # Last, before switching to GUI:
       - [ ] Convert everything to structlogger (with binds, etc.) Big tasks
       - [X] Add `check_type` on modules/other server code where applicable
 
@@ -34,12 +36,13 @@
     Fix/Move of the tasks/watchdogs, to a service folder, and a way to monitor if they are alive or not. (and viewable via gui, api)
       > stems from a bug where the task_wastchdog would crash
 
+   - [X] API docs
+
 ## Mal c2:
 
  - [ ] Server
 
-   See readme, tldr:
-      left off  trying different profiles. Things to do:
+   - [ ] Add the user agent global option to the render process
 
       ### 1. **Test Various Malleable C2 Profiles**
          - [ ] Experiment with different configurations to see if I can break it
@@ -51,13 +54,9 @@
          - [ ] Set up global options handling for the system.
 
       ### 4. **Error Handling**
-         ~~- [ ] Implement error handling for invalid profiles.~~
          - [ ] Add error handling for invalid options or bad configurations.
          - [X] Create logging for when errors occur.
          - [X] Graceful failure for unexpected scenarios (e.g., invalid data format, connection issues).
-
-      ### 5. teseting & docs:
-         - [ ] Test "untested" methods in readme to make sure they work. 
 
          - [X] Create a draw io of full path of data as it comes in (including if bytes, etc. When headers appended, etc. For post and get)
       ### Addtl HTTP blocks:
@@ -139,11 +138,11 @@
       > Docs in gui, as commands are added. 
          > in progress
 
-      - [ ] Deref operator: Find a good way to "squeeze" it in, i.e. `format_command` func that takes whatever special chars exist, and formats it
+      - [in progress] Deref operator: Find a good way to "squeeze" it in, i.e. `format_command` func that takes whatever special chars exist, and formats it
          - [ ] Move assistance funcs to better location?
          - [ ] Add to other commands that support binary data
 
-      - [ ] Metadata:
+      - [in progress] Metadata:
          - > here, most options implemented, still need:
             - [ ] internal ip
             - [ ] architecture
