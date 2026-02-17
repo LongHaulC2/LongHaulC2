@@ -303,7 +303,7 @@ async def start_listener(
 
 async def build_implant(
     implant_name,
-    listener_dict,
+    listener_uuids: list,
     output_format,
     initial_get_profile_listener_uuid,
     initial_post_profile_listener_uuid,
@@ -341,7 +341,7 @@ async def build_implant(
     # check_type(implant_listener_uuid, str, "implant_listener_uuid")
     # check_type(implant_variant, str, "implant_variant")
     check_type(output_format, str, "output_format")
-    check_type(listener_dict, dict, "listener_dict")
+    check_type(listener_uuids, list, "listener_uuids")
 
     check_type(
         initial_get_profile_listener_uuid, str, "initial_get_profile_listener_uuid"
@@ -352,7 +352,7 @@ async def build_implant(
 
     build_request_data = {
         # "implant_name": implant_name,
-        "listener_dict": listener_dict,
+        "listener_uuids": listener_uuids,
         "implant_name": implant_name,
         "output_format": output_format,
         "initial_get_profile_listener_uuid": initial_get_profile_listener_uuid,

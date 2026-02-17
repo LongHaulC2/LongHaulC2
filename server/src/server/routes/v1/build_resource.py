@@ -12,7 +12,7 @@ from ...db.mysql_connector import get_mysql_session
 from ...instance import api
 from ...listeners.supervisor import start_listener, stop_listener
 from ...modules.implant_builder.build import build_implant
-from ...modules.implant_builder.types import (  # Assuming you created the types above
+from ...modules.implant_builder.types import (
     BuildJobConfig,
     BuildRequestListener,
     ListenerProfile,
@@ -27,8 +27,7 @@ api_logger = logging.getLogger("api")
 server_logger = logging.getLogger("server")
 
 
-# Error handlers - tldr, on exception, these will flag
-# can remove try/except
+# Error handlers
 @build_ns.errorhandler(ValueError)
 def handle_value_error(e):
     return {"status": "400", "message": str(e), "data": None}, 400
@@ -42,15 +41,11 @@ def handle_general_error(e):
 # come back to this for models later lol
 class Build(Resource):
     @build_ns.doc(
-        params={
-            "uuid": {
-                "description": "Listener ID (uuid) to build implant to",
-                "in": "path",
-            }
-        },
         responses=COMMON_ERRORS,
     )
-    # @build_ns.expect(BUILD_POST_INPUT_MODEL, validate=False)  # flip to True to enforce
+    @build_ns.expect(BUILD_POST_INPUT, validate=False)  # flip to True to enforce
+    @build_ns.response(200, "Build initiated", BUILD_POST_RESPONSE)
+    @build_ns.marshal_with(BUILD_POST_RESPONSE)
     def post(self):
         """
         Submit a task to build a new C2 implant payload.
@@ -78,7 +73,8 @@ class Build(Resource):
         # variant = data["implant_variant"]
         implant_name = data["implant_name"]
         output_format = data["output_format"]
-        listener_dict = data.get("listener_dict", {})
+        # listener_dict = data.get("listener_dict", {})
+        listener_uuids = data.get("listener_uuids", [])
 
         initial_get_profile_listener_uuid = data.get(
             "initial_get_profile_listener_uuid", None
@@ -98,7 +94,7 @@ class Build(Resource):
 
         build_implant(
             implant_name,
-            listener_dict,
+            listener_uuids,
             # output_format,
             build_uuid,
             initial_get_profile_listener_uuid,
@@ -109,9 +105,15 @@ class Build(Resource):
         # Return immediately
         return APIResponse(
             status="200", message="Build process initiated successfully", data=response
-        ).jsonify()
+        )
 
-    @api.marshal_with(BUILD_GET)
+    @build_ns.doc(
+        summary="Get all builds",
+        description="Get a list of all payloads in the Database",
+        responses=COMMON_ERRORS,
+    )
+    @build_ns.response(200, "List of builds", BUILD_GET_RESPONSE)
+    @build_ns.marshal_with(BUILD_GET_RESPONSE)
     def get(self):  # get one implant
         """
         Get a list of all payloads in the Database
@@ -132,11 +134,17 @@ class Build(Resource):
             data = ips.get_all_payloads()
 
         api_response = APIResponse(status="200", message="Success", data=data)
-        return api_response.jsonify()
+        return api_response
 
 
 class BuildJobs(Resource):
-    @api.marshal_with(BUILDJOBS_GET_MODEL)
+    @build_ns.doc(
+        summary="Get build job status",
+        description="Get the status of a specific build job.",
+        responses=COMMON_ERRORS,
+    )
+    @build_ns.response(200, "Build job status", BUILDJOBS_GET_RESPONSE)
+    @build_ns.marshal_with(BUILDJOBS_GET_RESPONSE)
     def get(self, build_uuid):  # get one implant
         """
         Get the status of a build job
@@ -177,7 +185,7 @@ class BuildJobs(Resource):
                 del data["payload_source_code_bytes"]
 
         api_response = APIResponse(status="200", message="Success", data=data)
-        return api_response.jsonify()
+        return api_response
 
 
 # GET /build/hash: Get singular binary
@@ -223,7 +231,7 @@ class BinaryActions(Resource):
 
             if not payload:
                 api_logger.warning(f"Payload not found: {hash}")
-                return APIResponse(status="404", message="Payload not found").jsonify()
+                return APIResponse(status="404", message="Payload not found")
 
             # Serve File
             # We wrap the bytes in BytesIO so Flask can treat it like a file
@@ -246,10 +254,10 @@ class BinaryActions(Resource):
         responses=COMMON_ERRORS,
     )
     # show a model for what happens when nothing is here
-    @build_ns.response(200, "Deletion Successful", BINARYACTIONS_DELETE_SUCCESS_MODEL)
+    @build_ns.response(200, "Deletion Successful", BINARYACTIONS_DELETE_RESPONSE)
     @build_ns.response(404, "Payload Not Found")
     # and then what to actually filter the output by
-    @build_ns.marshal_with(BINARYACTIONS_DELETE_SUCCESS_MODEL)
+    @build_ns.marshal_with(BINARYACTIONS_DELETE_RESPONSE)
     def delete(self, hash):
         """
         Delete a specific payload artifact, based on the provided hash
@@ -271,7 +279,7 @@ class BinaryActions(Resource):
             status="200",
             message="Success",
         )
-        return api_response.jsonify()
+        return api_response
 
 
 class SourceActions(Resource):

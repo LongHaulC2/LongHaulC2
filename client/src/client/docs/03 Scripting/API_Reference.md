@@ -1,808 +1,946 @@
-# API V1
-## Version: 1.0
+# API V1 Documentation
 
-### /build/
+**Title:** API V1
 
-#### POST
-##### Summary:
+**Version:** 1.0
 
-Submit a task to build a new C2 implant payload
+**Base URL:** `/api/v1`
 
-##### Description:
+<!-- ## Table of Contents -->
 
-This endpoint accepts a JSON configuration defining the implant's properties,
-including its name, output format, and a dictionary of listeners it should communicate with.
+<!-- 1. [Build Operations]()
+2. [Implant Operations]()
+3. [Listener Operations]() -->
 
-The build process is asynchronous. This endpoint returns immediately with a `build_uuid`
-which can be used to poll the status via `GET /builds/{build_uuid}`.
+---
 
-##### Parameters
+# Build Operations
 
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| uuid | path | Listener ID (uuid) to build implant to | No | string |
+Anything and everything related to the Payload build process.
 
-##### Responses
+###Get All Builds
 
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
-| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
-| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
+**HTTP Method:** `GET`
 
-#### GET
-##### Summary:
+**Path:** `/build/`
 
-Get a list of all payloads in the Database
+**Description:** Get a list of all payloads/builds currently in the Database.
 
-##### Parameters
+**Authentication:** None specified.
 
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| X-Fields | header | An optional fields mask | No | string (mask) |
+**Parameters:** *None.*
 
-##### Responses
+**Responses:**
 
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 200 | Success | [BUILD_GET_MODELWrapper](#BUILD_GET_MODELWrapper) |
+**200 OK** List of builds retrieved successfully.
 
-### /build/jobs/{build_uuid}
+| Field Name | Type | Description |
+| --- | --- | --- |
+| **status** | string | The HTTP status code (e.g., "200"). |
+| **message** | string | Status message (e.g., "Success"). |
+| **data** | array | List of build objects. |
+| data[].**build\_uuid** | string | The UUID of the build. |
+| data[].**build\_status** | string | Status: `failed`, `complete`, or `building`. |
+| data[].**payload\_name** | string | Name of the payload. |
+| data[].**payload\_hash** | string | MD5 hash of the payload after build. (Initally is NULL) |
 
-#### GET
-##### Summary:
+**Example Response:**
 
-Get the status of a build job
-
-##### Description:
-
-Contains all of the information about a build, except for payload bytes, and zip bytes.
-
-If you are looking for the payload/source code,
-Please use:
-
- - `GET /api/v1/build/{payload_hash}` to get the payload as a file (bytes)
- - `GET /api/v1/build/{payload_hash}/source` to get the source code zip
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| build_uuid | path |  | Yes | string |
-| X-Fields | header | An optional fields mask | No | string (mask) |
-
-##### Responses
-
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 200 | Success | [BUILDJOBS_GET_MODEL](#BUILDJOBS_GET_MODEL) |
-
-### /build/{hash}
-
-#### DELETE
-##### Summary:
-
-Delete a specific payload artifact, based on the provided hash
-
-##### Description:
-
-Deletes a single implant
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| hash | path | Hash of implant | Yes | string |
-| X-Fields | header | An optional fields mask | No | string (mask) |
-
-##### Responses
-
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 200 | Deletion Successful | [BINARYACTIONS_DELETE_SUCCESS_MODEL](#BINARYACTIONS_DELETE_SUCCESS_MODEL) |
-| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
-| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
-| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
-
-#### GET
-##### Summary:
-
-Download a specific payload artifact, based on the provided hash
-
-##### Description:
-
-Downloads a single implant
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| hash | path | Hash of implant | Yes | string |
-
-##### Responses
-
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 200 | Binary File Stream |  |
-| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
-| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
-| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
-
-### /build/{hash}/source
-
-#### GET
-##### Summary:
-
-Download the source code zip for a specific payload
-
-##### Description:
-
-Retrieves the source code archive (ZIP) for a specific implant build.
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| hash | path | The MD5 hash of the payload source to download | Yes | string |
-
-##### Responses
-
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 200 | Source Code Archive (ZIP) |  |
-| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
-| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
-| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
-
-### /implants/
-
-#### POST
-##### Summary:
-
-Create a new implant entry
-
-##### Description:
-
-Create a new implant entry. Returns an Implant ID to use with that implant
-1. Gets a MYSQL Session
-
-2. Creates a new record in the 'implants' table
-
-3. Returns ID of new record in response
-
-Note: This will create "ghost" sessions with no metadata. Metadata gets updated when 'PUT /v1/api/implants/{uuid}/' is called.
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 400 | Bad Request |
-| 404 | Not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
-
-#### GET
-##### Summary:
-
-Gets all implants
-
-##### Description:
-
-Retrieve all implants the server knows about.
-1. Gets a MYSQL Session
-
-2. Retrieves all records in 'implant' table
-
-3. Returns said data in JSON  format.
-
-Note: There is no pagination on this. If there's a lot of entries, this request may take a while.
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 404 | Implant not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
-
-### /implants/history/search
-
-#### POST
-##### Summary:
-
-Search for an task with fields that match the supplied term
-
-##### Description:
-
-Search for an implant with fields that match the supplied term. Returns a list of dicts, with implants that have said term in them.
-Returns a list of dicts, with implants that have said term in them.
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| payload | body |  | Yes | [SearchModel](#SearchModel) |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 400 | Bad request |
-| 404 | Not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
-
-### /implants/search
-
-#### POST
-##### Summary:
-
-Search for an implant with fields that match the supplied term
-
-##### Description:
-
-Search for an implant with fields that match the supplied term. Returns a list of dicts, with implants that have said term in them.
-Returns a list of dicts, with implants that have said term in them.
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| payload | body |  | Yes | [SearchModel](#SearchModel) |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 400 | Bad request |
-| 404 | Not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
-
-### /implants/{uuid}
-
-#### DELETE
-##### Summary:
-
-Deletes one implant based on user supplied ID
-
-##### Description:
-
-Delete a single implant by its unique ID.
-1. Gets a MYSQL Session
-
-2. Deletes 1 record in 'implant' table based on ID
-
-3. Returns said data in JSON format.
-
-Note: Operationally, it might be best to not delete old records unless the user wants to.
-    ID's are NOT reused after deleting, so if you delete record 1, said ID will NOT be reused upon calling `POST /v1/api/implants/`
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| uuid | path | Agent ID (64-bit integer) | Yes | string |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 400 | Bad Request |
-| 404 | Implant not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
-
-#### PUT
-##### Summary:
-
-Update a single implant by its unique ID
-
-##### Description:
-
-Update a single implant by its unique ID. Data is supplied in the body of the request.
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| uuid | path | Agent ID (64-bit integer) | Yes | string |
-| payload | body |  | Yes | [ImplantCreate](#ImplantCreate) |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 400 | Bad Request |
-| 404 | Implant not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
-
-#### GET
-##### Summary:
-
-Gets one implant based on user supplied ID
-
-##### Description:
-
-Retrieve a single implant by its unique ID.
-1. Gets a MYSQL Session
-
-2. Retrieves 1 record in 'implant' table based on ID
-
-3. Returns said data in JSON format.
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| uuid | path | Agent ID (64-bit integer) | Yes | string |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 404 | Implant not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
-
-### /implants/{uuid}/task
-
-#### POST
-##### Summary:
-
-Add a task to a single implant by its unique ID
-
-##### Description:
-
-Add a task to a single implant by its unique ID. Data is supplied in the body of the request.
-Data is supplied in the body of the request.
-
-Returns a task_uuid for tracking the task:
-
-{"task_uuid": task_uuid}
-
-Note, this accepts a task in the form of a JSON body, OR a MSGPACK blob (with content-type header of application/msgpack). The server will convert the task into a MSGPACK blob before putting it in the queue, so either format can be used by the client.
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| uuid | path | Agent ID (64-bit integer) | Yes | string |
-| payload | body |  | Yes | [Task](#Task) |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 400 | Bad request |
-| 404 | Task not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
-
-#### GET
-##### Summary:
-
-Gets next task of implant
-
-##### Description:
-
-Retrieve the next task for the implant
-Task is returned as a base64 encoded, MSGPACK blob
-
-This will DEQUEUE the next task, NOT peek.
-
-Meant to be called by listeners, to get the next task to forward to the implant.
-
-1. Spins up a new RedisImplantTaskService instance
-2. Dequeus next task
-3. Converts each task into base64 (From MSGPACK blob)
-4. Return response with task in data field: `{"task":"AABB=="}`
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| uuid | path | Agent ID (64-bit integer) | Yes | string |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 404 | Task not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
-
-### /implants/{uuid}/tasks
-
-#### DELETE
-##### Summary:
-
-Delete all the currently queued tasks of an agent
-
-##### Description:
-
-Delete all the tasks of an implant
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| uuid | path | Agent ID (64-bit integer) | Yes | string |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 400 | Bad request |
-| 404 | Task not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
-
-#### GET
-##### Summary:
-
-Peek all currently queued tasks of implant
-
-##### Description:
-
-Peeks all currently queued tasks of implant
-Tasks are returned as a list of tasks,
-with the task being a base64 encoded MSGPACK blob.
-
-
-1. Gets how many tasks are queued
-2. Peeks that many tasks and returns them (as MSGPACK blob)
-3. Converts each task into base64
-4. Returns list of tasks `[{"task":"AABB=="},{"task":"AABB=="}]`
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| uuid | path | Agent ID (64-bit integer) | Yes | string |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 404 | Task not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
-
-### /implants/{uuid}/tasks/history
-
-#### GET
-##### Summary:
-
-Gets ALL history of an implant from the DB
-
-##### Description:
-
-Gets task history of implant from the DB. Provide 'since' parameter, with a uuid, to lookup since a previous uuid7, otherwise all history is returned
-1. Queries MySQL DB
-2. Returns results as a list of tasks
-
-Ex:
-```
+```json
 {
-    "data": [
-        {
-            "implant_uuid": 1,
-            "task_request": {
-                "data": {
-                    "somevar": "1234"
-                },
-                "task": "cmd",
-                "uuid": "019b46f8-e066-76ff-bb2f-0a1f0daa318c"
-            },
-            "task_response": null,
-            "task_uuid": "019b46f8-e066-76ff-bb2f-0a1f0daa318c"
-        },
-    ]
+  "data": [
+    {
+      "build_uuid": "00000000-0000-0000-0000-000000000000",
+      "build_status": "building",
+      "payload_name": "metadata_test",
+      "payload_hash": "7f3df637f39704c04d49d12906407ce8"
+    }
+  ],
+  "message": "Success",
+  "status": "200"
 }
+
 ```
 
-##### Parameters
+**Error Handling (400, 404, 500):**
 
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| uuid | path | Agent ID (64-bit integer) | Yes | string |
-| since | query | Return tasks with task_uuid greater than this UUIDv7 | No | string |
+```json
+{
+  "status": "400",
+  "message": "Bad Request",
+  "data": {}
+}
 
-##### Responses
+```
 
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 400 | Bad request |
-| 404 | Not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
+**Python Usage:**
 
-### /listeners/
+```python
+import requests
 
-#### POST
-##### Summary:
+url = "http://localhost:5000/api/v1/build/"
 
-Spawn a new listener
+try:
+    response = requests.get(url)
+    response.raise_for_status()
+    print(response.json())
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
 
-##### Description:
+```
 
-Create a new listener. Returns an listener ID to use with that listener
-1. Gets a MYSQL Session
+---
 
-2. Creates a new record in the 'listeners' table
+###Submit Build Task
 
-3. Returns ID of new record in response
+**HTTP Method:** `POST`
 
-##### Parameters
+**Path:** `/build/`
 
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| payload | body |  | Yes | [LISTENERS_POST_INPUT_MODEL](#LISTENERS_POST_INPUT_MODEL) |
-| X-Fields | header | An optional fields mask | No | string (mask) |
+**Description:** Submit a task to build a new C2 implant payload. This endpoint accepts a JSON configuration defining the implant's properties, including its name, output format, and a dictionary of listeners it should communicate with. The build process is asynchronous; use the returned `build_uuid` to poll status.
 
-##### Responses
+**Authentication:** None specified.
 
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 200 | Successfully created a new listener | [LISTENER_DELETE_RESPONSE_MODEL](#LISTENER_DELETE_RESPONSE_MODEL) |
-| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
-| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
-| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
+**Request Body:**
 
-#### GET
-##### Summary:
+| Field Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **implant\_name** | string | **Yes** | Name of the implant (e.g., "implant_one"). |
+| **output\_format** | string | **Yes** | Output format (e.g., "exe", "bin"). |
+| **listener\_uuids** | array[str] | **Yes** | List of listener UUIDs to compile into the implant. |
+| **initial\_get\_profile\_listener\_uuid** | string | **Yes** | UUID of listener for GET profile. |
+| **initial\_post\_profile\_listener\_uuid** | string | **Yes** | UUID of listener for POST profile. |
 
-Gets all listeners
+**Example Request:**
 
-##### Description:
+```json
+{
+  "implant_name": "implant_one",
+  "output_format": "exe",
+  "listener_uuids": [
+    "0194fdc2-fa2f-4cc0-81d3-ff12045b3d33",
+    "0194fdc2-fa2f-4cc0-81d3-ff12045b3d34"
+  ],
+  "initial_get_profile_listener_uuid": "019c...",
+  "initial_post_profile_listener_uuid": "019c..."
+}
 
-Retrieve all listeners in the DB.
-1. Gets a MYSQL Session
+```
 
-2. Retrieves all records in 'listeners' table
+**Responses:**
 
-3. Returns said data in JSON format.
+**200 OK** Build initiated.
 
-Note: There is no pagination on this. If there's a lot of entries, this request may take a while.
+| Field Name | Type | Description |
+| --- | --- | --- |
+| **status** | string | HTTP status code. |
+| **message** | string | Status message. |
+| **data** | object | Build details. |
+| data.**build\_uuid** | string | The UUID of the initiated build job. |
 
-##### Parameters
+**Example Response:**
 
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| X-Fields | header | An optional fields mask | No | string (mask) |
+```json
+{
+  "data": {
+    "build_uuid": "019c..."
+  },
+  "message": "Success",
+  "status": "200"
+}
 
-##### Responses
+```
 
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 200 | Retrieved all listener data successfully | [LISTENERS_GET_RESPONSE_ITEM_MODELWrapper](#LISTENERS_GET_RESPONSE_ITEM_MODELWrapper) |
-| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
-| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
-| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
+**Error Handling (400, 404, 500):** Standard error response.
 
-### /listeners/{uuid}
+**Python Usage:**
 
-#### DELETE
-##### Summary:
+```python
+import requests
 
-Deletes/Stops one listener based on user supplied ID
+url = "http://localhost:5000/api/v1/build/"
+payload = {
+    "implant_name": "my_implant",
+    "output_format": "exe",
+    "listener_uuids": ["UUID_HERE"],
+    "initial_get_profile_listener_uuid": "UUID_HERE",
+    "initial_post_profile_listener_uuid": "UUID_HERE"
+}
 
-##### Description:
+response = requests.post(url, json=payload)
+print(response.json())
 
-Stops one listener based on user supplied ID
-1. Gets a MYSQL Session
+```
 
-2. Deletes 1 record in 'listener' table based on ID
+---
 
-3. Returns said data in JSON format.
+### Get Build Job Status
 
-##### Parameters
+**HTTP Method:** `GET`
 
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| uuid | path | Listener ID (uuid) | Yes | string |
-| X-Fields | header | An optional fields mask | No | string (mask) |
+**Path:** `/build/jobs/{build_uuid}`
 
-##### Responses
+**Description:** Get the status of a specific build job. Contains all information about a build except for payload bytes and zip bytes.
 
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 200 | The listener was deleted successfully | [LISTENER_DELETE_RESPONSE_MODEL](#LISTENER_DELETE_RESPONSE_MODEL) |
-| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
-| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
-| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
+**Path Parameters:**
 
-#### GET
-##### Summary:
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **build\_uuid** | string | **Yes** | The UUID of the build job. |
 
-Gets one listener based on user supplied ID
+**Responses:**
 
-##### Description:
+**200 OK**
 
-Retrieve a single listener by its unique ID.
-1. Gets a MYSQL Session
+| Field Name | Type | Description |
+| --- | --- | --- |
+| **status** | string | HTTP status code. |
+| **message** | string | Status message. |
+| **data** | object | Job details. |
+| data.**build\_uuid** | string | The UUID of the build. |
+| data.**build\_status** | string | Status: `failed`, `complete`, or `building`. |
+| data.**payload\_name** | string | Name of the payload. |
+| data.**payload\_hash** | string | MD5 hash of the payload. |
 
-2. Retrieves 1 record in 'listeners' table based on ID
+**Example Response:**
 
-3. Returns said data in JSON format.
+```json
+{
+  "data": {
+    "build_uuid": "0000...",
+    "build_status": "complete",
+    "payload_name": "metadata_test",
+    "payload_hash": "7f3df..."
+  },
+  "message": "Success",
+  "status": "200"
+}
 
-##### Parameters
+```
 
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| uuid | path | Listener ID (uuid) | Yes | string |
-| X-Fields | header | An optional fields mask | No | string (mask) |
+**Python Usage:**
 
-##### Responses
+```python
+import requests
 
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 200 | Retrieved listener data successfully | [LISTENER_GET_RESPONSE_ITEM_MODELWrapper](#LISTENER_GET_RESPONSE_ITEM_MODELWrapper) |
-| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
-| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
-| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
+build_uuid = "YOUR_BUILD_UUID"
+url = f"http://localhost:5000/api/v1/build/jobs/{build_uuid}"
 
-### Models
+response = requests.get(url)
+print(response.json())
 
+```
 
-#### ErrorResponse
+---
 
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| status | string | The HTTP error code | No |
-| message | string | The error message | No |
-| data | object | Extra error details | No |
+### Download Payload Artifact
 
-#### BUILD_GET_MODELWrapper
+**HTTP Method:** `GET`
 
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| data | [ [BUILD_GET_MODEL](#BUILD_GET_MODEL) ] |  | No |
-| message | string |  | No |
-| status | string |  | No |
+**Path:** `/build/{hash}`
 
-#### BUILD_GET_MODEL
+**Description:** Downloads a specific single implant payload based on the provided MD5 hash.
 
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| build_uuid | string | The UUID of the build | No |
-| build_status | string | The status of the Payload building | No |
-| payload_name | string | The name of the payload in the Database | No |
-| payload_hash | string | The MD5 hash of the Payload after it is build. This is initially blank, and filled in when the payload has been successfully compiled. | No |
-
-#### BUILDJOBS_GET_MODEL
+**Path Parameters:**
 
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| build_uuid | string | The UUID of the build | No |
-| build_status | string | The status of the Payload building | No |
-| payload_name | string | The name of the payload in the Database | No |
-| payload_hash | string | The MD5 hash of the Payload after it is build. This is initially blank, and filled in when the payload has been successfully compiled. | No |
-
-#### BINARYACTIONS_DELETE_SUCCESS_MODEL
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **hash** | string | **Yes** | Hash of the implant. |
 
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| status | string |  | No |
-| message | string |  | No |
-| data | string | No data returned | No |
-
-#### ImplantCreate
-
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| external_ip | string | External IP address (IPv4/IPv6) | No |
-| internal_ip | string | Internal IP address | No |
-| listener | string | Listener address (IP or DNS) | No |
-| user | string | User account name | No |
-| system_hostname | string | Hostname of the system | No |
-| notes | string | Operator notes | No |
-| process | string | Process name | No |
-| pid | integer | Process ID | No |
-| arch | string | CPU architecture | No |
-| last_checkin | string | Last check-in time (unix) | No |
-| sleep_value | integer | Sleep interval in seconds | No |
-
-#### Task
-
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| implant_uuid | string | Implant UUID | Yes |
-| task | [TaskDetail](#TaskDetail) |  | Yes |
-
-#### TaskDetail
-
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| task_name | string | Task type/name | Yes |
-| args | [TaskArgs](#TaskArgs) | Task arguments | Yes |
-
-#### TaskArgs
-
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| cli | string | Command line to execute | Yes |
-
-#### SearchModel
-
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| search_term | string | Term to search for. | Yes |
-
-#### LISTENER_DELETE_RESPONSE_MODEL
-
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| status | string |  | No |
-| message | string |  | No |
-| data | string | No data returned | No |
-
-#### LISTENER_GET_RESPONSE_ITEM_MODELWrapper
-
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| data | [LISTENER_GET_RESPONSE_ITEM_MODEL](#LISTENER_GET_RESPONSE_ITEM_MODEL) |  | No |
-| message | string |  | No |
-| status | string |  | No |
-
-#### LISTENER_GET_RESPONSE_ITEM_MODEL
-
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| listener_active | boolean | Whether the listener is currently running | No |
-| listener_host | string | The IP or DNS host the listener binds to | No |
-| listener_name | string | User-defined name for the listener | No |
-| listener_notes | string | Optional notes about the listener | No |
-| listener_port | integer | Port number | No |
-| listener_profile_contents | string | The full Malleable C2 profile configuration text | No |
-| listener_profile_name | string | The filename of the profile | No |
-| listener_type | string | Protocol type (http, https, etc) | No |
-| listener_uuid | string | Unique identifier for the listener | No |
-
-#### LISTENERS_POST_INPUT_MODEL
-
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| listener_host | string | Host the listener will listen on (DNS Host, or IP address) | Yes |
-| listener_port | integer | Port to spawn the listener on | No |
-| listener_type | string | What type of listener to spawn | Yes |
-| listener_name | string | Name of listener | Yes |
-| listener_notes | string | Listener notes | No |
-| listener_profile_name | string | Listener malleable c2 profile name | Yes |
-| listener_profile_contents | string | Listener malleable c2 profile contents (i.e., read the profile, and pass that string here) | Yes |
-
-#### LISTENERS_GET_RESPONSE_ITEM_MODELWrapper
-
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| data | [ [LISTENERS_GET_RESPONSE_ITEM_MODEL](#LISTENERS_GET_RESPONSE_ITEM_MODEL) ] |  | No |
-| message | string |  | No |
-| status | string |  | No |
-
-#### LISTENERS_GET_RESPONSE_ITEM_MODEL
-
-| Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
-| listener_active | boolean |  | No |
-| listener_host | string |  | No |
-| listener_name | string |  | No |
-| listener_notes | string |  | No |
-| listener_port | integer |  | No |
-| listener_profile_contents | string | Malleable C2 Profile Text | No |
-| listener_profile_name | string |  | No |
-| listener_type | string |  | No |
-| listener_uuid | string |  | No |
+**Responses:**
+
+**200 OK** Binary File Stream. Content-Disposition header typically contains `filename=payload.bin`.
+
+**Error Handling (400, 404, 500):** Standard error response (JSON).
+
+**Python Usage:**
+
+```python
+import requests
+
+file_hash = "7f3df..."
+url = f"http://localhost:5000/api/v1/build/{file_hash}"
+
+response = requests.get(url, stream=True)
+if response.status_code == 200:
+    with open("payload.bin", "wb") as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            f.write(chunk)
+    print("Download complete.")
+else:
+    print(response.text)
+
+```
+
+---
+
+### Delete Payload Artifact
+
+**HTTP Method:** `DELETE`
+
+**Path:** `/build/{hash}`
+
+**Description:** Deletes a single implant artifact based on the provided hash.
+
+**Path Parameters:**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **hash** | string | **Yes** | Hash of the implant. |
+
+**Responses:**
+
+**200 OK**
+
+| Field Name | Type | Description |
+| --- | --- | --- |
+| **message** | string | "Success" |
+
+**Python Usage:**
+
+```python
+import requests
+
+file_hash = "7f3df..."
+url = f"http://localhost:5000/api/v1/build/{file_hash}"
+
+response = requests.delete(url)
+print(response.json())
+
+```
+
+---
+
+### Download Source Code
+
+**HTTP Method:** `GET`
+
+**Path:** `/build/{hash}/source`
+
+**Description:** Retrieves the source code archive (ZIP) for a specific implant build based on the payload hash.
+
+**Path Parameters:**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **hash** | string | **Yes** | The MD5 hash of the payload source to download. |
+
+**Responses:**
+
+**200 OK** Application/Zip stream.
+
+**Python Usage:**
+
+```python
+import requests
+
+file_hash = "7f3df..."
+url = f"http://localhost:5000/api/v1/build/{file_hash}/source"
+
+response = requests.get(url, stream=True)
+if response.status_code == 200:
+    with open("source.zip", "wb") as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            f.write(chunk)
+else:
+    print(response.text)
+
+```
+
+---
+
+# Implant Operations
+
+For various actions around Implants.
+
+
+### Get All Implants
+
+**HTTP Method:** `GET`
+
+**Path:** `/implants/`
+
+**Description:** Retrieve all implants the server knows about.
+
+**Responses:**
+
+**200 OK**
+
+| Field Name | Type | Description |
+| --- | --- | --- |
+| **status** | string | HTTP Status code. |
+| **data** | array | List of implants. |
+| data[].**implant\_uuid** | string | Unique ID of the implant. |
+| data[].**external\_ip** | string | External IP address. |
+| data[].**internal\_ip** | string | Internal network IP. |
+| data[].**user** | string | Username of process owner. |
+| data[].**system\_hostname** | string | Hostname of target. |
+| data[].**pid** | integer | Process ID. |
+| data[].**process** | string | Process path/name. |
+| data[].**arch** | string | Architecture (e.g., x64). |
+| data[].**last\_checkin** | string | Last check-in timestamp (date-time). |
+| data[].**sleep\_value** | integer | Sleep interval in seconds. |
+| data[].**listener** | string | Associated listener name. |
+| data[].**notes** | string | User notes. |
+
+**Example Response:**
+
+```json
+{
+  "data": [
+    {
+      "arch": "x64",
+      "external_ip": "1.2.3.4",
+      "implant_uuid": "019c6536-3ee4-719e-b432-fdbfef4440cc",
+      "internal_ip": "192.168.1.50",
+      "pid": 1234,
+      "process": "notepad.exe",
+      "system_hostname": "OFFENSIVE",
+      "user": "ryan"
+    }
+  ],
+  "message": "Success",
+  "status": "200"
+}
+
+```
+
+**Python Usage:**
+
+```python
+import requests
+print(requests.get("http://localhost:5000/api/v1/implants/").json())
+
+```
+
+---
+
+### Create Implant Entry
+
+**HTTP Method:** `POST`
+
+**Path:** `/implants/`
+
+**Description:** Manually create a new implant entry. Returns an Implant ID.
+
+**Responses:**
+
+**200 OK**
+
+| Field Name | Type | Description |
+| --- | --- | --- |
+| **data** | object | Creation details. |
+| data.**uuid** | string | The UUID of the created implant. |
+
+**Python Usage:**
+
+```python
+import requests
+# Typically requires no body, just creates a placeholder/entry
+print(requests.post("http://localhost:5000/api/v1/implants/").json())
+
+```
+
+---
+
+### Search Implant History
+
+**HTTP Method:** `POST`
+
+**Path:** `/implants/history/search`
+
+**Description:** Search for a task with fields that match the supplied term.
+
+**Request Body:**
+
+| Field Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **search\_term** | string | **Yes** | Term to search for. |
+
+**Responses:**
+
+**200 OK**
+
+| Field Name | Type | Description |
+| --- | --- | --- |
+| **data** | array | List of matching tasks. |
+| data[].**implant\_uuid** | string | Implant UUID. |
+| data[].**task\_uuid** | string | Task UUID. |
+| data[].**task\_name** | string | Name of the task. |
+
+**Python Usage:**
+
+```python
+import requests
+url = "http://localhost:5000/api/v1/implants/history/search"
+print(requests.post(url, json={"search_term": "whoami"}).json())
+
+```
+
+---
+
+### Search Implants
+
+**HTTP Method:** `POST`
+
+**Path:** `/implants/search`
+
+**Description:** Search for an implant with fields that match the supplied term.
+
+**Request Body:**
+
+| Field Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **search\_term** | string | **Yes** | Term to search for. |
+
+**Responses:**
+
+**200 OK**
+
+| Field Name | Type | Description |
+| --- | --- | --- |
+| **data** | array | List of matching implants. |
+| data[].**implant\_uuid** | string | Implant UUID. |
+| data[].**external\_ip** | string | External IP. |
+| data[].**user** | string | User. |
+| *(Other implant fields)* | ... | ... |
+
+**Python Usage:**
+
+```python
+import requests
+url = "http://localhost:5000/api/v1/implants/search"
+print(requests.post(url, json={"search_term": "192.168"}).json())
+
+```
+
+---
+
+### Get Single Implant
+
+**HTTP Method:** `GET`
+
+**Path:** `/implants/{uuid}`
+
+**Description:** Retrieve a single implant by its unique ID.
+
+**Path Parameters:**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **uuid** | string | **Yes** | Agent ID. |
+
+**Responses:**
+
+**200 OK** Returns single implant object (see "Get All Implants" for field list).
+
+**Python Usage:**
+
+```python
+import requests
+uuid = "019c..."
+print(requests.get(f"http://localhost:5000/api/v1/implants/{uuid}").json())
+
+```
+
+---
+
+### Update Implant
+
+**HTTP Method:** `PUT`
+
+**Path:** `/implants/{uuid}`
+
+**Description:** Update a single implant's details by its unique ID.
+
+**Path Parameters:**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **uuid** | string | **Yes** | Agent ID. |
+
+**Request Body:**
+
+| Field Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **external\_ip** | string | No | External IP address. |
+| **internal\_ip** | string | No | Internal IP address. |
+| **listener** | string | No | Listener address. |
+| **user** | string | No | User account name. |
+| **system\_hostname** | string | No | Hostname. |
+| **notes** | string | No | Operator notes. |
+| **process** | string | No | Process name. |
+| **pid** | integer | No | Process ID. |
+| **arch** | string | No | CPU architecture. |
+| **last\_checkin** | string | No | Last check-in time (unix string). |
+| **sleep\_value** | integer | No | Sleep interval. |
+
+**Example Request:**
+
+```json
+{
+  "notes": "Compromised DC",
+  "sleep_value": 30
+}
+
+```
+
+**Responses:**
+**200 OK** (Success message).
+
+**Python Usage:**
+
+```python
+import requests
+uuid = "019c..."
+url = f"http://localhost:5000/api/v1/implants/{uuid}"
+requests.put(url, json={"notes": "Updated note"})
+
+```
+
+---
+
+### Delete Implant
+
+**HTTP Method:** `DELETE`
+
+**Path:** `/implants/{uuid}`
+
+**Description:** Delete a single implant by its unique ID.
+
+**Path Parameters:**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **uuid** | string | **Yes** | Agent ID. |
+
+**Responses:**
+**200 OK** (Success message).
+
+**Python Usage:**
+
+```python
+import requests
+requests.delete(f"http://localhost:5000/api/v1/implants/{uuid}")
+
+```
+
+---
+
+### Task Implant
+
+**HTTP Method:** `POST`
+
+**Path:** `/implants/{uuid}/task`
+
+**Description:** Add a task (queue a command) to a single implant by its unique ID.
+
+**Path Parameters:**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **uuid** | string | **Yes** | Agent ID. |
+
+**Request Body:**
+
+| Field Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **implant\_uuid** | string | **Yes** | Target implant ID. |
+| **task\_uuid** | string | No | Optional UUID for the task. |
+| **task** | object | **Yes** | Task definition object. |
+| task.**task\_name** | string | **Yes** | Name of the command (e.g., "cmd"). |
+| task.**args** | object | No | Dictionary of arguments (e.g., `{"cli": "whoami"}`). |
+
+**Example Request:**
+
+```json
+{
+  "implant_uuid": "019c6536...",
+  "task": {
+    "task_name": "cmd",
+    "args": {
+      "cli": "whoami"
+    }
+  }
+}
+
+```
+
+**Responses:**
+
+**200 OK**
+
+| Field Name | Type | Description |
+| --- | --- | --- |
+| **data** | object | Task result. |
+| data.**task\_uuid** | string | The unique ID of the queued task. |
+
+**Python Usage:**
+
+```python
+import requests
+uuid = "019c..."
+url = f"http://localhost:5000/api/v1/implants/{uuid}/task"
+
+payload = {
+    "implant_uuid": uuid,
+    "task": {
+        "task_name": "cmd",
+        "args": {"cli": "dir"}
+    }
+}
+print(requests.post(url, json=payload).json())
+
+```
+
+---
+
+### Peek Implant Tasks
+
+**HTTP Method:** `GET`
+
+**Path:** `/implants/{uuid}/tasks`
+
+**Description:** Peeks all currently queued tasks of an implant (does not remove them).
+
+**Path Parameters:**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **uuid** | string | **Yes** | Agent ID. |
+
+**Responses:**
+
+**200 OK**
+
+| Field Name | Type | Description |
+| --- | --- | --- |
+| **data** | array | List of tasks. |
+| data[].**task** | string | Base64 encoded task blob. |
+
+**Python Usage:**
+
+```python
+import requests
+print(requests.get(f"http://localhost:5000/api/v1/implants/{uuid}/tasks").json())
+
+```
+
+---
+
+### Delete Implant Tasks
+
+**HTTP Method:** `DELETE`
+
+**Path:** `/implants/{uuid}/tasks`
+
+**Description:** Delete all the currently queued tasks of an agent (clear queue).
+
+**Path Parameters:**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **uuid** | string | **Yes** | Agent ID. |
+
+**Responses:**
+**200 OK** (Success message).
+
+**Python Usage:**
+
+```python
+import requests
+requests.delete(f"http://localhost:5000/api/v1/implants/{uuid}/tasks")
+
+```
+
+---
+
+### Get Implant Task History
+
+**HTTP Method:** `GET`
+
+**Path:** `/implants/{uuid}/tasks/history`
+
+**Description:** Gets ALL history of an implant from the DB.
+
+**Path Parameters:**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **uuid** | string | **Yes** | Agent ID. |
+
+**Query Parameters:**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **since** | string | No | Return tasks with task_uuid greater than this UUIDv7. |
+
+**Responses:**
+**200 OK** (Returns list of implant objects/history).
+
+**Python Usage:**
+
+```python
+import requests
+# Optional: ?since=...
+print(requests.get(f"http://localhost:5000/api/v1/implants/{uuid}/tasks/history").json())
+
+```
+
+---
+
+# Listener Operations
+
+For various actions around Listeners.
+
+
+### Get All Listeners
+
+**HTTP Method:** `GET`
+
+**Path:** `/listeners/`
+
+**Description:** Retrieve all listeners in the DB.
+
+**Responses:**
+
+**200 OK**
+
+| Field Name | Type | Description |
+| --- | --- | --- |
+| **data** | array | List of listeners. |
+| data[].**listener\_uuid** | string | Unique ID. |
+| data[].**listener\_name** | string | User-defined name. |
+| data[].**listener\_type** | string | Protocol type (http, etc). |
+| data[].**listener\_host** | string | IP or DNS host. |
+| data[].**listener\_port** | integer | Port number. |
+| data[].**listener\_active** | boolean | Is listener running? |
+| data[].**listener\_notes** | string | Optional notes. |
+| data[].**listener\_profile_name** | string | Profile filename. |
+| data[].**listener\_profile_contents** | string | Malleable C2 profile text. |
+
+**Python Usage:**
+
+```python
+import requests
+print(requests.get("http://localhost:5000/api/v1/listeners/").json())
+
+```
+
+---
+
+### Spawn Listener
+
+**HTTP Method:** `POST`
+
+**Path:** `/listeners/`
+
+**Description:** Create and spawn a new listener. Returns a listener ID.
+
+**Request Body:**
+
+| Field Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **listener\_host** | string | **Yes** | Host to listen on (DNS or IP). |
+| **listener\_name** | string | **Yes** | Name of listener. |
+| **listener\_profile\_contents** | string | **Yes** | Malleable C2 profile contents. |
+| **listener\_profile_name** | string | **Yes** | Malleable C2 profile name. |
+| **listener\_type** | string | **Yes** | Type of listener (e.g., "http"). |
+| **listener\_port** | integer | No | Port to spawn on. |
+| **listener\_notes** | string | No | Notes. |
+
+**Example Request:**
+
+```json
+{
+  "listener_host": "10.0.0.30",
+  "listener_name": "http_one",
+  "listener_type": "http",
+  "listener_port": 8080,
+  "listener_profile_name": "default",
+  "listener_profile_contents": "..."
+}
+
+```
+
+**Responses:**
+
+**200 OK**
+
+| Field Name | Type | Description |
+| --- | --- | --- |
+| **data** | object | Created listener details. |
+| data.**listener\_uuid** | string | Listener UUID. |
+| data.**listener\_active** | boolean | Active status. |
+
+**Python Usage:**
+
+```python
+import requests
+url = "http://localhost:5000/api/v1/listeners/"
+payload = {
+    "listener_host": "127.0.0.1",
+    "listener_name": "dev_http",
+    "listener_type": "http",
+    "listener_port": 8080,
+    "listener_profile_name": "default",
+    "listener_profile_contents": "set sleeptime '5000';"
+}
+print(requests.post(url, json=payload).json())
+
+```
+
+---
+
+### Get Single Listener
+
+**HTTP Method:** `GET`
+
+**Path:** `/listeners/{uuid}`
+
+**Description:** Retrieve a single listener by its unique ID.
+
+**Path Parameters:**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **uuid** | string | **Yes** | Listener ID (uuid). |
+
+**Responses:**
+**200 OK** (Returns single listener object).
+
+**Python Usage:**
+
+```python
+import requests
+uuid = "019c..."
+print(requests.get(f"http://localhost:5000/api/v1/listeners/{uuid}").json())
+
+```
+
+---
+
+### Stop/Delete Listener
+
+**HTTP Method:** `DELETE`
+
+**Path:** `/listeners/{uuid}`
+
+**Description:** Stops/Deletes one listener based on user supplied ID.
+
+**Path Parameters:**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| **uuid** | string | **Yes** | Listener ID (uuid). |
+
+**Responses:**
+**200 OK** (Success message).
+
+**Python Usage:**
+
+```python
+import requests
+requests.delete(f"http://localhost:5000/api/v1/listeners/{uuid}")
+
+```

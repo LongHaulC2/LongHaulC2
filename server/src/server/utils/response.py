@@ -1,7 +1,8 @@
-from dataclasses import dataclass, asdict
-from typing import Any, Optional
-from flask import jsonify
 import logging
+from dataclasses import asdict, dataclass
+from typing import Any, Optional
+
+from flask import jsonify
 
 api_logger = logging.getLogger("api")
 

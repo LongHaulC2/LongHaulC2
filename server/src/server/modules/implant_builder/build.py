@@ -14,11 +14,7 @@ from docker.models.containers import Container
 from ...db.mysql_connector import get_mysql_session
 from ...modules.mysql_functions import ListenerService, MySQLImplantPayloadService
 from .render import render_implant, sanitize_cpp_name
-from .types import (  # Assuming you created the types above
-    BuildJobConfig,
-    BuildRequestListener,
-    ListenerProfile,
-)
+from .types import BuildJobConfig, BuildRequestListener, ListenerProfile
 
 IMPLANT_BASE = Path(__file__).parent / "implant_base"
 server_logger = logging.getLogger("server")
@@ -26,9 +22,7 @@ server_logger = logging.getLogger("server")
 
 def build_implant(
     implant_name: str,
-    listeners_dict: Dict[
-        str, BuildRequestListener
-    ],  # this is the API data that is sent in. We use data from here to get the rest of the listener data.
+    listener_uuids: list,  # this is the API data that is sent in. We use data from here to get the rest of the listener data.
     build_uuid: str,
     init_get_profile_listener_uuid: str,
     init_post_profile_listener_uuid: str,
@@ -57,26 +51,23 @@ def build_implant(
         )
 
         try:
-            for uuid, request_data in listeners_dict.items():
-                # Fetch full details from DB
+            for uuid in listener_uuids:
+
+                # Fetch full details from DB of the listener to include
                 db_listener = listener_service.get_by_id(uuid)
 
                 if not db_listener:
-                    server_logger.error(f"Listener {uuid} not found in DB.")
+                    server_logger.error(f"Listener {uuid} not found.")
                     raise ValueError(f"Invalid listener UUID: {uuid}")
 
-                # Convert db object to dict
+                # snag and sanitize the name of that listeenr
                 listener_data = db_listener.to_dict()
-
-                # edit the stored profile name to be sanitized for cpp
                 listener_data["listener_profile_name"] = sanitize_cpp_name(
-                    request_data.get(
-                        "listener_profile_name", listener_data["listener_name"]
-                    )
+                    listener_data["listener_name"]
                 )
 
-                # store data in the dict of listeners (which gets passed to the renderer)
-                full_listeners_data[uuid] = listener_data  #
+                # Store data for the renderer
+                full_listeners_data[uuid] = listener_data
 
         except Exception as e:
             server_logger.error(f"Failed to prepare listener data: {e}")

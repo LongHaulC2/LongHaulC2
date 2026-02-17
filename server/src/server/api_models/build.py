@@ -6,12 +6,7 @@ from ..instance import api
 ###################
 # Helpers
 ####################
-# A helper func to include all the parent models
-def wrap_response(api, inner_model):
-    """
-    Dynamically creates a wrapper model with 'data', 'message', and 'status'.
-    The model name is generated automatically (e.g., 'BuildItemWrapper').
-    """
+def wrap_response_list(api, inner_model):
     name = f"{inner_model.name}Wrapper"
     return api.model(
         name,
@@ -23,17 +18,40 @@ def wrap_response(api, inner_model):
     )
 
 
-###################
-# Build
-####################
-# teh model for the specific endpoint
-# do classname_method_MODEL
+def wrap_response_single(api, inner_model):
+    name = f"{inner_model.name}Wrapper"
+    return api.model(
+        name,
+        {
+            "data": fields.Nested(inner_model, default={}),
+            "message": fields.String(example="Success"),
+            "status": fields.String(example="200"),
+        },
+    )
+
+
+def wrap_response_empty(api, model_name):
+    return api.model(
+        model_name,
+        {
+            "data": fields.String(
+                example="", description="No data returned", default=None
+            ),
+            "message": fields.String(example="Success"),
+            "status": fields.String(example="200"),
+        },
+    )
+
+
+######################################################################
+# Class: Build
+# Routes: GET /, POST /
+######################################################################
+
+# --- GET / ---
 BUILD_GET_MODEL = api.model(
     "BUILD_GET_MODEL",
     {
-        # "id": fields.Integer(
-        #     example=1,
-        # ), # exclude id, the marshall will keep this out. TLDR, internal tracking id for the DB as the prim key.
         "build_uuid": fields.String(
             example="00000000-0000-0000-0000-000000000000",
             description="The UUID of the build",
@@ -50,32 +68,71 @@ BUILD_GET_MODEL = api.model(
         ),
         "payload_hash": fields.String(
             example="7f3df637f39704c04d49d12906407ce8",
-            description="The MD5 hash of the Payload after it is build. This is initially blank, and filled in when the payload has been successfully compiled.",
+            description="The MD5 hash of the Payload after it is build.",
         ),
     },
 )
-# then add them here
-# do classname_method
-BUILD_GET = wrap_response(api, BUILD_GET_MODEL)
+BUILD_GET_RESPONSE = wrap_response_list(api, BUILD_GET_MODEL)
 
-###################
-# BuildJobs
-####################
 
+# --- POST / ---
+BUILD_POST_INPUT = api.model(
+    "BUILD_POST_INPUT",
+    {
+        "implant_name": fields.String(
+            required=True, description="Name of the implant", example="implant_one"
+        ),
+        "output_format": fields.String(
+            required=True, description="Output format (e.g., exe, bin)", example="exe"
+        ),
+        "listener_uuids": fields.List(
+            fields.String,
+            required=True,
+            description="The list of listener UUIDs that have their profiles compiled into the implant",
+            example=[
+                "0194fdc2-fa2f-4cc0-81d3-ff12045b3d33",
+                "0194fdc2-fa2f-4cc0-81d3-ff12045b3d34",
+            ],
+        ),
+        "initial_get_profile_listener_uuid": fields.String(
+            description="UUID of listener for GET profile",
+            example="019c...",
+            required=True,
+        ),
+        "initial_post_profile_listener_uuid": fields.String(
+            description="UUID of listener for POST profile",
+            example="019c...",
+            required=True,
+        ),
+    },
+)
+BUILD_POST_MODEL = api.model(
+    "BUILD_POST_MODEL",
+    {
+        "build_uuid": fields.String(
+            description="The UUID of the initiated build job", example="019c..."
+        )
+    },
+)
+BUILD_POST_RESPONSE = wrap_response_single(api, BUILD_POST_MODEL)
+
+
+######################################################################
+# Class: BuildJobs
+# Routes: GET /jobs/<uuid>
+######################################################################
+
+# --- GET /jobs/<uuid> ---
 BUILDJOBS_GET_MODEL = api.model(
     "BUILDJOBS_GET_MODEL",
     {
-        # "id": fields.Integer(
-        #     example=1,
-        # ), # exclude id, the marshall will keep this out. TLDR, internal tracking id for the DB as the prim key.
         "build_uuid": fields.String(
             example="00000000-0000-0000-0000-000000000000",
             description="The UUID of the build",
         ),
         "build_status": fields.String(
             enum=["failed", "complete", "building"],
-            example="failed",
-            default="building",
+            example="complete",
             description="The status of the Payload building",
         ),
         "payload_name": fields.String(
@@ -84,25 +141,27 @@ BUILDJOBS_GET_MODEL = api.model(
         ),
         "payload_hash": fields.String(
             example="7f3df637f39704c04d49d12906407ce8",
-            description="The MD5 hash of the Payload after it is build. This is initially blank, and filled in when the payload has been successfully compiled.",
+            description="The MD5 hash of the Payload.",
         ),
     },
 )
+BUILDJOBS_GET_RESPONSE = wrap_response_single(api, BUILDJOBS_GET_MODEL)
 
-###################
-# BinaryActions
-####################
-BINARYACTIONS_DELETE_SUCCESS_MODEL = api.model(
-    "BINARYACTIONS_DELETE_SUCCESS_MODEL",
-    {
-        "status": fields.String(example="200"),
-        "message": fields.String(example="Success"),
-        "data": fields.String(example="", description="No data returned"),
-    },
+
+######################################################################
+# Class: BinaryActions
+# Routes: DELETE /<hash> (GET is binary stream)
+######################################################################
+
+# --- DELETE /<hash> ---
+BINARYACTIONS_DELETE_RESPONSE = wrap_response_empty(
+    api, "BINARYACTIONS_DELETE_RESPONSE"
 )
 
 
-###################
-# SourceActions
-####################
-# none needed
+######################################################################
+# Class: SourceActions
+# Routes: GET /<hash>/source
+######################################################################
+
+# No JSON models needed for file download endpoints

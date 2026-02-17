@@ -20,8 +20,7 @@ api_logger = logging.getLogger("api")
 server_logger = logging.getLogger("server")
 
 
-# Error handlers - tldr, on exception, these will flag
-# can remove try/except
+# Error handlers
 @listener_ns.errorhandler(ValueError)
 def handle_value_error(e):
     return {"status": "400", "message": str(e), "data": None}, 400
@@ -40,38 +39,31 @@ class Listener(Resource):
         responses=COMMON_ERRORS,
     )
     @listener_ns.response(
-        200, "Retrieved listener data successfully", LISTENER_GET_SUCCESS_MODEL
+        200, "Retrieved listener data successfully", LISTENER_GET_RESPONSE
     )
-    @api.marshal_with(LISTENER_GET_SUCCESS_MODEL)
+    @listener_ns.marshal_with(LISTENER_GET_RESPONSE)
     def get(self, uuid):
         """
         Gets one listener based on user supplied ID
-
-        1. Gets a MYSQL Session
-
-        2. Retrieves 1 record in 'listeners' table based on ID
-
-        3. Returns said data in JSON format.
-
         """
         ip = request.remote_addr
 
         api_logger.info(
-            f"Getting implant {uuid} data",
+            f"Getting listener {uuid} data",
             extra={
                 "caller_ip": ip,
             },
         )
         check_type(uuid, str, "uuid")
 
-        # note, 500's on empty listeners.
         with get_mysql_session() as session:
             listener_service = ListenerService(session)
             listeners = listener_service.get_by_id(uuid)
-            # if no listeners
-            if listeners == None:
-                data = {}
 
+            if listeners is None:
+                # The helper 'wrap_response_single' defaults data to {},
+                # but explicit empty dict is fine too.
+                data = {}
             else:
                 data = listeners.to_dict()
 
@@ -80,7 +72,7 @@ class Listener(Resource):
             message="Success",
             data=data,
         )
-        return api_response.jsonify()
+        return api_response
 
     @listener_ns.doc(
         summary="Stop a listener",
@@ -89,21 +81,14 @@ class Listener(Resource):
         responses=COMMON_ERRORS,
     )
     @listener_ns.response(
-        200, "The listener was deleted successfully", LISTENER_DELETE_SUCCESS_MODEL
+        200, "The listener was deleted successfully", LISTENER_DELETE_RESPONSE
     )
-    @listener_ns.marshal_with(LISTENER_DELETE_SUCCESS_MODEL)
-    def delete(self, uuid):  # delete one implant based on ID
+    @listener_ns.marshal_with(LISTENER_DELETE_RESPONSE)
+    def delete(self, uuid):  # delete one listener based on ID
         """
         Deletes/Stops one listener based on user supplied ID
-
-        1. Gets a MYSQL Session
-
-        2. Deletes 1 record in 'listener' table based on ID
-
-        3. Returns said data in JSON format.
         """
         ip = request.remote_addr
-        # api_logger.info(f"{ip} is deleting implant {uuid}")
 
         api_logger.info(
             f"Stopping listener {uuid}",
@@ -113,16 +98,11 @@ class Listener(Resource):
         )
         check_type(uuid, str, "uuid")
 
-        # if successful, remove from db, else, maybe return a warning/degredaded listener state
+        # if successful, remove from db
         stop_listener(listener_uuid=uuid)
 
         with get_mysql_session() as session:
             listener_service = ListenerService(session)
-
-            # next, update listener to be inactive in the DB
-            # listener_service.set_active(uuid, active=False)
-
-            # nuke the record, no need to set to inactive
             listener_service.delete(uuid)
 
         api_logger.info(
@@ -134,40 +114,29 @@ class Listener(Resource):
 
         api_response = APIResponse(
             status=200,
-            message="Implant deleted successfully",
+            message="Listener deleted successfully",
         )
-        return api_response.jsonify()
+        return api_response
 
 
 class Listeners(Resource):
-    # gets all  implants
     @listener_ns.doc(
         summary="Get all Listeners",
         description="Retrieve all listeners in the DB.",
         responses=COMMON_ERRORS,
     )
     @listener_ns.response(
-        200, "Retrieved all listener data successfully", LISTENERS_GET_SUCCESS_MODEL
+        200, "Retrieved all listener data successfully", LISTENERS_GET_RESPONSE
     )
-    @listener_ns.marshal_with(LISTENERS_GET_SUCCESS_MODEL)
+    @listener_ns.marshal_with(LISTENERS_GET_RESPONSE)
     def get(self):
         """
         Gets all listeners
-
-        1. Gets a MYSQL Session
-
-        2. Retrieves all records in 'listeners' table
-
-        3. Returns said data in JSON format.
-
-        Note: There is no pagination on this. If there's a lot of entries, this request may take a while.
-
         """
         ip = request.remote_addr
-        # api_logger.info(f"{ip} requested all implants")
 
         api_logger.info(
-            "Getting all implants",
+            "Getting all listeners",
             extra={
                 "caller_ip": ip,
             },
@@ -176,7 +145,7 @@ class Listeners(Resource):
         with get_mysql_session() as session:
             listener_service = ListenerService(session)
             listeners = listener_service.get_all()
-            if listeners == None:
+            if listeners is None:
                 data = []
             else:
                 data = [i.to_dict() for i in listeners]
@@ -186,45 +155,34 @@ class Listeners(Resource):
             message="Success",
             data=data,
         )
-        return api_response.jsonify()
+        return api_response
 
-    # create an implant in DB
     @listener_ns.doc(
-        summary="Spawn a new listener, and Create a new listener entry.",
-        description="Create a new listener. Returns an listener ID to use with that listener",
+        summary="Spawn a new listener",
+        description="Create a new listener. Returns a listener ID to use with that listener",
         responses=COMMON_ERRORS,
     )
-    @listener_ns.expect(LISTENERS_POST_INPUT_MODEL)
+    @listener_ns.expect(LISTENERS_POST_INPUT)
     @listener_ns.response(
-        200, "Successfully created a new listener", LISTENERS_POST_SUCCESS_MODEL
+        200, "Successfully created a new listener", LISTENERS_POST_RESPONSE
     )
-    @listener_ns.marshal_with(LISTENERS_POST_SUCCESS_MODEL)
+    @listener_ns.marshal_with(LISTENERS_POST_RESPONSE)
     def post(self):
         """
         Spawn a new listener
-
-        1. Gets a MYSQL Session
-
-        2. Creates a new record in the 'listeners' table
-
-        3. Returns ID of new record in response
         """
         ip = request.remote_addr
-        # api_logger.info(f"{ip} created an implant")
 
         api_logger.info(
-            "Creating an implant",
+            "Creating a listener",
             extra={
                 "caller_ip": ip,
             },
         )
 
-        # data into dataclass
         listener_uuid = str(uuid7())
         listener_dataclass = ListenerCreate(
-            # unwrap data into a dataclass
             **api.payload,
-            # add on a listener UUID
             listener_uuid=listener_uuid,
         )
 
@@ -237,12 +195,11 @@ class Listeners(Resource):
             listener = listener_service.create(listener_dataclass)
             listener_id = listener.listener_uuid
 
-            # next, update listener to be active in the DB
+            # update listener to be active in the DB
             listener_service.set_active(listener_id, active=True)
             # and in the dataclass for the response
             listener_dataclass.listener_active = True
 
-        # experiement with returning dataclasses
         data = asdict(listener_dataclass)
 
         api_response = APIResponse(
@@ -258,7 +215,7 @@ class Listeners(Resource):
             },
         )
 
-        return api_response.jsonify()
+        return api_response
 
 
 listener_ns.add_resource(Listener, "/<string:uuid>")

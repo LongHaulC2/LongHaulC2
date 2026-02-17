@@ -337,19 +337,26 @@ async def start_payload_dialogue():
         progress_bar.set_value(0.25)
 
         # Build Data
-        listener_dict = {}
+        # listener_dict = {}
+        # for lst_name in listener_select.value:
+        #     uuid = listener_uuid_map.get(lst_name)
+        #     if uuid:
+        #         listener_dict[uuid] = {}  # {
+        #         #     "profile_get": profile_get_select.value,
+        #         #     "profile_post": profile_post_select.value,
+        #         # }
+
+        # list of listener UUID's to include in payload
+        listener_uuids = []
         for lst_name in listener_select.value:
             uuid = listener_uuid_map.get(lst_name)
             if uuid:
-                listener_dict[uuid] = {
-                    "profile_get": profile_get_select.value,
-                    "profile_post": profile_post_select.value,
-                }
+                listener_uuids.append(uuid)
 
         # API Call
         result = await build_implant(
             implant_name=name_input.value,
-            listener_dict=listener_dict,
+            listener_uuids=listener_uuids,
             output_format=format_select.value,
             initial_get_profile_listener_uuid=listener_uuid_map.get(
                 profile_get_select.value
