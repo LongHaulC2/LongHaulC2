@@ -9,6 +9,7 @@ from nicegui.events import KeyEventArguments
 # --- Imports ---
 from client.src.client.modules.api_calls import (
     get_all_listener_data,
+    restart_listener,
     start_listener,
     stop_listener,
 )
@@ -112,45 +113,25 @@ async def listener_view():
                             "font-mono text-sm mt-2"
                         )
                 else:
-                    await render_listeners_table(listener_data)
+                    await render_listeners_table()
 
 
-async def render_listeners_table(data: list):
-    """Renders the list of listeners in a dashboard table"""
+# only this updates, the parent dosen't yet with stats. not sure if I'll keep those stats.
+async def render_listeners_table():  # 'data' arg is kept for compatibility, but we fetch fresh data inside
+    """Renders the list of listeners in a dashboard table with auto-updates"""
 
-    # Prepare Rows
-    table_rows = []
-    for l in data:
-        bind_addr = f"{l.get('listener_host', '0.0.0.0')}:{l.get('listener_port', '0')}"
-
-        # Check active status (Defaults to True if key missing, assuming API returns valid list)
-        is_active = l.get("active", True)
-
-        table_rows.append(
-            {
-                "id": l.get("listener_uuid"),
-                "status": is_active,  # Boolean for the visual slot
-                "name": l.get("listener_name", "Unknown"),
-                "type": l.get("listener_type", "http"),
-                "bind": bind_addr,
-                "profile": l.get("listener_profile_name", "Default"),
-                "notes": l.get("listener_notes", ""),
-                "listener_uuid": l.get("listener_uuid"),
-            }
-        )
-
-    # Search Bar Logic
+    # --- 1. SEARCH BAR ---
     filter_text = (
         ui.input(placeholder="SEARCH LISTENERS...")
         .props("outlined dense dark color=emerald input-class=text-xs")
         .classes("m-3 w-96")
     )
 
-    # Define Columns
+    # --- 2. DEFINE COLUMNS ---
     columns = [
         {
             "name": "name",
-            "label": "listener NAME",
+            "label": "LISTENER NAME",
             "field": "name",
             "align": "left",
             "sortable": True,
@@ -186,11 +167,12 @@ async def render_listeners_table(data: list):
         },
     ]
 
-    # Render Table
+    # --- 3. INITIALIZE TABLE ---
+    # We start with empty rows; the timer will populate them immediately.
     table = (
         ui.table(
             columns=columns,
-            rows=table_rows,
+            rows=[],
             row_key="id",
             selection="multiple",
             pagination=15,
@@ -198,6 +180,52 @@ async def render_listeners_table(data: list):
         .classes("w-full bg-transparent no-shadow text-neutral-300")
         .bind_filter_from(filter_text, "value")
     )
+
+    # --- AUTO-UPDATE LOGIC ---
+    async def update_table_data():
+        try:
+            # Fetch fresh data
+            response = await get_all_listener_data()
+            # Handle if response is list or dict
+            fresh_data = (
+                response if isinstance(response, list) else response.get("data", [])
+            )
+
+            new_rows = []
+            for l in fresh_data:
+                bind_addr = (
+                    f"{l.get('listener_host', '0.0.0.0')}:{l.get('listener_port', '0')}"
+                )
+
+                # STATUS FIX: Use the specific DB key 'listener_active'
+                raw_active = l.get("listener_active", 0)
+                is_active = bool(raw_active)
+
+                new_rows.append(
+                    {
+                        "id": l.get("listener_uuid"),
+                        "status": is_active,
+                        "name": l.get("listener_name", "Unknown"),
+                        "type": l.get("listener_type", "http"),
+                        "bind": bind_addr,
+                        "profile": l.get("listener_profile_name", "Default"),
+                        "notes": l.get("listener_notes", ""),
+                        "listener_uuid": l.get("listener_uuid"),
+                    }
+                )
+
+            # Update the table rows
+            table.rows = new_rows
+            table.update()
+
+        except Exception as e:
+            print(f"Error updating listener table: {e}")
+
+    # --- 5. START TIMER (Updates every 2 seconds to allow clicking checkboxes) ---
+    ui.timer(2.0, update_table_data)
+
+    # Run once immediately so the user doesn't wait
+    await update_table_data()
 
     # --- CUSTOM SLOTS ---
 
@@ -214,13 +242,12 @@ async def render_listeners_table(data: list):
     """,
     )
 
-    # STATUS SLOT (The requested visual)
-    # v-if checks the boolean value of the row.
+    # STATUS SLOT (Uses props.row.status for safety)
     table.add_slot(
         "body-cell-status",
         r"""
         <q-td :props="props">
-            <div v-if="props.value" class="row items-center gap-2">
+            <div v-if="props.row.status" class="row items-center gap-2">
                 <div class="relative flex items-center justify-center">
                     <div class="w-2 h-2 rounded-full bg-emerald-400 absolute animate-pulse"></div>
                     <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
@@ -274,7 +301,7 @@ async def render_listeners_table(data: list):
     """,
     )
 
-    # Footer Controls
+    # --- FOOTER CONTROLS ---
     with ui.row().classes(
         "w-full p-2 justify-end border-t border-white/5 bg-red-900/5"
     ):
@@ -290,11 +317,38 @@ async def render_listeners_table(data: list):
                 await stop_listener(row["listener_uuid"])
 
             ui.notify(f"Terminated {count} listeners", type="negative")
-            ui.navigate.to("/listeners")
+            # Force an immediate update instead of navigating away
+            await update_table_data()
 
-        ui.button("TERMINATE SELECTED", icon="stop", on_click=stop_selected).props(
-            "flat dense color=red no-caps size=sm"
-        ).classes("font-bold tracking-wide hover:bg-red-900/20")
+        async def restart_selected():
+            selected_rows = table.selected
+            if not selected_rows:
+                ui.notify("No listeners selected", type="warning", color="orange-9")
+                return
+
+            count = len(selected_rows)
+            for row in selected_rows:
+                await restart_listener(row["listener_uuid"])
+
+            ui.notify(f"Restarted {count} listeners", type="positive")
+            await update_table_data()
+
+        restart = (
+            ui.button("RESTART SELECTED", icon="restart_alt", on_click=restart_selected)
+            .props("flat dense color=orange no-caps size=sm")
+            .classes("font-bold tracking-wide hover:bg-red-900/20")
+        )
+        with restart:
+            ui.tooltip("Restart the selected listeners.")
+
+        stop = (
+            ui.button("STOP SELECTED", icon="stop", on_click=stop_selected)
+            .props("flat dense color=red no-caps size=sm")
+            .classes("font-bold tracking-wide hover:bg-red-900/20")
+        )
+
+        with stop:
+            ui.tooltip("Stop the selected listeners.")
 
 
 # ==============================================================================

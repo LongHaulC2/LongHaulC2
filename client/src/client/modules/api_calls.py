@@ -235,6 +235,37 @@ async def stop_listener(listener_uuid: str) -> dict:
         return data
 
 
+async def restart_listener(listener_uuid: str) -> dict:
+    """
+    Restart a running listener (Stop, then start)
+
+    Args:
+        listener_uuid (str): The unique identifier (UUID) of the listener to stop.
+
+    Returns:
+        dict: A status message indicating if the listener was successfully stopped.
+        Example structure:
+        {
+            "status": "success",
+            "message": "Listener restarted"
+        }
+    """
+    check_type(listener_uuid, str, "listener_uuid")
+
+    url = generate_url(f"/api/v1/listeners/{listener_uuid}")
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(
+        method="PATCH", url=url, listener_uuid=listener_uuid
+    )
+    # api_log.debug(f"Getting data for listener")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.patch(url)
+        data = response.json()
+        return data
+
+
 async def start_listener(
     listener_host: str,
     listener_port: int,

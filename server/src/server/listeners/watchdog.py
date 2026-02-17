@@ -1,11 +1,10 @@
-from .supervisor import listeners, listeners_lock
-
+import logging
 import threading
 import time
-import logging
 
 from ..db.mysql_connector import get_mysql_session
 from ..modules.mysql_functions import ListenerService
+from .supervisor import listeners, listeners_lock
 
 server_logger = logging.getLogger("server")
 
@@ -48,3 +47,4 @@ def _watchdog():
                 with get_mysql_session() as session:
                     listener_service = ListenerService(session)
                     listener_service.set_active(listener_uuid, active=False)
+                    session.commit()
