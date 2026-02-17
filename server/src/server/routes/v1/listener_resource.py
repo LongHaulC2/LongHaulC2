@@ -5,10 +5,11 @@ from edwh_uuid7 import uuid7
 from flask import request
 from flask_restx import Namespace, Resource, fields
 
+from ...api_models.error import *
+from ...api_models.listener import *
 from ...db.mysql_connector import get_mysql_session
 from ...instance import api
 from ...listeners.supervisor import start_listener, stop_listener
-from ...models.listener import *
 from ...modules.mysql_functions import ListenerService
 from ...schemas.listeners import ListenerCreate
 from ...utils.checks import check_type
@@ -18,31 +19,17 @@ listener_ns = Namespace("listeners", description="Listener related operations")
 api_logger = logging.getLogger("api")
 server_logger = logging.getLogger("server")
 
-listener_spawn_model = api.model(
-    "ListenerSpawnModel",
-    {
-        "listener_host": fields.String(
-            required=True,
-            description="Host the listener will listen on (DNS Host, or IP address)",
-        ),
-        "listener_port": fields.Integer(
-            required=False, description="Port to spawn the listener on"
-        ),
-        "listener_type": fields.String(
-            required=True, description="What type of listener to spawn"
-        ),
-        "listener_name": fields.String(required=True, description="Name of listener"),
-        "listener_notes": fields.String(required=False, description="Listener notes"),
-        "listener_profile_name": fields.String(
-            required=True,
-            description="Listener malleable c2 profile name",
-        ),
-        "listener_profile_contents": fields.String(
-            required=True,
-            description="Listener malleable c2 profile contents (i.e., read the profile, and pass that string here)",
-        ),
-    },
-)
+
+# Error handlers - tldr, on exception, these will flag
+# can remove try/except
+@listener_ns.errorhandler(ValueError)
+def handle_value_error(e):
+    return {"status": "400", "message": str(e), "data": None}, 400
+
+
+@listener_ns.errorhandler(Exception)
+def handle_general_error(e):
+    return {"status": "500", "message": "An internal error occurred", "data": None}, 500
 
 
 class Listener(Resource):
@@ -50,12 +37,7 @@ class Listener(Resource):
         summary="Get listener",
         description="Retrieve a single listener by its unique ID.",
         params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
-        responses={
-            404: "Not found",
-            400: "Bad request",
-            500: "Server Error",
-            405: "Method Not Allowed",
-        },
+        responses=COMMON_ERRORS,
     )
     @listener_ns.response(
         200, "Retrieved listener data successfully", LISTENER_GET_SUCCESS_MODEL
@@ -104,12 +86,7 @@ class Listener(Resource):
         summary="Stop a listener",
         description="Stops one listener based on user supplied ID",
         params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
-        responses={
-            404: "Not found",
-            400: "Bad request",
-            500: "Server Error",
-            405: "Method Not Allowed",
-        },
+        responses=COMMON_ERRORS,
     )
     @listener_ns.response(
         200, "The listener was deleted successfully", LISTENER_DELETE_SUCCESS_MODEL
@@ -167,14 +144,12 @@ class Listeners(Resource):
     @listener_ns.doc(
         summary="Get all Listeners",
         description="Retrieve all listeners in the DB.",
-        responses={
-            200: "Success",
-            404: "Not found",
-            400: "Bad request",
-            500: "Server Error",
-            405: "Method Not Allowed",
-        },
+        responses=COMMON_ERRORS,
     )
+    @listener_ns.response(
+        200, "Retrieved all listener data successfully", LISTENERS_GET_SUCCESS_MODEL
+    )
+    @listener_ns.marshal_with(LISTENERS_GET_SUCCESS_MODEL)
     def get(self):
         """
         Gets all listeners
@@ -217,15 +192,13 @@ class Listeners(Resource):
     @listener_ns.doc(
         summary="Spawn a new listener, and Create a new listener entry.",
         description="Create a new listener. Returns an listener ID to use with that listener",
-        responses={
-            200: "Success",
-            404: "Not found",
-            400: "Bad request",
-            500: "Server Error",
-            405: "Method Not Allowed",
-        },
+        responses=COMMON_ERRORS,
     )
-    @listener_ns.expect(listener_spawn_model)
+    @listener_ns.expect(LISTENERS_POST_INPUT_MODEL)
+    @listener_ns.response(
+        200, "Successfully created a new listener", LISTENERS_POST_SUCCESS_MODEL
+    )
+    @listener_ns.marshal_with(LISTENERS_POST_SUCCESS_MODEL)
     def post(self):
         """
         Spawn a new listener
@@ -247,28 +220,13 @@ class Listeners(Resource):
         )
 
         # data into dataclass
-        try:
-            listener_uuid = str(uuid7())
-            listener_dataclass = ListenerCreate(
-                # unwrap data into a dataclass
-                **api.payload,
-                # add on a listener UUID
-                listener_uuid=listener_uuid,
-            )
-        except TypeError as e:
-            # This happens if api.payload has missing or extra fields
-            api_response = APIResponse(
-                status="400",
-                message=f"Bad data: {e}",
-                data={},
-            )
-        except ValueError as e:
-            # This happens if field types are wrong
-            api_response = APIResponse(
-                status="400",
-                message=f"Invalid value: {e}",
-                data={},
-            )
+        listener_uuid = str(uuid7())
+        listener_dataclass = ListenerCreate(
+            # unwrap data into a dataclass
+            **api.payload,
+            # add on a listener UUID
+            listener_uuid=listener_uuid,
+        )
 
         # try to start listener, if successful, put into db
         start_listener(listener_dataclass)

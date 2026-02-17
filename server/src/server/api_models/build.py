@@ -29,7 +29,7 @@ def wrap_response(api, inner_model):
 # teh model for the specific endpoint
 # do classname_method_MODEL
 BUILD_GET_MODEL = api.model(
-    "BuildItem",
+    "BUILD_GET_MODEL",
     {
         # "id": fields.Integer(
         #     example=1,
@@ -63,7 +63,7 @@ BUILD_GET = wrap_response(api, BUILD_GET_MODEL)
 ####################
 
 BUILDJOBS_GET_MODEL = api.model(
-    "BuildStatus",
+    "BUILDJOBS_GET_MODEL",
     {
         # "id": fields.Integer(
         #     example=1,
@@ -93,7 +93,7 @@ BUILDJOBS_GET_MODEL = api.model(
 # BinaryActions
 ####################
 BINARYACTIONS_DELETE_SUCCESS_MODEL = api.model(
-    "SuccessResponse",
+    "BINARYACTIONS_DELETE_SUCCESS_MODEL",
     {
         "status": fields.String(example="200"),
         "message": fields.String(example="Success"),

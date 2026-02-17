@@ -3,23 +3,6 @@
 
 ### /build/
 
-#### GET
-##### Summary:
-
-Get a list of all payloads in the Database
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| X-Fields | header | An optional fields mask | No | string (mask) |
-
-##### Responses
-
-| Code | Description | Schema |
-| ---- | ----------- | ------ |
-| 200 | Success | [BuildItemWrapper](#BuildItemWrapper) |
-
 #### POST
 ##### Summary:
 
@@ -41,13 +24,28 @@ which can be used to poll the status via `GET /builds/{build_uuid}`.
 
 ##### Responses
 
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 400 | Bad request |
-| 404 | Not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
+| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
+| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
+
+#### GET
+##### Summary:
+
+Get a list of all payloads in the Database
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| X-Fields | header | An optional fields mask | No | string (mask) |
+
+##### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | Success | [BUILD_GET_MODELWrapper](#BUILD_GET_MODELWrapper) |
 
 ### /build/jobs/{build_uuid}
 
@@ -77,34 +75,9 @@ Please use:
 
 | Code | Description | Schema |
 | ---- | ----------- | ------ |
-| 200 | Success | [BuildStatus](#BuildStatus) |
+| 200 | Success | [BUILDJOBS_GET_MODEL](#BUILDJOBS_GET_MODEL) |
 
 ### /build/{hash}
-
-#### GET
-##### Summary:
-
-Download a specific payload artifact, based on the provided hash
-
-##### Description:
-
-Downloads a single implant
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| hash | path | Hash of implant | Yes | string |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Binary File Stream |
-| 400 | Bad request |
-| 404 | Payload Not Found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
 
 #### DELETE
 ##### Summary:
@@ -126,11 +99,34 @@ Deletes a single implant
 
 | Code | Description | Schema |
 | ---- | ----------- | ------ |
-| 200 | Deletion Successful | [SuccessResponse](#SuccessResponse) |
-| 400 | Bad request |  |
-| 404 | Payload Not Found |  |
-| 405 | Method Not Allowed |  |
-| 500 | Server Error |  |
+| 200 | Deletion Successful | [BINARYACTIONS_DELETE_SUCCESS_MODEL](#BINARYACTIONS_DELETE_SUCCESS_MODEL) |
+| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
+| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
+| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
+
+#### GET
+##### Summary:
+
+Download a specific payload artifact, based on the provided hash
+
+##### Description:
+
+Downloads a single implant
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| hash | path | Hash of implant | Yes | string |
+
+##### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | Binary File Stream |  |
+| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
+| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
+| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
 
 ### /build/{hash}/source
 
@@ -151,40 +147,14 @@ Retrieves the source code archive (ZIP) for a specific implant build.
 
 ##### Responses
 
-| Code | Description |
-| ---- | ----------- |
-| 200 | Source Code Archive (ZIP) |
-| 400 | Bad request |
-| 404 | Source Code Not Found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | Source Code Archive (ZIP) |  |
+| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
+| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
+| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
 
 ### /implants/
-
-#### GET
-##### Summary:
-
-Gets all implants
-
-##### Description:
-
-Retrieve all implants the server knows about.
-1. Gets a MYSQL Session
-
-2. Retrieves all records in 'implant' table
-
-3. Returns said data in JSON  format.
-
-Note: There is no pagination on this. If there's a lot of entries, this request may take a while.
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 404 | Implant not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
 
 #### POST
 ##### Summary:
@@ -209,6 +179,31 @@ Note: This will create "ghost" sessions with no metadata. Metadata gets updated 
 | 200 | Success |
 | 400 | Bad Request |
 | 404 | Not found |
+| 405 | Method Not Allowed |
+| 500 | Server Error |
+
+#### GET
+##### Summary:
+
+Gets all implants
+
+##### Description:
+
+Retrieve all implants the server knows about.
+1. Gets a MYSQL Session
+
+2. Retrieves all records in 'implant' table
+
+3. Returns said data in JSON  format.
+
+Note: There is no pagination on this. If there's a lot of entries, this request may take a while.
+
+##### Responses
+
+| Code | Description |
+| ---- | ----------- |
+| 200 | Success |
+| 404 | Implant not found |
 | 405 | Method Not Allowed |
 | 500 | Server Error |
 
@@ -270,6 +265,39 @@ Returns a list of dicts, with implants that have said term in them.
 
 ### /implants/{uuid}
 
+#### DELETE
+##### Summary:
+
+Deletes one implant based on user supplied ID
+
+##### Description:
+
+Delete a single implant by its unique ID.
+1. Gets a MYSQL Session
+
+2. Deletes 1 record in 'implant' table based on ID
+
+3. Returns said data in JSON format.
+
+Note: Operationally, it might be best to not delete old records unless the user wants to.
+    ID's are NOT reused after deleting, so if you delete record 1, said ID will NOT be reused upon calling `POST /v1/api/implants/`
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| uuid | path | Agent ID (64-bit integer) | Yes | string |
+
+##### Responses
+
+| Code | Description |
+| ---- | ----------- |
+| 200 | Success |
+| 400 | Bad Request |
+| 404 | Implant not found |
+| 405 | Method Not Allowed |
+| 500 | Server Error |
+
 #### PUT
 ##### Summary:
 
@@ -325,40 +353,40 @@ Retrieve a single implant by its unique ID.
 | 405 | Method Not Allowed |
 | 500 | Server Error |
 
-#### DELETE
+### /implants/{uuid}/task
+
+#### POST
 ##### Summary:
 
-Deletes one implant based on user supplied ID
+Add a task to a single implant by its unique ID
 
 ##### Description:
 
-Delete a single implant by its unique ID.
-1. Gets a MYSQL Session
+Add a task to a single implant by its unique ID. Data is supplied in the body of the request.
+Data is supplied in the body of the request.
 
-2. Deletes 1 record in 'implant' table based on ID
+Returns a task_uuid for tracking the task:
 
-3. Returns said data in JSON format.
+{"task_uuid": task_uuid}
 
-Note: Operationally, it might be best to not delete old records unless the user wants to.
-    ID's are NOT reused after deleting, so if you delete record 1, said ID will NOT be reused upon calling `POST /v1/api/implants/`
+Note, this accepts a task in the form of a JSON body, OR a MSGPACK blob (with content-type header of application/msgpack). The server will convert the task into a MSGPACK blob before putting it in the queue, so either format can be used by the client.
 
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
 | uuid | path | Agent ID (64-bit integer) | Yes | string |
+| payload | body |  | Yes | [Task](#Task) |
 
 ##### Responses
 
 | Code | Description |
 | ---- | ----------- |
 | 200 | Success |
-| 400 | Bad Request |
-| 404 | Implant not found |
+| 400 | Bad request |
+| 404 | Task not found |
 | 405 | Method Not Allowed |
 | 500 | Server Error |
-
-### /implants/{uuid}/task
 
 #### GET
 ##### Summary:
@@ -394,28 +422,22 @@ Meant to be called by listeners, to get the next task to forward to the implant.
 | 405 | Method Not Allowed |
 | 500 | Server Error |
 
-#### POST
+### /implants/{uuid}/tasks
+
+#### DELETE
 ##### Summary:
 
-Add a task to a single implant by its unique ID
+Delete all the currently queued tasks of an agent
 
 ##### Description:
 
-Add a task to a single implant by its unique ID. Data is supplied in the body of the request.
-Data is supplied in the body of the request.
-
-Returns a task_uuid for tracking the task:
-
-{"task_uuid": task_uuid}
-
-Note, this accepts a task in the form of a JSON body, OR a MSGPACK blob (with content-type header of application/msgpack). The server will convert the task into a MSGPACK blob before putting it in the queue, so either format can be used by the client.
+Delete all the tasks of an implant
 
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
 | uuid | path | Agent ID (64-bit integer) | Yes | string |
-| payload | body |  | Yes | [Task](#Task) |
 
 ##### Responses
 
@@ -426,8 +448,6 @@ Note, this accepts a task in the form of a JSON body, OR a MSGPACK blob (with co
 | 404 | Task not found |
 | 405 | Method Not Allowed |
 | 500 | Server Error |
-
-### /implants/{uuid}/tasks
 
 #### GET
 ##### Summary:
@@ -457,31 +477,6 @@ with the task being a base64 encoded MSGPACK blob.
 | Code | Description |
 | ---- | ----------- |
 | 200 | Success |
-| 404 | Task not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
-
-#### DELETE
-##### Summary:
-
-Delete all the currently queued tasks of an agent
-
-##### Description:
-
-Delete all the tasks of an implant
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| uuid | path | Agent ID (64-bit integer) | Yes | string |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 400 | Bad request |
 | 404 | Task not found |
 | 405 | Method Not Allowed |
 | 500 | Server Error |
@@ -538,32 +533,6 @@ Ex:
 
 ### /listeners/
 
-#### GET
-##### Summary:
-
-Gets all listeners
-
-##### Description:
-
-Retrieve all listeners in the DB.
-1. Gets a MYSQL Session
-
-2. Retrieves all records in 'listeners' table
-
-3. Returns said data in JSON format.
-
-Note: There is no pagination on this. If there's a lot of entries, this request may take a while.
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 400 | Bad request |
-| 404 | Not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
-
 #### POST
 ##### Summary:
 
@@ -582,49 +551,50 @@ Create a new listener. Returns an listener ID to use with that listener
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| payload | body |  | Yes | [ListenerSpawnModel](#ListenerSpawnModel) |
+| payload | body |  | Yes | [LISTENERS_POST_INPUT_MODEL](#LISTENERS_POST_INPUT_MODEL) |
+| X-Fields | header | An optional fields mask | No | string (mask) |
 
 ##### Responses
 
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 400 | Bad request |
-| 404 | Not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
-
-### /listeners/{uuid}
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | Successfully created a new listener | [LISTENER_DELETE_RESPONSE_MODEL](#LISTENER_DELETE_RESPONSE_MODEL) |
+| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
+| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
+| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
 
 #### GET
 ##### Summary:
 
-Gets one listener based on user supplied ID
+Gets all listeners
 
 ##### Description:
 
-Retrieve a single listener by its unique ID.
+Retrieve all listeners in the DB.
 1. Gets a MYSQL Session
 
-2. Retrieves 1 record in 'listeners' table based on ID
+2. Retrieves all records in 'listeners' table
 
 3. Returns said data in JSON format.
+
+Note: There is no pagination on this. If there's a lot of entries, this request may take a while.
 
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
-| uuid | path | Listener ID (uuid) | Yes | string |
+| X-Fields | header | An optional fields mask | No | string (mask) |
 
 ##### Responses
 
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 400 | Bad request |
-| 404 | Not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | Retrieved all listener data successfully | [LISTENERS_GET_RESPONSE_ITEM_MODELWrapper](#LISTENERS_GET_RESPONSE_ITEM_MODELWrapper) |
+| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
+| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
+| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
+
+### /listeners/{uuid}
 
 #### DELETE
 ##### Summary:
@@ -645,29 +615,67 @@ Stops one listener based on user supplied ID
 | Name | Located in | Description | Required | Schema |
 | ---- | ---------- | ----------- | -------- | ---- |
 | uuid | path | Listener ID (uuid) | Yes | string |
+| X-Fields | header | An optional fields mask | No | string (mask) |
 
 ##### Responses
 
-| Code | Description |
-| ---- | ----------- |
-| 200 | Success |
-| 400 | Bad request |
-| 404 | Not found |
-| 405 | Method Not Allowed |
-| 500 | Server Error |
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | The listener was deleted successfully | [LISTENER_DELETE_RESPONSE_MODEL](#LISTENER_DELETE_RESPONSE_MODEL) |
+| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
+| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
+| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
+
+#### GET
+##### Summary:
+
+Gets one listener based on user supplied ID
+
+##### Description:
+
+Retrieve a single listener by its unique ID.
+1. Gets a MYSQL Session
+
+2. Retrieves 1 record in 'listeners' table based on ID
+
+3. Returns said data in JSON format.
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ---- |
+| uuid | path | Listener ID (uuid) | Yes | string |
+| X-Fields | header | An optional fields mask | No | string (mask) |
+
+##### Responses
+
+| Code | Description | Schema |
+| ---- | ----------- | ------ |
+| 200 | Retrieved listener data successfully | [LISTENER_GET_RESPONSE_ITEM_MODELWrapper](#LISTENER_GET_RESPONSE_ITEM_MODELWrapper) |
+| 400 | Bad Request | [ErrorResponse](#ErrorResponse) |
+| 404 | Not Found | [ErrorResponse](#ErrorResponse) |
+| 500 | Internal Server Error | [ErrorResponse](#ErrorResponse) |
 
 ### Models
 
 
-#### BuildItemWrapper
+#### ErrorResponse
 
 | Name | Type | Description | Required |
 | ---- | ---- | ----------- | -------- |
-| data | [ [BuildItem](#BuildItem) ] |  | No |
+| status | string | The HTTP error code | No |
+| message | string | The error message | No |
+| data | object | Extra error details | No |
+
+#### BUILD_GET_MODELWrapper
+
+| Name | Type | Description | Required |
+| ---- | ---- | ----------- | -------- |
+| data | [ [BUILD_GET_MODEL](#BUILD_GET_MODEL) ] |  | No |
 | message | string |  | No |
 | status | string |  | No |
 
-#### BuildItem
+#### BUILD_GET_MODEL
 
 | Name | Type | Description | Required |
 | ---- | ---- | ----------- | -------- |
@@ -676,7 +684,7 @@ Stops one listener based on user supplied ID
 | payload_name | string | The name of the payload in the Database | No |
 | payload_hash | string | The MD5 hash of the Payload after it is build. This is initially blank, and filled in when the payload has been successfully compiled. | No |
 
-#### BuildStatus
+#### BUILDJOBS_GET_MODEL
 
 | Name | Type | Description | Required |
 | ---- | ---- | ----------- | -------- |
@@ -685,7 +693,7 @@ Stops one listener based on user supplied ID
 | payload_name | string | The name of the payload in the Database | No |
 | payload_hash | string | The MD5 hash of the Payload after it is build. This is initially blank, and filled in when the payload has been successfully compiled. | No |
 
-#### SuccessResponse
+#### BINARYACTIONS_DELETE_SUCCESS_MODEL
 
 | Name | Type | Description | Required |
 | ---- | ---- | ----------- | -------- |
@@ -735,7 +743,37 @@ Stops one listener based on user supplied ID
 | ---- | ---- | ----------- | -------- |
 | search_term | string | Term to search for. | Yes |
 
-#### ListenerSpawnModel
+#### LISTENER_DELETE_RESPONSE_MODEL
+
+| Name | Type | Description | Required |
+| ---- | ---- | ----------- | -------- |
+| status | string |  | No |
+| message | string |  | No |
+| data | string | No data returned | No |
+
+#### LISTENER_GET_RESPONSE_ITEM_MODELWrapper
+
+| Name | Type | Description | Required |
+| ---- | ---- | ----------- | -------- |
+| data | [LISTENER_GET_RESPONSE_ITEM_MODEL](#LISTENER_GET_RESPONSE_ITEM_MODEL) |  | No |
+| message | string |  | No |
+| status | string |  | No |
+
+#### LISTENER_GET_RESPONSE_ITEM_MODEL
+
+| Name | Type | Description | Required |
+| ---- | ---- | ----------- | -------- |
+| listener_active | boolean | Whether the listener is currently running | No |
+| listener_host | string | The IP or DNS host the listener binds to | No |
+| listener_name | string | User-defined name for the listener | No |
+| listener_notes | string | Optional notes about the listener | No |
+| listener_port | integer | Port number | No |
+| listener_profile_contents | string | The full Malleable C2 profile configuration text | No |
+| listener_profile_name | string | The filename of the profile | No |
+| listener_type | string | Protocol type (http, https, etc) | No |
+| listener_uuid | string | Unique identifier for the listener | No |
+
+#### LISTENERS_POST_INPUT_MODEL
 
 | Name | Type | Description | Required |
 | ---- | ---- | ----------- | -------- |
@@ -746,3 +784,25 @@ Stops one listener based on user supplied ID
 | listener_notes | string | Listener notes | No |
 | listener_profile_name | string | Listener malleable c2 profile name | Yes |
 | listener_profile_contents | string | Listener malleable c2 profile contents (i.e., read the profile, and pass that string here) | Yes |
+
+#### LISTENERS_GET_RESPONSE_ITEM_MODELWrapper
+
+| Name | Type | Description | Required |
+| ---- | ---- | ----------- | -------- |
+| data | [ [LISTENERS_GET_RESPONSE_ITEM_MODEL](#LISTENERS_GET_RESPONSE_ITEM_MODEL) ] |  | No |
+| message | string |  | No |
+| status | string |  | No |
+
+#### LISTENERS_GET_RESPONSE_ITEM_MODEL
+
+| Name | Type | Description | Required |
+| ---- | ---- | ----------- | -------- |
+| listener_active | boolean |  | No |
+| listener_host | string |  | No |
+| listener_name | string |  | No |
+| listener_notes | string |  | No |
+| listener_port | integer |  | No |
+| listener_profile_contents | string | Malleable C2 Profile Text | No |
+| listener_profile_name | string |  | No |
+| listener_type | string |  | No |
+| listener_uuid | string |  | No |

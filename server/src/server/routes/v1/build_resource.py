@@ -6,10 +6,11 @@ from edwh_uuid7 import uuid7
 from flask import request, send_file
 from flask_restx import Namespace, Resource, fields
 
+from ...api_models.build import *
+from ...api_models.error import *
 from ...db.mysql_connector import get_mysql_session
 from ...instance import api
 from ...listeners.supervisor import start_listener, stop_listener
-from ...models.build import *
 from ...modules.implant_builder.build import build_implant
 from ...modules.implant_builder.types import (  # Assuming you created the types above
     BuildJobConfig,
@@ -26,6 +27,18 @@ api_logger = logging.getLogger("api")
 server_logger = logging.getLogger("server")
 
 
+# Error handlers - tldr, on exception, these will flag
+# can remove try/except
+@build_ns.errorhandler(ValueError)
+def handle_value_error(e):
+    return {"status": "400", "message": str(e), "data": None}, 400
+
+
+@build_ns.errorhandler(Exception)
+def handle_general_error(e):
+    return {"status": "500", "message": "An internal error occurred", "data": None}, 500
+
+
 # come back to this for models later lol
 class Build(Resource):
     @build_ns.doc(
@@ -35,13 +48,7 @@ class Build(Resource):
                 "in": "path",
             }
         },
-        responses={
-            200: "Success",
-            404: "Not found",
-            400: "Bad request",
-            500: "Server Error",
-            405: "Method Not Allowed",
-        },
+        responses=COMMON_ERRORS,
     )
     # @build_ns.expect(BUILD_POST_INPUT_MODEL, validate=False)  # flip to True to enforce
     def post(self):
@@ -186,11 +193,7 @@ class BinaryActions(Resource):
                 "in": "path",
             }
         },
-        responses={
-            400: "Bad request",
-            500: "Server Error",
-            405: "Method Not Allowed",
-        },
+        responses=COMMON_ERRORS,
     )
     @build_ns.produces(["application/octet-stream"])
     @build_ns.response(
@@ -240,11 +243,7 @@ class BinaryActions(Resource):
                 "in": "path",
             }
         },
-        responses={
-            400: "Bad request",
-            500: "Server Error",
-            405: "Method Not Allowed",
-        },
+        responses=COMMON_ERRORS,
     )
     # show a model for what happens when nothing is here
     @build_ns.response(200, "Deletion Successful", BINARYACTIONS_DELETE_SUCCESS_MODEL)
@@ -281,11 +280,7 @@ class SourceActions(Resource):
         description="Retrieves the source code archive (ZIP) for a specific implant build.",
         params={"hash": "The MD5 hash of the payload source to download"},
         # keeping simpler responses here
-        responses={
-            400: "Bad request",
-            500: "Server Error",
-            405: "Method Not Allowed",
-        },
+        responses=COMMON_ERRORS,
     )
     @build_ns.produces(["application/octet-stream", "application/zip"])
     # important to response options here
