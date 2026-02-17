@@ -28,6 +28,10 @@ ui.add_head_html(
     '<link rel="stylesheet" type="text/css" href="/static/theme.css">', shared=True
 )
 
+# a tweak for native to allow dl's
+# https://github.com/zauberzeug/nicegui/issues/3402
+# app.native.settings['ALLOW_DOWNLOADS'] = True
+
 
 # ui.run(native=True, dark=True)
 ui.run(

@@ -120,14 +120,14 @@ async def listener_view():
 async def render_listeners_table():  # 'data' arg is kept for compatibility, but we fetch fresh data inside
     """Renders the list of listeners in a dashboard table with auto-updates"""
 
-    # --- 1. SEARCH BAR ---
+    # --- SEARCH BAR ---
     filter_text = (
         ui.input(placeholder="SEARCH LISTENERS...")
         .props("outlined dense dark color=emerald input-class=text-xs")
         .classes("m-3 w-96")
     )
 
-    # --- 2. DEFINE COLUMNS ---
+    # --- DEFINE COLUMNS ---
     columns = [
         {
             "name": "name",
@@ -167,7 +167,7 @@ async def render_listeners_table():  # 'data' arg is kept for compatibility, but
         },
     ]
 
-    # --- 3. INITIALIZE TABLE ---
+    # --- INITIALIZE TABLE ---
     # We start with empty rows; the timer will populate them immediately.
     table = (
         ui.table(
@@ -221,7 +221,7 @@ async def render_listeners_table():  # 'data' arg is kept for compatibility, but
         except Exception as e:
             print(f"Error updating listener table: {e}")
 
-    # --- 5. START TIMER (Updates every 2 seconds to allow clicking checkboxes) ---
+    # --- START TIMER ---
     ui.timer(2.0, update_table_data)
 
     # Run once immediately so the user doesn't wait

@@ -150,6 +150,8 @@
             - [ ] docs about metadata.
 
 
+      > Leftoff doing some gui cleanup, and added listener restarts. 
+
       [ ] add generic error handling/base64 err handling when a command input doesn't pass/fails? tldr, bad command in, sometimes a blank output on term
 
       [X] fix cmd descs in gui
