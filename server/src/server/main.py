@@ -7,6 +7,7 @@ from flask import Flask
 from .db.mysql_connector import mysql_setup
 from .db.redis_connector import get_redis_connection
 from .instance import api, app, env_config
+from .listeners.supervisor import restart_active_listeners
 from .listeners.watchdog import start_watchdog
 from .log import *
 from .modules.task.task_batch_job import start_task_batch_job
@@ -99,5 +100,8 @@ if __name__ == "__main__":
 
     start_watchdog()
     start_task_batch_job()
+
+    # restart listeners
+    restart_active_listeners()
 
     app.run(host="0.0.0.0", port=45045, debug=False)
