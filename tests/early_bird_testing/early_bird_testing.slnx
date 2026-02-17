@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="mem_store.vcxproj" Id="8466b4d8-1172-4631-9fea-bab912c7c775" />
+  <Project Path="early_bird_testing.vcxproj" />
 </Solution>

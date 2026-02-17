@@ -1,9 +1,9 @@
 #pragma once
 #include <map>
-#include <variant>
 #include <string>
 #include <vector>
 #include <iostream>
+#include <windows.h>
 
 //uses c types for simplicity, easier to do this, and just pass  in values from c++ types as needed.
 void XOR(unsigned char* data, size_t data_size, const char* key, size_t key_size) {
@@ -36,8 +36,6 @@ void XOR(unsigned char* data, size_t data_size, const char* key, size_t key_size
 
 class MemStore {
 public:
-    // --- THE SINGLETON PART ---
-
     // This is the global access point. 
     // It creates the instance the first time it's called, and returns it forever after.
     static MemStore& instance() {
@@ -66,18 +64,42 @@ public:
         memstore_map_[key] = std::move(data);
     }
 
+    int remove(const std::string& key) {
+        auto it = memstore_map_.find(key);
 
-    //overload for if we want to store strings/text? Can also just convert back to string if we know type... maybe later. 
-    //void set(const std::string& key, std::vector<uint8_t> data) {
-    //    memstore_map_[key] = value;
-    //}
+        if (it != memstore_map_.end()) {
+            memstore_map_.erase(it);
+            return ERROR_SUCCESS;
+        }
+        return ERROR_NOT_FOUND;
+    }
+
+    int clear() {
+        //clear sets size to 0, and removes elemnts
+        memstore_map_.clear();
+
+        //disregarding this check for now. clear is guaranteed to clear, my only concern is that an EDR
+        // could set the page to readonly, etc and when trying to clear, the implant gets a 5 access denied/not everything is cleared.
+        //if (memstore_map_.size() > 0) {
+        //}
+        
+        return ERROR_SUCCESS;
+    }
+
+    std::vector<std::string> get_file_names() {
+        std::vector<std::string> key_names{};
+        for (auto [key, value] : memstore_map_) {
+            key_names.push_back(key);
+        }
+        return key_names;
+    }
 
     std::vector<uint8_t> get(const std::string& key) const {
         auto it = memstore_map_.find(key);
 
         if (it != memstore_map_.end()) {
             std::vector<uint8_t> data{ it->second.begin(), it->second.end() };
-            XOR(&data[0], data.size(), key.c_str(), key.size());
+            XOR(data.data(), data.size(), key.c_str(), key.size());
 
             return data;
         }
@@ -101,21 +123,96 @@ SettingsManager::instance().set("host_ip", "192.168.1.50");
 int port = SettingsManager::instance().get<int>("port", 80);
 */
 
+/*
+Test here
+
+*/
+void print_hex(const std::string& label, const std::vector<uint8_t>& data) {
+    std::cout << "   " << label << " [" << data.size() << " bytes]: { ";
+    for (auto b : data) {
+        printf("0x%02X ", b);
+    }
+    std::cout << "}\n";
+}
 
 int main() {
-    std::string data{ "Somedat that no one really cares about hopefully the quick brown fox jumps over the lazy dog. " };
-    std::vector<uint8_t> data_before = { data.begin(), data.end()};
-    std::cout << "Before:" << std::endl;
-    for (auto d : data_before) {
-        std::cout << d;
+    std::cout << "=== MemStore Comprehensive Lifecycle Test ===\n\n";
+
+    // 1. Initial Data Setup
+    std::string key1 = "network_cfg";
+    std::string data1 = "192.168.1.1:8080";
+
+    std::string key2 = "api_key";
+    std::string data2 = "SG.v2_super_secret_token";
+
+    // ---------------------------------------------------------
+    // TEST: store()
+    // ---------------------------------------------------------
+    std::cout << "[*] TEST: store() - Adding multiple entries\n";
+    MemStore::instance().store(key1, std::vector<uint8_t>(data1.begin(), data1.end()));
+    MemStore::instance().store(key2, std::vector<uint8_t>(data2.begin(), data2.end()));
+    std::cout << "    >> Stored '" << key1 << "' and '" << key2 << "'\n\n";
+
+    // ---------------------------------------------------------
+    // TEST: get_file_names()
+    // ---------------------------------------------------------
+    // This allows us to see what keys currently exist in the map.
+
+    std::cout << "[*] TEST: get_file_names()\n";
+    std::vector<std::string> keys = MemStore::instance().get_file_names();
+    std::cout << "    Current keys in store: ";
+    for (const auto& k : keys) {
+        std::cout << "[" << k << "] ";
     }
-    MemStore::instance().store("mydata", data_before);
+    std::cout << "\n\n";
 
-    std::vector<uint8_t> data_after =  MemStore::instance().get("mydata");
+    // ---------------------------------------------------------
+    // TEST: get() - Roundtrip validation
+    // ---------------------------------------------------------
+    std::cout << "[*] TEST: get() - Validating integrity\n";
+    std::vector<uint8_t> retrieved = MemStore::instance().get(key2);
+    std::string decryptedStr(retrieved.begin(), retrieved.end());
 
-    std::cout << "After:" << std::endl;
-    for (auto d : data_after) {
-        std::cout << d;
+    if (decryptedStr == data2) {
+        std::cout << "    [PASS] Retrieval match: " << decryptedStr << "\n";
+    }
+    else {
+        std::cout << "    [FAIL] Data corruption detected!\n";
+    }
+    std::cout << "\n";
+
+    // ---------------------------------------------------------
+    // TEST: remove() - Success and Failure modes
+    // ---------------------------------------------------------
+    std::cout << "[*] TEST: remove()\n";
+
+    // Test successful removal
+    int resOk = MemStore::instance().remove(key1);
+    // Test removing something that isn't there
+    int resFail = MemStore::instance().remove("non_existent_key");
+
+    if (resOk == ERROR_SUCCESS) {
+        std::cout << "    [PASS] Successfully removed '" << key1 << "'\n";
+    }
+    if (resFail == ERROR_NOT_FOUND) {
+        std::cout << "    [PASS] Correctly returned ERROR_NOT_FOUND for missing key.\n";
+    }
+    std::cout << "\n";
+
+    // ---------------------------------------------------------
+    // TEST: clear()
+    // ---------------------------------------------------------
+    std::cout << "[*] TEST: clear() - Wiping the store\n";
+    MemStore::instance().clear();
+
+    std::vector<std::string> finalKeys = MemStore::instance().get_file_names();
+    if (finalKeys.empty()) {
+        std::cout << "    [PASS] Store is now empty.\n";
+    }
+    else {
+        std::cout << "    [FAIL] Store still contains " << finalKeys.size() << " items.\n";
     }
 
+    std::cout << "\n=== All Class Functions Tested ===\n";
+    return 0;
 }
