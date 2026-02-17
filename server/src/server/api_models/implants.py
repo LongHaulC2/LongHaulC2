@@ -293,7 +293,7 @@ IMPLANT_HISTORY_GET_MODEL = api.model(
     },
 )
 IMPLANT_HISTORY_GET_RESPONSE = wrap_response_list(
-    api, IMPLANTS_GET_MODEL
+    api, IMPLANT_HISTORY_GET_MODEL
 )  # Note: Using generic list wrapper for now
 
 
