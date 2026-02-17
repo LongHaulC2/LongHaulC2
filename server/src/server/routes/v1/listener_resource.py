@@ -118,6 +118,64 @@ class Listener(Resource):
         )
         return api_response
 
+    @listener_ns.doc(
+        summary="Restart a listener",
+        description="Restart a listener",
+        responses=COMMON_ERRORS,
+        params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
+    )
+    @listener_ns.response(
+        200, "The listener was restarted successfully", LISTENER_PATCH_RESPONSE
+    )
+    @listener_ns.marshal_with(LISTENER_PATCH_RESPONSE)
+    def patch(self, uuid):
+        """
+        Restart a listener. Using PATCH as the resource is being updated, not replaced, as PUT dictates
+
+        """
+
+        # get listener uuid
+
+        # get data of that listener
+        with get_mysql_session() as session:
+            listener_service = ListenerService(session)
+            listeners = listener_service.get_by_id(uuid)
+
+            if listeners is None:
+                # can raise, and flask will handle the err for us
+                raise ValueError
+
+            listener_data = listeners.to_dict()
+
+        # stop it
+        stop_listener(listener_uuid=uuid)
+
+        # put together data again
+        listener_dataclass = ListenerCreate(**listener_data)
+
+        # set as inactive, just in case it bugs out and doesn't restart
+        with get_mysql_session() as session:
+            listener_service = ListenerService(session)
+            # update listener to be active in the DB
+            listener_service.set_active(uuid, active=False)
+
+        # try to start listener, if successful, put into db
+        start_listener(listener_dataclass)
+
+        # get a session
+        with get_mysql_session() as session:
+            listener_service = ListenerService(session)
+            # update listener to be active in the DB
+            listener_service.set_active(uuid, active=True)
+            # and in the dataclass for the response
+            listener_dataclass.listener_active = True
+
+        api_response = APIResponse(
+            status=200,
+            message="Listener restarted successfully",
+        )
+        return api_response
+
 
 class Listeners(Resource):
     @listener_ns.doc(

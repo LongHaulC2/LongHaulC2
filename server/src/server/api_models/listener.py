@@ -45,7 +45,7 @@ def wrap_response_empty(api, model_name):
 
 ######################################################################
 # Class: Listener
-# Routes: GET /<uuid>, DELETE /<uuid>
+# Routes: GET /<uuid>, DELETE /<uuid>, PATCH /<uuid>
 ######################################################################
 
 # --- GET /<uuid> ---
@@ -87,6 +87,9 @@ LISTENER_GET_RESPONSE = wrap_response_single(api, LISTENER_GET_MODEL)
 # --- DELETE /<uuid> ---
 LISTENER_DELETE_RESPONSE = wrap_response_empty(api, "LISTENER_DELETE_RESPONSE")
 
+
+# --- PATCH /<uuid> ---
+LISTENER_PATCH_RESPONSE = wrap_response_empty(api, "LISTENER_PATCH_RESPONSE")
 
 ######################################################################
 # Class: Listeners
