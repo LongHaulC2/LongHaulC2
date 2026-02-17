@@ -6,6 +6,8 @@ from edwh_uuid7 import uuid7
 from flask import request
 from flask_restx import Namespace, Resource, fields
 
+from ...api_models.error import *
+from ...api_models.implants import *
 from ...db.mysql_connector import get_mysql_session
 from ...instance import api
 from ...modules.mysql_functions import (
@@ -25,6 +27,19 @@ api_logger = logging.getLogger("api")
 server_logger = logging.getLogger("server")
 
 from flask_restx import fields
+
+
+# Error handlers - tldr, on exception, these will flag
+# can remove try/except
+@implants_ns.errorhandler(ValueError)
+def handle_value_error(e):
+    return {"status": "400", "message": str(e), "data": None}, 400
+
+
+@implants_ns.errorhandler(Exception)
+def handle_general_error(e):
+    return {"status": "500", "message": "An internal error occurred", "data": None}, 500
+
 
 implant_update_model = api.model(
     # these are req'd false, as they are not technically all needed to make the req
@@ -158,14 +173,12 @@ class Implants(Resource):
     @implants_ns.doc(
         summary="Create a new implant entry.",
         description="Create a new implant entry. Returns an Implant ID to use with that implant",
-        responses={
-            200: "Success",
-            404: "Not found",
-            400: "Bad Request",
-            500: "Server Error",
-            405: "Method Not Allowed",
-        },
+        responses=COMMON_ERRORS,
     )
+    @implants_ns.response(
+        200, "An entry was created in the database", IMPLANT_POST_SUCCESS_MODEL
+    )
+    @implants_ns.marshal_with(IMPLANT_POST_SUCCESS_MODEL)
     def post(self):
         """
         Create a new implant entry
@@ -292,24 +305,9 @@ class Implant(Resource):
         check_type(uuid, str, "uuid")
 
         # create dataclass from passed in data.
-        try:
-            implant_data = ImplantUpdate(**api.payload)
-            implant_uuid = uuid
 
-        except TypeError as e:
-            # This happens if api.payload has missing or extra fields
-            api_response = APIResponse(
-                status="400",
-                message=f"Bad data: {e}",
-                data={},
-            )
-        except ValueError as e:
-            # This happens if field types are wrong
-            api_response = APIResponse(
-                status="400",
-                message=f"Invalid value: {e}",
-                data={},
-            )
+        implant_data = ImplantUpdate(**api.payload)
+        implant_uuid = uuid
 
         with get_mysql_session() as session:
             implant_service = ImplantService(session)
@@ -491,33 +489,16 @@ class ImplantTask(Resource):
             data = msgpack.unpackb(request.data, raw=False)
         else:
             data = request.json
-        try:
-            # create task ID here
-            # Need to stringify as msgpack needs it as a str, and it's stored as a str in mysql db
-            task_uuid = str(uuid7())
-            task = Task(
-                # unwrap data into a dataclass
-                **data,
-                # add on a task uuid
-                task_uuid=task_uuid,
-            )
 
-        except TypeError as e:
-            # This happens if api.payload has missing or extra fields
-            api_response = APIResponse(
-                status="400",
-                message=f"Bad data: {e}",
-                data={},
-            )
-            return api_response.jsonify()
-        except ValueError as e:
-            # This happens if field types are wrong
-            api_response = APIResponse(
-                status="400",
-                message=f"Invalid value: {e}",
-                data={},
-            )
-            return api_response.jsonify()
+        # create task ID here
+        # Need to stringify as msgpack needs it as a str, and it's stored as a str in mysql db
+        task_uuid = str(uuid7())
+        task = Task(
+            # unwrap data into a dataclass
+            **data,
+            # add on a task uuid
+            task_uuid=task_uuid,
+        )
 
         with get_mysql_session() as session:
             task_service = TaskService(task=task, session=session)
@@ -793,24 +774,7 @@ class ImplantSearch(Resource):
         """
         ip = request.remote_addr
 
-        # create dataclass from passed in data.
-        try:
-            implant_data = Search(**api.payload)
-
-        except TypeError as e:
-            # This happens if api.payload has missing or extra fields
-            api_response = APIResponse(
-                status="400",
-                message=f"Bad data: {e}",
-                data={},
-            )
-        except ValueError as e:
-            # This happens if field types are wrong
-            api_response = APIResponse(
-                status="400",
-                message=f"Invalid value: {e}",
-                data={},
-            )
+        implant_data = Search(**api.payload)
 
         api_logger.info(
             f"Searching implants with term: {implant_data.search_term}",
@@ -856,23 +820,7 @@ class TaskSearch(Resource):
         ip = request.remote_addr
 
         # create dataclass from passed in data.
-        try:
-            search_data = Search(**api.payload)
-
-        except TypeError as e:
-            # This happens if api.payload has missing or extra fields
-            api_response = APIResponse(
-                status="400",
-                message=f"Bad data: {e}",
-                data={},
-            )
-        except ValueError as e:
-            # This happens if field types are wrong
-            api_response = APIResponse(
-                status="400",
-                message=f"Invalid value: {e}",
-                data={},
-            )
+        search_data = Search(**api.payload)
 
         api_logger.info(
             f"Searching implants with term: {search_data.search_term}",
