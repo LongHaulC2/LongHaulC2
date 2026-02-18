@@ -20,6 +20,42 @@ So, what actually makes this suitable for long-haul operations? The entire archi
 ## Images
 
 
+## Command Tree
+I hate it when people don't just include the commands/capabilities of their tools in the readme. Here they are (pulled directly from the help menu in the Web Client):
+
+```
+------
+System
+------
+exit                 : Exit the implant. This will kill the implant process on the host, don't expect a response back from the implant with this command.
+sleep                : Sleep for a specified number of seconds on the host. Ex: `sleep 5`
+-----------
+File System
+-----------
+cd                   : Change the current working directory on the host. Ex: `cd C:\\Users\\`
+ls                   : List the contents of a directory on the host. Ex: `ls C:\\Users\\`
+file download        : Get a file from the host the implant is running on. Ex: `file download C:\\Users\\user\\file.txt`
+file upload          : Upload a file to the host the implant is running on. Ex: `file upload C:\\Users\\user\\file.txt <base64 file contents>` (or, just use the file upload button)
+------------
+Memory Store
+------------
+memstore list        : List all file names in the memstore. Ex: `memstore list`
+memstore upload      : Upload a file to the implant memstore. Ex: `memstore upload <file_name> <base64 file contents>` (or, just use the file upload button, and switch it to memstore)
+memstore download    : Download a file from the implant memory store. Ex: `memstore download <file_name>`
+memstore delete      : Delete a file from the implants memory store. Ex: `memstore delete <file_name>`
+memstore clear       : Clear *all* files in the implants memory store. Ex: `memstore clear <file_name>`
+-----------
+C2 Strategy
+-----------
+strat active         : List the active strategy for the implant.
+strat list           : List the available strategies for the implant.
+strat post           : Set the post strategy for the implant. Ex: `strat post my_post_strategy`
+strat get            : Set the get strategy for the implant. Ex: `strat get my_get_strategy`
+---------
+Execution
+---------
+bof                  : Run a BOF. `bof <base64_bof_object> <args_for_bof_if_any>` OR use the memory store: `bof *memstore_bof_name <args_for_bof_if_any>
+```
 
 
 ## Dev Table of Contents
