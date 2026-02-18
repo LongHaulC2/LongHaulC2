@@ -91,9 +91,10 @@ async def task_tree(command, args, implant_uuid):
                 MemStoreClear,
             ]
             strat_cmds = [StratActive, StratList, StratPost, StratGet]
+            execution_cmds = [BofRunner]
 
             # get the longest command, use that as ref for spacing the :desc
-            all_cmds = system_cmds + fs_cmds + mem_cmds + strat_cmds
+            all_cmds = system_cmds + fs_cmds + mem_cmds + strat_cmds + execution_cmds
 
             # Use max length + 4 buffer for the colon alignment
             global_max_len = max(len(cls.command_name) for cls in all_cmds) + 4
@@ -121,6 +122,7 @@ async def task_tree(command, args, implant_uuid):
             final_output.extend(format_group("File System", fs_cmds))
             final_output.extend(format_group("Memory Store", mem_cmds))
             final_output.extend(format_group("C2 Strategy", strat_cmds))
+            final_output.extend(format_group("Execution", execution_cmds))
 
             final_output.append("\n")
 
@@ -796,7 +798,7 @@ class MemStoreList:
 @dataclass(frozen=True)
 class BofRunner:
     R"""
-    Run a BOF
+    Run a BOF. `bof <base64_bof_object> <args_for_bof_if_any>` OR use the memory store: `bof *memstore_bof_name <args_for_bof_if_any>
     """
 
     command_name = "bof"

@@ -184,6 +184,10 @@
       - [ ] run (does shell execute OR creaet process). Ex, creatprocesss whoami. any exe that it can find in path is valid. basically is running cmd.exe without cmd.exe
          This looks better as it's implant.exe -> process, rather than implant.exe -> cmd.exe -> process. 
 
+      - [ ] tangent - bofs done. 
+         - [ ] Add module docs
+         - [ ] Add notes about the lib too
+         
    > lets close out this branch for now, and start with diff comms to keep things moving. 
    # Implant Comms:
       - [ ] NTP Beacon
