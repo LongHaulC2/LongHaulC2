@@ -181,10 +181,12 @@
             By default, it shuold auto fill to the listener address, but have the ability to add options at compile time
 
       > here, last command to do before comms
+      > still include, but heavily discourage as this isn't really opsec safe for a lot of things. prefer a bof to do this?
       - [ ] run (does shell execute OR creaet process). Ex, creatprocesss whoami. any exe that it can find in path is valid. basically is running cmd.exe without cmd.exe
          This looks better as it's implant.exe -> process, rather than implant.exe -> cmd.exe -> process. 
 
-      - [ ] tangent - bofs done. 
+      - [ ] tangent - bofs
+         - [ ] implementation
          - [ ] Add module docs
          - [ ] Add notes about the lib too
          
