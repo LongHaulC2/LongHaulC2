@@ -754,7 +754,7 @@ class MemStoreDelete:
 @dataclass(frozen=True)
 class MemStoreClear:
     R"""
-    Clear *all* files in the implants memory store. Ex: `memstore clear <file_name>`
+    Clear *all* files in the implants memory store. Ex: `memstore clear`
     """
 
     command_name = "memstore clear"
