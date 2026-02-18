@@ -9,5 +9,7 @@
         "strat",
         "useage",
         "winbase"
-    ]
+    ],
+    "snyk.advanced.organization": "2c660fa1-3d3f-4cda-9727-0102cd874726",
+    "snyk.advanced.autoSelectOrganization": true
 }

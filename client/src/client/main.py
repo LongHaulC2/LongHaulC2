@@ -21,7 +21,7 @@ server_log = logging.getLogger("server")
 # attempt at css
 print("HARDCODED STATIC DIRECTORY FOR CSS LOADING!")
 app.add_static_files(
-    local_directory="/home/ubuntu-dev/LongHaulC2/client/src/client/static",
+    local_directory="C:\\Users\\ryan\\Documents\\GitHub\\LongHaulC2\\client\\src\\client\\static",
     url_path="/static",
 )
 ui.add_head_html(
@@ -35,7 +35,7 @@ ui.add_head_html(
 
 # ui.run(native=True, dark=True)
 ui.run(
-    native=False, dark=True, show=False, reload=False
+    native=True, dark=True, show=False, reload=False
 )  # reload=platform.system() != "Windows")
 # reload false to disable reload, which breaks async on windows
 # https://github.com/zauberzeug/nicegui/issues/486
