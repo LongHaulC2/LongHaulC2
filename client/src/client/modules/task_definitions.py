@@ -1,6 +1,7 @@
 import base64
 from dataclasses import asdict, dataclass
 from enum import Enum
+from typing import Optional
 
 from ..modules.api_calls import get_implant_task_history
 
@@ -320,6 +321,27 @@ async def task_tree(command, args, implant_uuid):
                     ResultType.ERROR,
                     "Invalid memstore command.",
                 )
+
+        case "bof":
+            try:
+                args = args.split()
+                bof_bytes = args[
+                    0
+                ]  # either the bytes of the bof, *or* the *memstore_name
+                bof_args = args[1:]  # the rest of the args are here.
+                bof_args = "".join(bof_args)  # turn args into one str for now
+                # this could get really ugly really quick, ex bof kfasldfjsdfjsakfjsa== myarg
+                # or just do bof *mybof args
+
+                # no args, args are just bof content, either in base64 or a memstore location
+                task = BofRunner(
+                    implant_uuid=implant_uuid, bof_contents=bof_bytes, bof_args=bof_args
+                ).to_task()
+                print(task)
+                return (ResultType.TASK, task)
+
+            except ParseError as e:
+                return (ResultType.ERROR, str(e))
 
         case "exit":
             try:
@@ -769,6 +791,70 @@ class MemStoreList:
             implant_uuid=self.implant_uuid, task=task_detail
         )
         return final_task
+
+
+@dataclass(frozen=True)
+class BofRunner:
+    R"""
+    Run a BOF
+    """
+
+    command_name = "bof"
+    implant_uuid: str
+    # bof_name: str
+    bof_contents: str | bytes  # start with base64. figure out the upload button later
+    bof_args: str = ""
+
+    def __post_init__(self):
+        """Automatically run something when the dataclass is created."""
+
+        if not self.bof_contents:
+            raise ParseError(
+                "The 'bof_contents' argument cannot be None or empty. Ex: `bof <base64>`: `bof aabbcc==`"
+            )
+
+        # bof args might be none if no args
+        # if not self.bof_args:
+        #     raise ParseError(
+        #         "The 'bof_args' argument cannot be None or empty. Ex: `bof <base64>`: `bof aabbcc==`"
+        #     )
+
+    def to_task(self) -> dict:
+        """Convert the dataclass to a task style dictionary structure."""
+        # convert from base64, to bytes, for easier CLI handling
+        try:
+            # option to pass in raw file contents. This is used by the upload buttons
+            if isinstance(self.bof_contents, bytes):
+                task_args = {
+                    "bof_contents": self.bof_contents,
+                    "bof_args": self.bof_args,
+                }
+
+            # if file contents are not raw, aka, some form of text.
+            else:
+                # if user is trying to deref...
+                print(self.bof_contents)
+                if self.bof_contents[0] == "*":
+                    task_args = {
+                        "bof_contents": self.bof_contents,
+                        "bof_args": self.bof_args,
+                    }
+                # otherwise they are passing base64 data
+                else:
+                    bytes_file_contents = base64.b64decode(self.bof_contents)
+                    task_args = {
+                        "bof_contents": bytes_file_contents,
+                        "bof_args": self.bof_args,
+                    }
+
+            task_detail = TaskDetail(task_name=self.command_name, args=task_args)
+            final_task = create_and_verify_task(
+                implant_uuid=self.implant_uuid, task=task_detail
+            )
+            return final_task
+        except Exception as e:
+            # likely base64 err. could  handle this better.
+            raise ParseError
 
 
 @dataclass(frozen=True)

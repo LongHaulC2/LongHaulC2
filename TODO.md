@@ -136,6 +136,13 @@
       [x] `memstore delete`: Nuke file from memory
       [x] `memstore clear`: Nuke all files from memory
       
+      Execution: Way to start new processes? Has to be disk based for winapi
+      [ ] `spawn <base64>` 
+      [ ] `spawn *memstore`  - write to disk... then execute. at minimum it might make it better to pull from mem rather than passed in via net?
+         > or just process inject w shellcode/udrl, but problem for later. 
+
+
+
       > Docs in gui, as commands are added. 
          > in progress
 
@@ -144,19 +151,16 @@
          - [ ] Add to other commands that support binary data
 
       - [in progress] Metadata:
-         - > here, most options implemented, still need:
             - [ ] internal ip
             - [ ] architecture
             - [ ] docs about metadata.
-
-
       > Leftoff doing some gui cleanup, and added listener restarts. 
+         > continue wherever. Note, native mode gui is a bit slow but that's a problem for later.
+
 
       [ ] add generic error handling/base64 err handling when a command input doesn't pass/fails? tldr, bad command in, sometimes a blank output on term
 
       [X] fix cmd descs in gui
-
-      `shexecute`: Executes shellcode, inline? Ran into issues with this in previous projects. Maybe in a new thread
 
       `setting`: Generic setting changer  
          > `setting setting_name setting_new_value`
@@ -175,6 +179,19 @@
          - Switchable callback domains, like cs, has, where there's a list of callback hosts to randomly try, etc. Just adds addtl reasurance for long term.
             > note, make this list editable, with an "add" and "remove" opption for this list. Make it a setting as well 
             By default, it shuold auto fill to the listener address, but have the ability to add options at compile time
+
+      > here, last command to do before comms
+      - [ ] run (does shell execute OR creaet process). Ex, creatprocesss whoami. any exe that it can find in path is valid. basically is running cmd.exe without cmd.exe
+         This looks better as it's implant.exe -> process, rather than implant.exe -> cmd.exe -> process. 
+
+   > lets close out this branch for now, and start with diff comms to keep things moving. 
+   # Implant Comms:
+      - [ ] NTP Beacon
+         - [ ] NTP MC2
+         - [ ] NTP Server implementation
+         - [ ] NTP CLinet imlpementation
+         - [ ] NTP build process, etc. 
+
 
    # Implant Hardening:
    - [ ] String Encryption

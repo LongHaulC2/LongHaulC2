@@ -1,6 +1,6 @@
 #pragma once
 #include <windows.h>
-
+#include <string>
 //struct to hold return type.  Move to somewhere where everything can access. maybe a structs.h
 struct ModuleResult {
 	std::string data;  // Holds whatever text data may be needed here
