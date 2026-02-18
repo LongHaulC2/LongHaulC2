@@ -1,5 +1,6 @@
 import logging
 import platform
+from pathlib import Path
 
 from nicegui import app, ui
 
@@ -18,24 +19,26 @@ import client.src.client.pages.search
 
 server_log = logging.getLogger("server")
 
-# attempt at css
-print("HARDCODED STATIC DIRECTORY FOR CSS LOADING!")
+# load in CSS for our theme
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
 app.add_static_files(
-    local_directory="C:\\Users\\ryan\\Documents\\GitHub\\LongHaulC2\\client\\src\\client\\static",
+    local_directory=str(STATIC_DIR),
     url_path="/static",
 )
+
 ui.add_head_html(
     '<link rel="stylesheet" type="text/css" href="/static/theme.css">', shared=True
 )
 
 # a tweak for native to allow dl's
 # https://github.com/zauberzeug/nicegui/issues/3402
-# app.native.settings['ALLOW_DOWNLOADS'] = True
+app.native.settings["ALLOW_DOWNLOADS"] = True
 
 
 # ui.run(native=True, dark=True)
 ui.run(
-    native=True, dark=True, show=False, reload=False
+    native=False, dark=True, show=False, reload=False
 )  # reload=platform.system() != "Windows")
 # reload false to disable reload, which breaks async on windows
 # https://github.com/zauberzeug/nicegui/issues/486

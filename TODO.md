@@ -1,235 +1,72 @@
 ## Planning:
  
-# Road to beta:
- - [ ] API Auth
- - [ ] Implant Encryption
- - [X] Listener Restarts
- - [X] Implant Build Path
- - [ ] Cleanup of old artifacts in /tmp (check if still a thing, don't remeber)
+### Road to Beta
 
-# GUI:
+* [ ] API Auth (via JWT) & Login page
+* [ ] Implant Encryption
+* [ ] Cleanup of old artifacts in `/tmp` (Verify if still applicable)
+   * [ ] Consider a docker system prune on uninstall to prevent disk size ballooning
+* [X] Listener Restarts
+* [X] Implant Build Path
+* [ ] Beacon Chaining
 
-   - [X] Last minute GUI cleanup things (go test)
-      - [X] Implant Search
-      - [X] Task Search (use dedicated endpoint like implant search, rather than a get all tasks)
+### GUI
 
-      See if possible to do more string matching that isn't like 3 characters min
-         - it is but is a problem for later
+* [ ] Per-Implant page (POC done, need to match with real data)
+* [ ] Note: Explore more complex string matching later (beyond 3-character minimum)
+* [ ] Login Page
+* [X] Last-minute GUI cleanup (Go test)
+* [X] Implant Search
+* [X] Task Search (using dedicated endpoint instead of 'get all tasks')
+* [X] Fix command descriptions in the GUI
 
-   <!-- - [ ] Server should say warning if task is invalid format -->
+### Server: Listeners & Core
 
-     # this is not needed yet, but would be a nice to have
-   - [ ] Per-Implant page
-      - POC done, fill in/match with real data, etc. 
-
-
-#  server
-   # Listeners:
-      - [ ] Auto restarting listeners (and add a restart endpoint for a quick teardown/spin up)
-         - [ ] Fix active flag in db while at it
-         - idea: If listener marked active at startup, start it on startup.
-
-   #### Logging:
-      - [ ] Convert everything to structlogger (with binds, etc.) Big tasks
-      - [X] Add `check_type` on modules/other server code where applicable
-
-   # cleanup/refinement:
-    Fix/Move of the tasks/watchdogs, to a service folder, and a way to monitor if they are alive or not. (and viewable via gui, api)
-      > stems from a bug where the task_wastchdog would crash
-
-   - [X] API docs
-
-## Mal c2:
-
- - [ ] Server
-
-   - [ ] Add the user agent global option to the render process
-
-      ### 1. **Test Various Malleable C2 Profiles**
-         - [ ] Experiment with different configurations to see if I can break it
-         - [ ] > Mask is busted, needs a key, and that doesnt seem to be specified in the 
-               mc2 profile. Need a way to store that key, or just not include mask at the moment.
-            * [Throws Key Error] `mask` 
-
-      ### 2. **Global Options**
-         - [ ] Set up global options handling for the system.
-
-      ### 4. **Error Handling**
-         - [ ] Add error handling for invalid options or bad configurations.
-         - [X] Create logging for when errors occur.
-         - [X] Graceful failure for unexpected scenarios (e.g., invalid data format, connection issues).
-
-         - [X] Create a draw io of full path of data as it comes in (including if bytes, etc. When headers appended, etc. For post and get)
-      ### Addtl HTTP blocks:
-         - [X] http-config
-
- - [ ] Implant
-   - not implementing implant specific options. Sticking to response/network shaping options
+* [ ] Fix active flag in the database (Idea: Start listener on startup if marked active)
+* [ ] Fix/Move tasks/watchdogs to a service folder & monitor health (stemming from task watchdog crash)
+* [ ] Convert all logging to `structlog` (with binds, etc. - large task)
+* [X] Auto-restarting listeners and quick restart endpoint
+* [X] Add `check_type` on modules and server code
+* [X] API documentation
 
 
+### Implant: Command Tree & Capabilities
 
-   
+~* [ ] `setting`: Generic setting changer command (`setting name new_value`, `setting list`)~
+* [ ] `run`: Execute via `CreateProcess` (discourage use, prefer BOF, but include)
+* [X] Deref operator [In Progress]: Format special characters via `format_command` function
+* [ ] Move assistance functions to a better location? (Deref)
+* [ ] Add Deref support to other binary commands   
+   * [X] BOF
+   * [X] file upload
+* [ ] Metadata gathering [In Progress]: Internal IP, architecture, docs
+* [X] `strat active` / `strat get/post` validation
+* [X] File operations: `upload` and `download` (bytes format)
+* [X] Memstore operations: `upload`, `download`, `list`, `delete`, `clear`
+* [X] BOF implementation and documentation
 
-# Implant:
- - Reqs:
-   - Windows:
-      - [X] Statically compiled
-      - [ ] DLL Based (windows)
-      - [x] CMAKE based
+### Implant: Comms & Hardening
 
-   ## Plan:
-      - [x] Test messagpack
-      - [x] Test libcurl for HTTP
-         - [x] maybe just use winhttp (start with winINet, for quicker dev, re-evaluate later)
-            - https://learn.microsoft.com/en-us/cpp/mfc/wininet-basics?view=msvc-170
+* [ ] NTP Beacon implementation (Server, Client, MC2, Build process)
+* [ ] Response queue (vector of tasks to run in background and queue return data)
+   - This is a prereq to chaining
+* [ ] Switchable callback domains (Random fallback hosts, auto-fill default, editable via settings)
+* [ ] String Encryption (e.g., skCrypter at compile time)
+* [ ] Memory tracking system (store memory address/size on malloc for wiping/encryption)
+* [X] Memory Store encryption (XOR via key name)
 
-      - [x] Decide project structure (folder struct, etc)
+### Server: Malleable C2
 
-   > Here - continue with capabilities dev
-   # task queeus.
-      Nope. TLDR: one command one output is easier to track/build on IMO/more explicit/predictable to users. 
-      Maybe later. IN meantime, `bg` command, new thread, runs task in bacgkround if operator wants to.  
-      <!-- inbox, and otubox.
-      inboux has inbox tasks, outbox has outbox.
-      Both are singlton clsses for easy access.
-      
-      inbox:
-         > Enqueue: Takes task object retrieved by GET, iterates over each task, and enqueues to inbox. 
-
-
-      Flow:
-         server -> inbox
-         inbox -> implant actions
-         implant actions -> outbox
-         outbox -> network -->
-
-   # Command Tree:
-      [ ] Revised output to data, windows_error_code, and message. 
-         > data has command result data
-         > windows_error_code is err code
-         > message is either custom message, or the error code converted to a win error msg. 
-         > This needs to be documented somehwere better. Maybe an `implant.md` guide for modifying it, etc. This style of
-         return should be final
-
-      - move strat storage to a dedicated system in .h? instead of hacky settings, but it kinda fits in settings. 
-      `strat get/post`:
-         - [X] validate switching strats. 
-            -> [ ] Add safeguards, ex, user requesting get for post, vice versa.
-            -> [ ] add a strat current that shows `current set` strats
-      [X] `strat active`: Shows active strat
-
-      note; command upload/download is based on operators perspective, they are *uploading* a file. 
-      [X] `file upload`: Upload file to host disk
-         > gui note, maybe an upload button, or take local file path?
-         > Have file be in bytes, just easier all around. 
-      [x] `file download`: Download file from host disk
-         > server note, have an archive of files pulled from device? in a file store/db? this would support long term goals. 
-         > maybe even a `file watch` command, that pulls new versions/checks every so often
-         > [x] For now/simplicity, just retrieve file and download to operator. can do a storage later. 
-   
-
-      Memstore: hold data in memory
-      Not meant to be super secure, just to evade mem scans:
-      [x] `memstore upload`: Upload file to host memory store
-      [x] `memstore download`: Get file from host memory store
-      [x] `memstore list`: List file names of memory store
-      [x] `memstore delete`: Nuke file from memory
-      [x] `memstore clear`: Nuke all files from memory
-      
-      Execution: Way to start new processes? Has to be disk based for winapi
-      [ ] `spawn <base64>` 
-      [ ] `spawn *memstore`  - write to disk... then execute. at minimum it might make it better to pull from mem rather than passed in via net?
-         > or just process inject w shellcode/udrl, but problem for later. 
+* [ ] Add a global user agent option to the render process
+* [ ] Set up global options handling
+* [ ] Add error handling for invalid options or bad configurations?
+* [X] Test MC2 profiles to find breaking points
+* [ ] Fix Mask (Needs a key not specified in the profile, decide whether to store the key or omit the mask. Could just use implant ID as KEY)
+* [X] Create logging for errors
+* [X] Draw.io data path mapping (bytes, headers, POST/GET)
+* [X] `http-config` blocks
 
 
-
-      > Docs in gui, as commands are added. 
-         > in progress
-
-      - [in progress] Deref operator: Find a good way to "squeeze" it in, i.e. `format_command` func that takes whatever special chars exist, and formats it
-         - [ ] Move assistance funcs to better location?
-         - [ ] Add to other commands that support binary data
-
-      - [in progress] Metadata:
-            - [ ] internal ip
-            - [ ] architecture
-            - [ ] docs about metadata.
-      > Leftoff doing some gui cleanup, and added listener restarts. 
-         > continue wherever. Note, native mode gui is a bit slow but that's a problem for later.
-
-
-      [ ] add generic error handling/base64 err handling when a command input doesn't pass/fails? tldr, bad command in, sometimes a blank output on term
-
-      [X] fix cmd descs in gui
-
-      `setting`: Generic setting changer  
-         > `setting setting_name setting_new_value`
-         > start with int, and string. 
-         > Then do map/vector.   
-            > these would need to be `setting setting_name add/remove value`
-         `setting list`
-
-      Maybe...:
-         `bof`: runs bofs... but that takes a lot of work to do. (and needs upload/download funcs first anyways. )
-
-      - Addtl:
-         - response qeueu. This allows tasks to run in the background, and hwen they complete, pop the data into the queue and it'll get sent back. 
-         - A vector of tasks should do this fine. 
-
-         - Switchable callback domains, like cs, has, where there's a list of callback hosts to randomly try, etc. Just adds addtl reasurance for long term.
-            > note, make this list editable, with an "add" and "remove" opption for this list. Make it a setting as well 
-            By default, it shuold auto fill to the listener address, but have the ability to add options at compile time
-
-      > here, last command to do before comms
-      > still include, but heavily discourage as this isn't really opsec safe for a lot of things. prefer a bof to do this?
-      - [ ] run (does shell execute OR creaet process). Ex, creatprocesss whoami. any exe that it can find in path is valid. basically is running cmd.exe without cmd.exe
-         This looks better as it's implant.exe -> process, rather than implant.exe -> cmd.exe -> process. 
-
-      - [ ] tangent - bofs
-         - [ ] implementation
-         - [ ] Add module docs
-         - [ ] Add notes about the lib too
-         
-   > lets close out this branch for now, and start with diff comms to keep things moving. 
-   # Implant Comms:
-      - [ ] NTP Beacon
-         - [ ] NTP MC2
-         - [ ] NTP Server implementation
-         - [ ] NTP CLinet imlpementation
-         - [ ] NTP build process, etc. 
-
-
-   # Implant Hardening:
-   - [ ] String Encryption
-      > https://github.com/skadro-official/skCrypter - encrypts strings at compiletime
-
-   - [ ] Memory Store encryption:
-      - [x] XOR via key name, basic, but works for now.
-
-   # Commands list:
-      - cd (SetCurrentDirectoryA(path);): sets cwd of whole program
-
-   # Structure:
-      - [ ] encoders.cpp: Has stuff for malleable c2 (b64 de/en, b64url de/en, netbios de/en)
-      - [ ] metadata.cpp: Metadata gathering (Have this early on, should be good to implement/define some things)
-
-   # advanced/sytems I'll need:
-      - Memory tracking System (every malloc, etc) store memory address, size, etc. Will be useful for later addons
-            Ex: mem encryption of blocks, wiping of data from mem (free doesn't delete/overwrite )
-
-      
-   # Next Steps:
- - [ ] Setup encoder funcs, and tests. (note - have them be pass by ref, and modify data directly, way easier to do something like `b64_decode(data); b64_decode(data); b64_decode(data);`)
-    - [X] b64 encode
-    - [X] b64 decode
-    - [X] b64 url encode
-    - [X] b64 url decode
- - [ ] Implement a hardcoded implant loop based on current malc2 prof.
-    - [X] Register
-    - [X] Get Task
-    - [ ] (fake) process
-    - [X] Post Task > not posting anythign back seemingly, or somethign is goign wrong. post is erroring out somehwere. missing req data.
-    - [ ] Harden functions with checks.
 
  # Stamping in/templating:
     Goal: Only touch comms functions, make everything as generic as possible to "just work"/follow a schema. AKA, if you have an http implant vs ntp, the only thing that changes
