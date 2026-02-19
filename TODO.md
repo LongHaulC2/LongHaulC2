@@ -63,13 +63,35 @@ Note: The best way to track this is with a graphdb. Neo4j would come into play h
 
 Can track things such as:
  - Chained' connections
+   > chain task, result is success/failure, this value is used to set neo4j chain
  - Networks/if implants can talk to eachother
+   > contact task? i.e., see if we can even contact other host. 
  - path finding
  - perms for who can talk to what, etc. 
+ - what protocols can get where, etc. 
 
 This would enable advanced analytics, and really drive home the "longhaul" part with a long term op of the 5 w's
 
 
+Architecture:
+
+task goes to client (i.e., chain)
+
+client sends response. 
+
+server has a trigger here, to check out that response. 
+   > if chain command, and chain successful, update neo4j...
+   > if other command...
+
+So, plan (and draw out?)
+
+Update `_task_batch_job()` to integrate the neo4j functionality.
+   > also, clean this up a lot, make it somewhat readable/useable. It needs to be as fast/clear/explicit as it can be.
+
+Put a placeholder func that just prints "neo4j" or something, but basically pass in each task to it, and it (or a class it calls)
+will decide how to update neo4j properly with said data passed to it. 
+
+*after* this, start figuring out the specifics of the meo4j db, and other various components. Just need an entry point first for a proper update. 
 
 ### Implant: Comms & Hardening
 

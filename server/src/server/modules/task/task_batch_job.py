@@ -12,7 +12,7 @@ server_logger = logging.getLogger("server")
 
 
 def start_task_batch_job():
-    server_logger.info("Starting listener watchdog")
+    server_logger.info("Starting task watchdog")
     t = threading.Thread(target=_task_batch_job, daemon=True)
     t.start()
 
