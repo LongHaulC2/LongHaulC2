@@ -3,12 +3,16 @@
 ### Road to Beta
 
 * [ ] API Auth (via JWT) & Login page
+   * [ ] HTTPS api 
 * [ ] Implant Encryption
 * [ ] Cleanup of old artifacts in `/tmp` (Verify if still applicable)
    * [ ] Consider a docker system prune on uninstall to prevent disk size ballooning
 * [X] Listener Restarts
 * [X] Implant Build Path
 * [ ] Beacon Chaining
+   - [ ] SMB read/write comms method
+   - [ ] multi command retrieval
+* [X] API Docs    
 
 ### GUI
 
@@ -44,6 +48,28 @@
 * [X] File operations: `upload` and `download` (bytes format)
 * [X] Memstore operations: `upload`, `download`, `list`, `delete`, `clear`
 * [X] BOF implementation and documentation
+
+#### Multi Command Retrieval:
+
+Architecture: 
+Server knows what implants are chaining for other implants. When implant parent checks in, next task for implant parent, and all implant children, are returned. (in a list... tasks have ID of implant they are for)
+Implant then delegates tasks out via SMB (writes to pipe of child implant), as it will also hold a map of what task goes to what pipe on what host. 
+   > Yes, leaves the burden on the server to provide next tasks
+
+imlpementatino notes, SMB module will need to be in EVERY implant for chaining purposes. 
+
+
+Note: The best way to track this is with a graphdb. Neo4j would come into play here. 
+
+Can track things such as:
+ - Chained' connections
+ - Networks/if implants can talk to eachother
+ - path finding
+ - perms for who can talk to what, etc. 
+
+This would enable advanced analytics, and really drive home the "longhaul" part with a long term op of the 5 w's
+
+
 
 ### Implant: Comms & Hardening
 
