@@ -5,6 +5,7 @@ from pathlib import Path
 from flask import Flask
 
 from .db.mysql_connector import mysql_setup
+from .db.neo4j_connector import init_neo4j
 from .db.redis_connector import get_redis_connection
 from .instance import api, app, env_config
 from .listeners.supervisor import restart_active_listeners
@@ -67,7 +68,7 @@ logger = logging.getLogger("server")
 # Test database connections
 mysql_setup()
 get_redis_connection()
-
+init_neo4j()
 
 if __name__ == "__main__":
     args = parse_args()

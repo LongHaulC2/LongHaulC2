@@ -15,7 +15,8 @@ REDIS_PORT ?= 6379 # not used yet by server
 REDIS_USER ?= default
 REDIS_PASSWORD ?= P@ssw0rd1!
 NEO4J_HOST ?= localhost
-NEO4J_PORT ?= 7474
+NEO4J_WEB_PORT ?= 7474
+NEO4J_DB_PORT ?= 7687
 NEO4J_USER ?= neo4j
 NEO4J_PASSWORD ?= P@ssw0rd1!
 # can specify creds manually with:
@@ -51,7 +52,7 @@ install:
 
 	# https://hub.docker.com/_/neo4j
 	@echo "Starting neo4j"
-	sudo docker run -d --name C2_neo4j-stack -p 7474:7474 -p 7687:7687 --volume=$(HOME)/neo4j/data:/data neo4j --env=NEO4J_AUTH=$(NEO4J_USER)/$(NEO4J_PASSWORD)
+	sudo docker run -d --name C2_neo4j-stack -p 7474:7474 -p 7687:7687 --volume=$(HOME)/neo4j/data:/data --env=NEO4J_AUTH=$(NEO4J_USER)/$(NEO4J_PASSWORD) neo4j:latest
 
 	@echo "=================================================="
 	@echo "Creating docker images for cross compilation"
@@ -81,7 +82,8 @@ install:
 	echo REDIS_PASSWORD=$(REDIS_PASSWORD) >> .env
 
 	echo NEO4J_HOST=$(NEO4J_HOST) >> .env
-	echo NEO4J_PORT=$(NEO4J_PORT) >> .env
+	echo NEO4J_WEB_PORT=$(NEO4J_WEB_PORT) >> .env
+	echo NEO4J_DB_PORT=$(NEO4J_DB_PORT) >> .env
 	echo NEO4J_USER=$(NEO4J_USER) >> .env
 	echo NEO4J_PASSWORD=$(NEO4J_PASSWORD) >> .env
 
@@ -102,7 +104,8 @@ install:
 	@echo ""
 
 	@echo "NEO4J:"
-	@echo "\tServer: $(NEO4J_HOST):$(NEO4J_PORT)"
+	@echo "\tWeb: $(NEO4J_HOST):$(NEO4J_WEB_PORT)"
+	@echo "\tDB: $(NEO4J_HOST):$(NEO4J_DB_PORT)"
 	@echo "\tUser: $(NEO4J_USER)"
 	@echo ""
 

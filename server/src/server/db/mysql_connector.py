@@ -5,6 +5,7 @@ import traceback
 import urllib.parse
 from contextlib import contextmanager
 
+import structlog
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
@@ -15,6 +16,7 @@ from ..instance import env_config
 
 # Logger setup
 logger = logging.getLogger("server")
+
 
 # = Serializer for bytes ======================================
 # Add a serializer for bytes, so they are stored as base64 in db. this is needed for storing task responses, which can commonly have binary data (ex: file download response)
@@ -74,16 +76,21 @@ def _init_db_process():
     """Internal helper to sequence DB creation then engine binding."""
     global engine, SessionLocal
 
-    # make sure db exists 
+    # make sure db exists
     _create_db_if_not_exist()
 
     # then build engine once we know its there
     host, port, user, password, database = _get_db_connection_params()
     conn_str = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
 
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(
+        host=host, port=port, user=user, database=database
+    )
+
     try:
         engine = create_engine(conn_str, echo=False, json_serializer=json_serializer)
-        
+
         # Test it immediately
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -118,6 +125,8 @@ def _create_db_if_not_exist():
 with get_mysql_session() as session:
     ... use session
 """
+
+
 @contextmanager
 def get_mysql_session():
     # Always ensure engine is ready before yielding a session
@@ -162,8 +171,12 @@ def create_implants_table():
         logger.error(f"Unexpected error: {e}\n{traceback.format_exc()}")
 
 
+# this whole module is kinda wonky, was pieced together and could use a rework for readability
 def mysql_setup():
     if get_mysql_engine():
         create_implants_table()
     else:
         logger.critical("MySQL setup failed. Engine could not be initialized.")
+
+    # clear out any extra vars set after init, these are currently set in _init_db_process
+    structlog.contextvars.clear_contextvars()
