@@ -14,8 +14,42 @@ from sqlalchemy import (
 from sqlalchemy.dialects.mysql import LONGBLOB, MEDIUMTEXT, TINYBLOB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.inspection import inspect
+from sqlalchemy.orm import deferred
 
-Base = declarative_base()
+####################
+# Custom Base trial
+####################
+"""
+Trying something out, adding a "custom base" that has the to_dict method in it, so I don't have to add it to
+all the individual models going forward.
+
+This also leaves room for other methods going forward, if I want to add extra addons
+"""
+
+
+class CustomBase:
+    def to_dict(self, include_deferred=False):
+        """
+        Turns each field into a dict.
+
+        By default, this safely skips deferred columns (like LONGBLOBs)
+        that haven't been loaded into memory yet, preventing accidental RAM exhaustion.
+        """
+        state = inspect(self)
+        unloaded = state.unloaded
+
+        result = {}
+        for c in state.mapper.column_attrs:
+            # If the column is unloaded (deferred) and we didn't explicitly ask for it, skip it.
+            if not include_deferred and c.key in unloaded:
+                continue
+
+            result[c.key] = getattr(self, c.key)
+
+        return result
+
+
+Base = declarative_base(cls=CustomBase)
 
 
 # Define the Implant model
@@ -41,11 +75,12 @@ class Implant(Base):
 
     # fulltext index for easier searching with mysql
     __table_args__ = (
+        # Standard B-Tree indexes for fast exact/prefix lookups
+        Index("ix_implant_external_ip", "external_ip"),
+        Index("ix_implant_internal_ip", "internal_ip"),
+        # FULLTEXT index strictly for text-based natural language searching
         Index(
             "fulltext_index",
-            "implant_uuid",
-            "external_ip",
-            "internal_ip",
             "listener",
             "user",
             "system_hostname",
@@ -55,20 +90,6 @@ class Implant(Base):
             mysql_prefix="FULLTEXT",
         ),
     )
-
-    def to_dict(self):
-        """
-        Turns each field into a dict.
-
-        Can then use as such, after querying:
-
-        ```
-            implants = session.query(Implant).all()
-            data = [i.to_dict() for i in implants]
-        ```
-
-        """
-        return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
 
 
 class ImplantTask(Base):
@@ -94,23 +115,18 @@ class ImplantTask(Base):
         Computed("JSON_UNQUOTE(JSON_EXTRACT(task_response, '$'))", persisted=True),
         nullable=True,
     )
-    # Add a full-text index on task_request, task_response, and task_uuid
+
     __table_args__ = (
+        # Standard index to quickly find all tasks for a specific implant
+        Index("ix_implanttask_implant_uuid", "implant_uuid"),
+        # FULLTEXT strictly for the JSON text dumps
         Index(
             "fulltext_index",
             "task_request_text",
             "task_response_text",
-            "task_uuid",
-            "implant_uuid",  # search by implant, found it useful
-            mysql_prefix="FULLTEXT",  # MySQL-specific
+            mysql_prefix="FULLTEXT",
         ),
     )
-
-    def to_dict(self):
-        """
-        Turns each field into a dict.
-        """
-        return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
 
 
 class Listener(Base):
@@ -138,20 +154,6 @@ class Listener(Base):
         ),
     )
 
-    def to_dict(self):
-        """
-        Turns each field into a dict.
-
-        Can then use as such, after querying:
-
-        ```
-            implants = session.query(Implant).all()
-            data = [i.to_dict() for i in implants]
-        ```
-
-        """
-        return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
-
 
 class ImplantPayload(Base):
     __tablename__ = "implant_payloads"
@@ -159,10 +161,13 @@ class ImplantPayload(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
 
     payload_hash = Column(TINYBLOB(16))  # md5 hash
-    payload_bytes = Column(
-        LONGBLOB
+
+    # using deffered here, waits until the field is explicity called before loading the data, otherwise we'll be querying lots of unneeded data at once
+    # https://docs.sqlalchemy.org/en/14/orm/loading_columns.html
+    payload_bytes = deferred(
+        Column(LONGBLOB)
     )  # LONGBLOB is 4gb (massive, intentional for expandability)
-    payload_source_code_bytes = Column(LONGBLOB)
+    payload_source_code_bytes = deferred(Column(LONGBLOB))
     # payload_listener_uuid = Column(String(36))  # matches Listener model uuid
 
     payload_name = Column(Text)
@@ -170,9 +175,3 @@ class ImplantPayload(Base):
     build_uuid = Column(String(36))  # uuid to track the build
 
     build_status = Column(Text)  # status of build
-
-    def to_dict(self):
-        """
-        Turns each field into a dict.
-        """
-        return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}

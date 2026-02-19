@@ -5,17 +5,16 @@ import traceback
 import urllib.parse
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, exc, text
+from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
-#!! Importing base, as re-declaring it makes it so there are 2 different bases, and create_all does not work (tables do  not get created)
+#!! Importing base, as re-declaring it makes it so there are different bases, and create_all does not work (tables do not get created)
 from ..db.mysql_models import Base
 from ..instance import env_config
 
 # Logger setup
 logger = logging.getLogger("server")
-
 
 # = Serializer for bytes ======================================
 # Add a serializer for bytes, so they are stored as base64 in db. this is needed for storing task responses, which can commonly have binary data (ex: file download response)
@@ -28,7 +27,7 @@ class BytesEncoder(json.JSONEncoder):
             )
             return base64.b64encode(o).decode(
                 "ascii"
-            )  # ascii cuz A-Z, a-z, 0-9, +, /, = only, so no risk of decode issues.
+            )  # ascii cuz A-Z, a-z, digits, +, /, = only, so no risk of decode issues.
         return super().default(o)
 
 
@@ -38,86 +37,80 @@ def json_serializer(obj):
 
 # ============================================================
 
-
-# defined ABOVE engine and SessionLocal module vars, so it is in scope
-def get_mysql_engine() -> object | None:
-    try:
-        # _create_db_if_not_exist()
-
-        host = env_config.get("MYSQL_HOST")
-        user = env_config.get("MYSQL_ROOT_USER")
-        password = env_config.get("MYSQL_ROOT_PASSWORD")
-        database = env_config.get("MYSQL_DATABASE")
-
-        # Check for missing configurations
-        if None in (host, user, password, database):
-            logger.critical(
-                "Host, User, Password, or Database for MySQL is None. Check .env file, Cannot Continue"
-            )
-            exit()
-
-        # SQLAlchemy connection string - using ecnoded user/pass for special character handling
-        encoded_user = urllib.parse.quote_plus(user)
-        encoded_password = urllib.parse.quote_plus(password)
-        connection_string = (
-            f"mysql+pymysql://{encoded_user}:{encoded_password}@{host}/{database}"
-        )
-
-        # Create SQLAlchemy engine
-        engine = create_engine(
-            connection_string, echo=False, json_serializer=json_serializer
-        )  # echo=True for debug output
-
-        # Test the connection
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))  # Simple query to test the connection
-            logger.info(f"Connected to MySQL server as {user}@{host}.")
-
-        return engine
-
-    except exc.SQLAlchemyError as e:
-        logger.error(f"Error connecting to MySQL: {e}\n{traceback.format_exc()}")
-        return None
+engine = None
+SessionLocal = None
 
 
-engine = get_mysql_engine()  # returns a single Engine instance
-SessionLocal = sessionmaker(bind=engine)
-
-
-def _create_db_if_not_exist():
-    """
-    Docstring for _create_db_if_not_exist
-
-    Creates the c2_db in MYSQL if it does not already exist. This is the DB used for
-    all the C2 operations, and it NEEDS to exist
-    """
-
+def _get_db_connection_params():
+    """Helper to extract and format database credentials from environment."""
     host = env_config.get("MYSQL_HOST")
+    port = env_config.get("MYSQL_PORT")
     user = env_config.get("MYSQL_ROOT_USER")
     password = env_config.get("MYSQL_ROOT_PASSWORD")
     database = env_config.get("MYSQL_DATABASE")
 
-    # Check for missing configurations
-    if None in (host, user, password, database):
+    if None in (host, port, user, password, database):
         logger.critical(
-            "Host, User, or Password for MySQL is None. Check .env file, Cannot Continue"
+            "Database configuration is missing in .env file. Cannot continue."
         )
         exit()
 
-    # SQLAlchemy connection string - using ecnoded user/pass for special character handling
     encoded_user = urllib.parse.quote_plus(user)
     encoded_password = urllib.parse.quote_plus(password)
 
-    connection_string = f"mysql+pymysql://{encoded_user}:{encoded_password}@{host}"
-    engine = create_engine(connection_string, echo=False)
+    return host, port, encoded_user, encoded_password, database
 
-    with engine.connect() as conn:
-        # Dynamically insert the database name into the SQL query
-        create_db_sql = f"CREATE DATABASE IF NOT EXISTS {database};"
 
-        # Execute the query
-        conn.execute(text(create_db_sql))
-        logger.debug(f"Database '{database}' created successfully.")
+def get_mysql_engine():
+    """returns global engine, inits if needed"""
+    global engine
+    # If engine already exists, just return it
+    if engine is None:
+        _init_db_process()
+    return engine
+
+
+def _init_db_process():
+    """Internal helper to sequence DB creation then engine binding."""
+    global engine, SessionLocal
+
+    # make sure db exists 
+    _create_db_if_not_exist()
+
+    # then build engine once we know its there
+    host, port, user, password, database = _get_db_connection_params()
+    conn_str = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
+
+    try:
+        engine = create_engine(conn_str, echo=False, json_serializer=json_serializer)
+        
+        # Test it immediately
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+
+        SessionLocal = sessionmaker(bind=engine)
+        logger.info("Main MySQL engine initialized successfully.")
+    except Exception as e:
+        logger.critical(f"Failed to bind main engine: {e}")
+        engine = None
+
+
+def _create_db_if_not_exist():
+    """Connects to the MySQL instance (without a DB name) to create the schema."""
+    host, port, user, password, database = _get_db_connection_params()
+
+    # Note: No database name at the end of this string, otherwise it'll try to connect to a db that doesn't exist
+    base_conn_str = f"mysql+pymysql://{user}:{password}@{host}:{port}"
+
+    # Use a temporary engine that doesn't care about the specific DB
+    temp_engine = create_engine(base_conn_str)
+    try:
+        with temp_engine.connect() as conn:
+            # can probably inject this, but it's specified in the makefile so it's "trusted" input
+            conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {database}"))
+            logger.debug(f"Ensured database '{database}' exists.")
+    finally:
+        temp_engine.dispose()  # Clean up the temp connection immediately
 
 
 # used to get a mysql session, in context:
@@ -125,18 +118,21 @@ def _create_db_if_not_exist():
 with get_mysql_session() as session:
     ... use session
 """
-
-
 @contextmanager
 def get_mysql_session():
-    SessionLocal = sessionmaker(bind=engine)
+    # Always ensure engine is ready before yielding a session
+    if engine is None:
+        get_mysql_engine()
+
+    if engine is None or SessionLocal is None:
+        raise Exception("Database engine not initialized. Check logs.")
 
     session = SessionLocal()
     try:
         yield session
         session.commit()
     except Exception as e:
-        logger.error(f"An error occured with the MYSQL session:  {e}")
+        logger.error(f"An error occurred with the MYSQL session: {e}")
         session.rollback()
         raise
     finally:
@@ -167,6 +163,7 @@ def create_implants_table():
 
 
 def mysql_setup():
-    _create_db_if_not_exist()
-    get_mysql_engine()
-    create_implants_table()
+    if get_mysql_engine():
+        create_implants_table()
+    else:
+        logger.critical("MySQL setup failed. Engine could not be initialized.")

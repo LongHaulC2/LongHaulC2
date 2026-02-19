@@ -1,10 +1,11 @@
 import hashlib
 import logging
+import re
 from dataclasses import asdict
 from typing import Literal
 
 from edwh_uuid7 import uuid7
-from sqlalchemy import exc, inspect, text
+from sqlalchemy import exc, inspect, or_, text
 
 from ..db.mysql_models import Implant, ImplantPayload, ImplantTask, Listener
 from ..schemas.implant import ImplantCreate, ImplantUpdate, Task
@@ -312,75 +313,87 @@ class MySQLSearchService:
     def __init__(self, session):
         self.session = session
 
+    def _prepare_boolean_term(self, search_term: str) -> str:
+        """
+        Strips MySQL boolean operators from user input to prevent syntax errors,
+        then appends a wildcard (*) to each word to enable partial/prefix matching.
+        """
+        # Strip reserved characters used by MySQL Boolean Mode
+        safe_term = re.sub(r"[+\-><\(\)~*\"@]+", " ", search_term).strip()
+        if not safe_term:
+            return ""
+
+        # "scan network" becomes "scan* network*"
+        return " ".join(f"{word}*" for word in safe_term.split())
+
     def search_implants(self, search_term: str) -> list[dict]:
         """
-        Search for, and return all implants that have the search_term string in them. Uses MySQL's FULLTEXT on
-        the following fields: `external_ip, internal_ip, listener, user, system_hostname, notes, process, arch`
-
-        Note: Longer/wordlike searches work best, ex:
-            Target: `msiexec.exe`
-            msi     -> DOES NOT WORK
-            msiexec -> DOES WORK
-
-        :param search_term: The term to match against the implants.
-        :type search_term: str
-
-        :return: A list of implants that match the query.
-        :rtype: list[dict[Any, Any]]
+        Hybrid search for Implants.
+        - Exact/Prefix matching for IPs and UUIDs.
+        - FULLTEXT BOOLEAN matching for text fields (allows partial matches like 'msi' -> 'msiexec').
         """
         check_type(search_term, str, "search_term")
-        query = (
-            self.session.query(Implant)
-            .filter(
+
+        like_term = f"%{search_term}%"
+        bool_term = self._prepare_boolean_term(search_term)
+
+        # Build the exact/LIKE filters for identifiers (Fast B-Tree searches)
+        filters = [
+            Implant.implant_uuid.like(
+                like_term
+            ),  # Using like() in case they search a partial UUID
+            Implant.external_ip.like(like_term),
+            Implant.internal_ip.like(like_term),
+        ]
+
+        # Add the FULLTEXT filter for text fields (Must match schema indexes)
+        if bool_term:
+            filters.append(
                 text(
-                    "MATCH(external_ip, internal_ip, listener, user, system_hostname, notes, process, arch, implant_uuid) AGAINST(:term IN NATURAL LANGUAGE MODE)"
+                    "MATCH(listener, user, system_hostname, notes, process, arch) AGAINST(:bool_term IN BOOLEAN MODE)"
                 )
             )
-            .params(term=search_term)
-        )
 
-        # Execute the query and get the results
+        # Apply the OR condition
+        query = self.session.query(Implant).filter(or_(*filters))
+
+        # Bind the boolean term safely if it exists
+        if bool_term:
+            query = query.params(bool_term=bool_term)
+
         results = query.all()
-
-        # Convert each Implant instance to a dictionary using the `to_dict` method
-        results_dict = [implant.to_dict() for implant in results]
-
-        return results_dict
+        return [implant.to_dict() for implant in results]
 
     def search_tasks(self, search_term: str) -> list[dict]:
         """
-        Search for, and return all tasks that have the search_term string in them. Uses MySQL's FULLTEXT on
-        the following fields: `task_request, task_response, task_uuid`.
-
-        Note: Longer/wordlike searches work best, ex:
-            Target: `scan`
-            scan    -> DOES WORK
-            sc      -> DOES NOT WORK
-
-        :param search_term: The term to match against the tasks.
-        :type search_term: str
-
-        :return: A list of tasks that match the query.
-        :rtype: list[dict[Any, Any]]
+        Hybrid search for Tasks.
+        - Exact/Prefix matching for UUIDs.
+        - FULLTEXT BOOLEAN matching for task request/response text.
         """
         check_type(search_term, str, "search_term")
-        query = (
-            self.session.query(ImplantTask)
-            .filter(
+
+        like_term = f"%{search_term}%"
+        bool_term = self._prepare_boolean_term(search_term)
+
+        filters = [
+            ImplantTask.task_uuid.like(like_term),
+            ImplantTask.implant_uuid.like(like_term),
+        ]
+
+        if bool_term:
+            filters.append(
                 text(
-                    "MATCH(task_request_text, task_response_text, task_uuid, implant_uuid) AGAINST(:term IN NATURAL LANGUAGE MODE)"
+                    "MATCH(task_request_text, task_response_text) AGAINST(:bool_term IN BOOLEAN MODE)"
                 )
             )
-            .params(term=search_term)
-        )
 
-        # Execute the query and get the results
+        query = self.session.query(ImplantTask).filter(or_(*filters))
+
+        if bool_term:
+            query = query.params(bool_term=bool_term)
+
         results = query.all()
-
-        # Convert each ImplantTask instance to a dictionary using the `to_dict` method
-        results_dict = [task.to_dict() for task in results]
-
-        return results_dict
+        return [task.to_dict() for task in results]
 
 
 class MySQLImplantTaskService:
