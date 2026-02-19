@@ -198,7 +198,7 @@ async def render_payloads(payload_data: dict):
     # Render Table
     table = (
         ui.table(columns=columns, rows=table_rows, row_key="id", pagination=10)
-        .classes("w-full bg-transparent no-shadow text-neutral-300")
+        .classes("w-full bg-transparent no-shadow text-neutral-300 flex-grow")
         .bind_filter_from(filter_text, "value")
     )
 

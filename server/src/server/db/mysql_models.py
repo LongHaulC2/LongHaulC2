@@ -16,9 +16,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import deferred
 
-####################
+########################################
 # Custom Base trial
-####################
+########################################
 """
 Trying something out, adding a "custom base" that has the to_dict method in it, so I don't have to add it to
 all the individual models going forward.
@@ -32,7 +32,7 @@ class CustomBase:
         """
         Turns each field into a dict.
 
-        By default, this safely skips deferred columns (like LONGBLOBs)
+        By default, this safely skips deferred columns (like LONGBLOBs, see model below)
         that haven't been loaded into memory yet, preventing accidental RAM exhaustion.
         """
         state = inspect(self)
@@ -50,14 +50,11 @@ class CustomBase:
 
 
 Base = declarative_base(cls=CustomBase)
+########################################
 
 
-# Define the Implant model
 class Implant(Base):
     __tablename__ = "implants"
-    # using bigint for 9 quadrillion potential agents. Int was "only" 2.4 billion.
-    # id = Column(BigInteger, primary_key=True, autoincrement=True)
-    # moving to uuid for implants.
     implant_uuid = Column(String(36), primary_key=True, default=lambda: str(uuid7()))
     external_ip = Column(String(45))  # IP (IPv4/IPv6)
     internal_ip = Column(String(45))
@@ -126,6 +123,9 @@ class ImplantTask(Base):
             "task_response_text",
             mysql_prefix="FULLTEXT",
         ),
+        # add compression to the tasks, this is where the bulk of the data is
+        # note... have to do "''" due to mysql being picky
+        {"mysql_compression": "'zlib'"},
     )
 
 
@@ -175,3 +175,9 @@ class ImplantPayload(Base):
     build_uuid = Column(String(36))  # uuid to track the build
 
     build_status = Column(Text)  # status of build
+
+    __table_args__ = (
+        # add payload compression, this is likely the 2nd largest data store, besides the task table
+        # note... have to do "''" due to mysql being picky
+        {"mysql_compression": "'zlib'"}
+    )
