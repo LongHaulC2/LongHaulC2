@@ -6,12 +6,12 @@ VENV_PATH ?= ./venv
 DOCKER_DIR := setup/docker_images
 
 # creds
-MYSQL_HOST ?= localhost # not used yet by server
-MYSQL_PORT ?= 3306 # not used yet by server
+MYSQL_HOST ?= localhost
+MYSQL_PORT ?= 3306
 MYSQL_ROOT_PASSWORD ?= P@ssw0rd1!
 MYSQL_ROOT_USER ?= root
-REDIS_HOST ?= localhost # not used yet by server
-REDIS_PORT ?= 6379 # not used yet by server
+REDIS_HOST ?= localhost
+REDIS_PORT ?= 6379
 REDIS_USER ?= default
 REDIS_PASSWORD ?= P@ssw0rd1!
 NEO4J_HOST ?= localhost

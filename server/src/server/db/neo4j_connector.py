@@ -33,6 +33,12 @@ def init_neo4j():
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(host=host, port=port, user=user)
 
+    if None in (host, user, port, password):
+        logger.critical(
+            "Host, User, Port or Password for NEO4J is None. Check .env file, Cannot Continue"
+        )
+        exit()
+
     if not test_neo4j_connection():
         logger.critical("Error occured with NEO4J. Exiting")
         exit()

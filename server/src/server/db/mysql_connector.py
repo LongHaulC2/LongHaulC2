@@ -10,7 +10,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
-#!! Importing base, as re-declaring it makes it so there are different bases, and create_all does not work (tables do not get created)
+#!! Importing base, as re-declaring it in diff py files makes it so there are different bases, and create_all does not work (tables do not get created)
 from ..db.mysql_models import Base
 from ..instance import env_config
 
@@ -63,49 +63,8 @@ def _get_db_connection_params():
     return host, port, encoded_user, encoded_password, database
 
 
-def get_mysql_engine():
-    """returns global engine, inits if needed"""
-    global engine
-    # If engine already exists, just return it
-    if engine is None:
-        _init_db_process()
-    return engine
-
-
-def _init_db_process():
-    """Internal helper to sequence DB creation then engine binding."""
-    global engine, SessionLocal
-
-    # make sure db exists
-    _create_db_if_not_exist()
-
-    # then build engine once we know its there
-    host, port, user, password, database = _get_db_connection_params()
-    conn_str = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        host=host, port=port, user=user, database=database
-    )
-
-    try:
-        engine = create_engine(conn_str, echo=False, json_serializer=json_serializer)
-
-        # Test it immediately
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-
-        SessionLocal = sessionmaker(bind=engine)
-        logger.info("Main MySQL engine initialized successfully.")
-    except Exception as e:
-        logger.critical(f"Failed to bind main engine: {e}")
-        engine = None
-
-
-def _create_db_if_not_exist():
+def _create_db_if_not_exist(host, port, user, password, database):
     """Connects to the MySQL instance (without a DB name) to create the schema."""
-    host, port, user, password, database = _get_db_connection_params()
-
     # Note: No database name at the end of this string, otherwise it'll try to connect to a db that doesn't exist
     base_conn_str = f"mysql+pymysql://{user}:{password}@{host}:{port}"
 
@@ -120,6 +79,48 @@ def _create_db_if_not_exist():
         temp_engine.dispose()  # Clean up the temp connection immediately
 
 
+def mysql_setup():
+    global engine, SessionLocal
+
+    host, port, user, password, database = _get_db_connection_params()
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(
+        host=host, port=port, user=user, database=database
+    )
+
+    _create_db_if_not_exist(host, port, user, password, database)
+
+    conn_str = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
+
+    try:
+        engine = create_engine(conn_str, echo=False, json_serializer=json_serializer)
+
+        # Test it immediately
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+            result = conn.execute(text("SELECT DATABASE();"))
+            db_name = result.fetchone()
+            logger.debug(f"Connected to database: {db_name[0]}")
+
+        SessionLocal = sessionmaker(bind=engine)
+        logger.info("Main MySQL engine initialized successfully.")
+
+        # Create all tables in the database (if they don't exist)
+        Base.metadata.create_all(engine)
+        logger.debug("Table 'implants' created successfully.")
+
+    except SQLAlchemyError as e:
+        logger.critical(f"Database setup failed: {e}\n{traceback.format_exc()}")
+        engine = None
+    except Exception as e:
+        logger.critical(f"Unexpected error during setup: {e}\n{traceback.format_exc()}")
+        engine = None
+    finally:
+        # clear out any extra vars set after init
+        structlog.contextvars.clear_contextvars()
+
+
 # used to get a mysql session, in context:
 """
 with get_mysql_session() as session:
@@ -129,12 +130,10 @@ with get_mysql_session() as session:
 
 @contextmanager
 def get_mysql_session():
-    # Always ensure engine is ready before yielding a session
-    if engine is None:
-        get_mysql_engine()
-
     if engine is None or SessionLocal is None:
-        raise Exception("Database engine not initialized. Check logs.")
+        raise Exception(
+            "Database engine not initialized. Ensure mysql_setup() ran successfully before querying."
+        )
 
     session = SessionLocal()
     try:
@@ -146,37 +145,3 @@ def get_mysql_session():
         raise
     finally:
         session.close()
-
-
-def create_implants_table():
-    try:
-        # engine defined globally
-        if engine is None:
-            logger.critical("Unable to connect to MySQL. Exiting...")
-            exit()
-
-        # Debugging: Verify current schema/connection
-        with engine.connect() as connection:
-            result = connection.execute(text("SELECT DATABASE();"))
-            db_name = result.fetchone()
-            logger.debug(f"Connected to database: {db_name[0]}")
-
-        # Create all tables in the database (if they don't exist)
-        Base.metadata.create_all(engine)
-        logger.debug("Table 'implants' created successfully.")
-
-    except SQLAlchemyError as e:
-        logger.error(f"Error creating table: {e}\n{traceback.format_exc()}")
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}\n{traceback.format_exc()}")
-
-
-# this whole module is kinda wonky, was pieced together and could use a rework for readability
-def mysql_setup():
-    if get_mysql_engine():
-        create_implants_table()
-    else:
-        logger.critical("MySQL setup failed. Engine could not be initialized.")
-
-    # clear out any extra vars set after init, these are currently set in _init_db_process
-    structlog.contextvars.clear_contextvars()
