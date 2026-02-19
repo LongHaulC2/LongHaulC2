@@ -5,8 +5,11 @@
         "commandtree",
         "literalyl",
         "memstore",
+        "messagepack",
         "nicegui",
+        "rits",
         "strat",
+        "unpackb",
         "useage",
         "winbase"
     ],

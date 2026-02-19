@@ -10,7 +10,7 @@ from .instance import api, app, env_config
 from .listeners.supervisor import restart_active_listeners
 from .listeners.watchdog import start_watchdog
 from .log import *
-from .modules.task.task_batch_job import start_task_batch_job
+from .modules.response_pipeline.response_pipeline import start_task_batch_job
 
 server_logger = logging.getLogger("server")
 api_logger = logging.getLogger("api")

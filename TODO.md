@@ -93,6 +93,9 @@ will decide how to update neo4j properly with said data passed to it.
 
 *after* this, start figuring out the specifics of the meo4j db, and other various components. Just need an entry point first for a proper update. 
 
+> Note, when exposing neo4j endpoints, give them a /graph or like /neo4j endpoint? maybe /analytics
+
+
 ### Implant: Comms & Hardening
 
 * [ ] NTP Beacon implementation (Server, Client, MC2, Build process)
