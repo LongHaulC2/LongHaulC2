@@ -39,7 +39,7 @@ app.native.settings["ALLOW_DOWNLOADS"] = True
 
 # ui.run(native=True, dark=True)
 ui.run(
-    native=False, dark=True, show=False, reload=False
+    native=False, dark=True, show=False, reload=False, port=8081
 )  # reload=platform.system() != "Windows")
 # reload false to disable reload, which breaks async on windows
 # https://github.com/zauberzeug/nicegui/issues/486

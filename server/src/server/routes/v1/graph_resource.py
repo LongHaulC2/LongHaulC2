@@ -60,12 +60,12 @@ class Graph(Resource):
         # Get nodes - note, case
         nodes_query = """
                 MATCH (n) 
-                RETURN DISTINCT id(n) AS id, 
+                RETURN DISTINCT elementId(n) AS id, 
                     //decides what name is. 
                     CASE 
                         WHEN "Neo4jImplantNode" IN labels(n) THEN n.system_hostname
-                        WHEN "Neo4jNetworkGatewayNode" IN labels(n) THEN n.host
                         WHEN "Neo4jNetworkNode" IN labels(n) THEN n.cidr
+                        WHEN "Neo4jNetworkGatewayNode" IN labels(n) THEN n.host
                         ELSE "Unknown Node"
                     //this actually sets the name here:
                     END AS name,
@@ -88,7 +88,7 @@ class Graph(Resource):
         clean_nodes = df_nodes.to_dict("records")
 
         # Get links
-        links_query = """MATCH (a)-[r]->(b) RETURN id(a) AS source, id(b) AS target, type(r) AS value, properties(r) AS props;"""
+        links_query = """MATCH (a)-[r]->(b) RETURN elementId(a) AS source, elementId(b) AS target, type(r) AS value, properties(r) AS props;"""
 
         df_links = to_dataframe(db.cypher_query(links_query, resolve_objects=True))
 
