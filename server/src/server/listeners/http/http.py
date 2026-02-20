@@ -37,6 +37,7 @@ from yarl import URL
 
 from ...db.mysql_connector import get_mysql_session
 from ...modules.mysql_functions import ImplantService
+from ...modules.neo4j_functions import init_node
 from ...modules.redis_functions import RedisImplantTaskService
 from ...modules.task.task import MetadataService, TaskService
 from ...schemas.implant import ImplantCreate, ImplantMetadata, ImplantUpdate
@@ -452,6 +453,7 @@ HTTP POST with CS is where task data is retrieved from the server.
 """
 
 
+# this could be moved out of this listener func into somehwere else for geenic usage
 def _register_new_implant(unpacked_metadata: dict, request: Request) -> bytes:
     """
     Handles the creation of a new implant and its initial registration task.
@@ -488,6 +490,9 @@ def _register_new_implant(unpacked_metadata: dict, request: Request) -> bytes:
         # Save task to DB
         task_service = TaskService(task=task, session=session)
         task_service._save_to_mysql()
+
+        # also, create in neo4j
+        init_node(implant_uuid=new_implant_uuid, **unpacked_metadata)
 
         # commit
         session.commit()

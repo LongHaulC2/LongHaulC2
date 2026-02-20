@@ -588,6 +588,42 @@ class MySQLImplantTaskService:
         # loop over objects (all returns objects) and return dicts
         return [r.to_dict() for r in results]
 
+    def get_task_by_uuid(self, task_uuid: str) -> dict | None:
+        """
+        Retrieve a specific task by its UUID for the current implant.
+
+        task_uuid: (string) UUID of the task to retrieve.
+        Returns: A dictionary containing the task data, or None if not found.
+        """
+        check_type(task_uuid, str, "task_uuid")
+
+        if not isinstance(task_uuid, str):
+            server_logger.warning(
+                f"Task UUID {task_uuid} is type {type(task_uuid)}, converting to string."
+            )
+            task_uuid = str(task_uuid)
+
+        server_logger.info(
+            f"Retrieving task {task_uuid} for implant {self.implant_uuid}"
+        )
+
+        # Fetch the task by task_uuid and implant_uuid
+        task = (
+            self.session.query(ImplantTask)
+            .filter_by(task_uuid=task_uuid, implant_uuid=self.implant_uuid)
+            .first()
+        )
+
+        if task:
+            # match the dict mapping of get_all_tasks method instead of returning an object
+            return {
+                "task_uuid": task.task_uuid,
+                "implant_uuid": task.implant_uuid,
+                "task_request": task.task_request,
+                "task_response": task.task_response,
+            }
+        return None
+
 
 class MySQLImplantPayloadService:
     """

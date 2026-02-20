@@ -105,4 +105,19 @@ if __name__ == "__main__":
     # restart listeners
     restart_active_listeners()
 
+    # temp mess with db
+    # from .db.neo4j_models import Neo4jImplant
+
+    # i1 = Neo4jImplant(implant_uuid="1234")
+    # i1.save()
+
+    # i2 = Neo4jImplant(implant_uuid="1235")
+    # i2.save()
+
+    # i3 = Neo4jImplant(implant_uuid="1236")
+    # i3.save()
+
+    # i4 = Neo4jImplant(implant_uuid="1237", random="")
+    # i4.save()
+
     app.run(host="0.0.0.0", port=45045, debug=False)

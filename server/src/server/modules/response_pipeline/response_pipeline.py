@@ -19,6 +19,7 @@ import time
 import msgpack
 
 from ...db.mysql_connector import get_mysql_session
+from ...db.neo4j_models import Neo4jImplant
 from ..mysql_functions import ImplantService, MySQLImplantTaskService
 from ..redis_functions import RedisImplantTaskService
 
@@ -63,7 +64,9 @@ def _task_batch_job():
 
                 # Neo4j placeholder
                 if unpacked_responses_list:
-                    _neo4j_placeholder(response_list=unpacked_responses_list)
+                    for response in unpacked_responses_list:
+                        process_single_response_for_neo4j(response)
+                    # _neo4j_placeholder(response_list=unpacked_responses_list)
 
                 time.sleep(1)
 
@@ -132,5 +135,70 @@ def _get_tasks_from_redis_and_write_to_mysql(implant) -> list:
             return []
 
 
-def _neo4j_placeholder(response_list: list):
-    server_logger.debug(f"neo4j placeholder: list len: {len(response_list)}")
+# def _neo4j_placeholder(response_list: list):
+#     server_logger.debug(f"neo4j placeholder: list len: {len(response_list)}")
+
+#     # rough idea
+#     """
+#     For each implant response, pull out ID.
+
+#     if uuid not in neo4j, add to neo4j
+
+#     then do tree
+
+#     lookup_task_id
+#     if task_id.task == link:
+#         figure out what parent is, what child is, get nodes for each, link in neo4j
+
+#     """
+#     ...
+
+
+def process_single_response_for_neo4j(task_response: dict):
+    server_logger.critical("IT IS WORKING")
+    task_uuid = task_response.get("task_uuid", "")
+    implant_uuid = task_response.get("implant_uuid")
+
+    if not task_uuid:
+        server_logger.warning("Task response did not have a task_uuid")
+        return
+
+    if not implant_uuid:
+        server_logger.warning("Task response did not have a implant_uuid")
+        return
+
+    # need to look this up
+    # probably a major choke point if DB is slow. Threading may help
+    # task_name = task_dict.get("task_name")
+
+    task_request_dict = {}
+    with get_mysql_session() as session:
+        task = MySQLImplantTaskService(implant_uuid=implant_uuid, session=session)
+        # task_name = task.get(task_name)
+
+        # fyi - this returns the full task: task_request, task_response, implant_uuid, task_uuid.
+        # Need to pull out task request
+        task_dict = task.get_task_by_uuid(task_uuid)
+
+    if not task_dict:
+        server_logger.warning("Task lookup did not yield any data")
+        return
+
+    # filter down to task_request
+    task_request_dict = task_dict.get("task_request", {})
+
+    task_name = task_request_dict.get("task", {}).get("task_name", {})
+
+    server_logger.critical(task_request_dict)
+
+    # based off task name, do neo4j actions
+    match task_name:
+        # create implant if the task was to register
+        # fuck so register is not one we do I think, as it never "has" a response from the client iirc. So
+        # the node should probably be created when the implant checks in, otherwise it'll wait for a response
+        case "ls":
+            new_implant = Neo4jImplant(implant_uuid=implant_uuid)
+            new_implant.save()
+        case "register":
+            new_implant = Neo4jImplant(implant_uuid=implant_uuid)
+            new_implant.save()
