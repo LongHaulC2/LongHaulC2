@@ -46,7 +46,7 @@ set(SOURCES
     "modules/bof.h"
     "libs/bof_launcher_api.h"
 )
-add_executable(Implant_v01 ${SOURCES})
+add_executable(Implant_v01 ${SOURCES} "modules/discover.cpp" "modules/discover.h")
 # ==========================================
 # External Libraries (BofRunner)
 # ==========================================
@@ -68,12 +68,14 @@ if(WIN32)
         "protocols/http_wininet/http.cpp"
         "protocols/http_wininet/http.h"
     )
-    # BofRunner must come first due to linker things
+
     target_link_libraries(Implant_v01 PRIVATE 
-        BofRunner 
+        BofRunner
         wininet 
         ws2_32 
         crypt32
+        #Synchronization # for bof_laucher_win
+        iphlpapi # for discovery/arp stuff
         ntdll # for bof launcher
     )
 
@@ -94,7 +96,7 @@ if(WIN32)
         
     # --- MinGW Specific (Cross-Compile on Linux) ---
     elseif(MINGW)
-        # 1. Static Linking
+        # Static Linking
         # Ensures libgcc/libstdc++ are built in, so you don't need DLLs on the target
         target_link_options(Implant_v01 PRIVATE 
             -static 
@@ -102,15 +104,6 @@ if(WIN32)
             -static-libstdc++
         )
         
-        # 2. Link System Libraries
-        # MinGW needs explicit linking for WinINet and Winsock
-        #target_link_libraries(Implant_v01 PRIVATE 
-        #    wininet 
-        #    ws2_32 
-        #    crypt32
-        #    BofRunner
-        #)
-
         # set some stuff for optimizations
         set(CMAKE_CXX_FLAGS_RELEASE "-Os")
         set(CMAKE_C_FLAGS_RELEASE "-Os")

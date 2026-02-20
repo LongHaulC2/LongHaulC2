@@ -218,13 +218,8 @@ def process_single_response_for_neo4j(task_response_dict: dict):
 
             addresses = data.split()  # get addr from respnose
             # parse neighbor discovery and add node
-
             for address in addresses:
                 # clean address
                 address = address.strip()
-                # note... need to check this func. On register, if already an implant, DO NOT register? or... register it as a host still, that just happens to have an implatn runnign on it
                 new_host = Neo4jHostNodeService(address=address)
                 new_host.register_host()
-
-    # okay works, however gui does not know what these nodes are, it's not defined tehre yet.
-    # also, add auto compelte to the gui, with list of comamnds, should be preetty easy

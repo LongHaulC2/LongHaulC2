@@ -949,11 +949,7 @@ class Ls:
     def __post_init__(self):
         """Automatically run something when the dataclass is created."""
         if not self.directory:
-            # raise ParseError(
-            #     "The 'dir' argument cannot be None or empty. Ex: `ls <dir arg>`: `ls C:\\Users\\`"
-            # )
             # instead of throwing a parse error, just list "." if no directory is provided, which is more intuitive for ls
-            # self.directory = "."
             # because the dataclass is frozen, we have to use object.__setattr__ to set the directory value to "." if it's not provided
             # kind of a hack, but it works for now. Keeps args protected as well.
             object.__setattr__(self, "directory", ".")

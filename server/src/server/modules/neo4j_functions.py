@@ -39,74 +39,6 @@ class Neo4jImplantNodeService:
         self.metadata: dict
         self.implant_node = None
 
-    # def init_node(self, **kwargs):
-    #     """
-    #     implant_uuid: prim key for implant_uuid
-    #     kwargs: all things for metadata
-
-    #     A function for initing (and maybe updating) a node in neo4j
-
-    #     makes it easier to just call thsi than call neo4j stuff a ton.
-
-    #     adds in correlation to the node too
-
-    #     """
-
-    #     # get metadata from db (mysql is still source of truth for metadata)
-    #     # implant_metadata = {}
-    #     # with get_mysql_session() as session:
-    #     #     implant_metadata = ImplantService(session)
-
-    #     # unpack dict into neo4j implant to get all metadata
-    #     self.implant_node = Neo4jImplantNode(implant_uuid=self.implant_uuid, **kwargs)
-    #     self.implant_node.save()
-
-    #     # set self metadata to current metadata, it has the chance of being stale
-    #     self.metadata = kwargs
-
-    #     # call update neo4j
-    #     self.populate_neo4j_with_implant_metadata()
-
-    # def init_node(self, **kwargs):
-    #     self.metadata = kwargs
-
-    #     # check if host exists first
-    #     # We extract identifying info from the check-in metadata
-    #     host_ip = self.metadata.get("internal_ip")  # or self.metadata.get("address")
-    #     # host_mac = self.metadata.get("mac_address")
-
-    #     # if we can find a host IP in the metadata...
-    #     if host_ip:
-    #         # Call the Host service to create the host, it handles "already exists" logic
-    #         host_service = Neo4jHostNodeService(host_ip)
-    #         host_node = host_service.register_host()
-    #         # mac options later, for now, core lgoic
-    #         # host_node = host_service.register_host(mac=host_mac) # no mac atm
-    #     else:
-    #         server_logger.warning(
-    #             "Initializing implant without host metadata - identity may be orphaned"
-    #         )
-    #         host_node = None
-
-    #     # create the implant node now
-    #     # Using get_or_create to prevent duplicate sessions on the same UUID
-    #     self.implant_node = Neo4jImplantNode.get_or_create(
-    #         {"implant_uuid": self.implant_uuid}, **kwargs
-    #     )[0]
-
-    #     if host_node:
-    #         # Now that 'host' is defined in the model, this will work
-    #         if not self.implant_node.host.is_connected(host_node):
-    #             self.implant_node.host.connect(host_node)
-    #             server_logger.info("Implant linked to host")
-    #         else:
-    #             server_logger.debug("Implant already linked to host")
-
-    #     # MAP THE NETWORK INFRASTRUCTURE
-    #     self.populate_neo4j_with_implant_metadata()
-
-    #     return self.implant_node
-
     def init_node(self, **kwargs):
         self.metadata = kwargs
         self.metadata = kwargs
@@ -167,9 +99,8 @@ class Neo4jImplantNodeService:
         # Safely get or create the network node
         net_node = Neo4jNetworkNode.get_or_create({"cidr": cidr_value})[0]
 
-        # THE FIX: Connect the HOST to the network, not the implant!
+        # connect host to network
         if getattr(self, "host_node", None):
-            # Assuming your Neo4jHostNode model has 'connected_to = RelationshipTo("Neo4jNetworkNode", "CONNECTED_TO")'
             if not self.host_node.connected_to.is_connected(net_node):
                 self.host_node.connected_to.connect(net_node)
                 server_logger.info(
