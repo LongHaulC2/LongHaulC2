@@ -37,7 +37,7 @@ from yarl import URL
 
 from ...db.mysql_connector import get_mysql_session
 from ...modules.mysql_functions import ImplantService
-from ...modules.neo4j_functions import init_node
+from ...modules.neo4j_functions import Neo4jImplantNodeService
 from ...modules.redis_functions import RedisImplantTaskService
 from ...modules.task.task import MetadataService, TaskService
 from ...schemas.implant import ImplantCreate, ImplantMetadata, ImplantUpdate
@@ -492,7 +492,8 @@ def _register_new_implant(unpacked_metadata: dict, request: Request) -> bytes:
         task_service._save_to_mysql()
 
         # also, create in neo4j
-        init_node(implant_uuid=new_implant_uuid, **unpacked_metadata)
+        implant_node = Neo4jImplantNodeService(new_implant_uuid)
+        implant_node.init_node(**unpacked_metadata)
 
         # commit
         session.commit()

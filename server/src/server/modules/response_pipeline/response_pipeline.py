@@ -19,7 +19,7 @@ import time
 import msgpack
 
 from ...db.mysql_connector import get_mysql_session
-from ...db.neo4j_models import Neo4jImplant
+from ...db.neo4j_models import Neo4jImplantNode
 from ..mysql_functions import ImplantService, MySQLImplantTaskService
 from ..redis_functions import RedisImplantTaskService
 
@@ -197,8 +197,8 @@ def process_single_response_for_neo4j(task_response: dict):
         # fuck so register is not one we do I think, as it never "has" a response from the client iirc. So
         # the node should probably be created when the implant checks in, otherwise it'll wait for a response
         case "ls":
-            new_implant = Neo4jImplant(implant_uuid=implant_uuid)
+            new_implant = Neo4jImplantNode(implant_uuid=implant_uuid)
             new_implant.save()
         case "register":
-            new_implant = Neo4jImplant(implant_uuid=implant_uuid)
+            new_implant = Neo4jImplantNode(implant_uuid=implant_uuid)
             new_implant.save()
