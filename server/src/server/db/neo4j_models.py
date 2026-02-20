@@ -46,7 +46,11 @@ class Neo4jNetworkGatewayNode(SemiStructuredNode):
     Represents a routing-capable device (router/firewall/L3 switch).
     """
 
+    # between host, and mac, this should be enough to differentiate
+    # between diff networks. Can get this with ARP, if somewhat opsec safe.
     host = StringProperty(unique_index=True, required=True)
+    mac_address = StringProperty(required=True)
+
     # hostname = StringProperty()
     # device_type = StringProperty()  # router, firewall, l3_switch
     external_exposed = BooleanProperty(default=False)  # can hit internet?

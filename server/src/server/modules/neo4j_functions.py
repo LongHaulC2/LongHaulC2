@@ -100,16 +100,21 @@ class Neo4jImplantNodeService:
 
         # change to gateway when we get it, for now, use ext ip?
         implant_network_gateway = self.metadata.get("network_gateway", "1.1.1.1")
+        implant_network_gateway_mac = self.metadata.get(
+            "network_gateway_mac", "1.1.1.1"
+        )
 
         if not implant_network_gateway:
             server_logger.warning("No network_gateway found for implant")
             return
 
         gw_node = Neo4jNetworkGatewayNode.nodes.get_or_none(
-            host=implant_network_gateway
+            host=implant_network_gateway, mac_address=implant_network_gateway_mac
         )
         if not gw_node:
-            gw_node = Neo4jNetworkGatewayNode(host=implant_network_gateway)
+            gw_node = Neo4jNetworkGatewayNode(
+                host=implant_network_gateway, mac_address=implant_network_gateway_mac
+            )
             gw_node.save()
 
     def _check_network_to_gateway(self):
@@ -121,6 +126,9 @@ class Neo4jImplantNodeService:
         # placeholders for now
         cidr_value = self.metadata.get("cidr", "10.0.0.0/24")
         implant_network_gateway = self.metadata.get("network_gateway", "1.1.1.1")
+        implant_network_gateway_mac = self.metadata.get(
+            "network_gateway_mac", "1.1.1.1"
+        )
 
         # If we are missing either the cidr or ext ip we can't draw the link
         if not cidr_value or not implant_network_gateway:
@@ -132,7 +140,10 @@ class Neo4jImplantNodeService:
         # Safely get or create BOTH nodes
         net_node = Neo4jNetworkNode.get_or_create({"cidr": cidr_value})[0]
         gw_node = Neo4jNetworkGatewayNode.get_or_create(
-            {"host": implant_network_gateway}
+            {
+                "host": implant_network_gateway,
+                "mac_address": implant_network_gateway_mac,
+            }
         )[0]
 
         # Connect them using the 'has_gateway' relationship defined on Neo4jNetworkNode
