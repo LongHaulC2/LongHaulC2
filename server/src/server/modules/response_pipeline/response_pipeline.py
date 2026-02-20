@@ -19,7 +19,8 @@ import time
 import msgpack
 
 from ...db.mysql_connector import get_mysql_session
-from ...db.neo4j_models import Neo4jImplantNode
+from ...db.neo4j_models import Neo4jHostNode, Neo4jImplantNode
+from ...modules.neo4j_functions import Neo4jHostNodeService
 from ..mysql_functions import ImplantService, MySQLImplantTaskService
 from ..redis_functions import RedisImplantTaskService
 
@@ -154,10 +155,10 @@ def _get_tasks_from_redis_and_write_to_mysql(implant) -> list:
 #     ...
 
 
-def process_single_response_for_neo4j(task_response: dict):
-    server_logger.critical("IT IS WORKING")
-    task_uuid = task_response.get("task_uuid", "")
-    implant_uuid = task_response.get("implant_uuid")
+def process_single_response_for_neo4j(task_response_dict: dict):
+    # server_logger.critical("IT IS WORKING")
+    task_uuid = task_response_dict.get("task_uuid", "")
+    implant_uuid = task_response_dict.get("implant_uuid")
 
     if not task_uuid:
         server_logger.warning("Task response did not have a task_uuid")
@@ -189,7 +190,7 @@ def process_single_response_for_neo4j(task_response: dict):
 
     task_name = task_request_dict.get("task", {}).get("task_name", {})
 
-    server_logger.critical(task_request_dict)
+    # server_logger.critical(task_request_dict)
 
     # based off task name, do neo4j actions
     match task_name:
@@ -202,3 +203,18 @@ def process_single_response_for_neo4j(task_response: dict):
         case "register":
             new_implant = Neo4jImplantNode(implant_uuid=implant_uuid)
             new_implant.save()
+
+        case "discover neighbors":
+            # for ref, task struct: {'implant_uuid': '019c7c3a-ebe5-7a7e-a229-eb1ee8084921', 'result': {'data': {'type': 'text', 'value': '10.0.0.1\n10.0.0.10\n10.0.0.25\n10.0.0.30\n'}, 'message': {'type': 'text', 'value': 'Success'}, 'windows_error_code': {'type': 'int', 'value': 0}}, 'task_uuid': '019c7c3c-db72-7be1-9f14-46c9bdc8076f'}
+            data = task_response_dict.get("result", {}).get("data", "").get("value", "")
+            addresses = data.split()  # get addr from respnose
+            # parse neighbor discovery and add node
+
+            for address in addresses:
+                # clean address
+                address = address.strip()
+                new_host = Neo4jHostNodeService(address=address)
+                new_host.register_host()
+
+    # okay works, however gui does not know what these nodes are, it's not defined tehre yet.
+    # also, add auto compelte to the gui, with list of comamnds, should be preetty easy

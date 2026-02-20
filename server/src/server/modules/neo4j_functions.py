@@ -1,8 +1,11 @@
 # neo4j functions
 import logging
 
+import structlog
+
 from ..db.mysql_connector import get_mysql_session
 from ..db.neo4j_models import (
+    Neo4jHostNode,
     Neo4jImplantNode,
     Neo4jNetworkGatewayNode,
     Neo4jNetworkNode,
@@ -11,7 +14,6 @@ from .mysql_functions import ImplantService, MySQLImplantTaskService
 from .redis_functions import RedisImplantTaskService
 
 server_logger = logging.getLogger("server")
-
 
 """
 Okoay general architectural rules:
@@ -163,3 +165,31 @@ class Neo4jImplantNodeService:
             server_logger.info(
                 f"Linked Network ({cidr_value}) -> Gateway ({implant_network_gateway})"
             )
+
+
+class Neo4jHostNodeService:
+    def __init__(self, address):
+        self.address = address
+
+        # setup logging for all funcs here
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(host=self.address)
+
+    def register_host(self):
+        # see if it exists
+        node = Neo4jHostNode.find_existing(self.address)
+
+        # if not, create it
+        if not node:
+
+            server_logger.info("Adding host to Neo4j")
+            node = Neo4jHostNode(address=self.address).save()
+
+        # Automatic Relationship Handling - later
+        # network = NetworkManager.get_default_network()
+        # node.connected_to.connect(network)
+
+        # nuke all.
+        structlog.contextvars.clear_contextvars()
+
+        return node

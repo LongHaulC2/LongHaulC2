@@ -24,6 +24,10 @@
 * [X] Task Search (using dedicated endpoint instead of 'get all tasks')
 * [X] Fix command descriptions in the GUI
 
+### Graph db:
+- left off workign in gui, it works fine for a display for now.
+Keep building out logic based on responses, chains, etc etc. 
+
 ### Server: Listeners & Core
 
 * [ ] Fix active flag in the database (Idea: Start listener on startup if marked active)
@@ -196,7 +200,7 @@ List of tasks:
 - `[{task_uuid: 1234, implant_uuid: 9999, "task":{"task_name":"cmd" "args":{"cli":"whoami"}}}, {task_uuid: 1234, implant_uuid: 9999, "task":{"task_name":"cmd" "args":{"cli":"whoami"}}}]`
 
 ## Task Response Structure:
-- `{"task_uuid":"", "implant_uuid": 9999, "result":{command_output:{"type":"text", "value":"somedata"}, other_value:{"type":"text", "value":"abcd"}}}`
+- `{"task_uuid":"", "implant_uuid": 9999, "result":{data:{"type":"text", "value":"somedata"}, other_value:{"type":"text", "value":"abcd"}}}`
 
 Ex: `{"task_uuid":"1234", "implant_uuid": 9999, "result":{"data_type":"text", "data":"somedomain\bob"}}`
 

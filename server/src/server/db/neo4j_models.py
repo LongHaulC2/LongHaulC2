@@ -20,6 +20,37 @@ class Neo4jImplantNode(SemiStructuredNode):
     connected_to = RelationshipTo("Neo4jNetworkNode", "CONNECTED_TO")
 
 
+# for a host, who is not running an implant. I.e., was discovered. not sure if this is a good architecture idea yet, thinking, if a host -> an implant, how to handle.
+class Neo4jHostNode(SemiStructuredNode):
+    """
+    Implant Node for Implants.
+    """
+
+    address = StringProperty(unique_index=True, required=True)
+    # maybe get a mac in here too to prevent duplicates... can do with the passive discovery if it's altered
+
+    connected_to = RelationshipTo("Neo4jNetworkNode", "CONNECTED_TO")
+
+    # helper to find existing
+    @classmethod
+    def find_existing(cls, address=None, mac=None) -> object | None:
+        """
+        Custom logic to find a host by either IP or MAC.
+        Useful for the 'Approval Queue' to suggest a Merge.
+        """
+        # if mac:
+        #     node = cls.nodes.get_or_none(mac_address=mac)
+        #     if node:
+        #         return node
+
+        if address:
+            node = cls.nodes.get_or_none(address=address)
+            if node:
+                return node
+
+        return None
+
+
 # call when init?
 class Neo4jNetworkNode(SemiStructuredNode):
     """
