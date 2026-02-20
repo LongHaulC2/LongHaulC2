@@ -17,7 +17,17 @@ server_logger = logging.getLogger("server")
 Okoay general architectural rules:
  - Check if node exists before hand. If not, safe to create. If so, lookup node/acces obejct 
  and do what you need with it. This should be what safe/not cause weird duplicate problems
-"""
+
+ Going forward, a lot of these items might be better to do on the response, i.e., create a command for it
+ and then based on response, fill in data, and don't use/abuse metadata. (in the batchloop)
+
+ Also, a field to manually update/enter values in the graph gui is a good idea, i.e., 
+ click on node, have an update button/menu, and enter what property you want to add to it, etc and
+ it just does the mapping for you (via init_node? it has the checks for dups, 
+ so new data should be safe to add while it preseves the old)
+   (i.e., joins you to a network, etc etc)
+ 
+ """
 
 
 class Neo4jImplantNodeService:

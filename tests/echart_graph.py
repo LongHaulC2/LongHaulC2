@@ -1,19 +1,44 @@
 from nicegui import ui
 
-# 1. Define the graph data (Mimicking a Neo4j Cypher response)
-nodes = [
-    {"id": "0", "name": "Ryan", "category": 0, "symbolSize": 60},
-    {"id": "1", "name": "Python", "category": 1, "symbolSize": 40},
-    {"id": "2", "name": "NiceGUI", "category": 1, "symbolSize": 40},
-    {"id": "3", "name": "Neo4j", "category": 2, "symbolSize": 50},
-]
+# basic data struct, can mess around with numbers based on node type, etc.
+"""
+Cypher for this:
 
-links = [
-    {"source": "0", "target": "1", "value": "CODES_IN"},
-    {"source": "0", "target": "3", "value": "QUERIES"},
-    {"source": "1", "target": "2", "value": "USES_FRAMEWORK"},
-    {"source": "2", "target": "3", "value": "CONNECTS_TO"},
-]
+MATCH (n)
+RETURN DISTINCT 
+       id(n) AS id,
+       n.system_hostname AS name,
+       CASE 
+           WHEN "Neo4jImplantNode" IN labels(n) THEN 0
+           ELSE 1
+       END AS category,
+       properties(n) AS props;
+
+"""
+# 1. Define the graph data (Mimicking a Neo4j Cypher response)
+# nodes = [
+#     {"id": "0", "name": "Ryan", "category": 0, "symbolSize": 60},
+#     {"id": "1", "name": "Python", "category": 1, "symbolSize": 40},
+#     {"id": "2", "name": "NiceGUI", "category": 1, "symbolSize": 40},
+#     {"id": "3", "name": "Neo4j", "category": 2, "symbolSize": 50},
+# ]
+
+# cypher queries for this struct:
+"""
+MATCH (a)-[r]->(b)
+RETURN id(a) AS source,
+       id(b) AS target,
+       type(r) AS value,
+       properties(r) AS props;
+
+"""
+# links = [
+#     {"source": "0", "target": "1", "value": "CODES_IN"},
+#     {"source": "0", "target": "3", "value": "QUERIES"},
+#     {"source": "1", "target": "2", "value": "USES_FRAMEWORK"},
+#     {"source": "2", "target": "3", "value": "CONNECTS_TO"},
+# ]
+
 
 categories = [{"name": "User"}, {"name": "Language/Framework"}, {"name": "Database"}]
 

@@ -559,3 +559,23 @@ async def get_implant_task_history(implant_uuid: str) -> dict:
         response = await client.get(url)
         data = response.json()  # .get("data")
         return data
+
+
+async def get_all_graph_data() -> dict:
+    """
+    Gets allt eh graph data from the API
+
+    Returns:
+
+    """
+    url = generate_url("/api/v1/graph/")
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(method="GET", url=url)
+    api_log.debug(f"Getting all graph data")
+
+    # get implants
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        data = response.json()  # .get("data")
+        return data

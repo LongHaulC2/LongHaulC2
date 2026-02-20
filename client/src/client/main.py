@@ -6,6 +6,7 @@ from nicegui import app, ui
 
 import client.src.client.log
 import client.src.client.pages.docs
+import client.src.client.pages.graph
 import client.src.client.pages.implant
 import client.src.client.pages.listeners
 import client.src.client.pages.login
