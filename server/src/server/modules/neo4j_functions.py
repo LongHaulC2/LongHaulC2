@@ -1,4 +1,6 @@
 # neo4j functions
+import logging
+
 from ..db.mysql_connector import get_mysql_session
 from ..db.neo4j_models import (
     Neo4jImplantNode,
@@ -7,6 +9,15 @@ from ..db.neo4j_models import (
 )
 from .mysql_functions import ImplantService, MySQLImplantTaskService
 from .redis_functions import RedisImplantTaskService
+
+server_logger = logging.getLogger("server")
+
+
+"""
+Okoay general architectural rules:
+ - Check if node exists before hand. If not, safe to create. If so, lookup node/acces obejct 
+ and do what you need with it. This should be what safe/not cause weird duplicate problems
+"""
 
 
 class Neo4jImplantNodeService:
@@ -62,19 +73,17 @@ class Neo4jImplantNodeService:
 
         # placeholder holdover for network until we get internal ip metadata
         cidr_value = self.metadata.get("cidr", "10.0.0.0/24")
-        net = Neo4jNetworkNode(cidr=cidr_value)
-        net.save()
 
         # check if exists, if not, create
-        net = Neo4jNetworkNode.nodes.get_or_none(cidr=cidr_value)
-        if not net:
-            net = Neo4jNetworkNode(cidr=cidr_value)
-            net.save()
+        net_node = Neo4jNetworkNode.nodes.get_or_none(cidr=cidr_value)
+        if not net_node:
+            net_node = Neo4jNetworkNode(cidr=cidr_value)
+            net_node.save()
 
         # Connect the implant to the network node
         # This creates the (Implant)-[:CONNECTED_TO]->(Network) relationship in Neo4j
         if self.implant_node:
-            self.implant_node.connected_to.connect(net)
+            self.implant_node.connected_to.connect(net_node)
 
     def _check_network_gateway(self):
         """
@@ -91,7 +100,10 @@ class Neo4jImplantNodeService:
         implant_external_ip = self.metadata.get("external_ip", "")
 
         if not implant_external_ip:
+            server_logger.warning("No external IP found for implant")
             return
 
-        gw = Neo4jNetworkGatewayNode(host=implant_external_ip)
-        gw.save()
+        gw_node = Neo4jNetworkGatewayNode.nodes.get_or_none(host=implant_external_ip)
+        if not gw_node:
+            gw_node = Neo4jNetworkGatewayNode(host=implant_external_ip)
+            gw_node.save()
