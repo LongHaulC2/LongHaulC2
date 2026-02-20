@@ -18,6 +18,16 @@ class Neo4jImplantNode(SemiStructuredNode):
     implant_uuid = StringProperty(unique_index=True, required=True)
 
     connected_to = RelationshipTo("Neo4jNetworkNode", "CONNECTED_TO")
+    host = RelationshipTo("Neo4jHostNode", "RUNNING_ON")
+
+    @classmethod
+    def find_existing(cls, implant_uuid=None) -> "Neo4jImplantNode | None":
+        """
+        Lookup an implant by its unique UUID.
+        """
+        if implant_uuid:
+            return cls.nodes.get_or_none(implant_uuid=implant_uuid)
+        return None
 
 
 # for a host, who is not running an implant. I.e., was discovered. not sure if this is a good architecture idea yet, thinking, if a host -> an implant, how to handle.

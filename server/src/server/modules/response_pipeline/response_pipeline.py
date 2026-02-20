@@ -205,14 +205,24 @@ def process_single_response_for_neo4j(task_response_dict: dict):
             new_implant.save()
 
         case "discover neighbors":
+            """
+            Add neighboring hosts to the datamodel.
+
+            """
             # for ref, task struct: {'implant_uuid': '019c7c3a-ebe5-7a7e-a229-eb1ee8084921', 'result': {'data': {'type': 'text', 'value': '10.0.0.1\n10.0.0.10\n10.0.0.25\n10.0.0.30\n'}, 'message': {'type': 'text', 'value': 'Success'}, 'windows_error_code': {'type': 'int', 'value': 0}}, 'task_uuid': '019c7c3c-db72-7be1-9f14-46c9bdc8076f'}
             data = task_response_dict.get("result", {}).get("data", "").get("value", "")
+
+            if not data:
+                server_logger.debug("No data in response, not parsing")
+                return
+
             addresses = data.split()  # get addr from respnose
             # parse neighbor discovery and add node
 
             for address in addresses:
                 # clean address
                 address = address.strip()
+                # note... need to check this func. On register, if already an implant, DO NOT register? or... register it as a host still, that just happens to have an implatn runnign on it
                 new_host = Neo4jHostNodeService(address=address)
                 new_host.register_host()
 

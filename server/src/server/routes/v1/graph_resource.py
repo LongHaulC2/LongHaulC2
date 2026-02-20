@@ -63,9 +63,10 @@ class Graph(Resource):
                 RETURN DISTINCT elementId(n) AS id, 
                     //decides what name is. 
                     CASE 
-                        WHEN "Neo4jImplantNode" IN labels(n) THEN n.system_hostname
+                        WHEN "Neo4jImplantNode" IN labels(n) THEN n.implant_uuid
                         WHEN "Neo4jNetworkNode" IN labels(n) THEN n.cidr
                         WHEN "Neo4jNetworkGatewayNode" IN labels(n) THEN n.host
+                        WHEN "Neo4jHostNode" IN labels(n) THEN n.address
                         ELSE "Unknown Node"
                     //this actually sets the name here:
                     END AS name,
@@ -74,6 +75,7 @@ class Graph(Resource):
                         WHEN "Neo4jImplantNode" IN labels(n) THEN 0 
                         WHEN "Neo4jNetworkNode" IN labels(n) THEN 1
                         WHEN "Neo4jNetworkGatewayNode" IN labels(n) THEN 2
+                        WHEN "Neo4jHostNode" IN labels(n) THEN 2
                         ELSE 0 
                     END AS category, 
                     properties(n) AS props;
