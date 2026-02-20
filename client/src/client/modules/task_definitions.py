@@ -81,31 +81,12 @@ async def task_tree(command, args, implant_uuid):
     match command:
         # special command
         case "help":
-            system_cmds = [Exit, Sleep]
-            fs_cmds = [Cd, Ls, FileDownload, FileUpload]
-            mem_cmds = [
-                MemStoreList,
-                MemStoreUpload,
-                MemStoreDownload,
-                MemStoreDelete,
-                MemStoreClear,
-            ]
-            strat_cmds = [StratActive, StratList, StratPost, StratGet]
-            execution_cmds = [BofRunner]
-            discover_cmds = [DiscoverNeighbors]
 
-            # get the longest command, use that as ref for spacing the :desc
-            all_cmds = (
-                system_cmds
-                + fs_cmds
-                + mem_cmds
-                + strat_cmds
-                + execution_cmds
-                + discover_cmds
-            )
-
+            all_command_classes = get_all_command_classes()
             # Use max length + 4 buffer for the colon alignment
-            global_max_len = max(len(cls.command_name) for cls in all_cmds) + 4
+            global_max_len = (
+                max(len(cls.command_name) for cls in all_command_classes) + 4
+            )
 
             # 3. Helper to format the group
             def format_group(header, cmd_list):
@@ -983,3 +964,47 @@ class Ls:
 #                 "cli": self.cli,
 #             },
 #         }
+# Global comamnd list here, easier to work with
+
+
+# List of system commands.
+# TLDR, outside of function, easier to access across various functions
+
+system_cmds = [Exit, Sleep]
+fs_cmds = [Cd, Ls, FileDownload, FileUpload]
+mem_cmds = [
+    MemStoreList,
+    MemStoreUpload,
+    MemStoreDownload,
+    MemStoreDelete,
+    MemStoreClear,
+]
+strat_cmds = [StratActive, StratList, StratPost, StratGet]
+execution_cmds = [BofRunner]
+discover_cmds = [DiscoverNeighbors]
+
+
+def get_all_command_classes():
+    """
+    Gets a list of all valid command clases for the CLI.
+    """
+
+    # get the longest command, use that as ref for spacing the :desc
+    all_cmds = (
+        system_cmds + fs_cmds + mem_cmds + strat_cmds + execution_cmds + discover_cmds
+    )
+    return all_cmds
+
+
+def get_all_command_names():
+    """
+    Gets a list of all valid commands (ie. their text invokation) for the CLI.
+    """
+    cmd_classes = get_all_command_classes()
+    cmd_list = []
+
+    for cmd in cmd_classes:
+        command_name = cmd.command_name
+        cmd_list.append(command_name)
+
+    return cmd_list

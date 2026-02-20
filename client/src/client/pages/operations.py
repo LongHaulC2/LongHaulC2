@@ -11,7 +11,11 @@ from client.src.client.modules.api_calls import (
     queue_task,
     update_implant,
 )
-from client.src.client.modules.task_definitions import ResultType, task_tree
+from client.src.client.modules.task_definitions import (
+    ResultType,
+    get_all_command_names,
+    task_tree,
+)
 from client.src.client.pages.dialogues import *
 from client.src.client.pages.listeners import start_listener_dialogue
 from client.src.client.pages.menu import setup_menu
@@ -19,7 +23,6 @@ from client.src.client.pages.notes import open_notes_dialog
 from client.src.client.pages.payloads import start_payload_dialogue
 from client.src.client.style import BUTTON_COLOR, ICON_COLOR, TEXT_COLOR
 from client.src.client.utils.url import generate_url
-from server.src.server.utils import response
 
 from ..utils.checks import check_type
 
@@ -407,6 +410,8 @@ async def terminal(implant_uuid: str):
     terminal_prepend = f"{implant_uuid[:8]} > "
     last_uuid = None
 
+    list_of_commands_for_autocomplete = get_all_command_names()
+
     # Layout: Output gets all space, Input gets fixed bottom
     with ui.column().classes("w-full h-full gap-0"):
 
@@ -425,7 +430,7 @@ async def terminal(implant_uuid: str):
             )
 
             ui_user_input = (
-                ui.input()
+                ui.input(autocomplete=list_of_commands_for_autocomplete)
                 .classes("flex-grow")
                 .props(
                     "dense borderless dark input-class=text-emerald-400 input-style=font-family:monospace"
@@ -478,6 +483,9 @@ async def terminal(implant_uuid: str):
                 ui_log.push(line)
         elif result_type == ResultType.ERROR:
             await push_error_to_terminal(result_data)
+
+        # last but not least, update autofill
+        list_of_commands_for_autocomplete.append(user_input)
 
     async def add_tasks_to_terminal(task_list: list[dict]):
         nonlocal last_uuid
