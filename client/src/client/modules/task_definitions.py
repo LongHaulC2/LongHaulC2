@@ -882,7 +882,7 @@ class BofRunner:
 @dataclass(frozen=True)
 class DiscoverNeighbors:
     R"""
-    Discover neighbors via passive arp discovery <[not implemented] eventually used as a trigger to fill in neighbors in graph model>
+    Discover neighbors via passive arp discovery. Results from this command are used to populate additional targets in the Graph
     """
 
     command_name = "discover neighbors"
