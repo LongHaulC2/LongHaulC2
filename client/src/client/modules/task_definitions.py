@@ -51,17 +51,24 @@ class ResultType(Enum):
 def get_description_of_dataclasses(dataclasses, fixed_width=None):
     descriptions = []
 
-    # Calculate max length or use the fixed global width
     if fixed_width:
         max_len = fixed_width
     elif dataclasses:
-        max_len = max(len(cls.command_name) for cls in dataclasses) + 4
+        # this is padding between command name and the desc
+        max_len = max(len(cls.command_name) for cls in dataclasses) + 2
     else:
         max_len = 0
 
+    # The command column width + 2 characters for the ": " separator
+    padding = max_len + 2
+
     for cls in dataclasses:
         # Format: "commandname    : description..."
-        description = f"{cls.command_name:<{max_len}}: {cls.__doc__.strip()}"
+        description = f"{cls.command_name: <{max_len}}: {cls.__doc__.strip()}"
+
+        if hasattr(cls, "command_structure"):
+            for structure in cls.command_structure:
+                description += f"\n{' ' * padding} > {structure}"
         descriptions.append(description)
 
     return descriptions
@@ -388,10 +395,12 @@ def create_and_verify_task(implant_uuid: str, task: TaskDetail):
 @dataclass(frozen=True)
 class Cd:
     R"""
-    Change the current working directory on the host. Ex: `cd C:\\Users\\`
+    Change the current working directory on the host.
     """
 
     command_name = "cd"
+    command_structure = ["cd <directory>"]
+
     implant_uuid: str
     directory: str
 
@@ -418,10 +427,12 @@ class Cd:
 @dataclass(frozen=True)
 class Sleep:
     R"""
-    Sleep for a specified number of seconds on the host. Ex: `sleep 5`
+    Set sleep timer on the host.
     """
 
     command_name = "sleep"
+    command_structure = ["sleep <seconds>"]
+
     implant_uuid: str
     sleep_time: str
 
@@ -447,10 +458,12 @@ class Sleep:
 @dataclass(frozen=True)
 class StratPost:
     R"""
-    Set the post strategy for the implant. Ex: `strat post my_post_strategy`
+    Set the post strategy for the implant.
     """
 
     command_name = "strat post"
+    command_structure = ["strat post <post_strat_name>"]
+
     implant_uuid: str
     strategy_name: str
 
@@ -475,10 +488,12 @@ class StratPost:
 
 class StratGet:
     R"""
-    Set the get strategy for the implant. Ex: `strat get my_get_strategy`
+    Set the get strategy for the implant.
     """
 
     command_name = "strat get"
+    command_structure = ["strat get <get_strat_name>"]
+
     implant_uuid: str
     strategy_name: str
 
@@ -555,10 +570,12 @@ class StratActive:
 @dataclass(frozen=True)
 class FileDownload:
     R"""
-    Get a file from the host the implant is running on. Ex: `file download C:\\Users\\user\\file.txt`
+    Get a file from the host the implant is running on.
     """
 
     command_name = "file download"
+    command_structure = ["file download <file_path>"]
+
     implant_uuid: str
     file_path: str
 
@@ -584,10 +601,14 @@ class FileDownload:
 @dataclass(frozen=True)
 class FileUpload:
     R"""
-    Upload a file to the host the implant is running on. Ex: `file upload C:\\Users\\user\\file.txt <base64 file contents>` (or, just use the file upload button)
+    Upload a file to the host the implant is running on.
     """
 
     command_name = "file upload"
+    command_structure = [
+        "file upload <file_save_path> <base64_file_contents>",
+        "file upload <file_save_path> *<memstore_file_name>",
+    ]
     implant_uuid: str
     file_path: str
     file_contents: str | bytes  # start with base64. figure out the upload button later
@@ -644,10 +665,11 @@ class FileUpload:
 @dataclass(frozen=True)
 class MemStoreUpload:
     R"""
-    Upload a file to the implant memstore. Ex: `memstore upload <file_name> <base64 file contents>` (or, just use the file upload button, and switch it to memstore)
+    Upload a file to the implant memstore. Alternatively, use the file upload button.
     """
 
     command_name = "memstore upload"
+    command_structure = ["memstore upload <file_name> <base64_file_contents>"]
     implant_uuid: str
     file_name: str
     file_contents: str | bytes  # start with base64. figure out the upload button later
@@ -693,10 +715,12 @@ class MemStoreUpload:
 @dataclass(frozen=True)
 class MemStoreDownload:
     R"""
-    Download a file from the implant memory store. Ex: `memstore download <file_name>`
+    Download a file from the implant memory store.
     """
 
     command_name = "memstore download"
+    command_structure = ["memstore download <file_name>"]
+
     implant_uuid: str
     file_name: str
 
@@ -725,10 +749,11 @@ class MemStoreDownload:
 @dataclass(frozen=True)
 class MemStoreDelete:
     R"""
-    Delete a file from the implants memory store. Ex: `memstore delete <file_name>`
+    Delete a file from the implants memory store.
     """
 
     command_name = "memstore delete"
+    command_structure = ["memstore delete <file_name>"]
     implant_uuid: str
     file_name: str
 
@@ -755,7 +780,7 @@ class MemStoreDelete:
 @dataclass(frozen=True)
 class MemStoreClear:
     R"""
-    Clear *all* files in the implants memory store. Ex: `memstore clear`
+    Clear *all* files in the implants memory store.
     """
 
     command_name = "memstore clear"
@@ -777,7 +802,7 @@ class MemStoreClear:
 @dataclass(frozen=True)
 class MemStoreList:
     R"""
-    List all file names in the memstore. Ex: `memstore list`
+    List all file names in the memstore.
     """
 
     command_name = "memstore list"
@@ -799,10 +824,15 @@ class MemStoreList:
 @dataclass(frozen=True)
 class BofRunner:
     R"""
-    Run a BOF. `bof <base64_bof_object> <args_for_bof_if_any>` OR use the memory store: `bof *memstore_bof_name <args_for_bof_if_any>
+    Run a BOF.
     """
 
     command_name = "bof"
+    command_structure = [
+        "bof <base64_bof_object> <bof_args>",
+        "bof *<memstore_bof_name> <bof_args>",
+    ]
+
     implant_uuid: str
     # bof_name: str
     bof_contents: str | bytes  # start with base64. figure out the upload button later
@@ -908,7 +938,7 @@ class Exit:
 @dataclass(frozen=True)
 class Ls:
     R"""
-    List the contents of a directory on the host. Ex: `ls C:\\Users\\`
+    List the contents of a directory on the host.
     """
 
     command_name = "ls"
@@ -938,33 +968,6 @@ class Ls:
             implant_uuid=self.implant_uuid, task=task_detail
         )
         return final_task
-
-
-# @dataclass(frozen=True)
-# class Powershell:
-#     """
-#     [placeholder command for dev] Run a command on the host via powershell.exe. Ex: `powershell -c "<your_command>"`
-#     """
-
-#     cli: str
-
-#     def __post_init__(self):
-#         """Automatically run something when the dataclass is created."""
-#         if not self.cli:
-#             # Raise a ParseError exception if cli is None or empty
-#             raise ParseError(
-#                 "The 'cli' argument cannot be None or empty. Ex: `cmd <cli arg>`: `cmd whoami`"
-#             )
-
-#     def to_task(self) -> dict:
-#         """Convert the dataclass to a task style dictionary structure."""
-#         return {
-#             "task": "powershell",
-#             "data": {
-#                 "cli": self.cli,
-#             },
-#         }
-# Global comamnd list here, easier to work with
 
 
 # List of system commands.
@@ -1005,6 +1008,11 @@ def get_all_command_names():
 
     for cmd in cmd_classes:
         command_name = cmd.command_name
-        cmd_list.append(command_name)
 
+        # see if there's a command structure list for examples
+        if hasattr(cmd, "command_structure"):
+            command_structure = [cs for cs in cmd.command_structure]
+            cmd_list.extend(command_structure)
+
+        cmd_list.append(command_name)
     return cmd_list
