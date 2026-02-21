@@ -1,9 +1,10 @@
 #pragma once
 #include <windows.h>
-#include <string>
+#include <iostream>
+#include "../protocols/json/json.h"
 //struct to hold return type.  Move to somewhere where everything can access. maybe a structs.h
 struct ModuleResult {
-	std::string data;  // Holds whatever text data may be needed here
+	nlohmann::json data;  // Holds whatever data may be needed here, str, dict, list, etc. 
 	DWORD windows_error_code;   // 0 = success, anything else = error, used for windows api error codes. GUI/calling func can convert these if they want. 
 };
 //then to use this to get these: 

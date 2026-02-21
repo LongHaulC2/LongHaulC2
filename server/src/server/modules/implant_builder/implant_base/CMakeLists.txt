@@ -59,6 +59,8 @@ set_target_properties(BofRunner PROPERTIES
 # ==========================================
 # 3. Target Platform Logic (Windows)
 # ==========================================
+# tells windows.h and winsock2 to stop FUCKING fighting constantly (among other things)
+add_compile_definitions(WIN32_LEAN_AND_MEAN)
 
 if(WIN32)
     # Both MSVC and MinGW (Cross-compile) enter here
@@ -69,14 +71,13 @@ if(WIN32)
         "protocols/http_wininet/http.h"
     )
 
-    target_link_libraries(Implant_v01 PRIVATE 
-        BofRunner
-        wininet 
-        ws2_32 
+target_link_libraries(Implant_v01 PRIVATE 
+        BofRunner 
+        wininet
+        iphlpapi
+        ws2_32
         crypt32
-        #Synchronization # for bof_laucher_win
-        iphlpapi # for discovery/arp stuff
-        ntdll # for bof launcher
+        ntdll
     )
 
     # --- MSVC Specific (Native Windows Build) ---
@@ -96,7 +97,7 @@ if(WIN32)
         
     # --- MinGW Specific (Cross-Compile on Linux) ---
     elseif(MINGW)
-        # Static Linking
+        # 1. Static Linking
         # Ensures libgcc/libstdc++ are built in, so you don't need DLLs on the target
         target_link_options(Implant_v01 PRIVATE 
             -static 
@@ -104,6 +105,15 @@ if(WIN32)
             -static-libstdc++
         )
         
+        # 2. Link System Libraries
+        # MinGW needs explicit linking for WinINet and Winsock
+        #target_link_libraries(Implant_v01 PRIVATE 
+        #    wininet 
+        #    ws2_32 
+        #    crypt32
+        #    BofRunner
+        #)
+
         # set some stuff for optimizations
         set(CMAKE_CXX_FLAGS_RELEASE "-Os")
         set(CMAKE_C_FLAGS_RELEASE "-Os")

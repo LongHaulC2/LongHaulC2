@@ -535,23 +535,25 @@ async def terminal(implant_uuid: str):
                     # output = f"{key}:\n{'-'*10}\n {value}"
                     # await push_output_to_terminal(task_response.get("data", ""))
                     # temp push dict to terminal for debugging
-                    data_type = value.get("type")
-                    data_value = value.get("value")
+                    # data_type = value.get("type")
+                    # data_value = value.get("value")
 
                     # error is a special case, push to error stream
                     if key == "error":
-                        await push_error_to_terminal(data_value)
+                        await push_error_to_terminal(value)
                         continue
 
-                    # then, print out the rest as needed.
-                    if data_type == "text":
-                        await push_output_to_terminal(f"--- {key} ---")
+                    await push_output_to_terminal(f"--- {key} ---")
+                    await push_output_to_terminal(value)
+                    # # then, print out the rest as needed.
+                    # if data_type == "text":
+                    #     await push_output_to_terminal(f"--- {key} ---")
 
-                        await push_output_to_terminal(data_value)
+                    #     await push_output_to_terminal(value)
 
-                    if data_type == "bytes":
-                        await push_output_to_terminal(data_value)
-                        # change to push_hex_output to term or something
+                    # if data_type == "bytes":
+                    #     await push_output_to_terminal(value)
+                    # change to push_hex_output to term or something
 
                 new_last_uuid = task.get("task_uuid")
 

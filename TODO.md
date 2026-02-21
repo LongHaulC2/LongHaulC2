@@ -41,6 +41,13 @@ Use existing nodes, rework logic based on that.
 May be worth adding a tracert command for mapping egress. 
 That's a bit loud. Need to find balance between noise and accuracy.
 
+> here:
+reworking implant responses to be strucured.
+
+no more key -> type/value, (ex, data: type, value) just "key"
+Binary is auto stored as base64 in db with the BytesEncoder in mysql_connector,
+so everything is safe to print
+
 ### Server: Listeners & Core
 
 * [ ] Fix active flag in the database (Idea: Start listener on startup if marked active)
