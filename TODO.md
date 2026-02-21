@@ -28,6 +28,19 @@
 - left off workign in gui, it works fine for a display for now.
 Keep building out logic based on responses, chains, etc etc. 
 
+- [ ] GUI: Relationship names in GUI
+- [ ] GUI: Context menu/Buttons for actions with selected items (i.e., open implant page, pop shell, etc.)
+- [ ] Server/DB: Listeners and comms channels
+ - > real data, like mac, gateway, and ip would help a lot for deving. Focus on that in metadata
+   see metadata.cpp
+
+> here
+Take time to draw out what you want in like drawio/a perfect graph, and think about it. 
+Use existing nodes, rework logic based on that.
+
+May be worth adding a tracert command for mapping egress. 
+That's a bit loud. Need to find balance between noise and accuracy.
+
 ### Server: Listeners & Core
 
 * [ ] Fix active flag in the database (Idea: Start listener on startup if marked active)

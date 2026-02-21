@@ -25,6 +25,7 @@ class ImplantCreate:
     arch: Optional[str] = None
     last_checkin: Optional[int] = None
     sleep_value: Optional[int] = None
+    # subnet_cidr: Optional[str] = None
 
 
 @dataclass

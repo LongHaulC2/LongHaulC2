@@ -86,3 +86,4 @@ def setup_logger(name, filename):
 api_logger = setup_logger("api", "api.log")
 server_logger = setup_logger("server", "server.log")
 listener_logger = setup_logger("listener", "listener.log")
+neo4j_logger = setup_logger("neo4j", "neo4j.log")

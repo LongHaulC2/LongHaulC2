@@ -11,6 +11,7 @@ from ...db.mysql_connector import get_mysql_session
 from ...instance import api
 from ...listeners.supervisor import start_listener, stop_listener
 from ...modules.mysql_functions import ListenerService
+from ...modules.neo4j_functions import Neo4jListenerNodeService
 from ...schemas.listeners import ListenerCreate
 from ...utils.checks import check_type
 from ...utils.response import APIResponse
@@ -257,6 +258,13 @@ class Listeners(Resource):
             listener_service.set_active(listener_id, active=True)
             # and in the dataclass for the response
             listener_dataclass.listener_active = True
+
+        # add to neo4j
+        neo4j_listener = Neo4jListenerNodeService(listener_uuid=listener_id)
+        # for now, nuke profile, don't need to store it here
+        listener_data = api.payload
+        del listener_data["listener_profile_contents"]
+        neo4j_listener.register_listener(**listener_data)
 
         data = asdict(listener_dataclass)
 

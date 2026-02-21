@@ -204,6 +204,8 @@ def process_single_response_for_neo4j(task_response_dict: dict):
             new_implant = Neo4jImplantNode(implant_uuid=implant_uuid)
             new_implant.save()
 
+        # this needs to be switched over to mac addr, or maybe both mac and ip: ip,mac
+        # or allow for list types in implnt but that's more work.
         case "discover neighbors":
             """
             Add neighboring hosts to the datamodel.
@@ -216,10 +218,18 @@ def process_single_response_for_neo4j(task_response_dict: dict):
                 server_logger.debug("No data in response, not parsing")
                 return
 
-            addresses = data.split()  # get addr from respnose
+            addresses = data.strip().split("\n")  # get addr from respnose
             # parse neighbor discovery and add node
-            for address in addresses:
-                # clean address
-                address = address.strip()
-                new_host = Neo4jHostNodeService(address=address)
-                new_host.register_host()
+            print(addresses)
+            for pair in addresses:
+                try:
+                    ip_addr = pair.split(",")[0]
+                    mac_addr = pair.split(",")[1]
+                    # clean address
+                    ip_addr = ip_addr.strip()
+                    mac_addr = mac_addr.strip()
+
+                    Neo4jHostNodeService.create_or_get_node(ip_address=ip_addr)
+                except Exception as e:
+                    server_logger.error(f"discover neigbors err: {e}")
+                    continue

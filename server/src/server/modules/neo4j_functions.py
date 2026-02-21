@@ -5,202 +5,236 @@ import structlog
 
 from ..db.mysql_connector import get_mysql_session
 from ..db.neo4j_models import (
+    Neo4jC2ChannelNode,
     Neo4jHostNode,
     Neo4jImplantNode,
-    Neo4jNetworkGatewayNode,
+    Neo4jListenerNode,
     Neo4jNetworkNode,
 )
-from .mysql_functions import ImplantService, MySQLImplantTaskService
+from .mysql_functions import ImplantService, ListenerService, MySQLImplantTaskService
 from .redis_functions import RedisImplantTaskService
 
-server_logger = logging.getLogger("server")
+neo4j_logger = logging.getLogger("neo4j_logger")
 
 """
-Okoay general architectural rules:
- - Check if node exists before hand. If not, safe to create. If so, lookup node/acces obejct 
- and do what you need with it. This should be what safe/not cause weird duplicate problems
-
- Going forward, a lot of these items might be better to do on the response, i.e., create a command for it
- and then based on response, fill in data, and don't use/abuse metadata. (in the batchloop)
-
- Also, a field to manually update/enter values in the graph gui is a good idea, i.e., 
- click on node, have an update button/menu, and enter what property you want to add to it, etc and
- it just does the mapping for you (via init_node? it has the checks for dups, 
- so new data should be safe to add while it preseves the old)
-   (i.e., joins you to a network, etc etc)
+each service class should have a:
  
- """
+@staticmethod
+def create_or_get_node(args) -> object that returns model object:
+
+"""
 
 
+# NEW APPROACH, provide methods to hook things together, AVOID auto hooking, it makes things weird and not scalable
 class Neo4jImplantNodeService:
-    def __init__(self, implant_uuid):
-        self.implant_uuid = implant_uuid
-
+    def __init__(self, implant_uuid, listener_uuid):
+        self.implant_uuid = implant_uuid  # fed by listener
+        self.listener_uuid = listener_uuid  # fed by listener
         self.metadata: dict
-        self.implant_node = None
-
-    def init_node(self, **kwargs):
-        self.metadata = kwargs
-        self.metadata = kwargs
-        self.host_node = None
-
-        host_ip = self.metadata.get("internal_ip")
-
-        if host_ip:
-            host_service = Neo4jHostNodeService(host_ip)
-            self.host_node = host_service.register_host()  # Save to self.host_node
-        else:
-            server_logger.warning("Initializing implant without host metadata")
-
-        # Then, Create or Update the implant node
-        # We use find_existing to be deterministic based ONLY on the UUID
         self.implant_node = Neo4jImplantNode.find_existing(self.implant_uuid)
 
+    """
+    An implant can:
+
+    - Connect to a host
+    
+    """
+    # create node...
+
+    def register_node(self, **kwargs):
+        # Handle the implant node itself
         if not self.implant_node:
-            # Create fresh if it's the first time we've seen this UUID
-            server_logger.info("Creating new Neo4jImplantNode")
             self.implant_node = Neo4jImplantNode(
                 implant_uuid=self.implant_uuid, **kwargs
             ).save()
-        # if it already exists, just update it
         else:
-            # Update existing node with latest metadata from kwargs
-            server_logger.debug("Updating existing Neo4jImplantNode")
-            for key, value in kwargs.items():
-                setattr(self.implant_node, key, value)
-            self.implant_node.save()
+            self._update_node(kwargs)
 
-        # Handle Host Relationship
-        # maybe move to a dedicated network func
-        if self.host_node:
-            if not self.implant_node.host.is_connected(self.host_node):
-                # connect our implant, to our host
-                self.implant_node.host.connect(self.host_node)
-                server_logger.info("Implant linked to host")
-            else:
-                server_logger.debug("Implant already linked to host")
+        # this is the only "magic" that occurs. Because implantuuid and listener uuid are req'd
+        # we can hook them together automatically.
+        self.connect_implant_to_listener(self.listener_uuid)
 
-        # then call the network setup funcs
-        self.populate_neo4j_with_implant_metadata()
+    def connect_implant_to_listener(self, listener_uuid):
+        # connects this classes implant to a listener based on the listener UUID
 
-        return self.implant_node
+        # 2 step process
 
-    def populate_neo4j_with_implant_metadata(self):
-        self._check_network()
-        self._check_network_gateway()
-        self._check_network_to_gateway()
+        # 1: create listener node if not exist
+        # 2: Create c2 channel node if not exist
 
-    def _check_network(self):
-        """
-        Function for network related nodes in neo4j
-        """
-        cidr_value = self.metadata.get("cidr", "10.0.0.0/24")
+        # create or get listener node
+        listener_node = Neo4jListenerNodeService.create_or_get_node(listener_uuid)
+        # create or get channel node
+        c2_channel_node = Neo4jC2ChannelNodeService.create_or_get_node(listener_uuid)
 
-        # Safely get or create the network node
-        net_node = Neo4jNetworkNode.get_or_create({"cidr": cidr_value})[0]
+        # 3: link implant -> c2 channel,
+        # if we aren't already hooked up to the c2 channel, add us to it
+        if not self.implant_node.c2_established.is_connected(c2_channel_node):
+            self.implant_node.c2_established.connect(c2_channel_node)
 
-        # connect host to network
-        if getattr(self, "host_node", None):
-            if not self.host_node.connected_to.is_connected(net_node):
-                self.host_node.connected_to.connect(net_node)
-                server_logger.info(
-                    f"Linked Host ({self.host_node.address}) to Network ({cidr_value})"
-                )
-        else:
-            server_logger.warning("No host available to link to the network.")
+        #  then c2 channel -> listener
+        if not c2_channel_node.targets.is_connected(listener_node):
+            c2_channel_node.targets.connect(listener_node)
 
-    def _check_network_gateway(self):
-        """
-        Function for network gateway. This assumes that the gateway is the gateway of the network the implant is on, as provided in the metadata
-
-        If network gateway does not already exist (note... clash with CIDR's, use gateways as well?)
-        then create a network node
-        """
-        # somehow get network metadata, not sure entry point yet
-
-        # pull neo4j nodes
-        # if netowrk node for that cidr doesn't exist
-
-        # change to gateway when we get it, for now, use ext ip?
-        implant_network_gateway = self.metadata.get("network_gateway", "1.1.1.1")
-        implant_network_gateway_mac = self.metadata.get(
-            "network_gateway_mac", "1.1.1.1"
+        neo4j_logger.info(
+            f"Implant {self.implant_uuid} connected to listener {self.listener_uuid}"
         )
 
-        if not implant_network_gateway:
-            server_logger.warning("No network_gateway found for implant")
-            return
+    def _update_node(self, data: dict):
+        for key, value in data.items():
+            setattr(self.implant_node, key, value)
+        self.implant_node.save()
 
-        gw_node = Neo4jNetworkGatewayNode.nodes.get_or_none(
-            host=implant_network_gateway, mac_address=implant_network_gateway_mac
+    # call these for various things related to enrichement.
+    # basically, have caller handle this, not automatically
+    def connect_implant_to_host(self, host_ip_address):
+        # connects this classes implant to the host based on ip address of that host
+
+        # lookup host
+        host_node = Neo4jHostNodeService.create_or_get_node(ip_address=host_ip_address)
+
+        # now that we have that new host, connect *us* to *it*. order very important here
+
+        # if we aren't already running on this host
+        if not self.implant_node.running_on.is_connected(host_node):
+            # add us to it
+            self.implant_node.running_on.connect(host_node)
+
+        neo4j_logger.info(
+            f"Implant {self.implant_uuid} connected to host {host_ip_address}"
         )
-        if not gw_node:
-            gw_node = Neo4jNetworkGatewayNode(
-                host=implant_network_gateway, mac_address=implant_network_gateway_mac
-            )
-            gw_node.save()
-
-    def _check_network_to_gateway(self):
-        """
-        Links the implant's local network segment to its external gateway.
-        Requires both 'cidr' and 'external_ip' to exist in the metadata.
-        """
-        # Pull from metadata
-        # placeholders for now
-        cidr_value = self.metadata.get("cidr", "10.0.0.0/24")
-        implant_network_gateway = self.metadata.get("network_gateway", "1.1.1.1")
-        implant_network_gateway_mac = self.metadata.get(
-            "network_gateway_mac", "1.1.1.1"
-        )
-
-        # If we are missing either the cidr or ext ip we can't draw the link
-        if not cidr_value or not implant_network_gateway:
-            server_logger.warning(
-                "Missing CIDR or implant_network_gateway; skipping network-to-gateway link."
-            )
-            return
-
-        # Safely get or create BOTH nodes
-        net_node = Neo4jNetworkNode.get_or_create({"cidr": cidr_value})[0]
-        gw_node = Neo4jNetworkGatewayNode.get_or_create(
-            {
-                "host": implant_network_gateway,
-                "mac_address": implant_network_gateway_mac,
-            }
-        )[0]
-
-        # Connect them using the 'has_gateway' relationship defined on Neo4jNetworkNode
-        # Check if they are already connected first to avoid duplicate relationship edges
-        if not net_node.has_gateway.is_connected(gw_node):
-            net_node.has_gateway.connect(gw_node)
-            server_logger.info(
-                f"Linked Network ({cidr_value}) -> Gateway ({implant_network_gateway})"
-            )
 
 
 class Neo4jHostNodeService:
-    def __init__(self, address):
-        self.address = address
+    def __init__(self, ip_address):
+        self.ip_address = ip_address
 
         # setup logging for all funcs here
         structlog.contextvars.clear_contextvars()
-        structlog.contextvars.bind_contextvars(host=self.address)
+        structlog.contextvars.bind_contextvars(host=self.ip_address)
+
+    """
+    Host can have:
+     - A network its connected to
+     - implants that connect to it
+    
+    """
+
+    @staticmethod
+    def create_or_get_node(ip_address):
+        """
+        Creates a node. Useful for getting a quick new node and letting this handle all
+        the node logic
+        """
+        host_node = Neo4jHostNode.find_existing(ip_address=ip_address)
+        if not host_node:
+            host_node = Neo4jHostNode(ip_address=ip_address).save()
+            neo4j_logger.info(f"New Host discovered: {ip_address}")
+
+        return host_node
 
     def register_host(self):
         # see if it exists
-        node = Neo4jHostNode.find_existing(self.address)
+        node = Neo4jHostNode.find_existing(self.ip_address)
 
         # if not, create it
         if not node:
-
-            server_logger.info("Adding host to Neo4j")
-            node = Neo4jHostNode(address=self.address).save()
-
-        # Automatic Relationship Handling - later
-        # network = NetworkManager.get_default_network()
-        # node.connected_to.connect(network)
+            neo4j_logger.info("Adding host to Neo4j")
+            node = Neo4jHostNode(address=self.ip_address).save()
 
         # nuke all.
         structlog.contextvars.clear_contextvars()
 
         return node
+
+        # idea. could check all networks in the db, and if our IP falls into the networks
+        # range, we could add ourselves to it.
+
+
+class Neo4jListenerNodeService:
+    def __init__(self, listener_uuid):
+        self.listener_uuid = listener_uuid
+
+    @staticmethod
+    def create_or_get_node(listener_uuid):
+        """
+        Creates a node. Useful for getting a quick new node and letting this handle all
+        the node logic
+        """
+        listener_node = Neo4jListenerNode.find_existing(listener_uuid=listener_uuid)
+        if not listener_node:
+            listener_node = Neo4jListenerNode(listener_uuid=listener_uuid).save()
+            neo4j_logger.info(f"New listener node created: {listener_uuid}")
+
+        return listener_node
+
+    def register_listener(self, **kwargs):
+        """
+        Registers or updates a listener node.
+        """
+        # make sure it exsists....
+        listener_node = Neo4jListenerNode.find_existing(self.listener_uuid)
+
+        if not listener_node:
+            neo4j_logger.info(f"Registering new Listener: {self.listener_uuid}")
+            listener_node = Neo4jListenerNode(
+                listener_uuid=self.listener_uuid, **kwargs
+            ).save()
+        else:
+            neo4j_logger.debug(f"Updating existing Listener: {self.listener_uuid}")
+            # Update dynamic properties (status, current connections, etc.)
+            for key, value in kwargs.items():
+                setattr(listener_node, key, value)
+            listener_node.save()
+
+        return listener_node
+
+
+class Neo4jC2ChannelNodeService:
+    # def __init__(self, listener_uuid):
+    #     ...
+
+    @staticmethod
+    def create_or_get_node(listener_uuid) -> Neo4jC2ChannelNode:
+        """
+        Creates a node. This is a handy way to creat the nodes, especially if they have
+        addtl logic that may require addtl lookups for their data
+        """
+
+        channel_id = Neo4jC2ChannelNodeService._get_channel_id(listener_uuid)
+
+        listener_data = {}
+        with get_mysql_session() as session:
+            listener_class = ListenerService(session)
+            listener_object = listener_class.get_by_id(listener_uuid)
+            listener_data = listener_object.to_dict()
+
+        listener_type = listener_data.get("listener_type", "")
+
+        channel_node = Neo4jC2ChannelNode.find_existing(channel_id=channel_id)
+        if not channel_node:
+
+            channel_node = Neo4jC2ChannelNode(
+                channel_id=channel_id, protocol=listener_type
+            ).save()
+            neo4j_logger.info(f"New c2 channel node created: {channel_id}")
+
+        return channel_node
+
+    @staticmethod
+    def _get_channel_id(listener_uuid) -> str:
+        """
+        Create a unique key for the channel id in neo4j.
+        """
+        listener_data = {}
+        with get_mysql_session() as session:
+            listener_class = ListenerService(session)
+            listener_object = listener_class.get_by_id(listener_uuid)
+            listener_data = listener_object.to_dict()
+
+        listener_type = listener_data.get("listener_type", "")
+        listener_port = listener_data.get("listener_port", "")
+        listener_host = listener_data.get("listener_host", "")
+
+        channel_id = f"{listener_uuid}_{listener_type}_{listener_host}_{listener_port}"
+        return channel_id

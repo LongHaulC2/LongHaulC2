@@ -5,8 +5,34 @@ from neomodel import (
     RelationshipTo,
     StringProperty,
     StructuredNode,
+    StructuredRel,
 )
 from neomodel.contrib import SemiStructuredNode
+
+"""
+Overview:
+Nodes:
+ - Implant: Implant running
+ - Network: represents one network
+ - Host: Represents one host
+ - c2_channel: represents the C2 channel
+ - Listener: The listener we are calling back to
+
+
+Labels (like tags/categories)
+ - Internal (network)
+ - External (network)
+ - Airgapped (network)
+ - gateway
+
+Relationships:
+ - RUNNING_ON: implant -[running_on]> host
+ - ON_SUBNET: host to network, network to network
+ - ROUTES_TO: network -> network
+
+ 
+ for now, start with rel to (simplicity), then add rel_from later when advanced querying is needed.
+ """
 
 
 # semi structured for addtl ad hoc fields
@@ -17,8 +43,10 @@ class Neo4jImplantNode(SemiStructuredNode):
 
     implant_uuid = StringProperty(unique_index=True, required=True)
 
-    connected_to = RelationshipTo("Neo4jNetworkNode", "CONNECTED_TO")
-    host = RelationshipTo("Neo4jHostNode", "RUNNING_ON")
+    # implant -> host
+    running_on = RelationshipTo("Neo4jHostNode", "RUNNING_ON")
+
+    c2_established = RelationshipTo("Neo4jC2ChannelNode", "C2_ESTABLISHED")
 
     @classmethod
     def find_existing(cls, implant_uuid=None) -> "Neo4jImplantNode | None":
@@ -30,20 +58,22 @@ class Neo4jImplantNode(SemiStructuredNode):
         return None
 
 
-# for a host, who is not running an implant. I.e., was discovered. not sure if this is a good architecture idea yet, thinking, if a host -> an implant, how to handle.
 class Neo4jHostNode(SemiStructuredNode):
     """
     Implant Node for Implants.
     """
 
-    address = StringProperty(unique_index=True, required=True)
-    # maybe get a mac in here too to prevent duplicates... can do with the passive discovery if it's altered
+    ip_address = StringProperty(unique_index=True, required=True)
 
-    connected_to = RelationshipTo("Neo4jNetworkNode", "CONNECTED_TO")
+    # for addtl unique id if ever needed
+    # mac_address = StringProperty()
+    # hostname = StringProperty()
 
-    # helper to find existing
+    # Host -> Network
+    on_subnet = RelationshipTo("Neo4jNetworkNode", "ON_SUBNET")
+
     @classmethod
-    def find_existing(cls, address=None, mac=None) -> object | None:
+    def find_existing(cls, ip_address) -> object | None:
         """
         Custom logic to find a host by either IP or MAC.
         Useful for the 'Approval Queue' to suggest a Merge.
@@ -53,15 +83,14 @@ class Neo4jHostNode(SemiStructuredNode):
         #     if node:
         #         return node
 
-        if address:
-            node = cls.nodes.get_or_none(address=address)
+        if ip_address:
+            node = cls.nodes.get_or_none(ip_address=ip_address)
             if node:
                 return node
 
         return None
 
 
-# call when init?
 class Neo4jNetworkNode(SemiStructuredNode):
     """
     Represents a Layer 3 network segment (subnet/VLAN).
@@ -73,32 +102,56 @@ class Neo4jNetworkNode(SemiStructuredNode):
     # description = StringProperty()
 
     # Relationships
-
-    # the gateway this net connects to
-    # Neo4jNetworkNode -> Neo4jNetworkNodeGateway
-    has_gateway = RelationshipTo("Neo4jNetworkGatewayNode", "HAS_GATEWAY")
-
-    # next hop (which is gateway)
-    routed_from = RelationshipFrom("Neo4jNetworkGatewayNode", "ROUTES_TO")
+    routes_to = RelationshipTo("Neo4jNetworkNode", "ROUTES_TO")
 
 
-class Neo4jNetworkGatewayNode(SemiStructuredNode):
+class Neo4jListenerNode(SemiStructuredNode):
     """
-    Represents a routing-capable device (router/firewall/L3 switch).
+    Listener Node for Listeners.
     """
 
-    # between host, and mac, this should be enough to differentiate
-    # between diff networks. Can get this with ARP, if somewhat opsec safe.
-    host = StringProperty(unique_index=True, required=True)
-    mac_address = StringProperty(required=True)
+    listener_uuid = StringProperty(unique_index=True, required=True)
 
-    # hostname = StringProperty()
-    # device_type = StringProperty()  # router, firewall, l3_switch
-    external_exposed = BooleanProperty(default=False)  # can hit internet?
+    # listener_name = StringProperty()
+
+    # connected_to = RelationshipTo("Neo4jNetworkNode", "CONNECTED_TO")
+    # host = RelationshipFrom("Neo4jNetworkNode", "EGRESS")
+
+    @classmethod
+    def find_existing(cls, listener_uuid=None) -> "Neo4jListenerNode | None":
+        """
+        Lookup an implant by its unique UUID.
+        """
+        if listener_uuid:
+            return cls.nodes.get_or_none(listener_uuid=listener_uuid)
+        return None
+
+
+class Neo4jC2ChannelNode(SemiStructuredNode):
+    """
+    Intermediate node representing the communication path.
+    """
+
+    channel_id = StringProperty(
+        unique_index=True, required=True
+    )  # e.g., session_id or protocol_host_hash
+    protocol = StringProperty(required=True)  # "HTTPS", "DNS", "SMB"
+    # jitter = IntegerProperty(default=0)
+    # sleep = IntegerProperty(default=5)
 
     # Relationships
-    # what net connects to us
-    serves_network = RelationshipFrom("Neo4jNetworkNode", "HAS_GATEWAY")
+    # Implant -> our channel
+    # implant = RelationshipFrom("Neo4jImplantNode", "ESTABLISHED")
+    # Our Channel to Listener Node
+    targets = RelationshipTo("Neo4jListenerNode", "TARGETS")
 
-    # next hop/what other networks we connect to next, which could be a network
-    routes_to = RelationshipTo("Neo4jNetworkNode", "ROUTES_TO")
+    # Our channel to Gateway
+    # egress_point = RelationshipTo("Neo4jNetworkGatewayNode", "VIA_GATEWAY")
+    @classmethod
+    def find_existing(cls, channel_id=channel_id) -> "Neo4jC2ChannelNode | None":
+        """
+        Lookup an implant by its unique UUID.
+        """
+        if channel_id:
+            return cls.nodes.get_or_none(channel_id=channel_id)
+        return None

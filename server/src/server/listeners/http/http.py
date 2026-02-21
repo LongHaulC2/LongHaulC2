@@ -54,6 +54,7 @@ from ..malc2 import (
 
 app = FastAPI
 mp = MalleableProfile
+g_listener_uuid: str
 
 listener_logger = structlog.get_logger("listener")
 NULL_UUID = "00000000-0000-0000-0000-000000000000"
@@ -72,12 +73,14 @@ def run(
         listener_uuid (str): UUID of the listener that is being spawned
     """
     # make mp global to this module so we don't have to  read from it/pass everywhere constantly
-    global mp, app
+    global mp, app, g_listener_uuid
 
     check_type(listener_uuid, str, "listener_uuid")
     check_type(listener_port, int, "listener_port")
     check_type(listener_host, str, "listener_host")
     check_type(listener_profile_contents, str, "listener_profile")
+
+    g_listener_uuid = listener_uuid
 
     """
     Quick explanation, mp takes a file, not a string (it has a from_string method... but it wasn't working)
@@ -458,6 +461,7 @@ def _register_new_implant(unpacked_metadata: dict, request: Request) -> bytes:
     """
     Handles the creation of a new implant and its initial registration task.
     """
+    global g_listener_uuid
     listener_logger.info("New implant connected")
 
     with get_mysql_session() as session:
@@ -492,8 +496,14 @@ def _register_new_implant(unpacked_metadata: dict, request: Request) -> bytes:
         task_service._save_to_mysql()
 
         # also, create in neo4j
-        implant_node = Neo4jImplantNodeService(new_implant_uuid)
-        implant_node.init_node(**unpacked_metadata)
+        implant_node = Neo4jImplantNodeService(
+            # listener uuidis passed in weird here, it's set as a global
+            # if this func is moved out, just have it be passed in via args
+            implant_uuid=new_implant_uuid,
+            listener_uuid=g_listener_uuid,
+        )
+        # pass ALL metadata to host
+        implant_node.register_node(**unpacked_metadata)
 
         # commit
         session.commit()
