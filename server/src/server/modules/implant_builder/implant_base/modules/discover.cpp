@@ -20,40 +20,48 @@
 
 //idea, name this "neighbor discovery" or something, for each enightbor, addd it to a map of ipand mac,and send back in data. 
 // this allows for better parsing/neighbor discovery/a consistent return so the server knows how to handle it, and pass to neo4j.
-ModuleResult passive_arp_discovery() {
-    //https://learn.microsoft.com/en-us/windows/win32/api/netioapi/ns-netioapi-mib_ipnet_row2
-    PMIB_IPNET_TABLE2 pTable = nullptr;
 
-    // Swapped std::string for a JSON array
+//upate: arp alone was hard to work with, so now there's a hostname returned as well. 
+//ideally, this will result in a NIC in the gui, and a host that it connects to via this info
+ModuleResult passive_arp_discovery() {
+    PMIB_IPNET_TABLE2 pTable = nullptr;
     nlohmann::json output = nlohmann::json::array();
 
     if (GetIpNetTable2(AF_UNSPEC, &pTable) == NO_ERROR) {
         for (ULONG i = 0; i < pTable->NumEntries; i++) {
             MIB_IPNET_ROW2 row = pTable->Table[i];
 
-            // ONLY show entries that are confirmed reachable
+            // Filter for Reachable only to avoid stale entries
             if (row.State == NlnsReachable) {
                 wchar_t ipStr[64];
                 InetNtopW(row.Address.si_family, &row.Address.Ipv4.sin_addr, ipStr, 64);
 
-                //if (row.IsRouter) {
-                //    printf("[GATEWAY] ");
-                //}
+                // DNS Resolution Logic ---
+                wchar_t hostName[NI_MAXHOST];
+                std::string string_host = "";
+
+                // NI_NAMEREQD: Only returns a name if one is found (prevents returning the IP as the name)
+                // NI_NOFQDN: Returns only the hostname part for local hosts
+                if (GetNameInfoW((struct sockaddr*)&row.Address, sizeof(row.Address),
+                    hostName, NI_MAXHOST, NULL, 0, NI_NAMEREQD | NI_NOFQDN) == 0) {
+                    std::wstring w_host(hostName);
+                    string_host = std::string(w_host.begin(), w_host.end());
+                }
+                // ---------------------------------
 
                 std::wstring w_string_ip(ipStr);
                 std::string string_ip(w_string_ip.begin(), w_string_ip.end());
 
-                // Formatting the MAC address
                 char macBuf[32];
                 snprintf(macBuf, sizeof(macBuf), "%02X-%02X-%02X-%02X-%02X-%02X",
                     row.PhysicalAddress[0], row.PhysicalAddress[1],
                     row.PhysicalAddress[2], row.PhysicalAddress[3],
                     row.PhysicalAddress[4], row.PhysicalAddress[5]);
 
-                // Create the structured object for this neighbor
                 nlohmann::json neighbor;
                 neighbor["ip"] = string_ip;
                 neighbor["mac"] = macBuf;
+                neighbor["hostname"] = string_host; // Will be empty string if not found
 
                 output.push_back(neighbor);
             }
@@ -61,5 +69,5 @@ ModuleResult passive_arp_discovery() {
         FreeMibTable(pTable);
     }
 
-    return { output , ERROR_SUCCESS };
+    return { output, ERROR_SUCCESS };
 }

@@ -72,7 +72,7 @@ class Neo4jHostNode(SemiStructuredNode):
     Implant Node for Implants.
     """
 
-    ip_address = StringProperty(unique_index=True, required=True)
+    hostname = StringProperty(unique_index=True, required=True)
 
     # for addtl unique id if ever needed
     # mac_address = StringProperty()
@@ -87,7 +87,7 @@ class Neo4jHostNode(SemiStructuredNode):
     )
 
     @classmethod
-    def find_existing(cls, ip_address) -> object | None:
+    def find_existing(cls, hostname) -> object | None:
         """
         Custom logic to find a host by either IP or MAC.
         Useful for the 'Approval Queue' to suggest a Merge.
@@ -97,8 +97,8 @@ class Neo4jHostNode(SemiStructuredNode):
         #     if node:
         #         return node
 
-        if ip_address:
-            node = cls.nodes.get_or_none(ip_address=ip_address)
+        if hostname:
+            node = cls.nodes.get_or_none(hostname=hostname)
             if node:
                 return node
 
@@ -117,6 +117,15 @@ class Neo4jNetworkNode(SemiStructuredNode):
 
     # Relationships
     routes_to = RelationshipTo("Neo4jNetworkNode", "ROUTES_TO")
+
+    @classmethod
+    def find_existing(cls, cidr=cidr) -> "Neo4jC2ChannelNode | None":
+        """
+        Lookup an implant by its unique UUID.
+        """
+        if cidr:
+            return cls.nodes.get_or_none(cidr=cidr)
+        return None
 
 
 class Neo4jListenerNode(SemiStructuredNode):
@@ -168,4 +177,25 @@ class Neo4jC2ChannelNode(SemiStructuredNode):
         """
         if channel_id:
             return cls.nodes.get_or_none(channel_id=channel_id)
+        return None
+
+
+class Neo4jNicNode(SemiStructuredNode):
+    mac_address = StringProperty(unique_index=True, required=True)
+
+    # ip, optional
+    ip_address = StringProperty()
+
+    # nic -> host
+    attached_to = RelationshipTo("Neo4jHostNode", "ATTACHED_TO")
+    # nic -> network
+    in_network = RelationshipTo("Neo4jNetworkNode", "IN_NETWORK")
+
+    @classmethod
+    def find_existing(cls, mac_address=mac_address) -> "Neo4jC2ChannelNode | None":
+        """
+        Lookup an implant by its unique UUID.
+        """
+        if mac_address:
+            return cls.nodes.get_or_none(mac_address=mac_address)
         return None

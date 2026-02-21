@@ -13,26 +13,26 @@
 #include "../protocols/json/json.h"
 #include "../protocols/base64/base64.h"
 #include "../data/transforms/transforms.h"
-void test_create_metadata() {
-    TEST("create_metadata");
+// void test_create_metadata() {
+//     TEST("create_metadata");
 
-    std::map<std::string, std::string> fake_metadata;
-    fake_metadata["some_value"] = "urmom";
-    std::vector<unsigned char> packed_metadata; //does this nee dto be uin8_t
+//     std::map<std::string, std::string> fake_metadata;
+//     fake_metadata["some_value"] = "urmom";
+//     std::vector<unsigned char> packed_metadata; //does this nee dto be uin8_t
 
-    create_metadata(fake_metadata, packed_metadata);
+//     create_metadata(fake_metadata, packed_metadata);
 
-    // 3. Unpack & check that data using nlohmann/json
-    // We use from_msgpack to verify the bytes were written correctly
-    nlohmann::json unpacked_json = nlohmann::json::from_msgpack(packed_metadata);
+//     // 3. Unpack & check that data using nlohmann/json
+//     // We use from_msgpack to verify the bytes were written correctly
+//     nlohmann::json unpacked_json = nlohmann::json::from_msgpack(packed_metadata);
 
-    for (auto& [key, value] : unpacked_json.items()) {
-        std::cout << key << ": " << value << '\n';
-    }
+//     for (auto& [key, value] : unpacked_json.items()) {
+//         std::cout << key << ": " << value << '\n';
+//     }
 
-    assert(unpacked_json["some_value"] == "urmom");
-    std::cout << "    -> PASSED" << std::endl;
-}
+//     assert(unpacked_json["some_value"] == "urmom");
+//     std::cout << "    -> PASSED" << std::endl;
+// }
 
 void test_decode_msgpack_task() {
     TEST("decode_msgpack_task");
@@ -253,7 +253,7 @@ void test_transform_netbios() {
 
 void test_all() {
     //msgpack/data
-    test_create_metadata();
+    // test_create_metadata();
     test_decode_msgpack_task();
     test_create_task_response();
     //transforms

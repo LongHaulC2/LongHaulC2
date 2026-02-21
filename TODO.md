@@ -49,24 +49,6 @@ no more key -> type/value, (ex, data: type, value) just "key"
 Binary is auto stored as base64 in db with the BytesEncoder in mysql_connector,
 so everything is safe to print -->
 
-left off getting ip address of host. problem, hosts have multiple IP's,
-so a list of IP's would be ideal
-
-Note - metadata mgiht need some refinement. it only wants str data, which the multiple IP's don't do.
-one "metadata" object via a command to return in a standard task might be the best option. Can then look into the 
-no metadata until we call for it options. 
-
-> left off, just implemented the "onyl send metadata if not registered", which is a settings flag. 
-This should work, but verify else wehre. 
-
-Next, clean stuff up, figure out how to properly move forward & implement the rest of the metadata fields.
-TLDR: DB error cuz the dict that is now sent back for the list of internal IP's is too long. 
-      Strucutred metadata will need different parsing. 
-
->> THIS
-Got it: Nuke the implants table in db, migrate to neo4j. Neo4jwill be the new "datamodel" for all implants
-going forward. (task logs will stay in db). Neo4j is much more flexible with metadata/fields, and
-works better to just use that. 
 
 > register new node will create the node on listeenr reg, and that data will be dumped into data model, aka the graphdb, and 
 be the kickoff point

@@ -8,22 +8,44 @@
 #include <filesystem>
 
 //placeholder, move me to a diff file later, that has the ability to get this data
-void populate_metadata(std::map<std::string, std::string>& metadata) {
-    // Hardcoded placeholders as requested
-    metadata["external_ip"] = "1.2.3.4";        // TODO: Fetch real external IP
-	metadata["internal_ip"] = get_ip_address().data;   // TODO: Fetch real internal IP	
-	metadata["user"] = get_current_user().data;
-	metadata["system_hostname"] = get_computer_name().data;
-	metadata["process"] = get_current_process_name().data;   // TODO: Get current process name
-	metadata["pid"] = get_current_process_pid().data;
-	metadata["arch"] = "x64";// TODO: Check system architecture
+//void populate_metadata(std::map<std::string, std::string>& metadata) {
+//    // Hardcoded placeholders as requested
+//    metadata["external_ip"] = "1.2.3.4";        // TODO: Fetch real external IP
+//	metadata["internal_ip"] = get_ip_address().data;   // TODO: Fetch real internal IP	
+//	metadata["user"] = get_current_user().data;
+//	metadata["system_hostname"] = get_computer_name().data;
+//	metadata["process"] = get_current_process_name().data;   // TODO: Get current process name
+//	metadata["pid"] = get_current_process_pid().data;
+//	metadata["arch"] = "x64";// TODO: Check system architecture
+//
+//	//placeholders for dev
+//	//metadata["subnet_cidr"] = "10.0.0.0/24";// placehodler
+//	//maybe gw mac as well. can probably get via arp stuff
+//
+//}
 
-	//placeholders for dev
-	//metadata["subnet_cidr"] = "10.0.0.0/24";// placehodler
-	//maybe gw mac as well. can probably get via arp stuff
+
+nlohmann::json populate_metadata() {
+    nlohmann::json metadata;
+
+    //handled by gui, nuke this field
+    //metadata["external_ip"] = "1.2.3.4";        // TODO: Fetch real external IP
+    //list of NICs: [{"mac", "gateway", "cidr"},{}]
+    metadata["nics"] = get_nic_info().data;
+    //str, current user
+    metadata["user"] = get_current_user().data;
+    //str hostname
+    metadata["system_hostname"] = get_computer_name().data;
+    //str process
+    metadata["process"] = get_current_process_name().data;
+    //int/str process pid
+    metadata["pid"] = get_current_process_pid().data;
+    //str arch
+    metadata["arch"] = "x64";// TODO: Check system architecture
+    
+    return metadata;
 
 }
-
 
 /**
  * @brief Get current user
@@ -110,8 +132,8 @@ ModuleResult get_current_process_pid() {
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "ws2_32.lib")
 
-ModuleResult get_ip_address() {
-    return { "0.1.3.4", ERROR_SUCCESS };
+ModuleResult get_nic_info() {
+    //return { "0.1.3.4", ERROR_SUCCESS };
     ULONG flags = GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_INCLUDE_GATEWAYS;
     ULONG family = AF_INET; // IPv4 only
     ULONG bufferSize = 15000;
@@ -168,8 +190,9 @@ ModuleResult get_ip_address() {
                     inet_ntop(AF_INET, &ipv4->sin_addr, ipStr, sizeof(ipStr));
 
                     // Add to dictionary with the IP as the key
-                    network_dict[ipStr] = {
-                        {"mac", macBuf},
+                    network_dict[macBuf] = {
+                        //{"mac", macBuf},
+                        {"ip", ipStr},
                         {"gateway", gatewayStr},
                         {"cidr", ua->OnLinkPrefixLength}
                     };
@@ -185,6 +208,6 @@ ModuleResult get_ip_address() {
     }
 
     // Return the json object directly into your new ModuleResult struct
-    std::cout << "IP IS STRING TEMP PLACEHODLER" << std::endl;
-    return { network_dict.dump(), dwRetVal};
+    //std::cout << "IP IS STRING TEMP PLACEHODLER" << std::endl;
+    return { network_dict, dwRetVal};
 }

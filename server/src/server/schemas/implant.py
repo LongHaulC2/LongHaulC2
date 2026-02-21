@@ -15,7 +15,8 @@ This prevents any unintended fields from slipping through.
 @dataclass
 class ImplantCreate:
     external_ip: Optional[str] = None
-    internal_ip: Optional[str] = None
+    # internal_ip: Optional[str] = None
+    nics: Optional[list] = None
     listener: Optional[str] = None
     user: Optional[str] = None
     system_hostname: Optional[str] = None
@@ -32,7 +33,8 @@ class ImplantCreate:
 class ImplantUpdate:
     implant_uuid: str
     external_ip: Optional[str] = None
-    internal_ip: Optional[str] = None
+    # internal_ip: Optional[str] = None
+    nics: Optional[list] = None
     listener: Optional[str] = None
     user: Optional[str] = None
     system_hostname: Optional[str] = None

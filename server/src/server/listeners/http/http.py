@@ -504,7 +504,6 @@ def _register_new_implant(unpacked_metadata: dict, request: Request) -> bytes:
         )
         # pass ALL metadata to host
         implant_node.register_node(**unpacked_metadata)
-
         # commit
         session.commit()
 
@@ -582,6 +581,8 @@ def http_response(data_from_implant: bytes, request: Request):
 
     implant_uuid = unpacked_metadata.get("implant_uuid", "")
     check_if_data(implant_uuid)
+
+    print("AFTER")
 
     # --- Step 3: Routing Logic ---
     # 00000000-0000-0000-0000-000000000000

@@ -893,7 +893,7 @@ class BofRunner:
 @dataclass(frozen=True)
 class DiscoverNeighbors:
     R"""
-    Discover neighbors via passive arp discovery. Results from this command are used to populate additional targets in the Graph
+    Discover neighbors via passive arp discovery, and resolves hostnames via `GetNameInfoW`. Results from this command are used to populate additional targets in the Graph
     """
 
     command_name = "discover neighbors"

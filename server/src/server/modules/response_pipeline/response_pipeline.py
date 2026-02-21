@@ -20,7 +20,11 @@ import msgpack
 
 from ...db.mysql_connector import get_mysql_session
 from ...db.neo4j_models import Neo4jHostNode, Neo4jImplantNode
-from ...modules.neo4j_functions import Neo4jHostNodeService
+from ...modules.neo4j_functions import (
+    Neo4jHostNodeService,
+    Neo4jNetworkNodeService,
+    Neo4jNicNodeService,
+)
 from ..mysql_functions import MySQLImplantTaskService
 from ..neo4j_functions import Neo4jImplantNodeService
 from ..redis_functions import RedisImplantTaskService
@@ -218,22 +222,33 @@ def process_single_response_for_neo4j(task_response_dict: dict):
             for neighbor in neighbor_list:
                 neighbor_ip = neighbor.get("ip")
                 neighbor_mac = neighbor.get("mac")
+                # hostname is returned now.
+                neighbor_host = neighbor.get("hostname")
 
-                # 3. Create/Get the discovered neighbor host
-                target_host = Neo4jHostNodeService.create_or_get_node(
-                    ip_address=neighbor_ip
+                # create host
+                new_host_node = Neo4jHostNodeService.create_or_get_node(
+                    hostname=neighbor_host,
                 )
 
-                # 4. Connect source -> target via the new relationship
-                # .connect returns the relationship object, or we can check if it exists
-                rel = source_host.neighbors.relationship(target_host)
+                # create nic
+                new_nic_node = Neo4jNicNodeService.create_or_get_node(
+                    mac_address=neighbor_mac
+                )
 
-                if not rel:
-                    source_host.neighbors.connect(
-                        target_host,
-                        {"method": "ARP", "metadata": {"mac": neighbor_mac}},
-                    )
-                else:
-                    # Just update the 'last_seen' if it already existed
-                    rel.last_seen = datetime.utcnow()
-                    rel.save()
+                # create network - shit, need cidr, not just mac ip or hostname.
+                # new_network_node = Neo4jNetworkNodeService.create_or_get_node(
+                #     mac_address=neighbor_mac
+                # )
+
+                # link nic to host
+                Neo4jNicNodeService.connect_nic_to_host(
+                    hostname=neighbor_host,
+                    mac_address=neighbor_mac,
+                    ip_address=neighbor_ip,
+                )
+
+                # todo:
+                # create: host node, nic node.
+                # then tie
+                # nic -> host, nic -> network
+                # that should plugin well to the rest.
