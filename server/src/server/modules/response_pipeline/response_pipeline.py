@@ -211,25 +211,16 @@ def process_single_response_for_neo4j(task_response_dict: dict):
             Add neighboring hosts to the datamodel.
 
             """
-            # for ref, task struct: {'implant_uuid': '019c7c3a-ebe5-7a7e-a229-eb1ee8084921', 'result': {'data': {'type': 'text', 'value': '10.0.0.1\n10.0.0.10\n10.0.0.25\n10.0.0.30\n'}, 'message': {'type': 'text', 'value': 'Success'}, 'windows_error_code': {'type': 'int', 'value': 0}}, 'task_uuid': '019c7c3c-db72-7be1-9f14-46c9bdc8076f'}
-            data = task_response_dict.get("result", {}).get("data", "").get("value", "")
-
-            if not data:
+            # ref: {'implant_uuid': '019c7f27-6d52-7037-8b19-5661633a0263', 'result': {'data': [{'ip': '10.0.0.25', 'mac': '00-E0-4C-68-00-AA'}, {'ip': '10.0.0.30', 'mac': 'BC-24-11-76-E8-E8'}], 'message': {'type': 'text', 'value': 'Success'}, 'windows_error_code': {'type': 'int', 'value': 0}}, 'task_uuid': '019c7f28-438e-78ff-a010-a9acb26f715f'}
+            neighbor_list_of_dicts = task_response_dict.get("result", {}).get(
+                "data", []
+            )
+            if not neighbor_list_of_dicts:
                 server_logger.debug("No data in response, not parsing")
                 return
 
-            addresses = data.strip().split("\n")  # get addr from respnose
-            # parse neighbor discovery and add node
-            print(addresses)
-            for pair in addresses:
-                try:
-                    ip_addr = pair.split(",")[0]
-                    mac_addr = pair.split(",")[1]
-                    # clean address
-                    ip_addr = ip_addr.strip()
-                    mac_addr = mac_addr.strip()
-
-                    Neo4jHostNodeService.create_or_get_node(ip_address=ip_addr)
-                except Exception as e:
-                    server_logger.error(f"discover neigbors err: {e}")
-                    continue
+            for neighbor in neighbor_list_of_dicts:
+                # print(i)
+                neighbor_ip = neighbor.get("ip")
+                neighbor_mac = neighbor.get("mac")
+                Neo4jHostNodeService.create_or_get_node(ip_address=neighbor_ip)
