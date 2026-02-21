@@ -17,6 +17,11 @@ void populate_metadata(std::map<std::string, std::string>& metadata) {
 	metadata["process"] = get_current_process_name().data;   // TODO: Get current process name
 	metadata["pid"] = get_current_process_pid().data;
 	metadata["arch"] = "x64";// TODO: Check system architecture
+
+	//placeholders for dev
+	//metadata["subnet_cidr"] = "10.0.0.0/24";// placehodler
+	//maybe gw mac as well. can probably get via arp stuff
+
 }
 
 
@@ -96,6 +101,90 @@ ModuleResult get_current_process_pid() {
 	return { s_pid, ERROR_SUCCESS };
 }
 
+
+#include <iostream>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#include "../protocols/json/json.h"
+#pragma comment(lib, "iphlpapi.lib")
+#pragma comment(lib, "ws2_32.lib")
+
 ModuleResult get_ip_address() {
-	return { "someip", ERROR_SUCCESS };
+    return { "0.1.3.4", ERROR_SUCCESS };
+    ULONG flags = GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_INCLUDE_GATEWAYS;
+    ULONG family = AF_INET; // IPv4 only
+    ULONG bufferSize = 15000;
+
+    PIP_ADAPTER_ADDRESSES adapters = (IP_ADAPTER_ADDRESSES*)malloc(bufferSize);
+    if (adapters == nullptr) {
+        return { nlohmann::json::object(), ERROR_NOT_ENOUGH_MEMORY };
+    }
+
+    DWORD dwRetVal = GetAdaptersAddresses(family, flags, NULL, adapters, &bufferSize);
+
+    if (dwRetVal == ERROR_BUFFER_OVERFLOW) {
+        free(adapters);
+        adapters = (IP_ADAPTER_ADDRESSES*)malloc(bufferSize);
+        dwRetVal = GetAdaptersAddresses(family, flags, NULL, adapters, &bufferSize);
+    }
+
+    nlohmann::json network_dict = nlohmann::json::object();
+
+    if (dwRetVal == NO_ERROR) {
+        for (PIP_ADAPTER_ADDRESSES adapter = adapters; adapter != NULL; adapter = adapter->Next) {
+
+            // Skip disconnected and loopback
+            if (adapter->OperStatus != IfOperStatusUp || adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+                continue;
+            }
+
+            // 1. Format the MAC Address
+            char macBuf[32] = { 0 };
+            if (adapter->PhysicalAddressLength == 6) {
+                snprintf(macBuf, sizeof(macBuf), "%02X-%02X-%02X-%02X-%02X-%02X",
+                    adapter->PhysicalAddress[0], adapter->PhysicalAddress[1],
+                    adapter->PhysicalAddress[2], adapter->PhysicalAddress[3],
+                    adapter->PhysicalAddress[4], adapter->PhysicalAddress[5]);
+            }
+
+            // 2. Find the Gateway (if one exists for this adapter)
+            std::string gatewayStr = "";
+            for (PIP_ADAPTER_GATEWAY_ADDRESS_LH ga = adapter->FirstGatewayAddress; ga != NULL; ga = ga->Next) {
+                if (ga->Address.lpSockaddr->sa_family == AF_INET) {
+                    char gwIp[INET_ADDRSTRLEN];
+                    sockaddr_in* gw_ipv4 = (sockaddr_in*)ga->Address.lpSockaddr;
+                    inet_ntop(AF_INET, &gw_ipv4->sin_addr, gwIp, sizeof(gwIp));
+                    gatewayStr = gwIp;
+                    break; // Just grab the first IPv4 gateway
+                }
+            }
+
+            // 3. Iterate through Unicast IPs and populate the dictionary
+            for (PIP_ADAPTER_UNICAST_ADDRESS ua = adapter->FirstUnicastAddress; ua != NULL; ua = ua->Next) {
+                if (ua->Address.lpSockaddr->sa_family == AF_INET) {
+                    char ipStr[INET_ADDRSTRLEN];
+                    sockaddr_in* ipv4 = (sockaddr_in*)ua->Address.lpSockaddr;
+                    inet_ntop(AF_INET, &ipv4->sin_addr, ipStr, sizeof(ipStr));
+
+                    // Add to dictionary with the IP as the key
+                    network_dict[ipStr] = {
+                        {"mac", macBuf},
+                        {"gateway", gatewayStr},
+                        {"cidr", ua->OnLinkPrefixLength}
+                    };
+                }
+            }
+        }
+    }
+
+    free(adapters);
+
+    if (network_dict.empty() && dwRetVal == NO_ERROR) {
+        return { nlohmann::json::object(), ERROR_NOT_FOUND };
+    }
+
+    // Return the json object directly into your new ModuleResult struct
+    std::cout << "IP IS STRING TEMP PLACEHODLER" << std::endl;
+    return { network_dict.dump(), dwRetVal};
 }

@@ -224,3 +224,6 @@ def process_single_response_for_neo4j(task_response_dict: dict):
                 neighbor_ip = neighbor.get("ip")
                 neighbor_mac = neighbor.get("mac")
                 Neo4jHostNodeService.create_or_get_node(ip_address=neighbor_ip)
+
+        # case metadata:
+        # lots of juicy info here

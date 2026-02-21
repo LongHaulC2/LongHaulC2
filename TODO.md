@@ -42,11 +42,26 @@ May be worth adding a tracert command for mapping egress.
 That's a bit loud. Need to find balance between noise and accuracy.
 
 > here:
-reworking implant responses to be strucured.
+Mostly done, may be a few stragglers I missed
+<!-- reworking implant responses to be strucured.
 
 no more key -> type/value, (ex, data: type, value) just "key"
 Binary is auto stored as base64 in db with the BytesEncoder in mysql_connector,
-so everything is safe to print
+so everything is safe to print -->
+
+left off getting ip address of host. problem, hosts have multiple IP's,
+so a list of IP's would be ideal
+
+Note - metadata mgiht need some refinement. it only wants str data, which the multiple IP's don't do.
+one "metadata" object via a command to return in a standard task might be the best option. Can then look into the 
+no metadata until we call for it options. 
+
+> left off, just implemented the "onyl send metadata if not registered", which is a settings flag. 
+This should work, but verify else wehre. 
+
+Next, clean stuff up, figure out how to properly move forward & implement the rest of the metadata fields.
+TLDR: DB error cuz the dict that is now sent back for the list of internal IP's is too long. 
+      Strucutred metadata will need different parsing. 
 
 ### Server: Listeners & Core
 

