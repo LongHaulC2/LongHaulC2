@@ -200,20 +200,40 @@ def process_single_response_for_neo4j(task_response_dict: dict):
     # based off task name, do neo4j actions
     match task_name:
         case "discover neighbors":
-            """
-            Add neighboring hosts to the datamodel.
+            neighbor_list = task_response_dict.get("result", {}).get("data", [])
 
-            """
-            # ref: {'implant_uuid': '019c7f27-6d52-7037-8b19-5661633a0263', 'result': {'data': [{'ip': '10.0.0.25', 'mac': '00-E0-4C-68-00-AA'}, {'ip': '10.0.0.30', 'mac': 'BC-24-11-76-E8-E8'}], 'message': {'type': 'text', 'value': 'Success'}, 'windows_error_code': {'type': 'int', 'value': 0}}, 'task_uuid': '019c7f28-438e-78ff-a010-a9acb26f715f'}
-            neighbor_list_of_dicts = task_response_dict.get("result", {}).get(
-                "data", []
-            )
-            if not neighbor_list_of_dicts:
-                server_logger.debug("No data in response, not parsing")
+            # 1. Get the implant node
+            implant_node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
+            if not implant_node:
                 return
 
-            for neighbor in neighbor_list_of_dicts:
-                # print(i)
+            # 2. Get the host this implant is running on
+            # (Assuming you've linked them during registration)
+            # bug here, Ihaven't done this yet
+            source_host = implant_node.running_on.single()
+            if not source_host:
+                server_logger.warning(f"Implant {implant_uuid} has no host node!")
+                return
+
+            for neighbor in neighbor_list:
                 neighbor_ip = neighbor.get("ip")
                 neighbor_mac = neighbor.get("mac")
-                Neo4jHostNodeService.create_or_get_node(ip_address=neighbor_ip)
+
+                # 3. Create/Get the discovered neighbor host
+                target_host = Neo4jHostNodeService.create_or_get_node(
+                    ip_address=neighbor_ip
+                )
+
+                # 4. Connect source -> target via the new relationship
+                # .connect returns the relationship object, or we can check if it exists
+                rel = source_host.neighbors.relationship(target_host)
+
+                if not rel:
+                    source_host.neighbors.connect(
+                        target_host,
+                        {"method": "ARP", "metadata": {"mac": neighbor_mac}},
+                    )
+                else:
+                    # Just update the 'last_seen' if it already existed
+                    rel.last_seen = datetime.utcnow()
+                    rel.save()

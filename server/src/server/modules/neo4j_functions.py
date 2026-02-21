@@ -42,19 +42,6 @@ class Neo4jImplantNodeService:
     """
     # create node...
 
-    # def register_node(self, **kwargs):
-    #     # Handle the implant node itself
-    #     if not self.implant_node:
-    #         self.implant_node = Neo4jImplantNode(
-    #             implant_uuid=self.implant_uuid, **kwargs
-    #         ).save()
-    #     else:
-    #         self._update_node(kwargs)
-
-    #     # this is the only "magic" that occurs. Because implantuuid and listener uuid are req'd
-    #     # we can hook them together automatically.
-    #     self.connect_implant_to_listener(self.listener_uuid)
-
     def register_node(self, **kwargs):
         # Use Cypher MERGE to ensure atomicity at the DB level
         # TLDR, becaause we are using semi unstructured, duplicates are allowed by db.
@@ -70,7 +57,13 @@ class Neo4jImplantNodeService:
         # Refresh the local object reference
         self.implant_node = Neo4jImplantNode.nodes.get(implant_uuid=self.implant_uuid)
 
+        host_ip_address = kwargs.get(
+            "internal_ip"
+        )  # note, this is not enough, will need something else like MAC or hostname, or something to creaete a proper key, like listener has
+
+        # the only auto linking/magic that happens here is linking our implant to a host, and linking our implant to a listener.
         self.connect_implant_to_listener(self.listener_uuid)
+        self.connect_implant_to_host(host_ip_address)
 
     @staticmethod
     def create_or_get_node(implant_uuid):

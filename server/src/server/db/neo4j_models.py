@@ -35,6 +35,15 @@ Relationships:
  """
 
 
+class DiscoveredViaRel(StructuredRel):
+    # What tool or protocol found this?ex, arp, icmp, etc.
+    method = StringProperty(required=True)
+
+    # Timestamp for aging out stale data later
+    # first_seen = DateTimeProperty(default_now=True)
+    # last_seen = DateTimeProperty(default_now=True)
+
+
 # semi structured for addtl ad hoc fields
 class Neo4jImplantNode(SemiStructuredNode):
     """
@@ -71,6 +80,11 @@ class Neo4jHostNode(SemiStructuredNode):
 
     # Host -> Network
     on_subnet = RelationshipTo("Neo4jNetworkNode", "ON_SUBNET")
+
+    # things the host can see
+    neighbors = RelationshipTo(
+        "Neo4jHostNode", "DISCOVERED_VIA", model=DiscoveredViaRel
+    )
 
     @classmethod
     def find_existing(cls, ip_address) -> object | None:
