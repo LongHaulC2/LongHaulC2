@@ -55,6 +55,21 @@ logger = logging.getLogger("server")
 # config = get_config()
 
 
+def ensure_fulltext_index():
+    # Check if it exists
+    check_query = "SHOW INDEXES YIELD name WHERE name = 'implant_search_index' RETURN count(*) > 0"
+    results, _ = db.cypher_query(check_query)
+    exists = results[0][0]
+
+    if not exists:
+        # Create if missing
+        create_query = """
+        CREATE FULLTEXT INDEX implant_search_index FOR (n:Neo4jImplantNode) 
+        ON EACH [n.implant_uuid, n.internal_ip, n.external_ip, n.system_hostname, n.user, n.notes, n.process, n.arch, n.pid, n.listener]
+        """
+        db.cypher_query(create_query)
+
+
 def init_neo4j():
     logger.info("Initializing neo4j connection")
     host = env_config.get("NEO4J_HOST")
@@ -64,7 +79,7 @@ def init_neo4j():
     # database = env_config.get("MYSQL_DATABASE")
 
     config.DATABASE_URL = f"bolt://{user}:{password}@{host}:{port}"
-
+    config.NEOMODEL_CYPHER_DEBUG = 0  # shut off debug logs
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(host=host, port=port, user=user)
 
@@ -77,6 +92,9 @@ def init_neo4j():
     if not test_neo4j_connection():
         logger.critical("Error occured with NEO4J. Exiting")
         exit()
+
+    # setup indexs, unable to do via neomodel yet on semistructured
+    ensure_fulltext_index()
 
     # clear vars after this
     structlog.contextvars.clear_contextvars()

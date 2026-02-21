@@ -2,6 +2,7 @@
 import logging
 
 import structlog
+from neomodel import db
 
 from ..db.mysql_connector import get_mysql_session
 from ..db.neo4j_models import (
@@ -11,7 +12,7 @@ from ..db.neo4j_models import (
     Neo4jListenerNode,
     Neo4jNetworkNode,
 )
-from .mysql_functions import ImplantService, ListenerService, MySQLImplantTaskService
+from .mysql_functions import ListenerService, MySQLImplantTaskService
 from .redis_functions import RedisImplantTaskService
 
 neo4j_logger = logging.getLogger("neo4j_logger")
@@ -41,18 +42,48 @@ class Neo4jImplantNodeService:
     """
     # create node...
 
-    def register_node(self, **kwargs):
-        # Handle the implant node itself
-        if not self.implant_node:
-            self.implant_node = Neo4jImplantNode(
-                implant_uuid=self.implant_uuid, **kwargs
-            ).save()
-        else:
-            self._update_node(kwargs)
+    # def register_node(self, **kwargs):
+    #     # Handle the implant node itself
+    #     if not self.implant_node:
+    #         self.implant_node = Neo4jImplantNode(
+    #             implant_uuid=self.implant_uuid, **kwargs
+    #         ).save()
+    #     else:
+    #         self._update_node(kwargs)
 
-        # this is the only "magic" that occurs. Because implantuuid and listener uuid are req'd
-        # we can hook them together automatically.
+    #     # this is the only "magic" that occurs. Because implantuuid and listener uuid are req'd
+    #     # we can hook them together automatically.
+    #     self.connect_implant_to_listener(self.listener_uuid)
+
+    def register_node(self, **kwargs):
+        # Use Cypher MERGE to ensure atomicity at the DB level
+        # TLDR, becaause we are using semi unstructured, duplicates are allowed by db.
+        query = """
+        MERGE (n:Neo4jImplantNode {implant_uuid: $implant_uuid})
+        SET n += $props
+        RETURN n
+        """
+        # This prevents the race condition where two threads check find_existing
+        # at the same time and both see 'None'
+        db.cypher_query(query, {"implant_uuid": self.implant_uuid, "props": kwargs})
+
+        # Refresh the local object reference
+        self.implant_node = Neo4jImplantNode.nodes.get(implant_uuid=self.implant_uuid)
+
         self.connect_implant_to_listener(self.listener_uuid)
+
+    @staticmethod
+    def create_or_get_node(implant_uuid):
+        """
+        Creates a node. Useful for getting a quick new node and letting this handle all
+        the node logic
+        """
+        implant_node = Neo4jImplantNodeService.find_existing(implant_uuid=implant_uuid)
+        if not implant_node:
+            implant_node = Neo4jImplantNode(implant_uuid=implant_uuid).save()
+            neo4j_logger.info(f"New node created: {implant_uuid}")
+
+        return implant_node
 
     def connect_implant_to_listener(self, listener_uuid):
         # connects this classes implant to a listener based on the listener UUID
@@ -103,6 +134,70 @@ class Neo4jImplantNodeService:
         neo4j_logger.info(
             f"Implant {self.implant_uuid} connected to host {host_ip_address}"
         )
+
+    # funcs to replicate api func
+    @staticmethod
+    def get_all():
+        """Gets all Neo4jImplantNode instances in the DB, returns their properties."""
+        node_data, _ = db.cypher_query(
+            "MATCH (h:Neo4jImplantNode) RETURN properties(h)"
+        )
+        return [row[0] for row in node_data]
+
+        # need to take that, then get .properties, and return just properties
+
+    @staticmethod
+    def get_by_uuid(implant_uuid: str):
+        node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
+        if not node:
+            return None
+
+        # again return only the properties
+        return node.__properties__
+
+    @staticmethod
+    def update_by_uuid(implant_uuid: str, data: dict):
+        # direct query to allow addtl fields that don't exist
+        # to be added. Could change later for tightening it up
+        query = """
+        MATCH (n:Neo4jImplantNode {implant_uuid: $implant_uuid})
+        SET n += $props
+        RETURN properties(n)
+        """
+
+        results, _ = db.cypher_query(
+            query, {"implant_uuid": implant_uuid, "props": data}
+        )
+        # no return to save some processing
+
+    @staticmethod
+    def delete_by_uuid(implant_uuid: str) -> bool:
+        node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
+        if not node:
+            return False  # node doesn't exist
+
+        node.delete()
+        return True
+
+    def search_implants(search_term: str) -> list[dict]:
+        """
+        Search implants using a Full-Text Index.
+        """
+        # Use Lucene syntax. Adding '*' allows for partial matches if the term is incomplete.
+        # Example: '192.168' becomes '192.168*'
+        formatted_term = f"{search_term}*"
+
+        query = """
+        CALL db.index.fulltext.queryNodes("implant_search_index", $term) 
+        YIELD node, score
+        RETURN properties(node) AS props
+        ORDER BY score DESC
+        """
+
+        # Using your existing db.cypher_query pattern
+        results, _ = db.cypher_query(query, {"term": formatted_term})
+
+        return [row[0] for row in results]
 
 
 class Neo4jHostNodeService:

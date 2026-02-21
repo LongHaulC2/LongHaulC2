@@ -21,7 +21,8 @@ import msgpack
 from ...db.mysql_connector import get_mysql_session
 from ...db.neo4j_models import Neo4jHostNode, Neo4jImplantNode
 from ...modules.neo4j_functions import Neo4jHostNodeService
-from ..mysql_functions import ImplantService, MySQLImplantTaskService
+from ..mysql_functions import MySQLImplantTaskService
+from ..neo4j_functions import Neo4jImplantNodeService
 from ..redis_functions import RedisImplantTaskService
 
 server_logger = logging.getLogger("server")
@@ -45,23 +46,25 @@ def _task_batch_job():
                 unpacked_responses_list = []
 
                 # get all implants at time of loop (could cache this in the future, or only go based on redis keys, but for now it's easier to get all of them to check)
-                with get_mysql_session() as session:
-                    implants = ImplantService(session).get_all()
+                implants = (
+                    Neo4jImplantNodeService.get_all()
+                )  # ImplantService(session).get_all()
+                print(implants)
 
-                    future_to_implant = {
-                        executor.submit(
-                            _get_tasks_from_redis_and_write_to_mysql, implant
-                        ): implant
-                        for implant in implants
-                    }
+                future_to_implant = {
+                    executor.submit(
+                        _get_tasks_from_redis_and_write_to_mysql, implant
+                    ): implant
+                    for implant in implants
+                }
 
-                    for future in concurrent.futures.as_completed(future_to_implant):
-                        try:
-                            responses = future.result()
-                            if responses:
-                                unpacked_responses_list.extend(responses)
-                        except Exception as e:
-                            server_logger.error(f"Thread error: {e}")
+                for future in concurrent.futures.as_completed(future_to_implant):
+                    try:
+                        responses = future.result()
+                        if responses:
+                            unpacked_responses_list.extend(responses)
+                    except Exception as e:
+                        server_logger.error(f"Thread error: {e}")
 
                 # Neo4j placeholder
                 if unpacked_responses_list:
@@ -82,8 +85,12 @@ def _get_tasks_from_redis_and_write_to_mysql(implant) -> list:
 
     note, using raw redis queries. Put them in redis_functions.py later.
     """
+    implant_uuid = implant.get("implant_uuid", "")
+    if not implant_uuid:
+        server_logger.warning("Implant uuid blank")
+        return []
 
-    rits = RedisImplantTaskService(implant.implant_uuid)
+    rits = RedisImplantTaskService(implant_uuid)
 
     # peek data, don't pop as we could lose it then.
     raw_responses = rits.redis.lrange(rits.inbox_key, 0, -1)
@@ -98,9 +105,7 @@ def _get_tasks_from_redis_and_write_to_mysql(implant) -> list:
             data = msgpack.unpackb(packed, raw=False)
             responses_to_insert.append(data)
         except Exception as e:
-            server_logger.error(
-                f"Failed to unpack msgpack for {implant.implant_uuid}: {e}"
-            )
+            server_logger.error(f"Failed to unpack msgpack for {implant_uuid}: {e}")
 
     if not responses_to_insert:
         # Queue had data, but it was all corrupt. Clear it so we don't loop forever.
@@ -111,7 +116,7 @@ def _get_tasks_from_redis_and_write_to_mysql(implant) -> list:
     with get_mysql_session() as session:
         try:
             msits = MySQLImplantTaskService(
-                implant_uuid=implant.implant_uuid,
+                implant_uuid=implant_uuid,
                 session=session,
             )
             # write all responses at once to not pound the db
@@ -124,7 +129,7 @@ def _get_tasks_from_redis_and_write_to_mysql(implant) -> list:
 
             if len(responses_to_insert) > 0:
                 server_logger.debug(
-                    f"Synced {len(responses_to_insert)} tasks for {implant.implant_uuid}"
+                    f"Synced {len(responses_to_insert)} tasks for {implant_uuid}"
                 )
 
             # finally, return the responses that were inserted, to the parent for addtl handling
@@ -132,7 +137,7 @@ def _get_tasks_from_redis_and_write_to_mysql(implant) -> list:
 
         except Exception as e:
             session.rollback()
-            server_logger.error(f"DB Write failed for {implant.implant_uuid}: {e}")
+            server_logger.error(f"DB Write failed for {implant_uuid}: {e}")
             return []
 
 
@@ -194,18 +199,6 @@ def process_single_response_for_neo4j(task_response_dict: dict):
 
     # based off task name, do neo4j actions
     match task_name:
-        # create implant if the task was to register
-        # fuck so register is not one we do I think, as it never "has" a response from the client iirc. So
-        # the node should probably be created when the implant checks in, otherwise it'll wait for a response
-        case "ls":
-            new_implant = Neo4jImplantNode(implant_uuid=implant_uuid)
-            new_implant.save()
-        case "register":
-            new_implant = Neo4jImplantNode(implant_uuid=implant_uuid)
-            new_implant.save()
-
-        # this needs to be switched over to mac addr, or maybe both mac and ip: ip,mac
-        # or allow for list types in implnt but that's more work.
         case "discover neighbors":
             """
             Add neighboring hosts to the datamodel.
@@ -224,6 +217,3 @@ def process_single_response_for_neo4j(task_response_dict: dict):
                 neighbor_ip = neighbor.get("ip")
                 neighbor_mac = neighbor.get("mac")
                 Neo4jHostNodeService.create_or_get_node(ip_address=neighbor_ip)
-
-        # case metadata:
-        # lots of juicy info here

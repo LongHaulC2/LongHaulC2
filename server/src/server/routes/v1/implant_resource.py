@@ -1,5 +1,6 @@
 import base64
 import logging
+from dataclasses import asdict
 
 import msgpack
 from edwh_uuid7 import uuid7
@@ -10,11 +11,8 @@ from ...api_models.error import *
 from ...api_models.implants import *
 from ...db.mysql_connector import get_mysql_session
 from ...instance import api
-from ...modules.mysql_functions import (
-    ImplantService,
-    MySQLImplantTaskService,
-    MySQLSearchService,
-)
+from ...modules.mysql_functions import MySQLImplantTaskService, MySQLSearchService
+from ...modules.neo4j_functions import Neo4jImplantNodeService
 from ...modules.redis_functions import RedisImplantTaskService
 from ...modules.task.task import TaskService
 from ...schemas.implant import *
@@ -40,7 +38,6 @@ def handle_general_error(e):
 
 # Internal Task models for validation (kept local if needed for custom logic,
 # otherwise rely on the models imported from ...api_models.implants)
-# ... [Kept your existing internal helper models if you use them for logic outside of restx validation] ...
 
 
 class Implants(Resource):
@@ -58,39 +55,46 @@ class Implants(Resource):
         ip = request.remote_addr
         api_logger.info("Getting all implants", extra={"caller_ip": ip})
 
-        with get_mysql_session() as session:
-            implant_service = ImplantService(session)
-            implants = implant_service.get_all()
-            data = [i.to_dict() for i in implants]
+        # with get_mysql_session() as session:
+        #     implant_service = ImplantService(session)
+        #     implants = implant_service.get_all()
+        #     data = [i.to_dict() for i in implants]
+
+        data = Neo4jImplantNodeService.get_all()
 
         return APIResponse(status="200", message="Success", data=data)
 
-    @implants_ns.doc(
-        summary="Create a new implant entry.",
-        description="Create a new implant entry. Returns an Implant ID.",
-        responses=COMMON_ERRORS,
-    )
-    @implants_ns.response(200, "Entry created", IMPLANTS_POST_RESPONSE)
-    @implants_ns.marshal_with(IMPLANTS_POST_RESPONSE)
-    def post(self):
-        """
-        Create a new implant entry
-        """
-        ip = request.remote_addr
-        api_logger.info("Creating an implant", extra={"caller_ip": ip})
+    # I don't think this is being used. Removing for now
+    # @implants_ns.doc(
+    #     summary="Create a new implant entry.",
+    #     description="Create a new implant entry. Returns an Implant ID.",
+    #     responses=COMMON_ERRORS,
+    # )
+    # @implants_ns.response(200, "Entry created", IMPLANTS_POST_RESPONSE)
+    # @implants_ns.marshal_with(IMPLANTS_POST_RESPONSE)
+    # def post(self):
+    #     """
+    #     Create a new implant entry
+    #     """
+    #     ip = request.remote_addr
+    #     api_logger.info("Creating an implant", extra={"caller_ip": ip})
 
-        with get_mysql_session() as session:
-            implant_service = ImplantService(session)
-            data = ImplantCreate()
-            implant_object = implant_service.create(data)
-            implant_uuid = implant_object.implant_uuid
+    #     with get_mysql_session() as session:
+    #         implant_service = ImplantService(session)
+    #         data = ImplantCreate()
+    #         implant_object = implant_service.create(data)
+    #         implant_uuid = implant_object.implant_uuid
 
-        data = {"uuid": implant_uuid}
+    #     data = Neo4jImplantNodeService.update_by_uuid(
+    #         implant_uuid=uuid, data=asdict(implant_data)
+    #     )
 
-        api_logger.info(f"Implant {implant_uuid} created", extra={"caller_ip": ip})
-        return APIResponse(
-            status="200", message=f"Implant {implant_uuid} created", data=data
-        )
+    #     data = {"uuid": implant_uuid}
+
+    #     api_logger.info(f"Implant {implant_uuid} created", extra={"caller_ip": ip})
+    #     return APIResponse(
+    #         status="200", message=f"Implant {implant_uuid} created", data=data
+    #     )
 
 
 class Implant(Resource):
@@ -111,10 +115,12 @@ class Implant(Resource):
 
         check_type(uuid, str, "uuid")
 
-        with get_mysql_session() as session:
-            implant_service = ImplantService(session)
-            implants = implant_service.get_by_id(uuid)
-            data = implants.to_dict()
+        # with get_mysql_session() as session:
+        #     implant_service = ImplantService(session)
+        #     implants = implant_service.get_by_id(uuid)
+        #     data = implants.to_dict()
+
+        data = Neo4jImplantNodeService.get_by_uuid(implant_uuid=uuid)
 
         return APIResponse(status="200", message="Success", data=data)
 
@@ -136,11 +142,15 @@ class Implant(Resource):
         api_logger.info(f"Updating implant {uuid}'s data", extra={"caller_ip": ip})
         check_type(uuid, str, "uuid")
 
-        implant_data = ImplantUpdate(**api.payload)
+        implant_data = ImplantUpdate(implant_uuid=uuid, **api.payload)
 
-        with get_mysql_session() as session:
-            implant_service = ImplantService(session)
-            implant_service.update(uuid, implant_data)
+        # with get_mysql_session() as session:
+        #     implant_service = ImplantService(session)
+        #     implant_service.update(uuid, implant_data)
+
+        Neo4jImplantNodeService.update_by_uuid(
+            implant_uuid=uuid, data=asdict(implant_data)
+        )
 
         api_logger.info(f"Updated implant {uuid} successfully", extra={"caller_ip": ip})
         return APIResponse(status="200", message="Success")
@@ -162,9 +172,10 @@ class Implant(Resource):
 
         check_type(uuid, str, "uuid")
 
-        with get_mysql_session() as session:
-            implant_service = ImplantService(session)
-            implant_service.delete(uuid)
+        # with get_mysql_session() as session:
+        #     implant_service = ImplantService(session)
+        #     implant_service.delete(uuid)
+        Neo4jImplantNodeService.delete_by_uuid(implant_uuid=uuid)
 
         api_logger.info(f"Implant {uuid} deleted successfully", extra={"caller_ip": ip})
         return APIResponse(status=200, message="Implant deleted successfully")
@@ -348,11 +359,14 @@ class ImplantSearch(Resource):
             f"Searching implants: {implant_data.search_term}", extra={"caller_ip": ip}
         )
 
-        with get_mysql_session() as session:
-            implant_service = MySQLSearchService(session)
-            search_results = implant_service.search_implants(
-                search_term=implant_data.search_term
-            )
+        # with get_mysql_session() as session:
+        #     implant_service = MySQLSearchService(session)
+        #     search_results = implant_service.search_implants(
+        #         search_term=implant_data.search_term
+        #     )
+        search_results = Neo4jImplantNodeService.search_implants(
+            search_term=implant_data.search_term
+        )
 
         return APIResponse(status="200", message="Success", data=search_results)
 

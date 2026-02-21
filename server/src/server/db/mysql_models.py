@@ -53,42 +53,6 @@ Base = declarative_base(cls=CustomBase)
 ########################################
 
 
-class Implant(Base):
-    __tablename__ = "implants"
-    implant_uuid = Column(String(36), primary_key=True, default=lambda: str(uuid7()))
-    external_ip = Column(String(45))  # IP (IPv4/IPv6)
-    internal_ip = Column(String(45))
-    listener = Column(Text)  # Can be IP or DNS
-    user = Column(String(255))
-    system_hostname = Column(String(255))
-    notes = Column(Text)
-    process = Column(String(255))
-    pid = Column(Integer)
-    arch = Column(String(50))
-    last_checkin = Column(
-        BigInteger
-    )  # Time field to store last check-in time - moved to epoch instead of old HH:DD:SS
-    sleep_value = Column(Integer)  # Sleep value (seconds)
-
-    # fulltext index for easier searching with mysql
-    __table_args__ = (
-        # Standard B-Tree indexes for fast exact/prefix lookups
-        Index("ix_implant_external_ip", "external_ip"),
-        Index("ix_implant_internal_ip", "internal_ip"),
-        # FULLTEXT index strictly for text-based natural language searching
-        Index(
-            "fulltext_index",
-            "listener",
-            "user",
-            "system_hostname",
-            "notes",
-            "process",
-            "arch",
-            mysql_prefix="FULLTEXT",
-        ),
-    )
-
-
 class ImplantTask(Base):
     __tablename__ = "implant_tasks"
 

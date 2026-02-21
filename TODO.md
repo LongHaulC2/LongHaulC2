@@ -63,6 +63,16 @@ Next, clean stuff up, figure out how to properly move forward & implement the re
 TLDR: DB error cuz the dict that is now sent back for the list of internal IP's is too long. 
       Strucutred metadata will need different parsing. 
 
+>> THIS
+Got it: Nuke the implants table in db, migrate to neo4j. Neo4jwill be the new "datamodel" for all implants
+going forward. (task logs will stay in db). Neo4j is much more flexible with metadata/fields, and
+works better to just use that. 
+
+> register new node will create the node on listeenr reg, and that data will be dumped into data model, aka the graphdb, and 
+be the kickoff point
+
+once some of that is figured out, can continue to impleent tasks/other thigns to build out the nodes
+
 ### Server: Listeners & Core
 
 * [ ] Fix active flag in the database (Idea: Start listener on startup if marked active)

@@ -64,7 +64,7 @@ IMPLANTS_GET_MODEL = api.model(
         "internal_ip": fields.String(
             description="Internal network IP", example="192.168.1.50", allow_null=True
         ),
-        "last_checkin": fields.DateTime(
+        "last_checkin": fields.Integer(
             description="Last check-in timestamp", example=None, allow_null=True
         ),
         "listener": fields.String(
@@ -128,7 +128,7 @@ IMPLANT_GET_MODEL = api.model(
         "internal_ip": fields.String(
             description="Internal network IP", example="192.168.1.50", allow_null=True
         ),
-        "last_checkin": fields.DateTime(
+        "last_checkin": fields.Integer(
             description="Last check-in timestamp", example=None, allow_null=True
         ),
         "listener": fields.String(
@@ -186,8 +186,8 @@ IMPLANT_PUT_INPUT = api.model(
         "arch": fields.String(
             description="CPU architecture", example="x64", required=False
         ),
-        "last_checkin": fields.String(
-            description="Last check-in time (unix)", example="11223344", required=False
+        "last_checkin": fields.Integer(
+            description="Last check-in time (unix)", example=11223344, required=False
         ),
         "sleep_value": fields.Integer(
             description="Sleep interval", example=60, required=False
