@@ -14,11 +14,11 @@ This includes:
 import base64
 import concurrent.futures
 import hashlib
-import logging
 import threading
 import time
 
 import msgpack
+import structlog
 
 from ...db.mysql_connector import get_mysql_session
 from ...db.neo4j_models import Neo4jHostNode, Neo4jImplantNode
@@ -33,8 +33,8 @@ from ..mysql_functions import MySQLImplantTaskService
 from ..neo4j_functions import Neo4jImplantNodeService
 from ..redis_functions import RedisImplantTaskService
 
-response_pipeline_logger = logging.getLogger("response_pipeline")
-server_logger = logging.getLogger("server")
+response_pipeline_logger = structlog.getLogger("response_pipeline")
+server_logger = structlog.getLogger("server")
 
 
 def start_task_batch_job():
@@ -211,9 +211,13 @@ def process_single_response_for_neo4j(task_response_dict: dict):
     # response_pipeline_logger.critical(task_request_dict)
 
     # check if task was successful. If not, return.
-    if task_response_dict.get("result", {}).get("windows_error_code", "") != 0:
-        response_pipeline_logger.debug(
-            "Task Result was not successful. Not updating Neo4j"
+    windows_error_code = task_response_dict.get("result", {}).get(
+        "windows_error_code", ""
+    )
+    if windows_error_code != 0:
+        response_pipeline_logger.warning(
+            "Task Result was not successful. Not updating Neo4j",
+            windows_error_code=windows_error_code,
         )
         return
 
@@ -224,90 +228,118 @@ def process_single_response_for_neo4j(task_response_dict: dict):
             Takes discovered neighbors, and plots them into Neo4j
 
             """
-            neighbor_list = task_response_dict.get("result", {}).get("data", [])
+            discover_neighbors_logger = response_pipeline_logger.bind(task=task_name)
+            try:
 
-            for neighbor in neighbor_list:
-                neighbor_ip = neighbor.get("ip")
-                neighbor_mac = neighbor.get("mac")
-                # hostname is returned now.
-                neighbor_host = neighbor.get("hostname")
+                neighbor_list = task_response_dict.get("result", {}).get("data", [])
 
-                # create host
-                new_host_node = Neo4jHostNodeService.create_or_get_node(
-                    hostname=neighbor_host,
-                )
+                if not neighbor_list:
+                    response_pipeline_logger.debug(
+                        "Neighbor list was empty, returning",
+                        neighbor_list=neighbor_list,
+                    )
+                    return
 
-                # create nic
-                new_nic_node = Neo4jNicNodeService.create_or_get_node(
-                    mac_address=neighbor_mac
-                )
+                for neighbor in neighbor_list:
+                    neighbor_ip = neighbor.get("ip")
+                    neighbor_mac = neighbor.get("mac")
+                    # hostname is returned now.
+                    neighbor_host = neighbor.get("hostname")
 
-                # create network - shit, need cidr, not just mac ip or hostname.
-                # *could* assume that a host is apart of a network if the IP space matches, however
-                # there's a chance for false positives.
-                # new_network_node = Neo4jNetworkNodeService.create_or_get_node(
-                #     mac_address=neighbor_mac
-                # )
+                    # create host
+                    new_host_node = Neo4jHostNodeService.create_or_get_node(
+                        hostname=neighbor_host,
+                    )
 
-                # link nic to host
-                Neo4jNicNodeService.connect_nic_to_host(
-                    hostname=neighbor_host,
-                    mac_address=neighbor_mac,
-                    ip_address=neighbor_ip,
-                )
+                    # create nic
+                    new_nic_node = Neo4jNicNodeService.create_or_get_node(
+                        mac_address=neighbor_mac
+                    )
+
+                    # create network - shit, need cidr, not just mac ip or hostname.
+                    # *could* assume that a host is apart of a network if the IP space matches, however
+                    # there's a chance for false positives.
+                    # new_network_node = Neo4jNetworkNodeService.create_or_get_node(
+                    #     mac_address=neighbor_mac
+                    # )
+
+                    # link nic to host
+                    Neo4jNicNodeService.connect_nic_to_host(
+                        hostname=neighbor_host,
+                        mac_address=neighbor_mac,
+                        ip_address=neighbor_ip,
+                    )
+            except Exception as e:
+                discover_neighbors_logger.error("An error occured", error=e)
 
         case "memstore upload":
-            # memstore tracking
-            # get implant node, create file node,
-            # link them
-            # include file hash
-
-            file_name = (
-                task_request_dict.get("task", {}).get("args", {}).get("file_name", "")
-            )
-
-            file_contents = (
-                task_request_dict.get("task", {})
-                .get("args", {})
-                .get("file_contents", "")  # store as bytes in db
-            )
-
-            decoded_bytes = base64.b64decode(file_contents)
-            hash = hashlib.md5(decoded_bytes).hexdigest()
-
-            Neo4jMemstoreFileNodeService.connect_memstore_file_to_implant(
-                file_name=file_name, implant_uuid=implant_uuid, file_hash_md5=hash
-            )
-            # add addtl metadata
-            file_node = Neo4jMemstoreFileNodeService.create_or_get_node(file_name)
-
-            # only get first 20 chars
+            # try a local logger and bind to it for this scope
+            memstore_upload_logger = response_pipeline_logger.bind(task=task_name)
             try:
-                # add 0x for preivew/user knows it's hex
-                file_node.file_preview = "0x" + decoded_bytes.hex()[:20]
-            except Exception as e:
-                response_pipeline_logger.error(f"Error saving file_preview: {e}")
+                file_name = (
+                    task_request_dict.get("task", {})
+                    .get("args", {})
+                    .get("file_name", "")
+                )
+                if not file_name:
+                    memstore_upload_logger.info(
+                        "file_name is empty", file_name=file_name
+                    )
+                    return
 
-            try:
-                # add 0x for preivew/user knows it's hex
-                file_node.file_size_kb = len(decoded_bytes) / 1000  # convert to kb
-            except Exception as e:
-                response_pipeline_logger.error(f"Error saving file_size_kb: {e}")
+                file_contents = (
+                    task_request_dict.get("task", {})
+                    .get("args", {})
+                    .get("file_contents", "")  # store as bytes in db
+                )
+                if not file_contents:
+                    memstore_upload_logger.info(
+                        "file_contents are empty", file_contents=file_contents
+                    )
+                    return
 
-            file_node.save()
+                decoded_bytes = base64.b64decode(file_contents)
+                hash = hashlib.md5(decoded_bytes).hexdigest()
+
+                Neo4jMemstoreFileNodeService.connect_memstore_file_to_implant(
+                    file_name=file_name, implant_uuid=implant_uuid, file_hash_md5=hash
+                )
+                # add addtl metadata
+                file_node = Neo4jMemstoreFileNodeService.create_or_get_node(file_name)
+
+                # only get first 20 chars
+                try:
+                    # add 0x for preivew/user knows it's hex
+                    file_node.file_preview = "0x" + decoded_bytes.hex()[:20]
+                except Exception as e:
+                    memstore_upload_logger.error(f"Error saving file_preview", error=e)
+
+                try:
+                    # add 0x for preivew/user knows it's hex
+                    file_node.file_size_kb = len(decoded_bytes) / 1000  # convert to kb
+                except Exception as e:
+                    memstore_upload_logger.error(f"Error saving file_size_kb", error=e)
+
+                file_node.save()
+            except Exception as e:
+                memstore_upload_logger.error("An error occurred", error=e)
 
         # memstore clear and delete
         case "memstore clear":
             # remove all file from host
-
-            # get all files connected to implant
-            connected_file_nodes = (
-                Neo4jMemstoreFileNodeService.get_all_files_nodes_for_implant(
-                    implant_uuid=implant_uuid
+            memstore_clear_logger = response_pipeline_logger.bind(task=task_name)
+            try:
+                # get all files connected to implant
+                connected_file_nodes = (
+                    Neo4jMemstoreFileNodeService.get_all_files_nodes_for_implant(
+                        implant_uuid=implant_uuid
+                    )
                 )
-            )
-            for node in connected_file_nodes:
-                node.delete()
+                for node in connected_file_nodes:
+                    node.delete()
+
+            except Exception as e:
+                memstore_clear_logger.error("An error occurred", error=e)
 
         case "memstore delete":
             # remove all file from host

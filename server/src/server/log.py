@@ -20,6 +20,7 @@ shared_processors = [
     structlog.processors.StackInfoRenderer(),
     structlog.processors.format_exc_info,
     structlog.processors.UnicodeDecoder(),
+    structlog.stdlib.ExtraAdder(),  # allows for kwarg args in logs
 ]
 
 # CONFIGURE STRUCTLOG BACKEND
