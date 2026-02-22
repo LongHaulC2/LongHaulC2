@@ -199,3 +199,23 @@ class Neo4jNicNode(SemiStructuredNode):
         if mac_address:
             return cls.nodes.get_or_none(mac_address=mac_address)
         return None
+
+
+class Neo4jMemstoreFileNode(SemiStructuredNode):
+    file_name = StringProperty(unique_index=True, required=True)
+
+    # ip, optional
+    # ip_address = StringProperty()
+    # add hash?
+
+    # memstore file -> implant
+    stored_in = RelationshipTo("Neo4jImplantNode", "STORED_IN")
+
+    @classmethod
+    def find_existing(cls, file_name=file_name) -> "Neo4jC2ChannelNode | None":
+        """
+        Lookup an implant by its unique UUID.
+        """
+        if file_name:
+            return cls.nodes.get_or_none(file_name=file_name)
+        return None

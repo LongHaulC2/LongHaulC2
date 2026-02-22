@@ -582,8 +582,6 @@ def http_response(data_from_implant: bytes, request: Request):
     implant_uuid = unpacked_metadata.get("implant_uuid", "")
     check_if_data(implant_uuid)
 
-    print("AFTER")
-
     # --- Step 3: Routing Logic ---
     # 00000000-0000-0000-0000-000000000000
     if implant_uuid == NULL_UUID:
@@ -591,16 +589,8 @@ def http_response(data_from_implant: bytes, request: Request):
         msgpack_task = _register_new_implant(unpacked_metadata, request)
 
     else:
-        # note, immplant does not send moer metadata, or at least
-        # it shouldn't
-
         its = RedisImplantTaskService(implant_uuid)
         msgpack_task = its.dequeue_task()
-
-    # listener_logger.debug("Warning: implant metadata not currently being stored")
-    # store metadata at all? Maybe a metadata field in agent table, that gets updated (only on change)
-
-    # STRUCTLOG: Bind the ID to the context! Now all subsequent logs in this flow have the ID.
 
     structlog.contextvars.bind_contextvars(implant_id=implant_uuid)
 

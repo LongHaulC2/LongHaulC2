@@ -22,6 +22,7 @@ from ...db.mysql_connector import get_mysql_session
 from ...db.neo4j_models import Neo4jHostNode, Neo4jImplantNode
 from ...modules.neo4j_functions import (
     Neo4jHostNodeService,
+    Neo4jMemstoreFileNodeService,
     Neo4jNetworkNodeService,
     Neo4jNicNodeService,
 )
@@ -204,20 +205,11 @@ def process_single_response_for_neo4j(task_response_dict: dict):
     # based off task name, do neo4j actions
     match task_name:
         case "discover neighbors":
+            """
+            Takes discovered neighbors, and plots them into Neo4j
+
+            """
             neighbor_list = task_response_dict.get("result", {}).get("data", [])
-
-            # 1. Get the implant node
-            implant_node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
-            if not implant_node:
-                return
-
-            # 2. Get the host this implant is running on
-            # (Assuming you've linked them during registration)
-            # bug here, Ihaven't done this yet
-            source_host = implant_node.running_on.single()
-            if not source_host:
-                server_logger.warning(f"Implant {implant_uuid} has no host node!")
-                return
 
             for neighbor in neighbor_list:
                 neighbor_ip = neighbor.get("ip")
@@ -236,6 +228,8 @@ def process_single_response_for_neo4j(task_response_dict: dict):
                 )
 
                 # create network - shit, need cidr, not just mac ip or hostname.
+                # *could* assume that a host is apart of a network if the IP space matches, however
+                # there's a chance for false positives.
                 # new_network_node = Neo4jNetworkNodeService.create_or_get_node(
                 #     mac_address=neighbor_mac
                 # )
@@ -247,8 +241,16 @@ def process_single_response_for_neo4j(task_response_dict: dict):
                     ip_address=neighbor_ip,
                 )
 
-                # todo:
-                # create: host node, nic node.
-                # then tie
-                # nic -> host, nic -> network
-                # that should plugin well to the rest.
+        case "memstore upload":
+            # memstore tracking
+            # get implant node, create file node,
+            # link them
+            # include file hash
+
+            file_name = (
+                task_request_dict.get("task", {}).get("args", {}).get("file_name", "")
+            )
+
+            Neo4jMemstoreFileNodeService.connect_memstore_file_to_implant(
+                file_name=file_name, implant_uuid=implant_uuid
+            )

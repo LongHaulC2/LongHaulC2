@@ -10,6 +10,7 @@ from ..db.neo4j_models import (
     Neo4jHostNode,
     Neo4jImplantNode,
     Neo4jListenerNode,
+    Neo4jMemstoreFileNode,
     Neo4jNetworkNode,
     Neo4jNicNode,
 )
@@ -97,7 +98,7 @@ class Neo4jImplantNodeService:
         Creates a node. Useful for getting a quick new node and letting this handle all
         the node logic
         """
-        implant_node = Neo4jImplantNodeService.find_existing(implant_uuid=implant_uuid)
+        implant_node = Neo4jImplantNode.find_existing(implant_uuid=implant_uuid)
         if not implant_node:
             implant_node = Neo4jImplantNode(implant_uuid=implant_uuid).save()
             neo4j_logger.info(f"New node created: {implant_uuid}")
@@ -419,3 +420,40 @@ class Neo4jC2ChannelNodeService:
 
         channel_id = f"{listener_uuid}_{listener_type}_{listener_host}_{listener_port}"
         return channel_id
+
+
+class Neo4jMemstoreFileNodeService:
+    @staticmethod
+    def create_or_get_node(file_name):
+        """
+        Creates a node. Useful for getting a quick new node and letting this handle all
+        the node logic
+        """
+        listener_node = Neo4jMemstoreFileNode.find_existing(file_name=file_name)
+        if not listener_node:
+            listener_node = Neo4jMemstoreFileNode(file_name=file_name).save()
+            neo4j_logger.info(f"New memstore file node created: {file_name}")
+
+        return listener_node
+
+    @staticmethod
+    def connect_memstore_file_to_implant(file_name, implant_uuid):
+        """
+        hostname: hostname of host to connect the nic to
+
+        mac_address: mac address of the NIC connecting to a host
+        ip_address (optional): ip_address of the NIC connecting to a host, if you have the IP for that nic
+        """
+
+        # create or get our implant
+        implant_node = Neo4jImplantNodeService.create_or_get_node(implant_uuid)
+        # add ip to it as well if we have it
+
+        # create or get our file
+        memstore_file_node = Neo4jMemstoreFileNodeService.create_or_get_node(file_name)
+
+        # 3: link file to implant
+        if not memstore_file_node.stored_in.is_connected(implant_node):
+            memstore_file_node.stored_in.connect(implant_node)
+
+        neo4j_logger.info(f"Memstore file -> Implant successful")
