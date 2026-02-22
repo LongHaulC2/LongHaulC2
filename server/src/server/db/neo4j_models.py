@@ -207,6 +207,7 @@ class Neo4jMemstoreFileNode(SemiStructuredNode):
     # ip, optional
     # ip_address = StringProperty()
     # add hash?
+    md5 = StringProperty()
 
     # memstore file -> implant
     stored_in = RelationshipTo("Neo4jImplantNode", "STORED_IN")

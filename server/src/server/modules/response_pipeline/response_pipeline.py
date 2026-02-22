@@ -11,7 +11,9 @@ This includes:
 
 # note for performance metrics, the most "efficent" way may be dumping to redis, or using direct metric libs like prometheus, isntead of doing a custom metrics system
 
+import base64
 import concurrent.futures
+import hashlib
 import logging
 import threading
 import time
@@ -251,6 +253,16 @@ def process_single_response_for_neo4j(task_response_dict: dict):
                 task_request_dict.get("task", {}).get("args", {}).get("file_name", "")
             )
 
+            file_contents = (
+                task_request_dict.get("task", {})
+                .get("args", {})
+                .get("file_contents", "")  # store as bytes in db
+            )
+
+            decoded_bytes = base64.b64decode(file_contents)
+
+            hash = hashlib.md5(decoded_bytes).hexdigest()
+
             Neo4jMemstoreFileNodeService.connect_memstore_file_to_implant(
-                file_name=file_name, implant_uuid=implant_uuid
+                file_name=file_name, implant_uuid=implant_uuid, file_hash_md5=hash
             )

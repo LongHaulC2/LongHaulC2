@@ -437,12 +437,16 @@ class Neo4jMemstoreFileNodeService:
         return listener_node
 
     @staticmethod
-    def connect_memstore_file_to_implant(file_name, implant_uuid):
+    def connect_memstore_file_to_implant(
+        file_name, implant_uuid, file_hash_md5: str = ""
+    ):
         """
         hostname: hostname of host to connect the nic to
 
         mac_address: mac address of the NIC connecting to a host
         ip_address (optional): ip_address of the NIC connecting to a host, if you have the IP for that nic
+
+        file_hash_md5: (optional) md5 of file
         """
 
         # create or get our implant
@@ -451,6 +455,9 @@ class Neo4jMemstoreFileNodeService:
 
         # create or get our file
         memstore_file_node = Neo4jMemstoreFileNodeService.create_or_get_node(file_name)
+        # add in hash
+        memstore_file_node.md5 = file_hash_md5
+        memstore_file_node.save()
 
         # 3: link file to implant
         if not memstore_file_node.stored_in.is_connected(implant_node):
