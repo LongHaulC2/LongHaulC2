@@ -1,12 +1,23 @@
+# these run on commit.
+# you may have to git add . or re-stage in vscode
+# before committing
+
+# don't run hooks on these items
+exclude: '^(logs/|.venv/|.*\.h|.*\.cpp|.*\.hpp|.*\.c|.*\.md)'
+
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.0
     hooks:
       - id: ruff
         args: [ --fix ] # Automatically fixes what it can
+        types: [python] # only run on python
       - id: ruff-format
+        types: [python] # only on python
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
       - id: trailing-whitespace
+        types: [python]  # Only trim whitespace in .py files
       - id: end-of-file-fixer
+        types: [python]  # Only fix EOF in .py files

@@ -12,11 +12,11 @@ exclude = [
     "build",
     "dist",
     "logs",
-    ".h",    # exclude implant source
-    ".hpp",  # exclude implant source
-    ".c",    # exclude implant source
-    ".cpp",  # exclude implant source
-    ".md"    # exclude docs
+    "*.h",    # exclude implant source
+    "*.hpp",  # exclude implant source
+    "*.c",    # exclude implant source
+    "*.cpp",  # exclude implant source
+    "*.md"    # exclude docs
 ]
 
 [tool.ruff.lint]
