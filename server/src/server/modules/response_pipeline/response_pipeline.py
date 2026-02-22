@@ -210,6 +210,13 @@ def process_single_response_for_neo4j(task_response_dict: dict):
 
     # response_pipeline_logger.critical(task_request_dict)
 
+    # check if task was successful. If not, return.
+    if task_response_dict.get("result", {}).get("windows_error_code", "") != 0:
+        response_pipeline_logger.debug(
+            "Task Result was not successful. Not updating Neo4j"
+        )
+        return
+
     # based off task name, do neo4j actions
     match task_name:
         case "discover neighbors":
