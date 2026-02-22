@@ -60,6 +60,17 @@ working on response_pipeline. todo's left:
  - [ ] excessive safety checks in response pipeline
  - [ ] review/modularity in neo4j functions if possible
     - [ ] doc each function & class & model
+ - [ ] extract as MUCH metadata as you can manage from command responses
+   - [X] files:
+      - [x] file hash
+      - [X] file size (kb)
+      - [X] first X bytes (i.e. type tracking, for stuff like exe's)
+
+ - [x] gui nodes
+      -[ ] link buttons to actions
+ - [ ] idea: split implant/host page 
+       - running implant; breakdown of binary & source. Hosted files, last checkin, etc. 
+       - host: Host breakdown, implants on it, other info, etc. 
 
 ### Server: Listeners & Core
 

@@ -271,6 +271,24 @@ def process_single_response_for_neo4j(task_response_dict: dict):
             Neo4jMemstoreFileNodeService.connect_memstore_file_to_implant(
                 file_name=file_name, implant_uuid=implant_uuid, file_hash_md5=hash
             )
+            # add addtl metadata
+            file_node = Neo4jMemstoreFileNodeService.create_or_get_node(file_name)
+
+            # only get first 20 chars
+            try:
+                # add 0x for preivew/user knows it's hex
+                file_node.file_preview = "0x" + decoded_bytes.hex()[:20]
+            except Exception as e:
+                response_pipeline_logger.error(f"Error saving file_preview: {e}")
+
+            try:
+                # add 0x for preivew/user knows it's hex
+                file_node.file_size_kb = len(decoded_bytes) / 1000  # convert to kb
+            except Exception as e:
+                response_pipeline_logger.error(f"Error saving file_size_kb: {e}")
+
+            file_node.save()
+
         # memstore clear and delete
         case "memstore clear":
             # remove all file from host
@@ -333,6 +351,23 @@ def process_single_response_for_neo4j(task_response_dict: dict):
             Neo4jFileNodeService.connect_file_to_host(
                 file_path=file_path, hostname=hostname, file_hash_md5=hash
             )
+
+            # addtl metadata
+            file_node = Neo4jFileNodeService.create_or_get_node(file_path)
+
+            try:
+                # add 0x for preivew/user knows it's hex
+                file_node.file_preview = "0x" + decoded_bytes.hex()[:20]
+            except Exception as e:
+                response_pipeline_logger.error(f"Error saving file_preview: {e}")
+
+            try:
+                # add 0x for preivew/user knows it's hex
+                file_node.file_size_kb = len(decoded_bytes) / 1000  # convert to kb
+            except Exception as e:
+                response_pipeline_logger.error(f"Error saving file_size_kb: {e}")
+
+            file_node.save()
 
         # I don't have a file delete, damn.
         case "file delete":

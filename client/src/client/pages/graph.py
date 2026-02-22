@@ -1,6 +1,7 @@
 import json
 import logging
 import urllib.parse
+from datetime import datetime, timezone
 
 import httpx
 from nicegui import ui
@@ -208,6 +209,9 @@ def build_header_bar():
             ui.label("NETWORK_TOPOLOGY //").classes("tech-label-title")
 
         with ui.row().classes("items-center gap-2"):
+            ui.label(
+                f"Last Refresh [UTC]: {datetime.now(timezone.utc).strftime('%H:%M:%S')}"  # just hour minute sec is way easier to read than + ...
+            ).classes("tech-label-title")
             ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/graph")).props(
                 "dense flat size=sm"
             ).classes("tech-btn-ghost").tooltip("Refresh Topology")
@@ -225,6 +229,7 @@ def handle_click(e, nodes, sidebar_container):
     selected_node = nodes[data_index]
     props = selected_node.get("props", {})
     node_name = selected_node.get("name", "Unknown")
+    node_type = selected_node.get("category")
 
     # Clear and Redraw the sidebar
     sidebar_container.clear()
@@ -249,7 +254,33 @@ def handle_click(e, nodes, sidebar_container):
 
         # update options here would be nice as well
         ui.separator()
-        ui.button("placeholder")
+
+        if node_type == "Implant":
+            with ui.column().classes("w-full"):
+                ui.button("Implant Page").classes("w-full")
+                ui.button("Implant ...").classes("w-full")
+
+        elif node_type == "Host":
+            with ui.column().classes("w-full"):
+                ui.button("Host Page").classes("w-full")
+                ui.button("something else").classes("w-full")
+
+        elif node_type == "Listener":
+            with ui.column().classes("w-full"):
+                ui.button("Restart").classes("w-full")
+                ui.button("Stop", color="red").classes("w-full")
+
+        elif node_type == "File":
+            with ui.column().classes("w-full"):
+                ui.button("Download").classes("w-full")
+                ui.button("Delete", color="red").classes("w-full")
+
+        elif node_type == "MemstoreFile":
+            with ui.column().classes("w-full"):
+                ui.button("Download").classes("w-full")
+                ui.button("Delete", color="red").classes("w-full")
+        else:
+            ui.label("No actions for this type of node")
 
 
 def build_chart_options(nodes, links, categories):
@@ -317,6 +348,7 @@ def build_chart_options(nodes, links, categories):
                     "gravity": 0.01,  # Higher = pulls clusters to center
                     "edgeLength": 80,  # Constant length helps stability
                     "friction": 0.3,
+                    # "initLayout": "circular", # sets init layout to be circular. can be that or null/none
                 },
                 "emphasis": {
                     "focus": "adjacency",
