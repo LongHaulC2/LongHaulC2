@@ -28,6 +28,9 @@ PATH_IMPLANT = (
     "M4 9V10C4 11.6569 5.34315 13 7 13V13 "
     "M4 22V22C4 20.3431 5.34315 19 7 19V19"
 )
+PATH_LISTENER = "M3 7C3 4.23858 5.23858 2 8 2C10.7614 2 13 4.23858 13 7V8H10V15H12C13.6569 15 15 13.6569 15 12V7C15 3.13401 11.866 0 8 0C4.13401 0 1 3.13401 1 7V12C1 13.6569 2.34315 15 4 15H6V8H3V7Z"
+PATH_FILE = "M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.51984 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3"
+PATH_C2_CHANNEL = "M18 5C17.4477 5 17 5.44772 17 6C17 6.27642 17.1108 6.52505 17.2929 6.70711C17.475 6.88917 17.7236 7 18 7C18.5523 7 19 6.55228 19 6C19 5.44772 18.5523 5 18 5ZM15 6C15 4.34315 16.3431 3 18 3C19.6569 3 21 4.34315 21 6C21 7.65685 19.6569 9 18 9C17.5372 9 17.0984 8.8948 16.7068 8.70744L8.70744 16.7068C8.8948 17.0984 9 17.5372 9 18C9 19.6569 7.65685 21 6 21C4.34315 21 3 19.6569 3 18C3 16.3431 4.34315 15 6 15C6.46278 15 6.90157 15.1052 7.29323 15.2926L15.2926 7.29323C15.1052 6.90157 15 6.46278 15 6ZM6 17C5.44772 17 5 17.4477 5 18C5 18.5523 5.44772 19 6 19C6.55228 19 7 18.5523 7 18C7 17.7236 6.88917 17.475 6.70711 17.2929C6.52505 17.1108 6.27642 17 6 17Z"
 
 CHART_COLORS = [
     "#10b981",  # implant
@@ -49,40 +52,79 @@ async def graph():
 
 
 async def graph_view():
-    # for ref, queries to get this data
-    # MATCH (n)
-    # RETURN DISTINCT
-    #     id(n) AS id,
-    #     n.system_hostname AS name,
-    #     CASE
-    #         WHEN "Neo4jImplantNode" IN labels(n) THEN 0
-    #         ELSE 1
-    #     END AS category,
-    #     properties(n) AS props;
-    #
-    # MATCH (a)-[r]->(b)
-    # RETURN id(a) AS source,
-    #     id(b) AS target,
-    #     type(r) AS value,
-    #     properties(r) AS props;
-
     graph_data_response = await get_all_graph_data()
     graph_data = graph_data_response.get("data", {})
 
     nodes = graph_data.get("nodes", [])
     links = graph_data.get("links", [])
-    # categories = graph_data.get("categories", [])
+    categories = graph_data.get("categories", [])
 
-    # force this order to render correctly
-    # see graph_resouce in server to determine these.
-    categories = [
-        {"name": "Implant"},  # Index 0
-        {"name": "Network"},  # Index 1
-        {"name": "Gateway"},  # Index 2
-        {"name": "Host"},  # Index 3
-    ]
+    # 1. Define your visual styles per node type
+    category_styles = {
+        "Neo4jImplantNode": {
+            "symbol": wrap_svg(PATH_IMPLANT, "#CF2525"),
+            "symbolSize": 45,
+            # "itemStyle": {"color": "#ff4d4d"},
+        },
+        "Neo4jListenerNode": {
+            "symbol": wrap_svg(PATH_LISTENER, "#ffcc00"),
+            "symbolSize": 40,
+            # "itemStyle": {"color": "#ffcc00"},
+        },
+        "Neo4jHostNode": {
+            # Standard SVG path for a server/desktop
+            "symbol": wrap_svg(PATH_HOST, "#024FF5"),
+            "symbolSize": 35,
+            # "itemStyle": {"color": "#4d79ff"},
+        },
+        "Neo4jNetworkNode": {
+            "symbol": wrap_svg(PATH_NETWORK, "#5BE2A3"),
+            "symbolSize": 45,  # Width, Height
+            # "itemStyle": {"color": "#33cc33"},
+        },
+        "Neo4jNicNode": {
+            "symbol": wrap_svg(PATH_NETWORK, "#22573E"),
+            "symbolSize": 45,  # Width, Height
+            # "itemStyle": {"color": "#33cc33"},
+        },
+        "Neo4jC2ChannelNode": {
+            "symbol": wrap_svg(PATH_C2_CHANNEL, "#A01DA5"),
+            "symbolSize": 45,  # Width, Height
+            # "itemStyle": {"color": "#33cc33"},
+        },
+        "Neo4jFileNode": {
+            # You can also use direct web or local image URLs
+            "symbol": wrap_svg(PATH_FILE, "#969696"),
+            "symbolSize": 30,
+        },
+        "Neo4jMemstoreFileNode": {
+            # You can also use direct web or local image URLs
+            "symbol": wrap_svg(PATH_FILE, "#10BB00"),
+            "symbolSize": 30,
+        },
+    }
 
-    nodes = set_node_icons(nodes)
+    # 2. Inject styles into the categories array
+    for cat in categories:
+        # Default to a gray circle if the label isn't in our map
+        style = category_styles.get(
+            cat["name"], {"symbol": "circle", "itemStyle": {"color": "#888888"}}
+        )
+        cat.update(style)
+
+    # 3. CRITICAL FIX for your commented-out renaming logic
+    # If you change the category name for the legend, you MUST change it on the nodes too!
+    for cat in categories:
+        old_name = cat["name"]
+        new_name = old_name.replace("Neo4j", "").replace("Node", "")
+
+        cat["name"] = new_name  # Updates the legend
+
+        # Re-correlate nodes to the new clean string
+        for node in nodes:
+            if node.get("category") == old_name:
+                node["category"] = new_name
+
     options = build_chart_options(nodes, links, categories)
 
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
@@ -326,54 +368,64 @@ def build_chart_options(nodes, links, categories):
 
 # hack to allow for a "background" around the svg images so you can click anywhere on them, not just on drawn lines
 def wrap_svg(path_d, color):
+    """
+    Wraps SVG in html that allows it to be clicked where the SVG is not drawn. It places a shape *under* the image, then draws svg on top
+    """
+    # fill="#0f0f0f"
     svg_string = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48">
-        <circle cx="12" cy="12" r="11" fill="#0f0f0f" stroke="{color}" stroke-width="0.5" />
+        <circle cx="12" cy="12" r="11" stroke="{color}" stroke-width="0" />
         <path d="{path_d}" fill="{color}" />
     </svg>"""
     return "image://data:image/svg+xml;charset=UTF-8," + urllib.parse.quote(svg_string)
 
 
-def set_node_icons(nodes):
-    for node in nodes:
-        # Prevent NiceGUI EChartPointClickEventArguments KeyError
-        node.setdefault("value", 0)
+# def set_node_icons(nodes, categories):
+#     for node in nodes:
+#         # Prevent NiceGUI EChartPointClickEventArguments KeyError
+#         node.setdefault("value", 0)
+#         props = node.get("props", {})
 
-        props = node.get("props", {})
+#         # # Dynamically determine the true category based on properties
+#         # use the prim keys for this
+#         if "implant_uuid" in props:
+#             cat = 0  # Implant
+#         elif "listener_uuid" in props:
+#             cat = 1  # Listener
+#         elif "channel_id" in props:
+#             cat = 2  # c2 channel
+#         elif "address" in props:
+#             cat = 3  # Host
+#         else:
+#             cat = node.get("category", 3)  # Fallback
 
-        # Dynamically determine the true category based on properties
-        if "implant_uuid" in props:
-            cat = 0  # Implant
-        elif "cidr" in props:
-            cat = 1  # Network
-        elif "host" in props or "external_exposed" in props:
-            cat = 2  # Gateway
-        elif "address" in props:
-            cat = 3  # Host
-        else:
-            cat = node.get("category", 3)  # Fallback
+#         # Overwrite the backend's broken category ID so ECharts maps it correctly
+#         # node["category"] = cat
 
-        # Overwrite the backend's broken category ID so ECharts maps it correctly
-        node["category"] = cat
+#         # get index of category, according to the nodes field
+#         cat_index = node.get("category")
 
-        # 3. Assign Icons and Colors
-        if cat == 0:  # Implant
-            user = props.get("user", "").lower()
-            is_admin = "system" in user
-            color = "#ef4444" if is_admin else CHART_COLORS[0]
+#         # for _cat in categories:
+#         #     if cat_index == _cat.get("index"):
 
-            node["symbol"] = wrap_svg(PATH_IMPLANT, color)
-            node["symbolSize"] = 35
+#         # take nodes, correlate them, and add props to them.
+#         if cat_index == 0:  # Implant
+#             user = props.get("user", "").lower()
+#             is_admin = "system" in user
+#             color = "#ef4444" if is_admin else CHART_COLORS[0]
 
-        elif cat == 1:  # Network
-            node["symbol"] = wrap_svg(PATH_NETWORK, CHART_COLORS[1])
-            node["symbolSize"] = 45
+#             node["symbol"] = wrap_svg(PATH_IMPLANT, color)
+#             node["symbolSize"] = 35
 
-        elif cat == 2:  # Gateway
-            node["symbol"] = wrap_svg(PATH_GATEWAY, CHART_COLORS[2])
-            node["symbolSize"] = 55
+#         elif cat_index == 1:  # Network
+#             node["symbol"] = wrap_svg(PATH_NETWORK, CHART_COLORS[1])
+#             node["symbolSize"] = 45
 
-        elif cat == 3:  # Host
-            node["symbol"] = wrap_svg(PATH_HOST, CHART_COLORS[3])
-            node["symbolSize"] = 35
+#         elif cat_index == 2:  # Gateway
+#             node["symbol"] = wrap_svg(PATH_GATEWAY, CHART_COLORS[2])
+#             node["symbolSize"] = 55
 
-    return nodes
+#         elif cat_index == 3:  # Host
+#             node["symbol"] = wrap_svg(PATH_HOST, CHART_COLORS[3])
+#             node["symbolSize"] = 35
+
+#     return nodes

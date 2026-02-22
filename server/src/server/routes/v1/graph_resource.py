@@ -4,6 +4,7 @@ from dataclasses import asdict
 from edwh_uuid7 import uuid7
 from flask import request
 from flask_restx import Namespace, Resource, fields
+from neomodel import db
 
 from ...api_models.error import *
 from ...api_models.listener import *
@@ -52,78 +53,59 @@ class Graph(Resource):
             },
         )
 
-        # hacky, quick implementation to get this data here
-        from neomodel import db
-        from neomodel.integration.pandas import DataFrame, to_dataframe
+        query = """
+            // 1. Fetch Categories
+            CALL {
+                MATCH (n)
+                WITH DISTINCT labels(n)[0] AS label
+                RETURN collect({name: label}) AS categories
+            }
+            
+            // 2. Fetch Nodes
+            CALL {
+                MATCH (n)
+                RETURN collect({
+                    id: toString(elementId(n)),
+                    name: CASE 
+                        WHEN "Neo4jImplantNode" IN labels(n) THEN coalesce(n.implant_uuid, "Unknown")
+                        WHEN "Neo4jNetworkNode" IN labels(n) THEN coalesce(n.cidr, "Unknown")
+                        WHEN "Neo4jNetworkGatewayNode" IN labels(n) THEN coalesce(n.host, "Unknown")
+                        WHEN "Neo4jHostNode" IN labels(n) THEN coalesce(n.address, "Unknown")
+                        ELSE coalesce(n.ip_address, n.hostname, n.process, "Unknown_" + toString(elementId(n)))
+                    END,
+                    category: labels(n)[0], 
+                    props: properties(n)
+                }) AS nodes
+            }
+            
+            // 3. Fetch Links
+            CALL {
+                MATCH (a)-[r]->(b)
+                RETURN collect({
+                    source: toString(elementId(a)),
+                    target: toString(elementId(b)),
+                    value: type(r),
+                    props: properties(r)
+                }) AS links
+            }
+            
+            // 4. Return as a single structured dictionary
+            RETURN {
+                categories: categories,
+                nodes: nodes,
+                links: links
+            } AS graph_data;
+        """
 
-        # this looks like a lot, all it is is grabbing the data, and cleaning it a bit (i.e. non str -> str), then converting to a list of dicts
-        # Get nodes - note, case
-        nodes_query = """
-                MATCH (n) 
-                RETURN DISTINCT elementId(n) AS id, 
-                    //decides what name is. 
-                    CASE 
-                        WHEN "Neo4jImplantNode" IN labels(n) THEN n.implant_uuid
-                        WHEN "Neo4jNetworkNode" IN labels(n) THEN n.cidr
-                        WHEN "Neo4jNetworkGatewayNode" IN labels(n) THEN n.host
-                        WHEN "Neo4jHostNode" IN labels(n) THEN n.address
-                        ELSE "Unknown Node"
-                    //this actually sets the name here:
-                    END AS name,
-                    // and the label to coordinate
-                    CASE 
-                        WHEN "Neo4jImplantNode" IN labels(n) THEN 0 
-                        WHEN "Neo4jNetworkNode" IN labels(n) THEN 1
-                        WHEN "Neo4jNetworkGatewayNode" IN labels(n) THEN 2
-                        WHEN "Neo4jHostNode" IN labels(n) THEN 2
-                        ELSE 0 
-                    END AS category, 
-                    properties(n) AS props;
-                """
+        # Run the query
+        results, _ = db.cypher_query(query)
 
-        # Pass the query directly into the wrapper
-        df_nodes = to_dataframe(db.cypher_query(nodes_query, resolve_objects=True))
-
-        # Apply ECharts formatting
-        df_nodes["id"] = df_nodes["id"].astype(str)
-        df_nodes["name"] = df_nodes["name"].fillna("Unknown_" + df_nodes["id"])
-        clean_nodes = df_nodes.to_dict("records")
-
-        # Get links
-        links_query = """MATCH (a)-[r]->(b) RETURN elementId(a) AS source, elementId(b) AS target, type(r) AS value, properties(r) AS props;"""
-
-        df_links = to_dataframe(db.cypher_query(links_query, resolve_objects=True))
-
-        df_links["source"] = df_links["source"].astype(str)
-        df_links["target"] = df_links["target"].astype(str)
-        clean_links = df_links.to_dict("records")
-
-        # get categories
-        categories_query = (
-            """MATCH (n) UNWIND labels(n) AS label RETURN DISTINCT label;"""
+        # results[0][0] contains our beautifully formatted dictionary straight from Neo4j
+        graph_dict = (
+            results[0][0]
+            if results and results[0]
+            else {"categories": [], "nodes": [], "links": []}
         )
-
-        df_cats = to_dataframe(db.cypher_query(categories_query, resolve_objects=True))
-
-        df_cats = df_cats.rename(columns={"label": "name"})
-        clean_categories = df_cats.to_dict("records")
-
-        # Get categories
-        categories_query = (
-            """MATCH (n) UNWIND labels(n) AS label RETURN DISTINCT label;"""
-        )
-        c_results, c_cols = db.cypher_query(categories_query, resolve_objects=True)
-
-        df_cats = DataFrame(c_results, columns=c_cols)
-        # ECharts expects the category key to be "name", not "label"
-        df_cats = df_cats.rename(columns={"label": "name"})
-        clean_categories = df_cats.to_dict("records")
-
-        graph_dict = {
-            "nodes": clean_nodes,
-            "links": clean_links,
-            "categories": clean_categories,
-        }
 
         api_response = APIResponse(
             status="200",

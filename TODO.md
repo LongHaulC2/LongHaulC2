@@ -55,6 +55,12 @@ be the kickoff point
 
 once some of that is figured out, can continue to impleent tasks/other thigns to build out the nodes
 
+> left off:
+working on response_pipeline. todo's left:
+ - [ ] excessive safety checks in response pipeline
+ - [ ] review/modularity in neo4j functions if possible
+    - [ ] doc each function & class & model
+
 ### Server: Listeners & Core
 
 * [ ] Fix active flag in the database (Idea: Start listener on startup if marked active)
