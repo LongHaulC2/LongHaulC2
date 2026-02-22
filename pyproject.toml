@@ -1,0 +1,38 @@
+# hi! This configures the python global settings for the project.
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "logs",
+    ".h",    # exclude implant source
+    ".hpp",  # exclude implant source
+    ".c",    # exclude implant source
+    ".cpp",  # exclude implant source
+    ".md"    # exclude docs
+]
+
+[tool.ruff.lint]
+# G = Logging, E/F = Syntax/Logic, I = Import Sorting
+select = ["G", "E", "F", "I"]
+# Tell Ruff which variable names are actually loggers
+logger-objects = [
+    "api_logger",
+    "server_logger",
+    "listener_logger",
+    "neo4j_logger",
+    "response_pipeline_logger"
+]
+
+[tool.ruff.format]
+# This ensures Ruff's formatter behaves like Black
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
