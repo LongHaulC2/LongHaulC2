@@ -305,8 +305,8 @@ def process_single_response_for_neo4j(task_response_dict: dict):
             # get file name, contents, path
             # add node
 
-            file_name = (
-                task_request_dict.get("task", {}).get("args", {}).get("file_name", "")
+            file_path = (
+                task_request_dict.get("task", {}).get("args", {}).get("file_path", "")
             )
 
             file_contents = (
@@ -331,7 +331,7 @@ def process_single_response_for_neo4j(task_response_dict: dict):
             hash = hashlib.md5(decoded_bytes).hexdigest()
 
             Neo4jFileNodeService.connect_file_to_host(
-                file_name=file_name, hostname=hostname, file_hash_md5=hash
+                file_path=file_path, hostname=hostname, file_hash_md5=hash
             )
 
         # I don't have a file delete, damn.

@@ -78,6 +78,13 @@ class Neo4jImplantNodeService:
 
         # data = {mac:{ip, cidr (ex,24), gateway},}
         for nic_mac_address, data in nics.items():
+            # exlude NIC's that didn't return a mac for some reason.
+            if not nic_mac_address:
+                neo4j_logger.debug(
+                    f"mac address missing from nic, skipping. Data: {data}"
+                )
+                continue
+
             # create our NIC
             Neo4jNicNodeService.create_or_get_node(mac_address=nic_mac_address)
 
@@ -507,22 +514,22 @@ class Neo4jFileNodeService:
     """
 
     @staticmethod
-    def create_or_get_node(file_name):
+    def create_or_get_node(file_path):
         """
         Creates a node. Useful for getting a quick new node and letting this handle all
         the node logic
         """
-        listener_node = Neo4jFileNode.find_existing(file_name=file_name)
+        listener_node = Neo4jFileNode.find_existing(file_path=file_path)
         if not listener_node:
-            listener_node = Neo4jFileNode(file_name=file_name).save()
-            neo4j_logger.info(f"New file node created: {file_name}")
+            listener_node = Neo4jFileNode(file_path=file_path).save()
+            neo4j_logger.info(f"New file node created: {file_path}")
 
         return listener_node
 
     @staticmethod
-    def connect_file_to_host(file_name, hostname, file_hash_md5: str = ""):
+    def connect_file_to_host(file_path, hostname, file_hash_md5: str = ""):
         """
-        file_name: name/path of file
+        file_path: path of file
         hostname: hostname of host to connect the file to
         file_hash_md5: (optional) md5 of file
         """
@@ -532,9 +539,10 @@ class Neo4jFileNodeService:
         # add ip to it as well if we have it
 
         # create or get our file
-        file_node = Neo4jFileNodeService.create_or_get_node(file_name)
+        file_node = Neo4jFileNodeService.create_or_get_node(file_path)
         # add in hash
         file_node.md5 = file_hash_md5
+        file_node.file_path = file_path
         file_node.save()
 
         # 3: link file to implant

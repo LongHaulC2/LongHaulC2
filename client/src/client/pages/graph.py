@@ -104,7 +104,7 @@ async def graph_view():
         },
     }
 
-    # 2. Inject styles into the categories array
+    # Inject styles into the categories array
     for cat in categories:
         # Default to a gray circle if the label isn't in our map
         style = category_styles.get(
@@ -112,18 +112,59 @@ async def graph_view():
         )
         cat.update(style)
 
-    # 3. CRITICAL FIX for your commented-out renaming logic
-    # If you change the category name for the legend, you MUST change it on the nodes too!
     for cat in categories:
         old_name = cat["name"]
         new_name = old_name.replace("Neo4j", "").replace("Node", "")
-
         cat["name"] = new_name  # Updates the legend
 
-        # Re-correlate nodes to the new clean string
-        for node in nodes:
-            if node.get("category") == old_name:
-                node["category"] = new_name
+    #  Explicitly map categories to specific naming functions
+    def get_implant_name(p):
+        process = p.get("process", "")
+        if process:
+            # Slices off the filepath so "C:\...\safe.exe" becomes "safe.exe"
+            return process.split("\\")[-1].split("/")[-1]
+        # incase there's no process, just return uuid
+        return p.get("implant_uuid", "Unknown Implant")[:20]
+
+    def get_file_name(p):
+        name = p.get("file_name", "")
+        if name:
+            return name
+        return f"{p.get('file_name', 'Unknown')[:50]}"
+
+    def get_file_path(p):
+        name = p.get("file_path", "")
+        if name:
+            return name
+        return f"{p.get('file_name', 'Unknown')[:50]}"
+
+    name_mappers = {
+        "Implant": get_implant_name,
+        "Listener": lambda p: p.get("name")
+        or p.get("listener_uuid", "Unknown Listener"),
+        "Host": lambda p: p.get("hostname")
+        or p.get("system_hostname")
+        or p.get("address", "Unknown Host"),
+        "Network": lambda p: p.get("cidr", "Unknown Network"),
+        "Nic": lambda p: p.get("ip_address") or p.get("mac_address", "Unknown NIC"),
+        "C2Channel": lambda p: f"{p.get('protocol', 'C2').upper()} Channel",
+        "File": get_file_path,
+        "MemstoreFile": get_file_name,
+    }
+
+    # correlate nodes and dynamically assign their mapped names
+    for node in nodes:
+        # Correlate the nodes category to the newly cleaned legend strings
+        old_cat = node.get("category", "")
+        new_cat = old_cat.replace("Neo4j", "").replace("Node", "")
+        node["category"] = new_cat
+
+        # Look up the specific naming logic for this exact type, fallback to a generic name
+        props = node.get("props", {})
+        naming_func = name_mappers.get(new_cat, lambda p: "Unknown Node")
+
+        # Apply the explicit naming logic to the node
+        node["name"] = naming_func(props)
 
     options = build_chart_options(nodes, links, categories)
 
@@ -135,20 +176,29 @@ async def graph_view():
         # graph layout
         with ui.row().classes("w-full flex-grow overflow-hidden flex-nowrap"):
 
+            # setup sidebar
+            inspector_sidebar = ui.column().classes(
+                "w-80 h-full p-4 bg-[#111] border-l border-white/10 overflow-y-auto"
+            )
+            with inspector_sidebar:
+                ui.label("Select a node to view details").classes(
+                    "text-gray-500 italic"
+                )
+
+            # setup graph area
             with ui.column().classes("flex-grow h-full relative p-2"):
                 chart = ui.echart(
                     options,
-                    on_point_click=lambda e: handle_click(
-                        e, ui_state, nodes, links, categories
-                    ),
                 ).classes("w-full h-full bg-[#0a0a0a] rounded border border-white/5")
+                chart.on(
+                    "chart:selectchanged",
+                    lambda e: handle_click(e, nodes, inspector_sidebar),
+                )
 
                 with chart:
                     with ui.menu().props("context-menu"):
                         ui.menu_item("Copy")
                         ui.menu_item("Delete")
-
-            ui_state = build_inspector_sidebar()
 
 
 def build_header_bar():
@@ -163,118 +213,43 @@ def build_header_bar():
             ).classes("tech-btn-ghost").tooltip("Refresh Topology")
 
 
-def build_inspector_sidebar():
-    with ui.column().classes(
-        "w-80 h-full border-l border-white/5 bg-[#0f0f0f] flex-shrink-0 flex-nowrap overflow-hidden"
-    ):
-        with ui.row().classes(
-            "w-full p-4 items-center gap-2 border-b border-white/5 bg-white/5"
-        ):
-            ui.icon("data_object", color="emerald-500").classes("text-lg")
-            ui.label("NODE_INSPECTOR").classes(
-                "tech-label-subtitle text-xs font-bold text-neutral-300 tracking-wider"
-            )
+def handle_click(e, nodes, sidebar_container):
+    # Dig into the payload to find which index was selected
+    payload = e.args.get("fromActionPayload", {})
+    data_index = payload.get("dataIndexInside")
 
-        # Removed the padding from the scroll area so the placeholder can truly center
-        with ui.scroll_area().classes("w-full flex-grow"):
+    if data_index is None:
+        return
 
-            # 1. Perfectly centered placeholder
-            placeholder = ui.column().classes(
-                "w-full min-h-[50vh] items-center justify-center opacity-40 gap-2"
-            )
-            with placeholder:
-                ui.icon("ads_click", size="3em").classes("text-emerald-500")
-                ui.label("AWAITING SELECTION").classes(
-                    "font-mono text-[10px] tracking-[0.2em] text-neutral-400"
-                )
+    # Grab the actual node object using the index
+    selected_node = nodes[data_index]
+    props = selected_node.get("props", {})
+    node_name = selected_node.get("name", "Unknown")
 
-            # 2. Left-aligned, well-spaced data container
-            data_container = ui.column().classes("w-full p-5 gap-6 hidden items-start")
-            with data_container:
+    # Clear and Redraw the sidebar
+    sidebar_container.clear()
+    with sidebar_container:
+        ui.label(f"DETAILS: {node_name}").classes("text-emerald-500 font-bold mb-2")
+        ui.separator().classes("bg-white/10 mb-4")
 
-                # Header Section
-                with ui.column().classes("w-full gap-2"):
-                    entity_type_badge = ui.label("").classes(
-                        "text-[9px] font-bold font-mono tracking-widest px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                    )
-                    entity_name = ui.label("").classes(
-                        "text-lg font-mono text-white font-bold break-words leading-tight"
-                    )
-
-                ui.separator().classes("bg-white/10 w-full")
-
-                # Attributes Section
-                with ui.column().classes("w-full gap-3"):
-                    ui.label("ATTRIBUTES").classes(
-                        "text-[10px] font-mono text-neutral-500 tracking-widest font-bold"
-                    )
-                    props_view = ui.column().classes("w-full gap-2")
-
-    return {
-        "placeholder": placeholder,
-        "data_container": data_container,
-        "entity_type_badge": entity_type_badge,
-        "entity_name": entity_name,
-        "props_view": props_view,
-    }
-
-
-def handle_click(e, ui_state, nodes, links, categories):
-    ui_state["placeholder"].classes(add="hidden")
-    ui_state["data_container"].classes(remove="hidden")
-    ui_state["props_view"].clear()
-
-    data_index = e.data_index
-
-    # ECharts "dataType" tells us if it's a "node" or "edge"
-    # It's either a direct attribute, or packed inside the data dictionary
-    item_type = getattr(e, "data_type", None)
-    if item_type is None and isinstance(e.data, dict):
-        item_type = e.data.get("dataType", "node")
-
-    raw_props = {}
-
-    # Pull items from node list
-    if item_type == "node":
-        clicked_node = nodes[data_index]
-        raw_props = clicked_node.get("props", {})
-
-        cat_idx = clicked_node.get("category", 0)
-        cat_name = categories[cat_idx]["name"] if cat_idx < len(categories) else "NODE"
-
-        ui_state["entity_type_badge"].set_text(cat_name.upper())
-        ui_state["entity_name"].set_text(e.name if e.name else "Unknown")
-
-    elif item_type == "edge":
-        clicked_link = links[data_index]
-        raw_props = clicked_link.get("props", {})
-
-        ui_state["entity_type_badge"].set_text("RELATIONSHIP")
-        edge_val = clicked_link.get("value") or "CONNECTION"
-        ui_state["entity_name"].set_text(e.name if e.name else edge_val)
-
-    if not raw_props:
-        with ui_state["props_view"]:
-            ui.label("// No attributes found.").classes(
-                "text-xs font-mono text-neutral-600 italic"
-            )
-    else:
-        with ui_state["props_view"]:
-            for k, v in raw_props.items():
-                # Encapsulate each key-value pair in a subtle tech card
-                with ui.column().classes(
-                    "w-full gap-0.5 bg-white/[0.02] p-2.5 rounded border border-white/5 hover:bg-white/[0.04] transition-colors"
+        # Loop through props and make a clean key-value list
+        with ui.column().classes("gap-1"):
+            for key, val in props.items():
+                with ui.row().classes(
+                    "w-full justify-between border-b border-white/5 pb-1"
                 ):
-
-                    # Key on top (muted, uppercase)
-                    ui.label(str(k).upper()).classes(
-                        "text-[9px] font-mono text-neutral-500 tracking-wider"
+                    ui.label(key).classes("text-gray-500 text-xs uppercase")
+                    ui.label(str(val)).classes(
+                        "text-gray-200 text-xs text-right break-all"
                     )
 
-                    # Value underneath (brighter, left-aligned, selectable)
-                    ui.label(str(v)).classes(
-                        "text-xs font-mono text-neutral-200 break-all select-all"
-                    )
+        # note, need to pull notes as well for implants/listeners
+        ui.separator()
+        ui.label("notes placeholder")
+
+        # update options here would be nice as well
+        ui.separator()
+        ui.button("placeholder")
 
 
 def build_chart_options(nodes, links, categories):
@@ -290,6 +265,7 @@ def build_chart_options(nodes, links, categories):
                 "fontFamily": "monospace",
                 "fontSize": 12,
             },
+            # Shows Node Name and any props to highlihgt
             "formatter": "{b}",
         },
         "legend": [
@@ -304,64 +280,51 @@ def build_chart_options(nodes, links, categories):
                 "icon": "circle",
             }
         ],
-        "color": CHART_COLORS,  # these match up with the colors above
         "series": [
             {
                 "type": "graph",
                 "layout": "force",
-                "left": "0%",
-                "right": "0%",
-                "top": "0%",
-                "bottom": "0%",
                 "data": nodes,
                 "links": links,
                 "categories": categories,
                 "roam": True,
                 "draggable": True,
-                "symbolSize": 35,
                 "edgeSymbol": ["none", "arrow"],
                 "edgeSymbolSize": [0, 8],
+                "edgeLabel": {
+                    "show": True,
+                    "formatter": "{c}",  # '{c}' tells ECharts to use the 'value' of the link
+                    "fontSize": 10,
+                    "color": "#71717a",  # Subtle gray so it's not distracting
+                    "fontFamily": "monospace",
+                },
                 "label": {
                     "show": True,
                     "position": "right",
                     "color": "#a3a3a3",
                     "fontFamily": "monospace",
-                    "fontSize": 11,
-                    "distance": 8,
-                },
-                "labelLayout": {"hideOverlap": True},
-                "itemStyle": {
-                    "borderColor": "#000000",
-                    "borderWidth": 2,
+                    "fontSize": 10,
                 },
                 "lineStyle": {
                     "color": "#52525b",
-                    "curveness": 0.15,
-                    "opacity": 0.8,
-                    "width": 2,
+                    "curveness": 0.05,  # Curves help see bi-directional links
+                    "width": 1.5,
+                    "type": "dashed",
+                },
+                "force": {
+                    # low grav + lowish repulsion allows them to spread, but not too far
+                    "repulsion": 500,  # Lower = nodes gather closer
+                    "gravity": 0.01,  # Higher = pulls clusters to center
+                    "edgeLength": 80,  # Constant length helps stability
+                    "friction": 0.3,
                 },
                 "emphasis": {
                     "focus": "adjacency",
-                    "lineStyle": {
-                        "width": 4,
-                        "color": "#10b981",
-                        "opacity": 1,
-                    },
-                    "itemStyle": {
-                        "borderColor": "#10b981",
-                        "borderWidth": 3,
-                    },
-                    "label": {"color": "#ffffff", "fontWeight": "bold"},
-                },
-                "force": {
-                    "repulsion": 2500,
-                    "edgeLength": [30, 70],
-                    "friction": 0.4,
-                    "gravity": 0.15,
+                    "lineStyle": {"width": 3, "color": "#10b981"},
                 },
             }
         ],
-        "animationDuration": 250,
+        "animationDuration": 1500,  # Longer intro animation looks smoother
         "animationEasingUpdate": "quinticInOut",
     }
 

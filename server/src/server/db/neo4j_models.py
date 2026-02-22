@@ -229,17 +229,17 @@ class Neo4jMemstoreFileNode(SemiStructuredNode):
 
 
 class Neo4jFileNode(SemiStructuredNode):
-    file_name = StringProperty(unique_index=True, required=True)
+    file_path = StringProperty(unique_index=True, required=True)
     md5 = StringProperty()
 
     # disk file -> host
     stored_on = RelationshipTo("Neo4jHostNode", "STORED_ON")
 
     @classmethod
-    def find_existing(cls, file_name=file_name) -> "Neo4jFileNode | None":
+    def find_existing(cls, file_path=file_path) -> "Neo4jFileNode | None":
         """
         Lookup an implant by its unique UUID.
         """
-        if file_name:
-            return cls.nodes.get_or_none(file_name=file_name)
+        if file_path:
+            return cls.nodes.get_or_none(file_path=file_path)
         return None
