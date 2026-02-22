@@ -119,7 +119,7 @@ def run(
     app.add_middleware(HeadersMiddleware)
     app.add_middleware(DumpRequestMiddleware)
 
-    print(mp.http_get)
+    # print(mp.http_get)
 
     # pull out verbs, tldr, this is the safest way to do it
     try:
@@ -437,12 +437,12 @@ class DumpRequestMiddleware(BaseHTTPMiddleware):
 
         body = await request.body()
 
-        print("=== REQUEST DUMP ===")
-        print("METHOD:", request.method)
-        print("URL:", request.url)
-        print("HEADERS:", dict(request.headers))
-        print("QUERY:", dict(request.query_params))
-        print("BODY:", body.decode(errors="ignore"))
+        # print("=== REQUEST DUMP ===")
+        # print("METHOD:", request.method)
+        # print("URL:", request.url)
+        # print("HEADERS:", dict(request.headers))
+        # print("QUERY:", dict(request.query_params))
+        # print("BODY:", body.decode(errors="ignore"))
 
         response = await call_next(request)
         return response

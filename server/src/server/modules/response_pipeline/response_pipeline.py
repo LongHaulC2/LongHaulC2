@@ -32,17 +32,19 @@ from ..mysql_functions import MySQLImplantTaskService
 from ..neo4j_functions import Neo4jImplantNodeService
 from ..redis_functions import RedisImplantTaskService
 
+response_pipeline_logger = logging.getLogger("response_pipeline")
 server_logger = logging.getLogger("server")
 
 
 def start_task_batch_job():
+    # log this explicity with server main logger
     server_logger.info("Starting task watchdog")
     t = threading.Thread(target=_task_batch_job, daemon=True)
     t.start()
 
 
 def _task_batch_job():
-    server_logger.info("Starting task batch job")
+    response_pipeline_logger.info("Starting task batch job")
 
     # get our context outside of the thread so we don't re-setup the executor var a bazilliion times
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
@@ -56,7 +58,6 @@ def _task_batch_job():
                 implants = (
                     Neo4jImplantNodeService.get_all()
                 )  # ImplantService(session).get_all()
-                print(implants)
 
                 future_to_implant = {
                     executor.submit(
@@ -71,7 +72,7 @@ def _task_batch_job():
                         if responses:
                             unpacked_responses_list.extend(responses)
                     except Exception as e:
-                        server_logger.error(f"Thread error: {e}")
+                        response_pipeline_logger.error(f"Thread error: {e}")
 
                 # Neo4j placeholder
                 if unpacked_responses_list:
@@ -82,7 +83,9 @@ def _task_batch_job():
                 time.sleep(1)
 
             except Exception as e:
-                server_logger.critical(f"Global error in task batch job: {e}")
+                response_pipeline_logger.critical(
+                    f"Global error in task batch job: {e}"
+                )
                 time.sleep(1)
 
 
@@ -94,7 +97,7 @@ def _get_tasks_from_redis_and_write_to_mysql(implant) -> list:
     """
     implant_uuid = implant.get("implant_uuid", "")
     if not implant_uuid:
-        server_logger.warning("Implant uuid blank")
+        response_pipeline_logger.warning("Implant uuid blank")
         return []
 
     rits = RedisImplantTaskService(implant_uuid)
@@ -112,7 +115,9 @@ def _get_tasks_from_redis_and_write_to_mysql(implant) -> list:
             data = msgpack.unpackb(packed, raw=False)
             responses_to_insert.append(data)
         except Exception as e:
-            server_logger.error(f"Failed to unpack msgpack for {implant_uuid}: {e}")
+            response_pipeline_logger.error(
+                f"Failed to unpack msgpack for {implant_uuid}: {e}"
+            )
 
     if not responses_to_insert:
         # Queue had data, but it was all corrupt. Clear it so we don't loop forever.
@@ -135,7 +140,7 @@ def _get_tasks_from_redis_and_write_to_mysql(implant) -> list:
             rits.redis.ltrim(rits.inbox_key, len(raw_responses), -1)
 
             if len(responses_to_insert) > 0:
-                server_logger.debug(
+                response_pipeline_logger.debug(
                     f"Synced {len(responses_to_insert)} tasks for {implant_uuid}"
                 )
 
@@ -144,12 +149,12 @@ def _get_tasks_from_redis_and_write_to_mysql(implant) -> list:
 
         except Exception as e:
             session.rollback()
-            server_logger.error(f"DB Write failed for {implant_uuid}: {e}")
+            response_pipeline_logger.error(f"DB Write failed for {implant_uuid}: {e}")
             return []
 
 
 # def _neo4j_placeholder(response_list: list):
-#     server_logger.debug(f"neo4j placeholder: list len: {len(response_list)}")
+#     response_pipeline_logger.debug(f"neo4j placeholder: list len: {len(response_list)}")
 
 #     # rough idea
 #     """
@@ -168,16 +173,16 @@ def _get_tasks_from_redis_and_write_to_mysql(implant) -> list:
 
 
 def process_single_response_for_neo4j(task_response_dict: dict):
-    # server_logger.critical("IT IS WORKING")
+    # response_pipeline_logger.critical("IT IS WORKING")
     task_uuid = task_response_dict.get("task_uuid", "")
     implant_uuid = task_response_dict.get("implant_uuid")
 
     if not task_uuid:
-        server_logger.warning("Task response did not have a task_uuid")
+        response_pipeline_logger.warning("Task response did not have a task_uuid")
         return
 
     if not implant_uuid:
-        server_logger.warning("Task response did not have a implant_uuid")
+        response_pipeline_logger.warning("Task response did not have a implant_uuid")
         return
 
     # need to look this up
@@ -194,7 +199,7 @@ def process_single_response_for_neo4j(task_response_dict: dict):
         task_dict = task.get_task_by_uuid(task_uuid)
 
     if not task_dict:
-        server_logger.warning("Task lookup did not yield any data")
+        response_pipeline_logger.warning("Task lookup did not yield any data")
         return
 
     # filter down to task_request
@@ -202,7 +207,7 @@ def process_single_response_for_neo4j(task_response_dict: dict):
 
     task_name = task_request_dict.get("task", {}).get("task_name", {})
 
-    # server_logger.critical(task_request_dict)
+    # response_pipeline_logger.critical(task_request_dict)
 
     # based off task name, do neo4j actions
     match task_name:
@@ -260,9 +265,38 @@ def process_single_response_for_neo4j(task_response_dict: dict):
             )
 
             decoded_bytes = base64.b64decode(file_contents)
-
             hash = hashlib.md5(decoded_bytes).hexdigest()
 
             Neo4jMemstoreFileNodeService.connect_memstore_file_to_implant(
                 file_name=file_name, implant_uuid=implant_uuid, file_hash_md5=hash
             )
+        # memstore clear and delete
+        case "memstore clear":
+            # remove all file from host
+
+            # get all files connected to implant
+            connected_file_nodes = (
+                Neo4jMemstoreFileNodeService.get_all_files_nodes_for_implant(
+                    implant_uuid=implant_uuid
+                )
+            )
+            for node in connected_file_nodes:
+                node.delete()
+
+        case "memstore delete":
+            # remove all file from host
+
+            file_name = (
+                task_request_dict.get("task", {}).get("args", {}).get("file_name", "")
+            )
+
+            # the one file connected to the implant
+            # note - this might create it if it doesn't exist for some reason, just for it to be deleted.
+            file_node = Neo4jMemstoreFileNodeService.create_or_get_node(
+                file_name=file_name
+            )
+            # and delete it
+            if file_node:
+                file_node.delete()
+
+        # file upload/download

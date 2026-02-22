@@ -464,3 +464,15 @@ class Neo4jMemstoreFileNodeService:
             memstore_file_node.stored_in.connect(implant_node)
 
         neo4j_logger.info(f"Memstore file -> Implant successful")
+
+    @staticmethod
+    def get_all_files_nodes_for_implant(
+        implant_uuid: str,
+    ) -> list[Neo4jMemstoreFileNode]:
+        implant_node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
+
+        if not implant_node:
+            return []
+
+        # note, the reverse rel allwos us jsut to do this
+        return list(implant_node.memstore_files.all())

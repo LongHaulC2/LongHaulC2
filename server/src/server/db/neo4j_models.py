@@ -57,6 +57,9 @@ class Neo4jImplantNode(SemiStructuredNode):
 
     c2_established = RelationshipTo("Neo4jC2ChannelNode", "C2_ESTABLISHED")
 
+    # inverse of stored in, this is from Memstore -> Implant
+    memstore_files = RelationshipFrom("Neo4jMemstoreFileNode", "STORED_IN")
+
     @classmethod
     def find_existing(cls, implant_uuid=None) -> "Neo4jImplantNode | None":
         """
@@ -213,7 +216,7 @@ class Neo4jMemstoreFileNode(SemiStructuredNode):
     stored_in = RelationshipTo("Neo4jImplantNode", "STORED_IN")
 
     @classmethod
-    def find_existing(cls, file_name=file_name) -> "Neo4jC2ChannelNode | None":
+    def find_existing(cls, file_name=file_name) -> "Neo4jMemstoreFileNode | None":
         """
         Lookup an implant by its unique UUID.
         """
