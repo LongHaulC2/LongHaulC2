@@ -23,6 +23,7 @@ import msgpack
 from ...db.mysql_connector import get_mysql_session
 from ...db.neo4j_models import Neo4jHostNode, Neo4jImplantNode
 from ...modules.neo4j_functions import (
+    Neo4jFileNodeService,
     Neo4jHostNodeService,
     Neo4jMemstoreFileNodeService,
     Neo4jNetworkNodeService,
@@ -300,3 +301,50 @@ def process_single_response_for_neo4j(task_response_dict: dict):
                 file_node.delete()
 
         # file upload/download
+        case "file upload":
+            # get file name, contents, path
+            # add node
+
+            file_name = (
+                task_request_dict.get("task", {}).get("args", {}).get("file_name", "")
+            )
+
+            file_contents = (
+                task_request_dict.get("task", {})
+                .get("args", {})
+                .get("file_contents", "")  # store as bytes in db
+            )
+
+            host_node = Neo4jImplantNodeService.get_host_implant_is_connected_to(
+                implant_uuid
+            )
+
+            if not host_node:
+                response_pipeline_logger.error(
+                    "Could not find host that implant is connected to"
+                )
+                return
+
+            hostname = host_node.hostname
+
+            decoded_bytes = base64.b64decode(file_contents)
+            hash = hashlib.md5(decoded_bytes).hexdigest()
+
+            Neo4jFileNodeService.connect_file_to_host(
+                file_name=file_name, hostname=hostname, file_hash_md5=hash
+            )
+
+        # I don't have a file delete, damn.
+        case "file delete":
+            file_name = (
+                task_request_dict.get("task", {}).get("args", {}).get("file_name", "")
+            )
+
+            # the one file connected to the implant
+            # note - this might create it if it doesn't exist for some reason, just for it to be deleted.
+            file_node = Neo4jFileNodeService.create_or_get_node(file_name=file_name)
+            # and delete it
+            if file_node:
+                file_node.delete()
+
+        # could do a file clear, that attempts to nuke all files, which would use the get_all_files_nodes_for_host

@@ -7,6 +7,7 @@ from neomodel import db
 from ..db.mysql_connector import get_mysql_session
 from ..db.neo4j_models import (
     Neo4jC2ChannelNode,
+    Neo4jFileNode,
     Neo4jHostNode,
     Neo4jImplantNode,
     Neo4jListenerNode,
@@ -25,6 +26,9 @@ each service class should have a:
 @staticmethod
 def create_or_get_node(args) -> object that returns model object:
 
+> I try to use `create_or_get_node` when possible, that way, if there isn't a node, and something comes in and wants that node, 
+it gets created in the DB. It's a bit backwards than making sure that node exists, but every bit of data that 
+can be pulled out of these implants is important, hence this decision. 
 """
 
 
@@ -216,6 +220,25 @@ class Neo4jImplantNodeService:
         results, _ = db.cypher_query(query, {"term": formatted_term})
 
         return [row[0] for row in results]
+
+    @staticmethod
+    def get_host_implant_is_connected_to(implant_uuid: str) -> Neo4jHostNode | None:
+        """
+        Gets the host the implant is connected to
+
+        implant_uuid: implant to get the host it's connected to
+        """
+        # get hostname of host that the implant is connected to
+        implant_node = Neo4jImplantNodeService.create_or_get_node(implant_uuid)
+        # need to get the host the implant is connected to
+        host_nodes = hosts = implant_node.running_on.all()  # returns a list
+
+        # saftey check so we don't get an index err
+        if host_nodes:
+            host_node = hosts[0]
+            return host_node
+
+        return None
 
 
 class Neo4jHostNodeService:
@@ -476,3 +499,58 @@ class Neo4jMemstoreFileNodeService:
 
         # note, the reverse rel allwos us jsut to do this
         return list(implant_node.memstore_files.all())
+
+
+class Neo4jFileNodeService:
+    """
+    Track what files the operators have uploaded to a host
+    """
+
+    @staticmethod
+    def create_or_get_node(file_name):
+        """
+        Creates a node. Useful for getting a quick new node and letting this handle all
+        the node logic
+        """
+        listener_node = Neo4jFileNode.find_existing(file_name=file_name)
+        if not listener_node:
+            listener_node = Neo4jFileNode(file_name=file_name).save()
+            neo4j_logger.info(f"New file node created: {file_name}")
+
+        return listener_node
+
+    @staticmethod
+    def connect_file_to_host(file_name, hostname, file_hash_md5: str = ""):
+        """
+        file_name: name/path of file
+        hostname: hostname of host to connect the file to
+        file_hash_md5: (optional) md5 of file
+        """
+
+        # create or get our implant
+        host_node = Neo4jHostNodeService.create_or_get_node(hostname)
+        # add ip to it as well if we have it
+
+        # create or get our file
+        file_node = Neo4jFileNodeService.create_or_get_node(file_name)
+        # add in hash
+        file_node.md5 = file_hash_md5
+        file_node.save()
+
+        # 3: link file to implant
+        if not file_node.stored_on.is_connected(host_node):
+            file_node.stored_on.connect(host_node)
+
+        neo4j_logger.info(f"Disk File -> Implant successful")
+
+    # @staticmethod
+    # def get_all_files_nodes_for_host(
+    #     hostname: str,
+    # ) -> list[Neo4jFileNode]:
+    #     host_node = Neo4jHostNode.nodes.get_or_none(hostname=hostname)
+
+    #     if not host_node:
+    #         return []
+
+    #     # note, the reverse rel allwos us jsut to do this
+    #     return list(host_node.stored_on.all())

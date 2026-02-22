@@ -65,7 +65,7 @@ def setup_logger(name, filename):
     # Create Console Handler
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(console_formatter)
-    console_handler.setLevel(logging.DEBUG)
+    console_handler.setLevel(logging.INFO)
 
     # Configure the Standard Library Logger
     logger = logging.getLogger(name)
