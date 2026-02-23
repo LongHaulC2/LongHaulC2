@@ -277,7 +277,7 @@ async def start_payload_dialogue():
         """
         Updates GET/POST options to match the selected listeners list.
         """
-        selected_names = e.value if e.value else []
+        selected_names = e.value or []
 
         # --- Update GET Dropdown ---
         profile_get_select.options = selected_names

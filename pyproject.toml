@@ -22,7 +22,7 @@ exclude = [
 
 [tool.ruff.lint]
 # G = Logging, E/F = Syntax/Logic, I = Import Sorting, UP moves old py semantics to new ones
-select = ["G", "E", "F", "I", "UP"]
+select = ["G", "E", "F", "I", "UP", "PERF", "FURB"]
 # Tell Ruff which variable names are actually loggers
 logger-objects = [
     "api_logger",

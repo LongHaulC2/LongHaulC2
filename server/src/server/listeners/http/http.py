@@ -114,12 +114,12 @@ def run(
 
     # pull out verbs, tldr, this is the safest way to do it
     try:
-        get_verb = mp.http_get.verb.value if mp.http_get.verb.value else "GET"
+        get_verb = mp.http_get.verb.value or "GET"
     except Exception:
         get_verb = "GET"
 
     try:
-        post_verb = mp.http_post.verb.value if mp.http_post.verb.value else "POST"
+        post_verb = mp.http_post.verb.value or "POST"
     except Exception:
         post_verb = "POST"
 
@@ -770,12 +770,12 @@ async def http_catchall(request: Request, full_path: str):
 
     # pull out verbs, tldr, this is the safest way to do it
     try:
-        http_get_method = mp.http_get.verb.value if mp.http_get.verb.value else "GET"
+        http_get_method = mp.http_get.verb.value or "GET"
     except Exception:
         http_get_method = "GET"
 
     try:
-        http_post_method = mp.http_post.verb.value if mp.http_post.verb.value else "POST"
+        http_post_method = mp.http_post.verb.value or "POST"
     except Exception:
         http_post_method = "POST"
 

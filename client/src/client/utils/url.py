@@ -29,8 +29,7 @@ def generate_url(uri: str, params: Mapping[str, Any] | None = None) -> str:
         check_type(params, Mapping, "params")
 
     # Remove leading slash (YARL path-safe)
-    if uri.startswith("/"):
-        uri = uri[1:]
+    uri = uri.removeprefix("/")
 
     HOST = "http://10.0.0.30:45045"
 

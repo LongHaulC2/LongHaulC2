@@ -98,7 +98,7 @@ def clean_ast_backslash_delimiters(node):
     return  # temp disable
     # Handle Dictionary (recurse into values)
     if isinstance(node, dict):
-        for key, value in node.items():
+        for key, value in node.values():
             clean_ast_backslash_delimiters(value)
 
     # Handle List (recurse into items)
@@ -149,12 +149,12 @@ def unescape_malleable_bytes(data: bytes) -> bytes:
         # Handle Hex Bytes (\x41 -> A)
         if seq.startswith(b"\\x"):
             # Convert b'41' -> int 65 -> byte b'A'
-            return bytes([int(seq[2:], 16)])
+            return bytes([int(seq[2:], 16)])  # noqa - RUFF says use base, leave it, otherwise it'll break
 
         # Handle Unicode (\u1234 -> UTF-8 bytes)
         if seq.startswith(b"\\u"):
             # Convert hex -> int -> char -> utf-8 encoded bytes
-            char_code = int(seq[2:], 16)
+            char_code = int(seq[2:], 16)  # noqa - RUFF says use base, leave it, otherwise it'll break
             return chr(char_code).encode("utf-8")
 
         return seq

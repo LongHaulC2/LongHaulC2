@@ -73,7 +73,7 @@ def setup_menu(title: str):
                     icon_color = None  # Inherit
 
                 ui.button(label, icon=icon, on_click=lambda: smooth_navigate(target)).props(
-                    f"flat no-caps align=left color={icon_color if icon_color else 'grey'}"
+                    f"flat no-caps align=left color={icon_color or 'grey'}"
                 ).classes(style_classes)
 
             # Render Buttons
