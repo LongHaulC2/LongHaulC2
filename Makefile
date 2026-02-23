@@ -59,10 +59,10 @@ deploy:
 
 	# 2. Build the FHS directory structure
 	mkdir -p $(INSTALL_DIR)/server
-	mkdir -p $(INSTALL_DIR)/web
+	mkdir -p $(INSTALL_DIR)/client
 
 	mkdir -p $(INSTALL_DIR)/server/venv
-	mkdir -p $(INSTALL_DIR)/web/venv
+	mkdir -p $(INSTALL_DIR)/client/venv
 
 	mkdir -p /var/lib/longhaulc2
 	mkdir -p /var/log/longhaulc2
@@ -73,7 +73,7 @@ deploy:
 	
 	# Copy files
 	cp -r server/* $(INSTALL_DIR)/server/
-	cp -r client/* $(INSTALL_DIR)/web/
+	cp -r client/* $(INSTALL_DIR)/client/
 	cp -r .env $(INSTALL_DIR)/
 
 	@echo "=================================================="
@@ -85,8 +85,8 @@ deploy:
 	$(INSTALL_DIR)/server/venv/bin/pip install -r $(INSTALL_DIR)/server/src/server/requirements.txt
 
 	#web venv
-	virtualenv $(INSTALL_DIR)/web/venv/
-	$(INSTALL_DIR)/web/venv/bin/pip install -r $(INSTALL_DIR)/web/src/client/requirements.txt
+	virtualenv $(INSTALL_DIR)/client/venv/
+	$(INSTALL_DIR)/client/venv/bin/pip install -r $(INSTALL_DIR)/client/src/client/requirements.txt
 
 
 	@echo "=================================================="

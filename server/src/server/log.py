@@ -6,7 +6,7 @@ from pathlib import Path
 import structlog
 
 # SETUP DIRECTORIES
-log_dir = Path(__file__).parent / "logs"
+log_dir = Path("/var/log/longhaulc2/server/")
 log_dir.mkdir(parents=True, exist_ok=True)
 
 # SHARED PROCESSORS

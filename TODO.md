@@ -74,6 +74,14 @@ working on response_pipeline. todo's left:
        - running implant; breakdown of binary & source. Hosted files, last checkin, etc. 
        - host: Host breakdown, implants on it, other info, etc. 
 
+### Deployment:
+- [ ] GUI: Script location. Save in /var/lib/longhaulc2, as /opt won't work
+- [ ] server: Set logs to /var/log/longhaulc2
+
+- [ ] Docs for deployment, how to run, etc.
+
+tldr: make deploy to deploy, make undeploy to undeploy, make redeploy to redep
+
 ### Server: Listeners & Core
 
 * [ ] Fix active flag in the database (Idea: Start listener on startup if marked active)

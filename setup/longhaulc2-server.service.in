@@ -5,12 +5,11 @@ After=network.target
 
 [Service]
 Type=simple
-# Security: Run as the restricted service user created by the Makefile
 User=longhaul
 Group=longhaul
 
 # Set working directory to the dynamically injected install path
-WorkingDirectory=@INSTALL_DIR@/server
+WorkingDirectory=@INSTALL_DIR@
 
 # Force Python to unbuffer stdout so logs stream to journalctl instantly
 Environment=PYTHONUNBUFFERED=1
