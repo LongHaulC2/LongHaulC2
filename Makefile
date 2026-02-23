@@ -36,7 +36,9 @@ NEO4J_PASSWORD ?= P@ssw0rd1!
 .PHONY: deploy
 deploy:
 	@echo "Starting LongHaulC2 Enterprise Deployment..."
-
+	
+	$(MAKE) check_root
+	
 	sudo apt-get update -y
 	sudo apt-get install $(APT_PACKAGES) -y
 
@@ -46,6 +48,11 @@ deploy:
 
 	# Create the restricted system user
 	@id -u $(SVC_USER) >/dev/null 2>&1 || useradd --system --no-create-home --shell /bin/false $(SVC_USER)
+
+	# create docker group if it doesn't already exist
+	sudo getent group docker || groupadd docker
+	# add user to docker group
+	sudo usermod -aG docker $(SVC_USER)
 
 	@echo "=================================================="
 	@echo "Creating .env"
@@ -131,11 +138,15 @@ deploy:
 	$(MAKE) print_all_install_locations
 	@echo
 	@echo "Deployment complete."
+	sudo systemctl start longhaulc2-server
+	sudo systemctl start longhaulc2-web
 	@echo "Run 'systemctl start longhaulc2-server' and 'systemctl start longhaulc2-web' to boot."
 
 PHONY: undeploy
 undeploy:
 	@echo "Starting LongHaulC2 Enterprise Uninstall..."
+
+	$(MAKE) check_root
 
 	@echo "=================================================="
 	@echo "Stopping and removing systemd services"
@@ -200,6 +211,12 @@ dev_install:
 	@echo "=================================================="
 	@echo "Setting up docker containers" 
 	@echo "=================================================="
+
+	# create docker group if it doesn't already exist
+	sudo getent group docker || groupadd docker
+	# add user to docker group, no logout needed
+	sudo newgrp docker
+
 
 	$(MAKE) pull_docker_images
 	$(MAKE) create_docker_images
@@ -328,6 +345,11 @@ create_env:
 	echo NEO4J_USER=$(NEO4J_USER) >> .env
 	echo NEO4J_PASSWORD=$(NEO4J_PASSWORD) >> .env
 
+check_root:
+	@if [ "$$(id -u)" -ne 0 ]; then \
+		echo "Error: This target must be run with superuser privileges (e.g., sudo make $@)"; \
+		exit 1; \
+	fi
 
 .PHONY: print_all_install_locations
 print_all_install_locations:

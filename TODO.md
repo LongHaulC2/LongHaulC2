@@ -75,6 +75,7 @@ working on response_pipeline. todo's left:
        - host: Host breakdown, implants on it, other info, etc. 
 
 ### Deployment:
+>here 
 - [ ] GUI: Script location. Save in /var/lib/longhaulc2, as /opt won't work
 - [ ] server: Set logs to /var/log/longhaulc2
 
@@ -86,8 +87,9 @@ working on response_pipeline. todo's left:
 
 known broken on deploy:
  - [ ] script editor
- - [ ] compilation of bins
- 
+ - [X] compilation of bins
+   > working on - was a docker permission
+
 
 ### Server: Listeners & Core
 
