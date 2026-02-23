@@ -16,7 +16,7 @@ exclude = [
     "*.hpp",  # exclude implant source
     "*.c",    # exclude implant source
     "*.cpp",  # exclude implant source
-    "*.md"    # exclude docs
+    "*.md",    # exclude docs
     "*test*"  # exclude any tests
 ]
 

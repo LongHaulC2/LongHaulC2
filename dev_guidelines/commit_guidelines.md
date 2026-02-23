@@ -136,3 +136,4 @@ Or, you can apply them to the whole file, but this gets messy, so please avoid:
 * **Install Hooks:** `pip install pre-commit && pre-commit install`
 * **Manual Check:** `pre-commit run --all-files`
 * **Skip Hooks (Emergency only):** `git commit -m "msg" --no-verify`
+* **Run ruff manually**: `ruff check --fix .`
