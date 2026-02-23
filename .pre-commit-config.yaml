@@ -3,7 +3,7 @@
 # before committing
 
 # don't run hooks on these items
-exclude: '^(logs/|.venv/|.*\.h|.*\.cpp|.*\.hpp|.*\.c|.*\.md)'
+exclude: '^(logs/|.venv/|.*\.h|.*\.cpp|.*\.hpp|.*\.c|.*\.md|.*test.*)'
 
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit

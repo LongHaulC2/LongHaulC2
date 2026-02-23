@@ -17,6 +17,7 @@ exclude = [
     "*.c",    # exclude implant source
     "*.cpp",  # exclude implant source
     "*.md"    # exclude docs
+    "*test*"  # exclude any tests
 ]
 
 [tool.ruff.lint]
