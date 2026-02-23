@@ -1,4 +1,4 @@
-from nicegui import ui
+from nicegui import app, ui
 
 
 @ui.page("/login")
@@ -26,6 +26,12 @@ def login_page():
 
             # --- INPUT AREA ---
             with ui.column().classes("w-full p-8 gap-5"):
+                host = (  # noqa: F841, not used yet, but will when login is fully implemented
+                    ui.input("LongHaulC2 Server Address")
+                    .props("outlined dense dark color=emerald autofocus")
+                    .classes("w-full font-mono")
+                    .on("keydown.enter", lambda: password.run_method("focus"))
+                )
                 # Username
                 username = (  # noqa: F841, not used yet, but will when login is fully implemented
                     ui.input("OPERATOR_ID")
@@ -50,8 +56,12 @@ def login_page():
 
                 # Login Button
                 # Reuse 'tech-btn-action' for the hover glow effect
-                with ui.button(on_click=lambda: ui.open("/operations")).classes("w-full tech-btn-action py-2").props(
-                    "unelevated dense"
+                with (
+                    ui.button(
+                        on_click=lambda: handle_login(host=host.value, user=username.value, password=password.value)
+                    )
+                    .classes("w-full tech-btn-action py-2")
+                    .props("unelevated dense")
                 ):
                     ui.label("INITIATE SESSION").classes("font-bold tracking-widest text-xs")
                     ui.icon("arrow_forward", size="xs").classes("ml-2")
@@ -64,3 +74,12 @@ def login_page():
                     ui.label("GATEWAY_ONLINE").classes("text-[10px] font-mono text-emerald-500/50")
 
                 ui.label("SECURE_CONNECTION").classes("text-[10px] font-mono text-neutral-600")
+
+    def handle_login(host, user, password):
+        if host:
+            # Save the host directly to the user's session
+            app.storage.user["api_host"] = host
+            ui.notify(f"Connected to {host}", type="positive")
+            ui.navigate.to("/operations")
+        else:
+            ui.notify("Please enter a valid IP", type="warning")

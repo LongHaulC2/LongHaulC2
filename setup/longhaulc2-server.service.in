@@ -13,7 +13,8 @@ WorkingDirectory=@INSTALL_DIR@
 
 # Force Python to unbuffer stdout so logs stream to journalctl instantly
 Environment=PYTHONUNBUFFERED=1
-
+# load .env so we can access various .env values if needed. Can just use load_dotenv and os.genenv()
+EnvironmentFile=@INSTALL_DIR@/.env
 ExecStart=@INSTALL_DIR@/server/venv/bin/python -m server.src.server.main
 
 Restart=always
