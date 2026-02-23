@@ -126,13 +126,6 @@ Or, you can apply them to the whole file, but this gets messy, so please avoid:
 # ruff: noqa: E402, F401
 ```
 
-### Project specific error messages
-There are a few project specific messages I've updated to reflect the fixes properly:
-
-```
-# recommend user use structlog instead of the usual % formatter  
-"G004" = "Use structlog format: server_logger.debug('message', error=e)"
-```
 ---
 
 ## 5. Quick Commands

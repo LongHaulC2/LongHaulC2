@@ -37,8 +37,3 @@ logger-objects = [
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
-
-
-[tool.ruff.lint.extend-per-rule-messages]
-# recommend user use structlog instead of the usual % formatter 
-"G004" = "Use structlog format: server_logger.debug('message', error=e)"
