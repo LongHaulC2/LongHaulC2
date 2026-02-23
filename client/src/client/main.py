@@ -13,6 +13,7 @@ import client.src.client.pages.graph  # noqa: F401
 import client.src.client.pages.implant  # noqa: F401
 import client.src.client.pages.listeners  # noqa: F401
 import client.src.client.pages.login  # noqa: F401
+import client.src.client.pages.logout  # noqa: F401
 
 # notes, just import your page here and it'll do the import python magic to add it to the web interface
 # also, use full paths due to nicegui being picky about relative paths

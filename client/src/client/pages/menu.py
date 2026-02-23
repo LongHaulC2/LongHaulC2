@@ -1,6 +1,6 @@
 import asyncio
 
-from nicegui import ui
+from nicegui import app, ui
 
 # F403, fine, lots of styles that could be imported from here
 # this needs to be cleaned up in due time though, all styes are in the .css now
@@ -10,6 +10,12 @@ from ..utils.checks import check_type
 
 
 def setup_menu(title: str):
+    # push user to login if no host is configured.
+    # change to JWT once that is implemented
+    # this is in menu because it's loaded into every page
+    if not app.storage.user.get("api_host", ""):
+        ui.navigate.to("/login")
+
     check_type(title, str, "title")
 
     # Drawer Setup
@@ -61,8 +67,8 @@ def setup_menu(title: str):
                 # Active Styling vs Inactive Styling
                 # #noqa: E501, HTML style
                 base_classes = (
-                    "w-full rounded transition-all duration-300 font-mono text-xs tracking-wide px-4 py-3 border-l-2"
-                )  # noqa: E501
+                    "w-full rounded transition-all duration-300 font-mono text-xs tracking-wide px-4 py-3 border-l-2"  # noqa: E501
+                )
 
                 if is_active:
                     style_classes = f"{base_classes} text-emerald-400 bg-white/5 border-emerald-500 font-bold"
@@ -78,6 +84,7 @@ def setup_menu(title: str):
 
             # Render Buttons
             nav_btn("OPERATIONS", "precision_manufacturing", "/operations")
+            nav_btn("ENGAGEMENT_MAP", "hub", "/graph")
             nav_btn("PAYLOADS", "layers", "/payloads")
             nav_btn("LISTENERS", "rss_feed", "/listeners")
             nav_btn("SEARCH", "manage_search", "/search")
@@ -87,6 +94,7 @@ def setup_menu(title: str):
 
             # --- FOOTER ---
             ui.space()
+            nav_btn("DISCONNECT", "exit_to_app", "/logout")
 
             with ui.column().classes("w-full gap-1 opacity-50 mb-2"):
                 ui.separator().classes("bg-white/10 mb-2")

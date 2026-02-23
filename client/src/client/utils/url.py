@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import structlog
+from nicegui import app, ui
 from yarl import URL
 
 from ..utils.checks import check_type
@@ -31,7 +32,11 @@ def generate_url(uri: str, params: Mapping[str, Any] | None = None) -> str:
     # Remove leading slash (YARL path-safe)
     uri = uri.removeprefix("/")
 
-    HOST = "http://10.0.0.30:45045"
+    host = app.storage.user.get("api_host", None)
+    if host is None:  # noqa: Falsey does not work here  for some reason, so explicitly checking against None
+        ui.navigate.to("/login")
+
+    HOST = f"http://{host}"
 
     url = URL(HOST) / uri
 

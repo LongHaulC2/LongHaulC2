@@ -27,11 +27,13 @@ def login_page():
             # --- INPUT AREA ---
             with ui.column().classes("w-full p-8 gap-5"):
                 host = (  # noqa: F841, not used yet, but will when login is fully implemented
-                    ui.input("LongHaulC2 Server Address")
+                    ui.input("SERVER_ADDRESS")
                     .props("outlined dense dark color=emerald autofocus")
                     .classes("w-full font-mono")
                     .on("keydown.enter", lambda: password.run_method("focus"))
                 )
+                with host:
+                    ui.tooltip("Server address and port of LongHaulC2 Server. Ex: `10.0.0.50:45045`")
                 # Username
                 username = (  # noqa: F841, not used yet, but will when login is fully implemented
                     ui.input("OPERATOR_ID")
