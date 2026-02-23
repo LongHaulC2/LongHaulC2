@@ -25,7 +25,7 @@ Avoid f-strings or `%` formatting in log messages. Use a static message and pass
 
 ## 3. Using Contextual Binding
 
-If you are performing multiple operations for a specific task (e.g., a Neo4j update or an upload), **bind** the context once to a local logger.
+If you are performing multiple operations for a specific task (e.g., a Neo4j update or an upload), **bind** the context once to a local logger. This keeps loggers local, and WAY easier to track/keep clean.
 
 ```python
 def process_task(task_name, task_id):
@@ -45,7 +45,7 @@ def process_task(task_name, task_id):
 
 ## 4. Error Handling
 
-When logging exceptions, pass the exception object directly to the `error` key. Our pipeline is configured to format these automatically.
+When logging exceptions, pass the exception object directly to the `error` key. Our pipeline is configured to format these automatically. 
 
 ```python
 try:
@@ -70,7 +70,8 @@ except Exception as e:
 
 ---
 
-## 6. Pro-Tips for Maintainers
+
+## 6. Helpful Tips
 
 * **Keep keys consistent:** Always use `task_id`, not sometimes `tid` or `taskID`.
 * **Don't log secrets:** Never log API keys, passwords, or raw session tokens.

@@ -9,7 +9,7 @@ If this is your first time working with pre-commit hooks, formatters, and other 
 * **Ruff:** A python all-in-one checker tool. It handles logic errors, import sorting, formatting and **enforces structured logging**. 
     - RUFF is ran in VScode if configured (see `Local Environment Setup`), and again on pre-commit.
 
-* **Pre-commit:** The annoying *ackchyually* asshole of the project. It runs Ruff automatically before every commit to enforce a few codebase rules 
+* **Pre-commit:** The annoying *ackchyually* asshole of the project. It runs `Ruff`, `trailing-whitespace`, and `end-of-file-fixer` automatically before every commit to enforce a few codebase rules 
 
 
 
@@ -95,6 +95,39 @@ The hooks run in this order:
 3. **Hooks** check for trailing whitespace and large files.
 
 **If a hook modifies a file:** Git will abort the commit. You must `git add .` the changes and commit again.
+
+## 4. Exclusions:
+
+Sometimes, Ruff will flag code that is intentional (like "side-effect" imports for NiceGUI/Flask, `client/src/client/main.py`, or debugging variables). You can use a `# noqa` comment to tell the linter to ignore a specific line.
+
+You can check each err with: `ruff rule <rule_code>`
+
+### Common Suppression Codes
+
+| Code | Violation | Description |
+| --- | --- | --- |
+| **`F401`** | Unused Import | Module is imported but never used in the code. |
+| **`F841`** | Unused Variable | A local variable is defined but never used. |
+| **`G004`** | Logging f-string | Using an f-string instead of extra arguments in a log. |
+| **`E402`** | Import Not at Top | An `import` statement is not at the very beginning of the file. |
+| **`S101`** | Assert Used | Use of the `assert` keyword (which can be optimized away). |
+| **`S110`** | `try-except-pass` | Catching an exception and doing nothing with it. |
+
+Apply these like this:
+`import client.src.client.pages.docs # noqa: F401`
+
+and please include a comment above why:
+
+```
+# Nicegui registers pages on import, this is not "unused"
+import client.src.client.pages.docs # noqa: F401
+```
+
+Or, you can apply them to the whole file, but this gets messy, so please avoid:
+```
+# ruff: noqa: E402, F401
+```
+
 
 ---
 
