@@ -74,7 +74,8 @@ mysql_setup()
 get_redis_connection()
 init_neo4j()
 
-if __name__ == "__main__":
+
+def main():
     args = parse_args()
     if args.compression:
         from flask_compress import Compress
@@ -84,16 +85,14 @@ if __name__ == "__main__":
         Compress(app)
         # Some tuning
         app.config["COMPRESS_MIMETYPES"] = ["application/json"]
-        app.config["COMPRESS_MIN_SIZE"] = (
-            1024  # 1kb or bigger we should compress. Subject to change
-        )
+        app.config["COMPRESS_MIN_SIZE"] = 1024  # 1kb or bigger we should compress. Subject to change
 
     if args.ratelimit:
         from flask_limiter import Limiter
         from flask_limiter.util import get_remote_address
 
         server_logger.info("Rate limiting enabled")
-        limiter = Limiter(
+        limiter = Limiter(  # noqa
             get_remote_address,
             app=app,
             # per ip rate limiting.
@@ -125,3 +124,7 @@ if __name__ == "__main__":
     # i4.save()
 
     app.run(host="0.0.0.0", port=45045, debug=False)
+
+
+if __name__ == "__main__":
+    main()
