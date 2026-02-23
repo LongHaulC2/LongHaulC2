@@ -78,9 +78,16 @@ working on response_pipeline. todo's left:
 - [ ] GUI: Script location. Save in /var/lib/longhaulc2, as /opt won't work
 - [ ] server: Set logs to /var/log/longhaulc2
 
-- [ ] Docs for deployment, how to run, etc.
+- [ ] Docs for deployment, how to run, etc. Just need to install make
+> tldr: sudo make deploy to deploy, sudo make undeploy to undeploy, sudo make redeploy to redep
 
-tldr: make deploy to deploy, make undeploy to undeploy, make redeploy to redep
+- [ ] Fix things not working, they just kinda hangup, and get a all connection attempts failed. I might have a hardcoded ip in there.
+   > yep hardcoed ip. this will get fixed when the login page exists.
+
+known broken on deploy:
+ - [ ] script editor
+ - [ ] compilation of bins
+ 
 
 ### Server: Listeners & Core
 
