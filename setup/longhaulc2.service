@@ -1,0 +1,16 @@
+# POC service file for the server
+# add to make
+
+[Unit]
+Description=LongHaulC2 Server Service
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=centos
+ExecStart=/usr/bin/env php /path/to/server.php
+
+[Install]
+WantedBy=multi-user.target

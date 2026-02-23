@@ -1,0 +1,29 @@
+[Unit]
+Description=LongHaulC2 Backend Server
+# Ensures the network is up before the listener tries to bind to a port
+After=network.target
+
+[Service]
+Type=simple
+# Security: Run as the restricted service user created by the Makefile
+User=longhaul
+Group=longhaul
+
+# Set working directory to the dynamically injected install path
+WorkingDirectory=@INSTALL_DIR@/server
+
+# Force Python to unbuffer stdout so logs stream to journalctl instantly
+Environment=PYTHONUNBUFFERED=1
+
+ExecStart=@INSTALL_DIR@/server/venv/bin/python -m server.src.server.main
+
+Restart=always
+RestartSec=5
+
+# Logging: Pipe stdout/stderr directly to systemd's journal
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=longhaulc2-server
+
+[Install]
+WantedBy=multi-user.target

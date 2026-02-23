@@ -1,6 +1,4 @@
-# LongHaulC2: Development Standards
-
-To keep our C2 framework maintainable and forensic-friendly, we enforce strict formatting and structured logging.
+# LongHaulC2: Commit & Git guidelines
 
 If this is your first time working with pre-commit hooks, formatters, and other CICD BS, don't worry, I've tried to make it as easy as possible to understand. 
 
