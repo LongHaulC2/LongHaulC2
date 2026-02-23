@@ -9,6 +9,7 @@ from nicegui import app, ui
 # imported to render the page/register it
 import client.src.client.log  # noqa: F401
 import client.src.client.pages.docs  # noqa: F401
+import client.src.client.pages.error  # noqa: F401
 import client.src.client.pages.graph  # noqa: F401
 import client.src.client.pages.implant  # noqa: F401
 import client.src.client.pages.listeners  # noqa: F401

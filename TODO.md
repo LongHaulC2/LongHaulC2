@@ -82,7 +82,7 @@ working on response_pipeline. todo's left:
 - [ ] Docs for deployment, how to run, etc. Just need to install make
 > tldr: sudo make deploy to deploy, sudo make undeploy to undeploy, sudo make redeploy to redep
 
-- [ ] Fix things not working, they just kinda hangup, and get a all connection attempts failed. I might have a hardcoded ip in there.
+- [X] Fix things not working, they just kinda hangup, and get a all connection attempts failed. I might have a hardcoded ip in there.
    > yep hardcoed ip. this will get fixed when the login page exists.
 
 known broken on deploy:
