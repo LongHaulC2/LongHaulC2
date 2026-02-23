@@ -58,7 +58,8 @@ once some of that is figured out, can continue to impleent tasks/other thigns to
 > left off:
 working on response_pipeline. todo's left:
  - [ ] excessive safety checks in response pipeline
-   - [ ] add a `if task result not 0, or task failed`, return immediatly for a fail fast and to not accidently update the graph on failure.
+   - [x] add a `if task result not 0, or task failed`, return immediatly for a fail fast and to not accidently update the graph on failure.
+   - [ ] local loggers
  - [ ] review/modularity in neo4j functions if possible
     - [ ] doc each function & class & model
  - [ ] extract as MUCH metadata as you can manage from command responses

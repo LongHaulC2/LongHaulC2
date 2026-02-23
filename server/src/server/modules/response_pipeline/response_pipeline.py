@@ -149,25 +149,6 @@ def _get_tasks_from_redis_and_write_to_mysql(implant) -> list:
             return []
 
 
-# def _neo4j_placeholder(response_list: list):
-#     response_pipeline_logger.debug(f"neo4j placeholder: list len: {len(response_list)}")
-
-#     # rough idea
-#     """
-#     For each implant response, pull out ID.
-
-#     if uuid not in neo4j, add to neo4j
-
-#     then do tree
-
-#     lookup_task_id
-#     if task_id.task == link:
-#         figure out what parent is, what child is, get nodes for each, link in neo4j
-
-#     """
-#     ...
-
-
 def process_single_response_for_neo4j(task_response_dict: dict):
     # response_pipeline_logger.critical("IT IS WORKING")
     task_uuid = task_response_dict.get("task_uuid", "")
@@ -320,67 +301,76 @@ def process_single_response_for_neo4j(task_response_dict: dict):
                 memstore_clear_logger.error("An error occurred", error=e)
 
         case "memstore delete":
-            # remove all file from host
+            # remove a memstore file from host
+            memstore_delete_logger = response_pipeline_logger.bind(task=task_name)
 
-            file_name = task_request_dict.get("task", {}).get("args", {}).get("file_name", "")
+            try:
+                file_name = task_request_dict.get("task", {}).get("args", {}).get("file_name", "")
 
-            # the one file connected to the implant
-            # note - this might create it if it doesn't exist for some reason, just for it to be deleted.
-            file_node = Neo4jMemstoreFileNodeService.create_or_get_node(file_name=file_name)
-            # and delete it
-            if file_node:
-                file_node.delete()
+                # the one file connected to the implant
+                # note - this might create it if it doesn't exist for some reason, just for it to be deleted.
+                file_node = Neo4jMemstoreFileNodeService.create_or_get_node(file_name=file_name)
+                # and delete it
+                if file_node:
+                    file_node.delete()
+
+            except Exception as e:
+                memstore_delete_logger.error("An error occured", error=e)
 
         # file upload/download
         case "file upload":
             # get file name, contents, path
             # add node
-
-            file_path = task_request_dict.get("task", {}).get("args", {}).get("file_path", "")
-
-            file_contents = (
-                task_request_dict.get("task", {}).get("args", {}).get("file_contents", "")  # store as bytes in db
-            )
-
-            host_node = Neo4jImplantNodeService.get_host_implant_is_connected_to(implant_uuid)
-
-            if not host_node:
-                response_pipeline_logger.error("Could not find host that implant is connected to")
-                return
-
-            hostname = host_node.hostname
-
-            decoded_bytes = base64.b64decode(file_contents)
-            hash = hashlib.md5(decoded_bytes).hexdigest()
-
-            Neo4jFileNodeService.connect_file_to_host(file_path=file_path, hostname=hostname, file_hash_md5=hash)
-
-            # addtl metadata
-            file_node = Neo4jFileNodeService.create_or_get_node(file_path)
+            file_upload_logger = response_pipeline_logger.bind(task=task_name)
 
             try:
-                # add 0x for preivew/user knows it's hex
-                file_node.file_preview = "0x" + decoded_bytes.hex()[:20]
+                file_path = task_request_dict.get("task", {}).get("args", {}).get("file_path", "")
+
+                file_contents = (
+                    task_request_dict.get("task", {}).get("args", {}).get("file_contents", "")  # store as bytes in db
+                )
+
+                host_node = Neo4jImplantNodeService.get_host_implant_is_connected_to(implant_uuid)
+
+                if not host_node:
+                    response_pipeline_logger.error("Could not find host that implant is connected to")
+                    return
+
+                hostname = host_node.hostname
+
+                decoded_bytes = base64.b64decode(file_contents)
+                hash = hashlib.md5(decoded_bytes).hexdigest()
+
+                Neo4jFileNodeService.connect_file_to_host(file_path=file_path, hostname=hostname, file_hash_md5=hash)
+
+                # addtl metadata
+                file_node = Neo4jFileNodeService.create_or_get_node(file_path)
+
+                try:
+                    # add 0x for preivew/user knows it's hex
+                    file_node.file_preview = "0x" + decoded_bytes.hex()[:20]
+                except Exception as e:
+                    response_pipeline_logger.error("Error saving file_preview", error=e)
+
+                try:
+                    # add 0x for preivew/user knows it's hex
+                    file_node.file_size_kb = len(decoded_bytes) / 1000  # convert to kb
+                except Exception as e:
+                    response_pipeline_logger.error("Error saving file_size_kb", error=e)
+
+                file_node.save()
             except Exception as e:
-                response_pipeline_logger.error("Error saving file_preview", error=e)
+                file_upload_logger.error("An error occured", error=e)
 
-            try:
-                # add 0x for preivew/user knows it's hex
-                file_node.file_size_kb = len(decoded_bytes) / 1000  # convert to kb
-            except Exception as e:
-                response_pipeline_logger.error("Error saving file_size_kb", error=e)
+        # # I don't have a file delete, damn.
+        # case "file delete":
+        #     file_name = task_request_dict.get("task", {}).get("args", {}).get("file_name", "")
 
-            file_node.save()
-
-        # I don't have a file delete, damn.
-        case "file delete":
-            file_name = task_request_dict.get("task", {}).get("args", {}).get("file_name", "")
-
-            # the one file connected to the implant
-            # note - this might create it if it doesn't exist for some reason, just for it to be deleted.
-            file_node = Neo4jFileNodeService.create_or_get_node(file_name=file_name)
-            # and delete it
-            if file_node:
-                file_node.delete()
+        #     # the one file connected to the implant
+        #     # note - this might create it if it doesn't exist for some reason, just for it to be deleted.
+        #     file_node = Neo4jFileNodeService.create_or_get_node(file_name=file_name)
+        #     # and delete it
+        #     if file_node:
+        #         file_node.delete()
 
         # could do a file clear, that attempts to nuke all files, which would use the get_all_files_nodes_for_host
