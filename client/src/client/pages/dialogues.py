@@ -75,52 +75,38 @@ async def upload_dialog(implant_uuids: list):
             submit_btn.props(remove="loading")
 
     # --- UI Layout ---
-    with ui.dialog() as dialog, ui.card().classes(
-        "tech-dialog w-[500px] p-0 overflow-hidden"
-    ):
-
+    with ui.dialog() as dialog, ui.card().classes("tech-dialog w-[500px] p-0 overflow-hidden"):
         # Header
         with ui.row().classes("tech-header-bar w-full items-center justify-between"):
             with ui.row().classes("gap-3 items-center"):
                 ui.icon("upload_file", color="emerald-500").classes("text-xl")
                 # Uses .tech-label-title for the monospace/tracking look
-                ui.label(f"TASK_UPLOAD :: {len(implant_uuids)} TARGETS").classes(
-                    "tech-label-title text-emerald-500"
-                )
+                ui.label(f"TASK_UPLOAD :: {len(implant_uuids)} TARGETS").classes("tech-label-title text-emerald-500")
 
             # Close button styled as a ghost icon
-            ui.button(icon="close", on_click=dialog.close).props(
-                "round flat dense text-color=grey"
-            ).classes("opacity-70 hover:opacity-100 transition-opacity")
+            ui.button(icon="close", on_click=dialog.close).props("round flat dense text-color=grey").classes(
+                "opacity-70 hover:opacity-100 transition-opacity"
+            )
 
         # Body
         with ui.column().classes("p-6 gap-5 w-full"):
-
             # Validation
             if len(implant_uuids) == 0:
-                ui.notify(
-                    "Please select at least one implant to upload to", type="warning"
-                )
+                ui.notify("Please select at least one implant to upload to", type="warning")
                 return
 
             # --- Target List ---
             # We removed the inline bg classes here so your CSS
             # .q-expansion-item rules can apply the blur/zinc-bg automatically
-            with ui.expansion(
-                f"Target List ({len(implant_uuids)})", icon="hub"
-            ).classes("w-full"):
+            with ui.expansion(f"Target List ({len(implant_uuids)})", icon="hub").classes("w-full"):
                 with ui.column().classes("py-2 gap-1"):
                     for uid in implant_uuids:
-                        ui.label(f"• {uid}").classes(
-                            "font-mono text-xs text-zinc-400 ml-4"
-                        )
+                        ui.label(f"• {uid}").classes("font-mono text-xs text-zinc-400 ml-4")
 
             # --- Controls ---
             def _update_mode(e):
                 state["mode"] = e.value
-                dest_input.label = (
-                    "REMOTE FILE PATH" if e.value == "disk" else "MEMSTORE KEY"
-                )
+                dest_input.label = "REMOTE FILE PATH" if e.value == "disk" else "MEMSTORE KEY"
                 dest_input.value = ""
                 check_ready()
 
@@ -155,12 +141,10 @@ async def upload_dialog(implant_uuids: list):
             ).props("flat bordered dark color=emerald").classes("w-full bg-black/20")
 
         # Footer
-        with ui.row().classes(
-            "w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"
-        ):
-            ui.button("CANCEL", on_click=dialog.close).props(
-                "flat dense no-caps"
-            ).classes("tech-btn-ghost font-bold tracking-wide")
+        with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"):
+            ui.button("CANCEL", on_click=dialog.close).props("flat dense no-caps").classes(
+                "tech-btn-ghost font-bold tracking-wide"
+            )
 
             submit_btn = (
                 ui.button("QUEUE TASK", on_click=submit_tasks)

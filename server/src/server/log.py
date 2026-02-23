@@ -57,9 +57,7 @@ def setup_logger(name, filename):
     Configures a logger to write to a specific file and the console.
     """
     # Create File Handler
-    file_handler = RotatingFileHandler(
-        log_dir / filename, maxBytes=5 * 1024 * 1024, backupCount=5, encoding="utf-8"
-    )
+    file_handler = RotatingFileHandler(log_dir / filename, maxBytes=5 * 1024 * 1024, backupCount=5, encoding="utf-8")
     file_handler.setFormatter(file_formatter)
     file_handler.setLevel(logging.DEBUG)
 

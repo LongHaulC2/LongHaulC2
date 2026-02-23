@@ -21,3 +21,7 @@ repos:
         types: [python]  # Only trim whitespace in .py files
       - id: end-of-file-fixer
         types: [python]  # Only fix EOF in .py files
+
+      # Prevents accidentally running `git add .` and committing large bins (handled by gitignore, but just in case)
+      - id: check-added-large-files
+        args: ['--maxkb=1000'] # Fails if file > 1MB
