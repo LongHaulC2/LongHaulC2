@@ -1,7 +1,6 @@
 import base64
 from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import Optional
 
 from ..modules.api_calls import get_implant_task_history
 
@@ -21,13 +20,14 @@ How this bubbles down:
 
 1. User inputs command.
 
-2. Command is split into 2 parts, 1: command, and arguments. 
+2. Command is split into 2 parts, 1: command, and arguments.
 
-3. Based on command, a class is chosen to handle it. 
+3. Based on command, a class is chosen to handle it.
 
-4. That class does further processing on the command,a nd its arguments, to get it in a task ready form. 
+4. That class does further processing on the command,a nd its arguments, to get it in a task ready form.
 
-5. If no parsing errors, command is converted into a task ready form, and returned with a ResultType.TASK. Calling func then sends to server
+5. If no parsing errors, command is converted into a task ready form, and returned with a ResultType.TASK.
+    Calling func then sends to server
 
 6. If parsing errors, command is returned with a ResultType.DATA, and an "invalid command" message is pushed to screen
 
@@ -88,19 +88,14 @@ async def task_tree(command, args, implant_uuid):
     match command:
         # special command
         case "help":
-
             all_command_classes = get_all_command_classes()
             # Use max length + 4 buffer for the colon alignment
-            global_max_len = (
-                max(len(cls.command_name) for cls in all_command_classes) + 4
-            )
+            global_max_len = max(len(cls.command_name) for cls in all_command_classes) + 4
 
             # 3. Helper to format the group
             def format_group(header, cmd_list):
                 # Get the command lines using the global width
-                lines = get_description_of_dataclasses(
-                    cmd_list, fixed_width=global_max_len
-                )
+                lines = get_description_of_dataclasses(cmd_list, fixed_width=global_max_len)
 
                 # Return:
                 # [Newline + Header Name]
@@ -179,9 +174,7 @@ async def task_tree(command, args, implant_uuid):
             if args.startswith("post"):
                 strategy_name = args[5:]  # Extract strategy name after "post "
                 try:
-                    task = StratPost(
-                        implant_uuid=implant_uuid, strategy_name=strategy_name
-                    ).to_task()
+                    task = StratPost(implant_uuid=implant_uuid, strategy_name=strategy_name).to_task()
                     return (ResultType.TASK, task)
                 except ParseError as e:
                     return (ResultType.ERROR, str(e))
@@ -189,9 +182,7 @@ async def task_tree(command, args, implant_uuid):
             elif args.startswith("get"):
                 strategy_name = args[4:]  # Extract strategy name after "get "
                 try:
-                    task = StratGet(
-                        implant_uuid=implant_uuid, strategy_name=strategy_name
-                    ).to_task()
+                    task = StratGet(implant_uuid=implant_uuid, strategy_name=strategy_name).to_task()
                     return (ResultType.TASK, task)
                 except ParseError as e:
                     return (ResultType.ERROR, str(e))
@@ -213,7 +204,8 @@ async def task_tree(command, args, implant_uuid):
             else:
                 return (
                     ResultType.ERROR,
-                    "Invalid strat command. Use `strat post <strategy_name>`, `strat get <strategy_name>`, or `strat list`",
+                    "Invalid strat command. Use `strat post <strategy_name>`, "
+                    "`strat get <strategy_name>`, or `strat list`",
                 )
 
         case "file":
@@ -224,9 +216,7 @@ async def task_tree(command, args, implant_uuid):
                 file_path = args_list[0]
 
                 try:
-                    task = FileDownload(
-                        implant_uuid=implant_uuid, file_path=file_path
-                    ).to_task()
+                    task = FileDownload(implant_uuid=implant_uuid, file_path=file_path).to_task()
                     return (ResultType.TASK, task)
                 except ParseError as e:
                     return (ResultType.ERROR, str(e))
@@ -237,7 +227,8 @@ async def task_tree(command, args, implant_uuid):
                 # The file path is the first argument after "download"
                 file_path = args_list[0]
                 # The file contents is the second argument after "upload"
-                # replace " " with "" to remove any spaces that could be trailing/leading, which may cause problems with base64 decoding
+                # replace " " with "" to remove any spaces that could be trailing/leading,
+                # which may cause problems with base64 decoding
                 file_contents = (args_list[1]).replace(" ", "")
 
                 try:
@@ -262,7 +253,8 @@ async def task_tree(command, args, implant_uuid):
                 # The file name is the first argument after "upload"
                 file_name = args_list[0]
                 # The file contents is the second argument after "upload"
-                # replace " " with "" to remove any spaces that could be trailing/leading, which may cause problems with base64 decoding
+                # replace " " with "" to remove any spaces that could be trailing/leading, which may cause
+                # problems with base64 decoding
                 file_contents = (args_list[1]).replace(" ", "")
 
                 try:
@@ -281,9 +273,7 @@ async def task_tree(command, args, implant_uuid):
                 file_name = args_list[0]
 
                 try:
-                    task = MemStoreDownload(
-                        implant_uuid=implant_uuid, file_name=file_name
-                    ).to_task()
+                    task = MemStoreDownload(implant_uuid=implant_uuid, file_name=file_name).to_task()
                     return (ResultType.TASK, task)
                 except ParseError as e:
                     return (ResultType.ERROR, str(e))
@@ -295,9 +285,7 @@ async def task_tree(command, args, implant_uuid):
                 file_name = args_list[0]
 
                 try:
-                    task = MemStoreDelete(
-                        implant_uuid=implant_uuid, file_name=file_name
-                    ).to_task()
+                    task = MemStoreDelete(implant_uuid=implant_uuid, file_name=file_name).to_task()
                     return (ResultType.TASK, task)
                 except ParseError as e:
                     return (ResultType.ERROR, str(e))
@@ -324,18 +312,14 @@ async def task_tree(command, args, implant_uuid):
         case "bof":
             try:
                 args = args.split()
-                bof_bytes = args[
-                    0
-                ]  # either the bytes of the bof, *or* the *memstore_name
+                bof_bytes = args[0]  # either the bytes of the bof, *or* the *memstore_name
                 bof_args = args[1:]  # the rest of the args are here.
                 bof_args = "".join(bof_args)  # turn args into one str for now
                 # this could get really ugly really quick, ex bof kfasldfjsdfjsakfjsa== myarg
                 # or just do bof *mybof args
 
                 # no args, args are just bof content, either in base64 or a memstore location
-                task = BofRunner(
-                    implant_uuid=implant_uuid, bof_contents=bof_bytes, bof_args=bof_args
-                ).to_task()
+                task = BofRunner(implant_uuid=implant_uuid, bof_contents=bof_bytes, bof_args=bof_args).to_task()
                 print(task)
                 return (ResultType.TASK, task)
 
@@ -408,9 +392,7 @@ class Cd:
         """Automatically run something when the dataclass is created."""
         if not self.directory:
             # Raise a ParseError exception if cli is None or empty
-            raise ParseError(
-                "The 'dir' argument cannot be None or empty. Ex: `cd <cli arg>`: `cd C:\\Users\\`"
-            )
+            raise ParseError("The 'dir' argument cannot be None or empty. Ex: `cd <cli arg>`: `cd C:\\Users\\`")
 
     def to_task(self) -> dict:
         """Convert the dataclass to a task style dictionary structure."""
@@ -418,9 +400,7 @@ class Cd:
         task_args = {"directory": self.directory}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
+        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         return final_task
 
 
@@ -439,9 +419,7 @@ class Sleep:
     def __post_init__(self):
         """Automatically run something when the dataclass is created."""
         if not self.sleep_time:
-            raise ParseError(
-                "The 'sleep_time' argument cannot be None or empty. Ex: `sleep <sleep_time>`: `sleep 5`"
-            )
+            raise ParseError("The 'sleep_time' argument cannot be None or empty. Ex: `sleep <sleep_time>`: `sleep 5`")
 
     def to_task(self) -> dict:
         """Convert the dataclass to a task style dictionary structure."""
@@ -449,9 +427,7 @@ class Sleep:
         task_args = {"sleep_time": int(self.sleep_time)}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
+        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         return final_task
 
 
@@ -471,7 +447,8 @@ class StratPost:
         """Automatically run something when the dataclass is created."""
         if not self.strategy_name:
             raise ParseError(
-                "The 'strategy_name' argument cannot be None or empty. Ex: `strat post <strategy_name>`: `strat post my_post_strategy`"
+                "The 'strategy_name' argument cannot be None or empty. "
+                "Ex: `strat post <strategy_name>`: `strat post my_post_strategy`"
             )
 
     def to_task(self) -> dict:
@@ -480,9 +457,7 @@ class StratPost:
         task_args = {"strategy_name": self.strategy_name}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
+        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         return final_task
 
 
@@ -501,7 +476,8 @@ class StratGet:
         """Automatically run something when the dataclass is created."""
         if not self.strategy_name:
             raise ParseError(
-                "The 'strategy_name' argument cannot be None or empty. Ex: `strat get <strategy_name>`: `strat get my_get_strategy`"
+                "The 'strategy_name' argument cannot be None or empty. "
+                "Ex: `strat get <strategy_name>`: `strat get my_get_strategy`"
             )
 
     def to_task(self) -> dict:
@@ -510,9 +486,7 @@ class StratGet:
         task_args = {"strategy_name": self.strategy_name}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
+        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         return final_task
 
 
@@ -530,7 +504,8 @@ class StratList:
     #     """Automatically run something when the dataclass is created."""
     #     if not self.strategy_name:
     #         raise ParseError(
-    #             "The 'strategy_name' argument cannot be None or empty. Ex: `strat get <strategy_name>`: `strat get my_get_strategy`"
+    #             "The 'strategy_name' argument cannot be None or empty.
+    #               Ex: `strat get <strategy_name>`: `strat get my_get_strategy`"
     #         )
 
     def to_task(self) -> dict:
@@ -539,9 +514,7 @@ class StratList:
         task_args = {}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
+        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         return final_task
 
 
@@ -561,9 +534,7 @@ class StratActive:
         task_args = {}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
+        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         return final_task
 
 
@@ -583,7 +554,8 @@ class FileDownload:
         """Automatically run something when the dataclass is created."""
         if not self.file_path:
             raise ParseError(
-                "The 'file_path' argument cannot be None or empty. Ex: `file download <file_path>`: `file download C:\\Users\\user\\file.txt`"
+                "The 'file_path' argument cannot be None or empty. "
+                "Ex: `file download <file_path>`: `file download C:\\Users\\user\\file.txt`"
             )
 
     def to_task(self) -> dict:
@@ -592,9 +564,7 @@ class FileDownload:
         task_args = {"file_path": self.file_path}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
+        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         return final_task
 
 
@@ -617,11 +587,13 @@ class FileUpload:
         """Automatically run something when the dataclass is created."""
         if not self.file_path:
             raise ParseError(
-                "The 'file_path' argument cannot be None or empty. Ex: `file upload <file_path>`: `file upload C:\\Users\\user\\file.txt`"
+                "The 'file_path' argument cannot be None or empty. "
+                "Ex: `file upload <file_path>`: `file upload C:\\Users\\user\\file.txt`"
             )
         if not self.file_contents:
             raise ParseError(
-                "The 'file_contents' argument cannot be None or empty. Ex: `file upload <file_path>`: `file upload C:\\Users\\user\\file.txt`"
+                "The 'file_contents' argument cannot be None or empty. "
+                "Ex: `file upload <file_path>`: `file upload C:\\Users\\user\\file.txt`"
             )
 
     def to_task(self) -> dict:
@@ -653,11 +625,9 @@ class FileUpload:
                     }
 
             task_detail = TaskDetail(task_name=self.command_name, args=task_args)
-            final_task = create_and_verify_task(
-                implant_uuid=self.implant_uuid, task=task_detail
-            )
+            final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
             return final_task
-        except Exception as e:
+        except Exception:
             # likely base64 err. could  handle this better.
             raise ParseError
 
@@ -678,11 +648,13 @@ class MemStoreUpload:
         """Automatically run something when the dataclass is created."""
         if not self.file_name:
             raise ParseError(
-                "The 'file_name' argument cannot be None or empty. Ex: `memstore upload <base64 data>`: `memstore upload aabbcc==`"
+                "The 'file_name' argument cannot be None or empty. "
+                "Ex: `memstore upload <base64 data>`: `memstore upload aabbcc==`"
             )
         if not self.file_contents:
             raise ParseError(
-                "The 'file_contents' argument cannot be None or empty. Ex: `memstore upload <base64 data>`: `memstore upload aabbcc==`"
+                "The 'file_contents' argument cannot be None or empty. "
+                "Ex: `memstore upload <base64 data>`: `memstore upload aabbcc==`"
             )
 
     def to_task(self) -> dict:
@@ -706,9 +678,7 @@ class MemStoreUpload:
 
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
+        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         return final_task
 
 
@@ -728,7 +698,8 @@ class MemStoreDownload:
         """Automatically run something when the dataclass is created."""
         if not self.file_name:
             raise ParseError(
-                "The 'file_name' argument cannot be None or empty. Ex: `memstore download <file_name>`: `memstore download example.txt`"
+                "The 'file_name' argument cannot be None or empty. Ex: `memstore download <file_name>`: "
+                "`memstore download example.txt`"
             )
 
     def to_task(self) -> dict:
@@ -740,9 +711,7 @@ class MemStoreDownload:
         }
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
+        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         return final_task
 
 
@@ -761,7 +730,8 @@ class MemStoreDelete:
         """Automatically run something when the dataclass is created."""
         if not self.file_name:
             raise ParseError(
-                "The 'file_name' argument cannot be None or empty. Ex: `memstore delete <file_name>`: `memstore delete not_more_malware`"
+                "The 'file_name' argument cannot be None or empty. Ex: `memstore delete <file_name>`: "
+                "`memstore delete not_more_malware`"
             )
 
     def to_task(self) -> dict:
@@ -771,9 +741,7 @@ class MemStoreDelete:
         task_args = {"file_name": self.file_name}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
+        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         return final_task
 
 
@@ -793,9 +761,7 @@ class MemStoreClear:
         task_args = {}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
+        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         return final_task
 
 
@@ -815,9 +781,7 @@ class MemStoreList:
         task_args = {}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
+        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         return final_task
 
 
@@ -842,9 +806,7 @@ class BofRunner:
         """Automatically run something when the dataclass is created."""
 
         if not self.bof_contents:
-            raise ParseError(
-                "The 'bof_contents' argument cannot be None or empty. Ex: `bof <base64>`: `bof aabbcc==`"
-            )
+            raise ParseError("The 'bof_contents' argument cannot be None or empty. Ex: `bof <base64>`: `bof aabbcc==`")
 
         # bof args might be none if no args
         # if not self.bof_args:
@@ -881,11 +843,9 @@ class BofRunner:
                     }
 
             task_detail = TaskDetail(task_name=self.command_name, args=task_args)
-            final_task = create_and_verify_task(
-                implant_uuid=self.implant_uuid, task=task_detail
-            )
+            final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
             return final_task
-        except Exception as e:
+        except Exception:
             # likely base64 err. could  handle this better.
             raise ParseError
 
@@ -893,7 +853,8 @@ class BofRunner:
 @dataclass(frozen=True)
 class DiscoverNeighbors:
     R"""
-    Discover neighbors via passive arp discovery, and resolves hostnames via `GetNameInfoW`. Results from this command are used to populate additional targets in the Graph
+    Discover neighbors via passive arp discovery, and resolves hostnames via `GetNameInfoW`. Results
+    from this command are used to populate additional targets in the Graph
     """
 
     command_name = "discover neighbors"
@@ -903,20 +864,18 @@ class DiscoverNeighbors:
         """Convert the dataclass to a task style dictionary structure."""
         # convert from base64, to bytes, for easier CLI handling
         try:
-
             task_detail = TaskDetail(task_name=self.command_name, args={})
-            final_task = create_and_verify_task(
-                implant_uuid=self.implant_uuid, task=task_detail
-            )
+            final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
             return final_task
-        except Exception as e:
+        except Exception:
             raise ParseError
 
 
 @dataclass(frozen=True)
 class Exit:
     R"""
-    Exit the implant. This will kill the implant process on the host, don't expect a response back from the implant with this command.
+    Exit the implant. This will kill the implant process on the host, don't expect a response back from the
+    implant with this command.
     """
 
     command_name = "exit"
@@ -929,9 +888,7 @@ class Exit:
         task_args = {}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
+        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         return final_task
 
 
@@ -949,8 +906,10 @@ class Ls:
     def __post_init__(self):
         """Automatically run something when the dataclass is created."""
         if not self.directory:
-            # instead of throwing a parse error, just list "." if no directory is provided, which is more intuitive for ls
-            # because the dataclass is frozen, we have to use object.__setattr__ to set the directory value to "." if it's not provided
+            # instead of throwing a parse error, just list "." if no directory is provided,
+            #  which is more intuitive for ls because the dataclass is frozen, we have to use
+            # object.__setattr__ to set the directory value to "." if it's not provided
+
             # kind of a hack, but it works for now. Keeps args protected as well.
             object.__setattr__(self, "directory", ".")
 
@@ -960,9 +919,7 @@ class Ls:
         task_args = {"directory": self.directory}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(
-            implant_uuid=self.implant_uuid, task=task_detail
-        )
+        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         return final_task
 
 
@@ -989,9 +946,7 @@ def get_all_command_classes():
     """
 
     # get the longest command, use that as ref for spacing the :desc
-    all_cmds = (
-        system_cmds + fs_cmds + mem_cmds + strat_cmds + execution_cmds + discover_cmds
-    )
+    all_cmds = system_cmds + fs_cmds + mem_cmds + strat_cmds + execution_cmds + discover_cmds
     return all_cmds
 
 

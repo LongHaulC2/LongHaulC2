@@ -1,4 +1,4 @@
-from flask_restx import Namespace, Resource, fields
+from flask_restx import fields
 
 from ..instance import api
 
@@ -51,43 +51,25 @@ def wrap_response_empty(api, model_name):
 IMPLANTS_GET_MODEL = api.model(
     "IMPLANTS_GET_MODEL",
     {
-        "arch": fields.String(
-            description="Architecture", example="x64", allow_null=True
-        ),
-        "external_ip": fields.String(
-            description="External IP address", example="1.2.3.4", allow_null=True
-        ),
+        "arch": fields.String(description="Architecture", example="x64", allow_null=True),
+        "external_ip": fields.String(description="External IP address", example="1.2.3.4", allow_null=True),
         "implant_uuid": fields.String(
             description="Unique ID of the implant",
             example="019c6536-3ee4-719e-b432-fdbfef4440cc",
         ),
-        "internal_ip": fields.String(
-            description="Internal network IP", example="192.168.1.50", allow_null=True
-        ),
-        "last_checkin": fields.Integer(
-            description="Last check-in timestamp", example=None, allow_null=True
-        ),
+        "internal_ip": fields.String(description="Internal network IP", example="192.168.1.50", allow_null=True),
+        "last_checkin": fields.Integer(description="Last check-in timestamp", example=None, allow_null=True),
         "listener": fields.String(
             description="Associated listener name",
             example="http_listener",
             allow_null=True,
         ),
-        "notes": fields.String(
-            description="User notes", example="placeholder", allow_null=True
-        ),
+        "notes": fields.String(description="User notes", example="placeholder", allow_null=True),
         "pid": fields.Integer(description="Process ID", example=1234, allow_null=True),
-        "process": fields.String(
-            description="Process path or name", example="notepad.exe", allow_null=True
-        ),
-        "sleep_value": fields.Integer(
-            description="Sleep interval in seconds", example=None, allow_null=True
-        ),
-        "system_hostname": fields.String(
-            description="Hostname of the target", example="OFFENSIVE", allow_null=True
-        ),
-        "user": fields.String(
-            description="Username of the process owner", example="ryan", allow_null=True
-        ),
+        "process": fields.String(description="Process path or name", example="notepad.exe", allow_null=True),
+        "sleep_value": fields.Integer(description="Sleep interval in seconds", example=None, allow_null=True),
+        "system_hostname": fields.String(description="Hostname of the target", example="OFFENSIVE", allow_null=True),
+        "user": fields.String(description="Username of the process owner", example="ryan", allow_null=True),
     },
 )
 IMPLANTS_GET_RESPONSE = wrap_response_list(api, IMPLANTS_GET_MODEL)
@@ -115,43 +97,25 @@ IMPLANTS_POST_RESPONSE = wrap_response_single(api, IMPLANTS_POST_MODEL)
 IMPLANT_GET_MODEL = api.model(
     "IMPLANT_GET_MODEL",
     {
-        "arch": fields.String(
-            description="Architecture", example="x64", allow_null=True
-        ),
-        "external_ip": fields.String(
-            description="External IP address", example="1.2.3.4", allow_null=True
-        ),
+        "arch": fields.String(description="Architecture", example="x64", allow_null=True),
+        "external_ip": fields.String(description="External IP address", example="1.2.3.4", allow_null=True),
         "implant_uuid": fields.String(
             description="Unique ID of the implant",
             example="019c6536-3ee4-719e-b432-fdbfef4440cc",
         ),
-        "internal_ip": fields.String(
-            description="Internal network IP", example="192.168.1.50", allow_null=True
-        ),
-        "last_checkin": fields.Integer(
-            description="Last check-in timestamp", example=None, allow_null=True
-        ),
+        "internal_ip": fields.String(description="Internal network IP", example="192.168.1.50", allow_null=True),
+        "last_checkin": fields.Integer(description="Last check-in timestamp", example=None, allow_null=True),
         "listener": fields.String(
             description="Associated listener name",
             example="http_listener",
             allow_null=True,
         ),
-        "notes": fields.String(
-            description="User notes", example="placeholder", allow_null=True
-        ),
+        "notes": fields.String(description="User notes", example="placeholder", allow_null=True),
         "pid": fields.Integer(description="Process ID", example=1234, allow_null=True),
-        "process": fields.String(
-            description="Process path or name", example="notepad.exe", allow_null=True
-        ),
-        "sleep_value": fields.Integer(
-            description="Sleep interval in seconds", example=None, allow_null=True
-        ),
-        "system_hostname": fields.String(
-            description="Hostname of the target", example="OFFENSIVE", allow_null=True
-        ),
-        "user": fields.String(
-            description="Username of the process owner", example="ryan", allow_null=True
-        ),
+        "process": fields.String(description="Process path or name", example="notepad.exe", allow_null=True),
+        "sleep_value": fields.Integer(description="Sleep interval in seconds", example=None, allow_null=True),
+        "system_hostname": fields.String(description="Hostname of the target", example="OFFENSIVE", allow_null=True),
+        "user": fields.String(description="Username of the process owner", example="ryan", allow_null=True),
     },
 )
 IMPLANT_GET_RESPONSE = wrap_response_single(api, IMPLANT_GET_MODEL)
@@ -161,37 +125,17 @@ IMPLANT_GET_RESPONSE = wrap_response_single(api, IMPLANT_GET_MODEL)
 IMPLANT_PUT_INPUT = api.model(
     "IMPLANT_PUT_INPUT",
     {
-        "external_ip": fields.String(
-            description="External IP address", example="203.0.113.10", required=False
-        ),
-        "internal_ip": fields.String(
-            description="Internal IP address", example="10.0.0.15", required=False
-        ),
-        "listener": fields.String(
-            description="Listener address", example="c2.example.com:443", required=False
-        ),
-        "user": fields.String(
-            description="User account name", example="SYSTEM", required=False
-        ),
-        "system_hostname": fields.String(
-            description="Hostname", example="WIN-ABC123", required=False
-        ),
-        "notes": fields.String(
-            description="Operator notes", example="Initial check-in", required=False
-        ),
-        "process": fields.String(
-            description="Process name", example="svchost.exe", required=False
-        ),
+        "external_ip": fields.String(description="External IP address", example="203.0.113.10", required=False),
+        "internal_ip": fields.String(description="Internal IP address", example="10.0.0.15", required=False),
+        "listener": fields.String(description="Listener address", example="c2.example.com:443", required=False),
+        "user": fields.String(description="User account name", example="SYSTEM", required=False),
+        "system_hostname": fields.String(description="Hostname", example="WIN-ABC123", required=False),
+        "notes": fields.String(description="Operator notes", example="Initial check-in", required=False),
+        "process": fields.String(description="Process name", example="svchost.exe", required=False),
         "pid": fields.Integer(description="Process ID", example=1234, required=False),
-        "arch": fields.String(
-            description="CPU architecture", example="x64", required=False
-        ),
-        "last_checkin": fields.Integer(
-            description="Last check-in time (unix)", example=11223344, required=False
-        ),
-        "sleep_value": fields.Integer(
-            description="Sleep interval", example=60, required=False
-        ),
+        "arch": fields.String(description="CPU architecture", example="x64", required=False),
+        "last_checkin": fields.Integer(description="Last check-in time (unix)", example=11223344, required=False),
+        "sleep_value": fields.Integer(description="Sleep interval", example=60, required=False),
     },
 )
 IMPLANT_PUT_RESPONSE = wrap_response_empty(api, "IMPLANT_PUT_RESPONSE")
@@ -211,12 +155,8 @@ IMPLANT_DELETE_RESPONSE = wrap_response_empty(api, "IMPLANT_DELETE_RESPONSE")
 IMPLANT_TASK_POST_INTERNAL_MODEL = api.model(
     "IMPLANT_TASK_POST_INTERNAL_MODEL",
     {
-        "task_name": fields.String(
-            required=True, description="Name of the command", example="cmd"
-        ),
-        "args": fields.Raw(
-            description="Dictionary of arguments", example={"cli": "whoami"}
-        ),
+        "task_name": fields.String(required=True, description="Name of the command", example="cmd"),
+        "args": fields.Raw(description="Dictionary of arguments", example={"cli": "whoami"}),
     },
 )
 
@@ -224,12 +164,8 @@ IMPLANT_TASK_POST_INTERNAL_MODEL = api.model(
 IMPLANT_TASK_POST_INPUT = api.model(
     "IMPLANT_TASK_POST_INPUT",
     {
-        "task_uuid": fields.String(
-            description="Optional UUID for the task", example="019c6b12..."
-        ),
-        "implant_uuid": fields.String(
-            required=True, description="Target implant ID", example="019c6536..."
-        ),
+        "task_uuid": fields.String(description="Optional UUID for the task", example="019c6b12..."),
+        "implant_uuid": fields.String(required=True, description="Target implant ID", example="019c6536..."),
         "task": fields.Nested(
             IMPLANT_TASK_POST_INTERNAL_MODEL,
             required=True,
@@ -241,11 +177,7 @@ IMPLANT_TASK_POST_INPUT = api.model(
 # The response data
 IMPLANT_TASK_POST_MODEL = api.model(
     "IMPLANT_TASK_POST_MODEL",
-    {
-        "task_uuid": fields.String(
-            description="The unique ID of the queued task", example="019c6b12-..."
-        )
-    },
+    {"task_uuid": fields.String(description="The unique ID of the queued task", example="019c6b12-...")},
 )
 IMPLANT_TASK_POST_RESPONSE = wrap_response_single(api, IMPLANT_TASK_POST_MODEL)
 
@@ -259,18 +191,14 @@ IMPLANT_TASK_POST_RESPONSE = wrap_response_single(api, IMPLANT_TASK_POST_MODEL)
 IMPLANT_TASKS_GET_MODEL = api.model(
     "IMPLANT_TASKS_GET_MODEL",
     {
-        "task": fields.String(
-            description="Base64 encoded task blob", example="AABBCC..."
-        ),
+        "task": fields.String(description="Base64 encoded task blob", example="AABBCC..."),
     },
 )
 IMPLANT_TASKS_GET_RESPONSE = wrap_response_list(api, IMPLANT_TASKS_GET_MODEL)
 
 
 # --- DELETE /<uuid>/tasks (Clear) ---
-IMPLANT_TASKS_DELETE_RESPONSE = wrap_response_empty(
-    api, "IMPLANT_TASKS_DELETE_RESPONSE"
-)
+IMPLANT_TASKS_DELETE_RESPONSE = wrap_response_empty(api, "IMPLANT_TASKS_DELETE_RESPONSE")
 
 
 ######################################################################
@@ -287,9 +215,7 @@ IMPLANT_HISTORY_GET_MODEL = api.model(
         "implant_uuid": fields.String(example="019c6536..."),
         "task_uuid": fields.String(example="019b46f8..."),
         "task_request": fields.Raw(description="JSON of the request"),
-        "task_response": fields.Raw(
-            description="JSON of the response", allow_null=True
-        ),
+        "task_response": fields.Raw(description="JSON of the response", allow_null=True),
     },
 )
 IMPLANT_HISTORY_GET_RESPONSE = wrap_response_list(

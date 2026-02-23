@@ -1,18 +1,13 @@
 import logging
 
-import httpx
 from nicegui import ui
 
 # Imports
 from client.src.client.modules.api_calls import (
     get_implant_data,
     get_implant_task_history,
-    queue_task,
 )
 from client.src.client.pages.menu import setup_menu
-from client.src.client.style import ICON_COLOR, TEXT_COLOR
-
-from ..utils.checks import check_type
 
 server_log = logging.getLogger("server")
 
@@ -23,17 +18,11 @@ server_log = logging.getLogger("server")
 
 def stat_card(label: str, value: str, icon: str, color: str = "emerald"):
     """Small dense stat widget"""
-    with ui.card().classes(
-        "p-3 gap-1 bg-white/5 border border-white/10 rounded-sm no-shadow min-w-[140px] flex-grow"
-    ):
+    with ui.card().classes("p-3 gap-1 bg-white/5 border border-white/10 rounded-sm no-shadow min-w-[140px] flex-grow"):
         with ui.row().classes("w-full items-center justify-between"):
-            ui.label(label).classes(
-                "text-[10px] font-mono tracking-widest text-neutral-500 uppercase"
-            )
+            ui.label(label).classes("text-[10px] font-mono tracking-widest text-neutral-500 uppercase")
             ui.icon(icon, size="xs", color=f"{color}-500").classes("opacity-80")
-        ui.label(value).classes(
-            "text-sm font-bold font-mono tracking-wide text-neutral-200 truncate"
-        )
+        ui.label(value).classes("text-sm font-bold font-mono tracking-wide text-neutral-200 truncate")
 
 
 def info_row(key: str, value: str):
@@ -42,9 +31,7 @@ def info_row(key: str, value: str):
         "w-full justify-between items-center py-1 border-b border-white/5 hover:bg-white/5 transition-colors"
     ):
         ui.label(key).classes("text-xs font-mono text-neutral-500")
-        ui.label(str(value)).classes(
-            "text-xs font-mono text-emerald-400 text-right truncate max-w-[200px]"
-        )
+        ui.label(str(value)).classes("text-xs font-mono text-emerald-400 text-right truncate max-w-[200px]")
 
 
 # ==============================================================================
@@ -54,7 +41,6 @@ def info_row(key: str, value: str):
 
 @ui.page("/implant/{implant_uuid}")
 async def implant_details(implant_uuid: str):
-
     # Layout Setup
     ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(
@@ -89,43 +75,31 @@ async def implant_details(implant_uuid: str):
 
 
 async def render_dashboard(data: dict, implant_uuid: str):
-
     hostname = data.get("computer_name", "DESKTOP-UNKNOWN")
     user = data.get("user_name", "SYSTEM")
 
     # --- MAIN CONTAINER ---
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
-
         # ==========================================================================
         #   1. HEADER (Fixed Height)
         # ==========================================================================
-        with ui.row().classes(
-            "w-full p-4 border-b border-white/10 bg-black/20 items-center justify-between shrink-0"
-        ):
+        with ui.row().classes("w-full p-4 border-b border-white/10 bg-black/20 items-center justify-between shrink-0"):
             with ui.row().classes("items-center gap-4"):
-                ui.button(
-                    icon="arrow_back", on_click=lambda: ui.navigate.to("/operations")
-                ).props("flat dense round size=sm color=grey")
+                ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to("/operations")).props(
+                    "flat dense round size=sm color=grey"
+                )
                 ui.icon("computer", size="md", color="emerald-500").classes(
                     "p-2 bg-emerald-500/10 rounded border border-emerald-500/20"
                 )
                 with ui.column().classes("gap-0"):
                     with ui.row().classes("items-center gap-2"):
-                        ui.label(hostname).classes(
-                            "text-xl font-bold font-mono tracking-wide text-white"
-                        )
+                        ui.label(hostname).classes("text-xl font-bold font-mono tracking-wide text-white")
                         with ui.row().classes(
                             "items-center gap-1 bg-emerald-900/30 px-2 rounded-full border border-emerald-500/30"
                         ):
-                            ui.element("div").classes(
-                                "w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
-                            )
-                            ui.label("ONLINE").classes(
-                                "text-[9px] font-bold text-emerald-400"
-                            )
-                    ui.label(f"UUID: {implant_uuid}").classes(
-                        "text-xs font-mono text-neutral-500"
-                    )
+                            ui.element("div").classes("w-2 h-2 rounded-full bg-emerald-400 animate-pulse")
+                            ui.label("ONLINE").classes("text-[9px] font-bold text-emerald-400")
+                    ui.label(f"UUID: {implant_uuid}").classes("text-xs font-mono text-neutral-500")
 
             with ui.row().classes("items-center gap-2"):
                 ui.button(
@@ -138,11 +112,8 @@ async def render_dashboard(data: dict, implant_uuid: str):
         #   2. BODY (Fills remaining height)
         # ==========================================================================
         with ui.column().classes("w-full flex-grow p-6 gap-6 overflow-hidden"):
-
             # --- ROW 1: VITALS (Fixed Height) ---
-            with ui.row().classes(
-                "w-full gap-4 flex-nowrap overflow-x-auto pb-1 shrink-0"
-            ):
+            with ui.row().classes("w-full gap-4 flex-nowrap overflow-x-auto pb-1 shrink-0"):
                 stat_card("PRIMARY USER", user, "person")
                 stat_card("NETWORK ADDR", data.get("ip_address"), "lan")
                 stat_card(
@@ -150,57 +121,40 @@ async def render_dashboard(data: dict, implant_uuid: str):
                     f"{data.get('process_id')} ({data.get('process_name')})",
                     "memory",
                 )
-                stat_card(
-                    "LAST SEEN", data.get("last_seen"), "schedule", color="orange"
-                )
+                stat_card("LAST SEEN", data.get("last_seen"), "schedule", color="orange")
                 stat_card("ARCHITECTURE", data.get("arch"), "dns")
 
             # --- ROW 2: WORKSPACE & SIDEBAR (Fills remaining height) ---
             # KEY FIX: 'no-wrap' forces side-by-side.
-            with ui.row().classes(
-                "w-full gap-6 items-stretch flex-grow h-full overflow-hidden no-wrap"
-            ):
-
+            with ui.row().classes("w-full gap-6 items-stretch flex-grow h-full overflow-hidden no-wrap"):
                 # === LEFT: WORKSPACE (TABS) ===
                 # KEY FIX: 'min-w-0' allows this panel to shrink if the screen gets too small, preventing overlap.
                 with ui.card().classes(
                     "flex-grow w-full min-w-0 bg-white/5 border border-white/5 p-0 rounded flex flex-col"
                 ):
-
                     # Tabs Header
-                    with ui.row().classes(
-                        "w-full border-b border-white/5 bg-black/20 px-2 shrink-0"
-                    ):
+                    with ui.row().classes("w-full border-b border-white/5 bg-black/20 px-2 shrink-0"):
                         tabs = (
                             ui.tabs()
                             .classes("w-full text-left")
                             .props(
-                                "dense indicator-color=emerald text-color=grey-5 active-color=emerald-400 align=left narrow-indicator"
+                                "dense indicator-color=emerald text-color=grey-5 active-color=emerald-400 align=left narrow-indicator"  # noqa: E501 - styling
                             )
                         )
 
                         with tabs:
-                            ui.tab(
-                                "dna", label="SYSTEM IDENTITY", icon="fingerprint"
-                            ).classes("h-12 min-h-0")
-                            ui.tab(
-                                "history", label="MISSION LOG", icon="history"
-                            ).classes("h-12 min-h-0")
-                            ui.tab("files", label="FILE SYSTEM", icon="folder").classes(
-                                "h-12 min-h-0"
-                            )
+                            ui.tab("dna", label="SYSTEM IDENTITY", icon="fingerprint").classes("h-12 min-h-0")
+                            ui.tab("history", label="MISSION LOG", icon="history").classes("h-12 min-h-0")
+                            ui.tab("files", label="FILE SYSTEM", icon="folder").classes("h-12 min-h-0")
 
                     # Tabs Content
                     with ui.tab_panels(tabs, value="dna").classes(
                         "w-full flex-grow bg-transparent p-0 overflow-hidden"
                     ):
-
                         # --- PANEL 1: SYSTEM DNA ---
                         with ui.tab_panel("dna").classes("w-full h-full p-0"):
                             with ui.scroll_area().classes("w-full h-full p-4"):
-                                info_row(
-                                    "Operating System", data.get("os_details", "N/A")
-                                )
+                                info_row("Operating System", data.get("os_details", "N/A"))
                                 info_row("Build Number", "19044.1234 (Mock)")
                                 info_row("Domain", "WORKGROUP")
                                 info_row("Timezone", "UTC-5 (EST)")
@@ -216,22 +170,18 @@ async def render_dashboard(data: dict, implant_uuid: str):
                                 with ui.row().classes(
                                     "w-full p-2 justify-end border-b border-white/5 shrink-0 bg-black/10"
                                 ):
-                                    ui.button(
-                                        icon="refresh", on_click=lambda: load_history()
-                                    ).props("flat dense round size=xs color=grey")
+                                    ui.button(icon="refresh", on_click=lambda: load_history()).props(
+                                        "flat dense round size=xs color=grey"
+                                    )
 
                                 # Scrollable History
                                 with ui.scroll_area().classes("w-full flex-grow"):
-                                    history_container = ui.column().classes(
-                                        "w-full p-0 gap-0"
-                                    )
+                                    history_container = ui.column().classes("w-full p-0 gap-0")
 
                             async def load_history():
                                 history_container.clear()
                                 with history_container:
-                                    ui.spinner(size="lg", color="emerald-500").classes(
-                                        "self-center my-8 opacity-50"
-                                    )
+                                    ui.spinner(size="lg", color="emerald-500").classes("self-center my-8 opacity-50")
 
                                 res = await get_implant_task_history(implant_uuid)
                                 tasks = res.get("data", [])
@@ -255,42 +205,30 @@ async def render_dashboard(data: dict, implant_uuid: str):
                             "w-full h-full items-center justify-center text-neutral-600"
                         ):
                             ui.icon("folder_off", size="xl").classes("mb-2 opacity-50")
-                            ui.label("FILE BROWSER MODULE NOT LOADED").classes(
-                                "font-mono text-xs"
-                            )
+                            ui.label("FILE BROWSER MODULE NOT LOADED").classes("font-mono text-xs")
 
                 # === RIGHT: SIDEBAR (CONFIG) ===
                 # KEY FIX: Strictly fixed width (w-[320px]), removed 'w-full', added 'shrink-0'
                 with ui.card().classes(
                     "w-[320px] shrink-0 bg-white/5 border border-white/5 p-0 rounded shrink-0 flex flex-col"
                 ):
-
                     # Header
-                    with ui.row().classes(
-                        "w-full p-3 border-b border-white/5 bg-black/20 items-center gap-2 shrink-0"
-                    ):
+                    with ui.row().classes("w-full p-3 border-b border-white/5 bg-black/20 items-center gap-2 shrink-0"):
                         ui.icon("settings", size="xs", color="emerald-500")
                         ui.label("CONTROLS //").classes("tech-label-subtitle")
 
                     # Scrollable Config
                     with ui.scroll_area().classes("w-full flex-grow"):
                         with ui.column().classes("p-4 w-full gap-4"):
-
                             # Config
-                            ui.label("BEACON SETTINGS").classes(
-                                "text-[10px] font-bold text-neutral-500"
-                            )
+                            ui.label("BEACON SETTINGS").classes("text-[10px] font-bold text-neutral-500")
                             with ui.row().classes("w-full gap-2"):
-                                ui.input(
-                                    "SLEEP (s)", value=str(data.get("sleep"))
-                                ).props("outlined dense dark color=emerald").classes(
-                                    "flex-1"
-                                )
-                                ui.input(
-                                    "JITTER (%)", value=str(data.get("jitter"))
-                                ).props("outlined dense dark color=emerald").classes(
-                                    "flex-1"
-                                )
+                                ui.input("SLEEP (s)", value=str(data.get("sleep"))).props(
+                                    "outlined dense dark color=emerald"
+                                ).classes("flex-1")
+                                ui.input("JITTER (%)", value=str(data.get("jitter"))).props(
+                                    "outlined dense dark color=emerald"
+                                ).classes("flex-1")
                             ui.button("APPLY CONFIG", icon="save").classes(
                                 "w-full tech-btn-ghost border border-white/10"
                             ).props("flat dense")
@@ -298,9 +236,7 @@ async def render_dashboard(data: dict, implant_uuid: str):
                             ui.separator().classes("bg-white/5")
 
                             # Scripts
-                            ui.label("AUTORUN SCRIPTS").classes(
-                                "text-[10px] font-bold text-neutral-500"
-                            )
+                            ui.label("AUTORUN SCRIPTS").classes("text-[10px] font-bold text-neutral-500")
                             # options for buttons in config
                             with ui.column().classes("w-full gap-2"):
                                 ui.button("SOME_BUTTON", icon="lan").classes(
@@ -311,12 +247,8 @@ async def render_dashboard(data: dict, implant_uuid: str):
                                 ).props("flat dense")
 
                     # Footer Actions
-                    with ui.column().classes(
-                        "w-full p-4 gap-2 bg-red-900/5 border-t border-white/5 shrink-0"
-                    ):
-                        ui.label("CRITICAL ACTIONS").classes(
-                            "text-[10px] font-bold text-red-400 opacity-70"
-                        )
+                    with ui.column().classes("w-full p-4 gap-2 bg-red-900/5 border-t border-white/5 shrink-0"):
+                        ui.label("CRITICAL ACTIONS").classes("text-[10px] font-bold text-red-400 opacity-70")
                         with ui.row().classes("w-full gap-2"):
                             ui.button("KILL", icon="bolt").classes(
                                 "flex-1 bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20"
@@ -340,36 +272,22 @@ def render_history_row(task: dict):
     status_color = "emerald" if is_complete else "orange"
     status_icon = "check_circle" if is_complete else "pending"
 
-    with ui.expansion().classes(
-        "w-full border-b border-white/5 group bg-transparent"
-    ) as expansion:
+    with ui.expansion().classes("w-full border-b border-white/5 group bg-transparent") as expansion:
         with expansion.add_slot("header"):
             with ui.row().classes("w-full items-center py-2 px-1 gap-4"):
                 ui.icon(status_icon, color=status_color).classes("text-lg opacity-80")
                 with ui.column().classes("gap-0 flex-grow"):
                     with ui.row().classes("items-center gap-2"):
-                        ui.label(task_name.upper()).classes(
-                            "text-sm font-bold text-neutral-200 font-mono"
-                        )
+                        ui.label(task_name.upper()).classes("text-sm font-bold text-neutral-200 font-mono")
                         if args_str:
-                            ui.label(args_str).classes(
-                                "text-xs text-neutral-500 font-mono truncate max-w-[200px]"
-                            )
-                    ui.label(f"ID: {task.get('task_uuid', '')}").classes(
-                        "text-[10px] text-neutral-600 font-mono"
-                    )
+                            ui.label(args_str).classes("text-xs text-neutral-500 font-mono truncate max-w-[200px]")
+                    ui.label(f"ID: {task.get('task_uuid', '')}").classes("text-[10px] text-neutral-600 font-mono")
 
-        with ui.column().classes(
-            "w-full bg-black/40 p-4 border-t border-white/5 shadow-inner"
-        ):
-            ui.label("OUTPUT STREAM //").classes(
-                "text-[10px] font-bold text-neutral-600 font-mono mb-2"
-            )
+        with ui.column().classes("w-full bg-black/40 p-4 border-t border-white/5 shadow-inner"):
+            ui.label("OUTPUT STREAM //").classes("text-[10px] font-bold text-neutral-600 font-mono mb-2")
             if task_out:
                 ui.code(task_out).classes(
                     "w-full bg-transparent text-emerald-400 font-mono text-xs overflow-x-auto p-0"
                 )
             else:
-                ui.label("Awaiting agent response...").classes(
-                    "text-xs text-orange-400 font-mono italic"
-                )
+                ui.label("Awaiting agent response...").classes("text-xs text-orange-400 font-mono italic")

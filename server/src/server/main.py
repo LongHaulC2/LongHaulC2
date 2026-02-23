@@ -1,20 +1,21 @@
 import argparse
-import logging
-from pathlib import Path
 
-from flask import Flask
+import structlog
 
 from .db.mysql_connector import mysql_setup
 from .db.neo4j_connector import init_neo4j
 from .db.redis_connector import get_redis_connection
-from .instance import api, app, env_config
+from .instance import app
 from .listeners.supervisor import restart_active_listeners
 from .listeners.watchdog import start_watchdog
-from .log import *
+
+# our loggers, need to import this so the loggers get imported & setup in main (at start), otherwise they are
+# init'd when imported in other locations
+from .log import *  # noqa F403
 from .modules.response_pipeline.response_pipeline import start_task_batch_job
 
-server_logger = logging.getLogger("server")
-api_logger = logging.getLogger("api")
+server_logger = structlog.getLogger("server")
+api_logger = structlog.getLogger("api")
 
 
 def parse_args():
@@ -59,12 +60,14 @@ def parse_args():
 
 
 # setup the routes
-from .routes.v1.build_resource import *
-from .routes.v1.graph_resource import *
-from .routes.v1.implant_resource import *
-from .routes.v1.listener_resource import *
+#  #noqa: 403, as this is how these need to be imported for flask-restx
+# noqa 402, as these need to be imported here, rather than earlier
+from .routes.v1.build_resource import *  # noqa: F403, E402
+from .routes.v1.graph_resource import *  # noqa: F403, E402
+from .routes.v1.implant_resource import *  # noqa: F403, E402
+from .routes.v1.listener_resource import *  # noqa: F403, E402
 
-logger = logging.getLogger("server")
+logger = structlog.getLogger("server")
 
 # Test database connections
 mysql_setup()

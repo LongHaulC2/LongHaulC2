@@ -1,18 +1,17 @@
 import hashlib
-import logging
 import re
 from dataclasses import asdict
 from typing import Literal
 
-from edwh_uuid7 import uuid7
-from sqlalchemy import exc, inspect, or_, text
+import structlog
+from sqlalchemy import exc, or_, text
 
 from ..db.mysql_models import ImplantPayload, ImplantTask, Listener
-from ..schemas.implant import ImplantCreate, ImplantUpdate, Task
+from ..schemas.implant import Task
 from ..schemas.listeners import ListenerCreate, ListenerUpdate
 from ..utils.checks import check_type
 
-server_logger = logging.getLogger("server")
+server_logger = structlog.getLogger("server")
 
 
 class ListenerService:
@@ -35,12 +34,12 @@ class ListenerService:
             return listener
 
         except exc.SQLAlchemyError as sqle:
-            server_logger.error(f"SQLAlchemy Error: {sqle}")
+            server_logger.error("SQLAlchemy Error", error=sqle)
             self.session.rollback()
             raise
 
         except Exception as e:
-            server_logger.error(f"{self.__class__.__name__} Error: {e}")
+            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
             raise
 
     def get_by_id(self, listener_id: str) -> Listener | None:
@@ -50,17 +49,15 @@ class ListenerService:
         check_type(listener_id, str, "listener_id")
 
         try:
-            server_logger.debug(
-                f"Retrieving listener {listener_id} from MYSQL Database"
-            )
+            server_logger.debug("Retrieving listener from MYSQL Database", listener_uuid=listener_id)
             return self.session.query(Listener).get(listener_id)
 
         except exc.SQLAlchemyError as sqle:
-            server_logger.error(f"SQLAlchemy Error: {sqle}")
+            server_logger.error("SQLAlchemy Error", error=sqle)
             self.session.rollback()
             raise
         except Exception as e:
-            server_logger.error(f"{self.__class__.__name__} Error: {e}")
+            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
             raise
 
     def get_all(self):
@@ -68,25 +65,23 @@ class ListenerService:
         Gets all implants in the table.
         """
         try:
-            server_logger.debug(f"Retrieving all listeners from MYSQL Database")
+            server_logger.debug("Retrieving all listeners from MYSQL Database")
 
             return self.session.query(Listener).all()
 
         except exc.SQLAlchemyError as sqle:
-            server_logger.error(f"SQLAlchemy Error: {sqle}")
+            server_logger.error("SQLAlchemy Error", error=sqle)
             self.session.rollback()
             raise
         except Exception as e:
-            server_logger.error(f"{self.__class__.__name__} Error: {e}")
+            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
             raise
 
     def update(self, listener_id: str, data: ListenerUpdate) -> Listener | None:
         """
         Update an implant by primary key.
         """
-        server_logger.debug(
-            f"Updating implant {listener_id} in MYSQL Database with {data}"
-        )
+        server_logger.debug("Updating implant in MYSQL Database", listener_uuid=listener_id, data=data)
         check_type(listener_id, str, "listener_id")
         check_type(data, ListenerUpdate, "data")
 
@@ -97,8 +92,8 @@ class ListenerService:
 
             # if value is not supplied, DO NOT update it in DB.
             # AKA, only apply supplied values.
-            # NOTE: If you get an "vars() argument must have __dict__ attribute", that means you passed in a dict, NOT a ImplantUpdate dataclass as the
-            # function requires.
+            # NOTE: If you get an "vars() argument must have __dict__ attribute", that means you passed in a dict,
+            # NOT a ImplantUpdate dataclass as the function requires.
             for field, value in vars(data).items():
                 if value is not None:
                     setattr(listener, field, value)
@@ -106,17 +101,15 @@ class ListenerService:
             self.session.commit()
             return listener
         except exc.SQLAlchemyError as sqle:
-            server_logger.error(f"SQLAlchemy Error: {sqle}")
+            server_logger.error("SQLAlchemy Error", error=sqle)
             self.session.rollback()
             raise
         except Exception as e:
-            server_logger.error(f"{self.__class__.__name__} Error: {e}")
+            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
             raise
 
     def set_active(self, listener_id: str, active: bool):
-        server_logger.debug(
-            f"Setting listener {listener_id} state: active={active} in MYSQL Database"
-        )
+        server_logger.debug("Setting listener state MYSQL Database", listener_uuid=listener_id, state=active)
         check_type(listener_id, str, "listener_id")
         check_type(active, bool, "active")
 
@@ -131,7 +124,7 @@ class ListenerService:
         """
         Delete an implant by primary key.
         """
-        server_logger.debug(f"Deleting listener {listener_id} in MYSQL Database")
+        server_logger.debug("Deleting listener in MYSQL Database", listener_uuid=listener_id)
         check_type(listener_id, str, "listener_id")
 
         try:
@@ -143,11 +136,11 @@ class ListenerService:
             self.session.commit()
             return True
         except exc.SQLAlchemyError as sqle:
-            server_logger.error(f"SQLAlchemy Error: {sqle}")
+            server_logger.error("SQLAlchemy Error", error=sqle)
             self.session.rollback()
             raise
         except Exception as e:
-            server_logger.error(f"{self.__class__.__name__} Error: {e}")
+            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
             raise
 
     # implement later. Just need to add index code & use "listener" instead of "implant"
@@ -172,7 +165,8 @@ class ListenerService:
     #         self.session.query(Implant)
     #         .filter(
     #             text(
-    #                 "MATCH(external_ip, internal_ip, listener, user, system_hostname, notes, process, arch) AGAINST(:term IN NATURAL LANGUAGE MODE)"
+    #                 "MATCH(external_ip, internal_ip, listener, user, system_hostname, notes, process, arch)
+    #                   AGAINST(:term IN NATURAL LANGUAGE MODE)"
     #             )
     #         )
     #         .params(term=search_term)
@@ -204,43 +198,44 @@ class MySQLSearchService:
         # "scan network" becomes "scan* network*"
         return " ".join(f"{word}*" for word in safe_term.split())
 
-    def search_implants(self, search_term: str) -> list[dict]:
-        """
-        Hybrid search for Implants.
-        - Exact/Prefix matching for IPs and UUIDs.
-        - FULLTEXT BOOLEAN matching for text fields (allows partial matches like 'msi' -> 'msiexec').
-        """
-        check_type(search_term, str, "search_term")
+    # deprecated, implants moved to neo4j
+    # def search_implants(self, search_term: str) -> list[dict]:
+    #     """
+    #     Hybrid search for Implants.
+    #     - Exact/Prefix matching for IPs and UUIDs.
+    #     - FULLTEXT BOOLEAN matching for text fields (allows partial matches like 'msi' -> 'msiexec').
+    #     """
+    #     check_type(search_term, str, "search_term")
 
-        like_term = f"%{search_term}%"
-        bool_term = self._prepare_boolean_term(search_term)
+    #     like_term = f"%{search_term}%"
+    #     bool_term = self._prepare_boolean_term(search_term)
 
-        # Build the exact/LIKE filters for identifiers (Fast B-Tree searches)
-        filters = [
-            Implant.implant_uuid.like(
-                like_term
-            ),  # Using like() in case they search a partial UUID
-            Implant.external_ip.like(like_term),
-            Implant.internal_ip.like(like_term),
-        ]
+    #     # Build the exact/LIKE filters for identifiers (Fast B-Tree searches)
+    #     filters = [
+    #         Implant.implant_uuid.like(
+    #             like_term
+    #         ),  # Using like() in case they search a partial UUID
+    #         Implant.external_ip.like(like_term),
+    #         Implant.internal_ip.like(like_term),
+    #     ]
 
-        # Add the FULLTEXT filter for text fields (Must match schema indexes)
-        if bool_term:
-            filters.append(
-                text(
-                    "MATCH(listener, user, system_hostname, notes, process, arch) AGAINST(:bool_term IN BOOLEAN MODE)"
-                )
-            )
+    #     # Add the FULLTEXT filter for text fields (Must match schema indexes)
+    #     if bool_term:
+    #         filters.append(
+    #             text(
+    #                 "MATCH(listener, user, system_hostname, notes, process, arch) AGAINST(:bool_term IN BOOLEAN MODE)"
+    #             )
+    #         )
 
-        # Apply the OR condition
-        query = self.session.query(Implant).filter(or_(*filters))
+    #     # Apply the OR condition
+    #     query = self.session.query(Implant).filter(or_(*filters))
 
-        # Bind the boolean term safely if it exists
-        if bool_term:
-            query = query.params(bool_term=bool_term)
+    #     # Bind the boolean term safely if it exists
+    #     if bool_term:
+    #         query = query.params(bool_term=bool_term)
 
-        results = query.all()
-        return [implant.to_dict() for implant in results]
+    #     results = query.all()
+    #     return [implant.to_dict() for implant in results]
 
     def search_tasks(self, search_term: str) -> list[dict]:
         """
@@ -259,11 +254,7 @@ class MySQLSearchService:
         ]
 
         if bool_term:
-            filters.append(
-                text(
-                    "MATCH(task_request_text, task_response_text) AGAINST(:bool_term IN BOOLEAN MODE)"
-                )
-            )
+            filters.append(text("MATCH(task_request_text, task_response_text) AGAINST(:bool_term IN BOOLEAN MODE)"))
 
         query = self.session.query(ImplantTask).filter(or_(*filters))
 
@@ -298,11 +289,11 @@ class MySQLImplantTaskService:
 
         if not isinstance(task_uuid, str):
             server_logger.warning(
-                f"Task UUID {task_uuid} is type {type(task_uuid)}, converting to string."
+                "Task UUID is incorrect type, converting to string", task_uuid=task_uuid, type=type(task_uuid)
             )
             task_uuid = str(task_uuid)
 
-        server_logger.info(f"Adding task to MySQL for implant {task_uuid}")
+        server_logger.info("Adding task to MySQL for implant", task_uuid=task_uuid)
         task = ImplantTask(
             implant_uuid=self.implant_uuid,
             task_uuid=task_uuid,
@@ -318,10 +309,12 @@ class MySQLImplantTaskService:
         """
         Update the task request for the given task ID (key).
 
-        task_uuid: (string) UUID of the task - Prefferably a string, not a UUID object. The code *does* convert to a str though.
+        task_uuid: (string) UUID of the task - Prefferably a string, not a UUID object. The code
+        *does* convert to a str though.
+
         request: A dataclass instance of Task.
         """
-        server_logger.info(f"Updating MySQL task request for implant {task_uuid}")
+        server_logger.info("Updating MySQL task request for implant", task_uuid=task_uuid)
 
         check_type(task_uuid, str, "task_uuid")
         check_type(request, Task, "request")
@@ -331,16 +324,12 @@ class MySQLImplantTaskService:
 
         if not isinstance(task_uuid, str):
             server_logger.warning(
-                f"Task UUID {task_uuid} is type {type(task_uuid)}, converting to string."
+                "Task UUID is incorrect type, converting to string", task_uuid=task_uuid, type=type(task_uuid)
             )
             task_uuid = str(task_uuid)
 
         # Fetch the task by key
-        task = (
-            self.session.query(ImplantTask)
-            .filter_by(task_uuid=task_uuid, implant_uuid=self.implant_uuid)
-            .first()
-        )
+        task = self.session.query(ImplantTask).filter_by(task_uuid=task_uuid, implant_uuid=self.implant_uuid).first()
 
         if task:
             # Update the task request field
@@ -349,35 +338,31 @@ class MySQLImplantTaskService:
             self.session.commit()
         else:
             # If the task is not found, log an error or raise an exception
-            raise ValueError(
-                f"Task with ID {task_uuid} not found for agent {self.implant_uuid}."
-            )
+            raise ValueError(f"Task with ID {task_uuid} not found for agent {self.implant_uuid}.")
 
     def update_response(self, task_uuid: str, response: dict):
         """
         [Works, but undefined response structure.]
         Update the task response for the given task ID (key).
 
-        task_uuid: (string) UUID of the task to update - Prefferably a string, not a UUID object. The code *does* convert to a str though.
+        task_uuid: (string) UUID of the task to update - Prefferably a string, not a UUID object.
+        The code *does* convert to a str though.
+
         response: The response of the implant. Currently, there is no defined structure/dataclass for responses.
         """
-        server_logger.info(f"Updating MySQL task response for implant {task_uuid}")
+        server_logger.info("Updating MySQL task response for implant", task_uuid=task_uuid)
 
         check_type(task_uuid, str, "task_uuid")
         check_type(response, Task, "response")
 
         if not isinstance(task_uuid, str):
             server_logger.warning(
-                f"Task UUID {task_uuid} is type {type(task_uuid)}, converting to string."
+                "Task UUID is incorrect type, converting to string.", task_uuid=task_uuid, type=type(task_uuid)
             )
             task_uuid = str(task_uuid)
 
         # Fetch the task by key
-        task = (
-            self.session.query(ImplantTask)
-            .filter_by(id=task_uuid, implant_uuid=self.implant_uuid)
-            .first()
-        )
+        task = self.session.query(ImplantTask).filter_by(id=task_uuid, implant_uuid=self.implant_uuid).first()
 
         if task:
             # Update the task response field
@@ -386,9 +371,7 @@ class MySQLImplantTaskService:
             self.session.commit()
         else:
             # If the task is not found, log an error or raise an exception
-            raise ValueError(
-                f"Task with ID {task_uuid} not found for agent {self.implant_uuid}."
-            )
+            raise ValueError(f"Task with ID {task_uuid} not found for agent {self.implant_uuid}.")
 
     def get_all_tasks(self) -> list:
         """
@@ -396,13 +379,9 @@ class MySQLImplantTaskService:
         Returns:
             List of task dictionaries.
         """
-        server_logger.info(f"Retrieving all tasks for implant {self.implant_uuid}")
+        server_logger.info("Retrieving all tasks for implant", implant_uuid=self.implant_uuid)
 
-        tasks = (
-            self.session.query(ImplantTask)
-            .filter_by(implant_uuid=self.implant_uuid)
-            .all()
-        )
+        tasks = self.session.query(ImplantTask).filter_by(implant_uuid=self.implant_uuid).all()
 
         task_list = [
             {
@@ -477,20 +456,14 @@ class MySQLImplantTaskService:
 
         if not isinstance(task_uuid, str):
             server_logger.warning(
-                f"Task UUID {task_uuid} is type {type(task_uuid)}, converting to string."
+                "Task UUID is incorrect type, converting to string.", task_uuid=task_uuid, type=type(task_uuid)
             )
             task_uuid = str(task_uuid)
 
-        server_logger.info(
-            f"Retrieving task {task_uuid} for implant {self.implant_uuid}"
-        )
+        server_logger.info("Retrieving task for implant", task_uuid=task_uuid, implant_uuid=self.implant_uuid)
 
         # Fetch the task by task_uuid and implant_uuid
-        task = (
-            self.session.query(ImplantTask)
-            .filter_by(task_uuid=task_uuid, implant_uuid=self.implant_uuid)
-            .first()
-        )
+        task = self.session.query(ImplantTask).filter_by(task_uuid=task_uuid, implant_uuid=self.implant_uuid).first()
 
         if task:
             # match the dict mapping of get_all_tasks method instead of returning an object
@@ -530,7 +503,7 @@ class MySQLImplantPayloadService:
 
         returns: The MD5 hex string of the payload
         """
-        server_logger.info(f"Registering new payload {payload_name}")
+        server_logger.info("Registering new payload", payload_name=payload_name)
 
         check_type(payload_bytes, bytes, "payload_bytes")
         # check_type(listener_uuid, str, "listener_uuid")
@@ -548,14 +521,10 @@ class MySQLImplantPayloadService:
         # --- ASYNC UPDATE PATH ---
         # If this is the result of an async build job, update the placeholder row.
         if build_uuid:
-            server_logger.info(f"Finalizing build job {build_uuid} with artifacts")
+            server_logger.info("Finalizing build job with artifacts", build_uuid=build_uuid)
 
             # Find the pending row by UUID
-            payload_entry = (
-                self.session.query(ImplantPayload)
-                .filter_by(build_uuid=build_uuid)
-                .first()
-            )
+            payload_entry = self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid).first()
 
             if payload_entry:
                 # Update the existing row with the real data
@@ -567,27 +536,20 @@ class MySQLImplantPayloadService:
                 payload_entry.build_status = "complete"  # Mark job as done
 
                 self.session.commit()
-                server_logger.info(
-                    f"Successfully updated build job {build_uuid} with hash {hash_str}"
-                )
+                server_logger.info("Successfully updated build job", build_uuid=build_uuid, hash=hash_str)
                 return hash_str
             else:
                 server_logger.error(
-                    f"Build UUID {build_uuid} was provided, but no matching row was found. Falling back to new insert."
+                    "Build UUID was provided, but no matching row was found. Falling back to new insert.",
+                    build_uuid=build_uuid,
                 )
 
         # --- STANDARD INSERT PATH ---
         # Deduplication check: See if this file hash already exists
-        existing = (
-            self.session.query(ImplantPayload)
-            .filter_by(payload_hash=hash_bytes)
-            .first()
-        )
+        existing = self.session.query(ImplantPayload).filter_by(payload_hash=hash_bytes).first()
 
         if existing:
-            server_logger.info(
-                f"Payload with hash {hash_str} already exists. Returning existing hash."
-            )
+            server_logger.info("Payload with hash already exists. Returning existing hash.", hash=hash_str)
             return hash_str
 
         # Save to DB (Create new row)
@@ -604,7 +566,7 @@ class MySQLImplantPayloadService:
         self.session.add(payload_entry)
         self.session.commit()
 
-        server_logger.info(f"Successfully committed payload: {hash_str}")
+        server_logger.info("Successfully committed payload", payload_hash=hash_str)
 
         return hash_str
 
@@ -616,7 +578,7 @@ class MySQLImplantPayloadService:
 
         returns: The new Build UUID (str)
         """
-        server_logger.info(f"Registering new build task for payload {payload_name}")
+        server_logger.info("Registering new build task for payload", payload_name=payload_name)
 
         # check_type(listener_uuid, str, "listener_uuid")
         check_type(payload_name, str, "payload_name")
@@ -634,28 +596,24 @@ class MySQLImplantPayloadService:
         self.session.add(payload_entry)
         self.session.commit()
 
-        server_logger.info(f"Successfully initiated build job: {build_uuid}")
+        server_logger.info("Successfully initiated build job", build_uuid=build_uuid)
 
         return build_uuid
 
-    def update_build_status(
-        self, build_uuid, build_status: Literal["building", "complete", "failed"]
-    ):
+    def update_build_status(self, build_uuid, build_status: Literal["building", "complete", "failed"]):
         """
         Updates build status by querying the EXISTING row.
         """
-        server_logger.info(f"Updating status of build {build_uuid} to {build_status}")
+        server_logger.info("Updating status of build", status=build_status, build_uuid=build_uuid)
 
         check_type(build_status, str, "status")
         check_type(build_uuid, str, "build_uuid")
 
         # FETCH the existing row
-        payload_entry = (
-            self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid).first()
-        )
+        payload_entry = self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid).first()
 
         if not payload_entry:
-            server_logger.error(f"Could not find build job {build_uuid} to update!")
+            server_logger.error("Could not find build job to update", build_uuid=build_uuid)
             return
 
         # UPDATE the field on the existing object
@@ -664,9 +622,7 @@ class MySQLImplantPayloadService:
         # COMMIT (SQLAlchemy detects the change on the dirty object)
         self.session.commit()
 
-        server_logger.info(
-            f"Successfully updated status of: {build_uuid} to {build_status}"
-        )
+        server_logger.info("Successfully updated status", build_uuid=build_uuid, build_status=build_status)
 
     def get_payload_by_hash(self, payload_hash: str):
         """
@@ -677,25 +633,21 @@ class MySQLImplantPayloadService:
         """
         check_type(payload_hash, str, "payload_hash")
 
-        server_logger.info(f"Retrieving payload for hash {payload_hash}")
+        server_logger.info("Retrieving payload for hash", payload_hash=payload_hash)
 
         try:
             # Encode string -> bytes for the lookup
             hash_bytes = bytes.fromhex(payload_hash)
         except ValueError:
-            server_logger.error(f"Invalid hex string provided: {payload_hash}")
+            server_logger.error("Invalid hex string provided", payload_hash=payload_hash)
             return None
 
-        payload = (
-            self.session.query(ImplantPayload)
-            .filter_by(payload_hash=hash_bytes)
-            .first()
-        )
+        payload = self.session.query(ImplantPayload).filter_by(payload_hash=hash_bytes).first()
 
         if payload:
             return payload
         else:
-            server_logger.warning(f"No payload found for hash {payload_hash}")
+            server_logger.warning("No payload found for hash", payload_hash=payload_hash)
             return None
 
     def get_build_job_by_uuid(self, build_uuid: str) -> dict:
@@ -704,16 +656,14 @@ class MySQLImplantPayloadService:
         """
         check_type(build_uuid, str, "build_uuid")
 
-        server_logger.info(f"Retrieving build job status for {build_uuid}")
+        server_logger.info("Retrieving build job status", build_uuid=build_uuid)
 
-        payload = (
-            self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid).first()
-        )
+        payload = self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid).first()
 
         if payload:
             return payload.to_dict()
         else:
-            server_logger.warning(f"No build job found for build uuid {build_uuid}")
+            server_logger.warning("No build job found", build_uuid=build_uuid)
             return None
 
     def get_payloads_by_listener(self, listener_uuid: str) -> list:
@@ -723,13 +673,9 @@ class MySQLImplantPayloadService:
         """
         check_type(listener_uuid, str, "listener_name")
 
-        server_logger.info(f"Retrieving all payloads for listener {listener_uuid}")
+        server_logger.info("Retrieving all payloads for listener", listener_uuid=listener_uuid)
 
-        payloads = (
-            self.session.query(ImplantPayload)
-            .filter_by(payload_listener=listener_uuid)
-            .all()
-        )
+        payloads = self.session.query(ImplantPayload).filter_by(payload_listener=listener_uuid).all()
 
         results = []
         for p in payloads:
@@ -776,26 +722,20 @@ class MySQLImplantPayloadService:
         Delete a payload by hash (Hex String).
         """
         check_type(payload_hash, str, "payload_hash")
-        server_logger.info(f"Deleting payload {payload_hash}")
+        server_logger.info("Deleting payload", payload_hash=payload_hash)
 
         try:
             # Encode string -> bytes for the lookup
             hash_bytes = bytes.fromhex(payload_hash)
         except ValueError:
-            server_logger.error(f"Invalid hex string provided: {payload_hash}")
+            server_logger.error("Invalid hex string provided", payload_hash=payload_hash)
             return
 
-        payload = (
-            self.session.query(ImplantPayload)
-            .filter_by(payload_hash=hash_bytes)
-            .first()
-        )
+        payload = self.session.query(ImplantPayload).filter_by(payload_hash=hash_bytes).first()
 
         if payload:
             self.session.delete(payload)
             self.session.commit()
             server_logger.info("Payload deleted successfully.")
         else:
-            server_logger.warning(
-                f"Attempted to delete non-existent payload {payload_hash}."
-            )
+            server_logger.warning("Attempted to delete non-existent payload", payload_hash=payload_hash)

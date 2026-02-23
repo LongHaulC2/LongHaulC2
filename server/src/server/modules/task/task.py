@@ -5,20 +5,17 @@ Tasks are defined in dataclasses in schemas.implant.py
 
 """
 
-import logging
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
 
 import msgpack
-from edwh_uuid7 import uuid7
+import structlog
 
-from ...db.mysql_connector import get_mysql_session
 from ...modules.mysql_functions import MySQLImplantTaskService
 from ...modules.redis_functions import RedisImplantTaskService
 from ...schemas.implant import Task, TaskDetail
 from ...utils.checks import check_type
 
-server_logger = logging.getLogger("server")
+server_logger = structlog.getLogger("server")
 
 
 class TaskService:
@@ -42,7 +39,8 @@ class TaskService:
 
         Args:
             task (Task): A Task dataclass instance that has the current task in it
-            session (_type_): A session for the MySQL db. Passed in, for consistent session usage (hit a bug where I was re-initing the session and it caused DB errors)
+            session (_type_): A session for the MySQL db. Passed in, for consistent session usage (hit a bug where I
+            was re-initing the session and it caused DB errors)
         """
         self.task = task
         self.session = session  # mysql session for consistent session useage
@@ -124,9 +122,7 @@ class TaskService:
         # Log task into mysql
         # create blank row in mysql, get taskID (which mysql generates, sequentially), append to task.
         # with get_mysql_session() as session:
-        mysql_implant_service = MySQLImplantTaskService(
-            implant_uuid=implant_uuid, session=self.session
-        )
+        mysql_implant_service = MySQLImplantTaskService(implant_uuid=implant_uuid, session=self.session)
         mysql_implant_service.create_entry(task_uuid=task_uuid)
         mysql_implant_service.update_request(task_uuid=task_uuid, request=self.task)
 

@@ -16,3 +16,5 @@ requests
 docker
 neomodel
 pandas
+pre-commit
+ruff

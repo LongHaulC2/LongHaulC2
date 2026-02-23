@@ -1,4 +1,4 @@
-from flask_restx import Namespace, Resource, fields
+from flask_restx import fields
 
 from ..instance import api
 
@@ -34,9 +34,7 @@ def wrap_response_empty(api, model_name):
     return api.model(
         model_name,
         {
-            "data": fields.String(
-                example="", description="No data returned", default=None
-            ),
+            "data": fields.String(example="", description="No data returned", default=None),
             "message": fields.String(example="Success"),
             "status": fields.String(example="200"),
         },
@@ -79,12 +77,8 @@ BUILD_GET_RESPONSE = wrap_response_list(api, BUILD_GET_MODEL)
 BUILD_POST_INPUT = api.model(
     "BUILD_POST_INPUT",
     {
-        "implant_name": fields.String(
-            required=True, description="Name of the implant", example="implant_one"
-        ),
-        "output_format": fields.String(
-            required=True, description="Output format (e.g., exe, bin)", example="exe"
-        ),
+        "implant_name": fields.String(required=True, description="Name of the implant", example="implant_one"),
+        "output_format": fields.String(required=True, description="Output format (e.g., exe, bin)", example="exe"),
         "listener_uuids": fields.List(
             fields.String,
             required=True,
@@ -108,11 +102,7 @@ BUILD_POST_INPUT = api.model(
 )
 BUILD_POST_MODEL = api.model(
     "BUILD_POST_MODEL",
-    {
-        "build_uuid": fields.String(
-            description="The UUID of the initiated build job", example="019c..."
-        )
-    },
+    {"build_uuid": fields.String(description="The UUID of the initiated build job", example="019c...")},
 )
 BUILD_POST_RESPONSE = wrap_response_single(api, BUILD_POST_MODEL)
 
@@ -154,9 +144,7 @@ BUILDJOBS_GET_RESPONSE = wrap_response_single(api, BUILDJOBS_GET_MODEL)
 ######################################################################
 
 # --- DELETE /<hash> ---
-BINARYACTIONS_DELETE_RESPONSE = wrap_response_empty(
-    api, "BINARYACTIONS_DELETE_RESPONSE"
-)
+BINARYACTIONS_DELETE_RESPONSE = wrap_response_empty(api, "BINARYACTIONS_DELETE_RESPONSE")
 
 
 ######################################################################

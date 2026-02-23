@@ -1,24 +1,16 @@
-import logging
-from dataclasses import asdict
-
-from edwh_uuid7 import uuid7
+import structlog
 from flask import request
-from flask_restx import Namespace, Resource, fields
+from flask_restx import Namespace, Resource
 from neomodel import db
 
-from ...api_models.error import *
-from ...api_models.listener import *
-from ...db.mysql_connector import get_mysql_session
+from ...api_models.error import COMMON_ERRORS
+from ...api_models.listener import LISTENER_GET_RESPONSE
 from ...instance import api
-from ...listeners.supervisor import start_listener, stop_listener
-from ...modules.mysql_functions import ListenerService
-from ...schemas.listeners import ListenerCreate
-from ...utils.checks import check_type
 from ...utils.response import APIResponse
 
 graph_ns = Namespace("graph", description="Graph related endpoints")
-api_logger = logging.getLogger("api")
-server_logger = logging.getLogger("server")
+api_logger = structlog.getLogger("api")
+server_logger = structlog.getLogger("server")
 
 
 # Error handlers
@@ -46,12 +38,7 @@ class Graph(Resource):
         """
         ip = request.remote_addr
 
-        api_logger.info(
-            f"Getting graph data",
-            extra={
-                "caller_ip": ip,
-            },
-        )
+        api_logger.info("Getting graph data", caller_ip=ip)
 
         query = """
             // 1. Fetch Categories
@@ -60,24 +47,24 @@ class Graph(Resource):
                 WITH DISTINCT labels(n)[0] AS label
                 RETURN collect({name: label}) AS categories
             }
-            
+
             // 2. Fetch Nodes
             CALL {
                 MATCH (n)
                 RETURN collect({
                     id: toString(elementId(n)),
-                    name: CASE 
+                    name: CASE
                         WHEN "Neo4jImplantNode" IN labels(n) THEN coalesce(n.implant_uuid, "Unknown")
                         WHEN "Neo4jNetworkNode" IN labels(n) THEN coalesce(n.cidr, "Unknown")
                         WHEN "Neo4jNetworkGatewayNode" IN labels(n) THEN coalesce(n.host, "Unknown")
                         WHEN "Neo4jHostNode" IN labels(n) THEN coalesce(n.address, "Unknown")
                         ELSE coalesce(n.ip_address, n.hostname, n.process, "Unknown_" + toString(elementId(n)))
                     END,
-                    category: labels(n)[0], 
+                    category: labels(n)[0],
                     props: properties(n)
                 }) AS nodes
             }
-            
+
             // 3. Fetch Links
             CALL {
                 MATCH (a)-[r]->(b)
@@ -88,7 +75,7 @@ class Graph(Resource):
                     props: properties(r)
                 }) AS links
             }
-            
+
             // 4. Return as a single structured dictionary
             RETURN {
                 categories: categories,
@@ -101,11 +88,7 @@ class Graph(Resource):
         results, _ = db.cypher_query(query)
 
         # results[0][0] contains our beautifully formatted dictionary straight from Neo4j
-        graph_dict = (
-            results[0][0]
-            if results and results[0]
-            else {"categories": [], "nodes": [], "links": []}
-        )
+        graph_dict = results[0][0] if results and results[0] else {"categories": [], "nodes": [], "links": []}
 
         api_response = APIResponse(
             status="200",

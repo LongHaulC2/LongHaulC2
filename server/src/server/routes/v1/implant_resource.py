@@ -1,28 +1,43 @@
 import base64
-import logging
 from dataclasses import asdict
 
 import msgpack
+import structlog
 from edwh_uuid7 import uuid7
 from flask import request
-from flask_restx import Namespace, Resource, fields
+from flask_restx import Namespace, Resource, reqparse
 
-from ...api_models.error import *
-from ...api_models.implants import *
+from ...api_models.error import COMMON_ERRORS
+from ...api_models.implants import (
+    IMPLANT_DELETE_RESPONSE,
+    IMPLANT_GET_RESPONSE,
+    IMPLANT_HISTORY_GET_RESPONSE,
+    IMPLANT_PUT_INPUT,
+    IMPLANT_PUT_RESPONSE,
+    IMPLANT_SEARCH_POST_INPUT,
+    IMPLANT_SEARCH_POST_RESPONSE,
+    IMPLANT_TASK_POST_INPUT,
+    IMPLANT_TASK_POST_RESPONSE,
+    IMPLANT_TASKS_DELETE_RESPONSE,
+    IMPLANT_TASKS_GET_RESPONSE,
+    IMPLANTS_GET_RESPONSE,
+    TASK_SEARCH_POST_INPUT,
+    TASK_SEARCH_POST_RESPONSE,
+)
 from ...db.mysql_connector import get_mysql_session
 from ...instance import api
 from ...modules.mysql_functions import MySQLImplantTaskService, MySQLSearchService
 from ...modules.neo4j_functions import Neo4jImplantNodeService
 from ...modules.redis_functions import RedisImplantTaskService
 from ...modules.task.task import TaskService
-from ...schemas.implant import *
+from ...schemas.implant import ImplantUpdate, Search, Task
 from ...utils.checks import check_type
 from ...utils.response import APIResponse
 
 implants_ns = Namespace("implants", description="Implant related operations")
 
-api_logger = logging.getLogger("api")
-server_logger = logging.getLogger("server")
+api_logger = structlog.getLogger("api")
+server_logger = structlog.getLogger("server")
 
 
 # Error handlers
@@ -53,7 +68,7 @@ class Implants(Resource):
         Gets all implants
         """
         ip = request.remote_addr
-        api_logger.info("Getting all implants", extra={"caller_ip": ip})
+        api_logger.info("Getting all implants", caller_ip=ip)
 
         # with get_mysql_session() as session:
         #     implant_service = ImplantService(session)
@@ -77,7 +92,7 @@ class Implants(Resource):
     #     Create a new implant entry
     #     """
     #     ip = request.remote_addr
-    #     api_logger.info("Creating an implant", extra={"caller_ip": ip})
+    #     api_logger.info("Creating an implant", caller_ip=ip)
 
     #     with get_mysql_session() as session:
     #         implant_service = ImplantService(session)
@@ -91,7 +106,7 @@ class Implants(Resource):
 
     #     data = {"uuid": implant_uuid}
 
-    #     api_logger.info(f"Implant {implant_uuid} created", extra={"caller_ip": ip})
+    #     api_logger.info(f"Implant {implant_uuid} created", caller_ip=ip)
     #     return APIResponse(
     #         status="200", message=f"Implant {implant_uuid} created", data=data
     #     )
@@ -111,7 +126,7 @@ class Implant(Resource):
         Gets one implant based on user supplied ID
         """
         ip = request.remote_addr
-        api_logger.info(f"Getting implant {uuid} data", extra={"caller_ip": ip})
+        api_logger.info("Getting implant data", implant_uuid=uuid, caller_ip=ip)
 
         check_type(uuid, str, "uuid")
 
@@ -139,7 +154,7 @@ class Implant(Resource):
         Update a single implant by its unique ID.
         """
         ip = request.remote_addr
-        api_logger.info(f"Updating implant {uuid}'s data", extra={"caller_ip": ip})
+        api_logger.info("Updating implant data", implant_uuid=uuid, caller_ip=ip)
         check_type(uuid, str, "uuid")
 
         implant_data = ImplantUpdate(implant_uuid=uuid, **api.payload)
@@ -148,11 +163,9 @@ class Implant(Resource):
         #     implant_service = ImplantService(session)
         #     implant_service.update(uuid, implant_data)
 
-        Neo4jImplantNodeService.update_by_uuid(
-            implant_uuid=uuid, data=asdict(implant_data)
-        )
+        Neo4jImplantNodeService.update_by_uuid(implant_uuid=uuid, data=asdict(implant_data))
 
-        api_logger.info(f"Updated implant {uuid} successfully", extra={"caller_ip": ip})
+        api_logger.info("Updated implant successfully", implant_uuid=uuid, caller_ip=ip)
         return APIResponse(status="200", message="Success")
 
     @implants_ns.doc(
@@ -168,7 +181,7 @@ class Implant(Resource):
         Deletes one implant based on user supplied ID
         """
         ip = request.remote_addr
-        api_logger.info(f"Deleting implant {uuid}", extra={"caller_ip": ip})
+        api_logger.info("Deleting implant", implant_uuid=uuid, caller_ip=ip)
 
         check_type(uuid, str, "uuid")
 
@@ -177,7 +190,7 @@ class Implant(Resource):
         #     implant_service.delete(uuid)
         Neo4jImplantNodeService.delete_by_uuid(implant_uuid=uuid)
 
-        api_logger.info(f"Implant {uuid} deleted successfully", extra={"caller_ip": ip})
+        api_logger.info("Implant deleted successfully", implant_uuid=uuid, caller_ip=ip)
         return APIResponse(status=200, message="Implant deleted successfully")
 
 
@@ -197,7 +210,7 @@ class ImplantTask(Resource):
         Add a task to a single implant by its unique ID.
         """
         ip = request.remote_addr
-        api_logger.info(f"Enqueued a task for {uuid}", extra={"caller_ip": ip})
+        api_logger.info("Enqueued a task", implant_uuid=uuid, caller_ip=ip)
         check_type(uuid, str, "uuid")
 
         if request.content_type == "application/msgpack":
@@ -215,9 +228,7 @@ class ImplantTask(Resource):
         task_uuid = task_service.task.task_uuid
         data = {"task_uuid": task_uuid}
 
-        api_logger.info(
-            f"Task {task_uuid} for {uuid} enqueued", extra={"caller_ip": ip}
-        )
+        api_logger.info("Task enqueued", task_uuid=task_uuid, implant_uuid=uuid, caller_ip=ip)
         return APIResponse(status="200", message="Queued task successfully", data=data)
 
 
@@ -228,18 +239,14 @@ class ImplantTasks(Resource):
         params={"uuid": {"description": "Agent ID", "in": "path"}},
         responses=COMMON_ERRORS,
     )
-    @implants_ns.response(
-        200, "A list of tasks for the current implant", IMPLANT_TASKS_GET_RESPONSE
-    )
+    @implants_ns.response(200, "A list of tasks for the current implant", IMPLANT_TASKS_GET_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_TASKS_GET_RESPONSE)
     def get(self, uuid):
         """
         Peek all currently queued tasks of implant.
         """
         ip = request.remote_addr
-        api_logger.info(
-            f"Getting queued tasks for implant {uuid}", extra={"caller_ip": ip}
-        )
+        api_logger.info("Getting queued tasks for implant", implant_uuid=uuid, caller_ip=ip)
         check_type(uuid, str, "uuid")
 
         its = RedisImplantTaskService(uuid)
@@ -262,32 +269,22 @@ class ImplantTasks(Resource):
         params={"uuid": {"description": "Agent ID", "in": "path"}},
         responses=COMMON_ERRORS,
     )
-    @implants_ns.response(
-        200, "The tasks for the implant were cleared", IMPLANT_TASKS_DELETE_RESPONSE
-    )
+    @implants_ns.response(200, "The tasks for the implant were cleared", IMPLANT_TASKS_DELETE_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_TASKS_DELETE_RESPONSE)
     def delete(self, uuid):
         """
         Delete all the currently queued tasks of an agent.
         """
         ip = request.remote_addr
-        api_logger.info(
-            f"Deleting all tasks for implant {uuid}", extra={"caller_ip": ip}
-        )
+        api_logger.info("Deleting all tasks for implant", implant_uuid=uuid, caller_ip=ip)
         check_type(uuid, str, "uuid")
 
         its = RedisImplantTaskService(uuid)
         its.clear_queue()
 
-        api_logger.info(
-            f"All pending tasks for {uuid} deleted", extra={"caller_ip": ip}
-        )
-        return APIResponse(
-            status="200", message=f"Cleared all pending tasks from implant {uuid}"
-        )
+        api_logger.info("All pending tasks deleted", implant_uuid=uuid, caller_ip=ip)
+        return APIResponse(status="200", message=f"Cleared all pending tasks from implant {uuid}")
 
-
-from flask_restx import reqparse
 
 history_parser = reqparse.RequestParser()
 history_parser.add_argument(
@@ -318,21 +315,19 @@ class ImplantHistory(Resource):
         check_type(uuid, str, "uuid")
 
         with get_mysql_session() as session:
-            mysql_implant_service = MySQLImplantTaskService(
-                implant_uuid=uuid, session=session
-            )
+            mysql_implant_service = MySQLImplantTaskService(implant_uuid=uuid, session=session)
             if since:
                 api_logger.info(
-                    f"Requesting history since {since} for {uuid}",
-                    extra={"caller_ip": ip},
+                    "Requesting history",
+                    since=since,
+                    implant_uuid=uuid,
+                    caller_up=ip,
                 )
                 tasks = mysql_implant_service.get_tasks_since_previous_uuid_of_implant(
                     implant_uuid=uuid, last_task_uuid=since
                 )
             else:
-                api_logger.info(
-                    f"Requesting history for {uuid}", extra={"caller_ip": ip}
-                )
+                api_logger.info("Requesting history for implant", implant_uuid=uuid, caller_ip=ip)
                 tasks = mysql_implant_service.get_all_tasks()
 
         return APIResponse(status="200", message="Success", data=tasks)
@@ -345,9 +340,7 @@ class ImplantSearch(Resource):
         responses=COMMON_ERRORS,
     )
     @implants_ns.expect(IMPLANT_SEARCH_POST_INPUT)
-    @implants_ns.response(
-        200, "A list of all resulting implants", IMPLANT_SEARCH_POST_RESPONSE
-    )
+    @implants_ns.response(200, "A list of all resulting implants", IMPLANT_SEARCH_POST_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_SEARCH_POST_RESPONSE)
     def post(self):
         """
@@ -355,18 +348,14 @@ class ImplantSearch(Resource):
         """
         ip = request.remote_addr
         implant_data = Search(**api.payload)
-        api_logger.info(
-            f"Searching implants: {implant_data.search_term}", extra={"caller_ip": ip}
-        )
+        api_logger.info("Searching implants", search_term=implant_data.search_term, caller_ip=ip)
 
         # with get_mysql_session() as session:
         #     implant_service = MySQLSearchService(session)
         #     search_results = implant_service.search_implants(
         #         search_term=implant_data.search_term
         #     )
-        search_results = Neo4jImplantNodeService.search_implants(
-            search_term=implant_data.search_term
-        )
+        search_results = Neo4jImplantNodeService.search_implants(search_term=implant_data.search_term)
 
         return APIResponse(status="200", message="Success", data=search_results)
 
@@ -386,15 +375,11 @@ class TaskSearch(Resource):
         """
         ip = request.remote_addr
         search_data = Search(**api.payload)
-        api_logger.info(
-            f"Searching tasks: {search_data.search_term}", extra={"caller_ip": ip}
-        )
+        api_logger.info("Searching tasks", search_term=search_data.search_term, caller_ip=ip)
 
         with get_mysql_session() as session:
             implant_service = MySQLSearchService(session)
-            search_results = implant_service.search_tasks(
-                search_term=search_data.search_term
-            )
+            search_results = implant_service.search_tasks(search_term=search_data.search_term)
 
         return APIResponse(status="200", message="Success", data=search_results)
 

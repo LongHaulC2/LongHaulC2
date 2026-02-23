@@ -1,12 +1,19 @@
-import logging
 from dataclasses import asdict
 
+import structlog
 from edwh_uuid7 import uuid7
 from flask import request
-from flask_restx import Namespace, Resource, fields
+from flask_restx import Namespace, Resource
 
-from ...api_models.error import *
-from ...api_models.listener import *
+from ...api_models.error import COMMON_ERRORS
+from ...api_models.listener import (
+    LISTENER_DELETE_RESPONSE,
+    LISTENER_GET_RESPONSE,
+    LISTENER_PATCH_RESPONSE,
+    LISTENERS_GET_RESPONSE,
+    LISTENERS_POST_INPUT,
+    LISTENERS_POST_RESPONSE,
+)
 from ...db.mysql_connector import get_mysql_session
 from ...instance import api
 from ...listeners.supervisor import start_listener, stop_listener
@@ -17,8 +24,8 @@ from ...utils.checks import check_type
 from ...utils.response import APIResponse
 
 listener_ns = Namespace("listeners", description="Listener related operations")
-api_logger = logging.getLogger("api")
-server_logger = logging.getLogger("server")
+api_logger = structlog.getLogger("api")
+server_logger = structlog.getLogger("server")
 
 
 # Error handlers
@@ -39,9 +46,7 @@ class Listener(Resource):
         params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
         responses=COMMON_ERRORS,
     )
-    @listener_ns.response(
-        200, "Retrieved listener data successfully", LISTENER_GET_RESPONSE
-    )
+    @listener_ns.response(200, "Retrieved listener data successfully", LISTENER_GET_RESPONSE)
     @listener_ns.marshal_with(LISTENER_GET_RESPONSE)
     def get(self, uuid):
         """
@@ -49,12 +54,7 @@ class Listener(Resource):
         """
         ip = request.remote_addr
 
-        api_logger.info(
-            f"Getting listener {uuid} data",
-            extra={
-                "caller_ip": ip,
-            },
-        )
+        api_logger.info("Getting listener data", listener_uuid=uuid, caller_ip=ip)
         check_type(uuid, str, "uuid")
 
         with get_mysql_session() as session:
@@ -81,9 +81,7 @@ class Listener(Resource):
         params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
         responses=COMMON_ERRORS,
     )
-    @listener_ns.response(
-        200, "The listener was deleted successfully", LISTENER_DELETE_RESPONSE
-    )
+    @listener_ns.response(200, "The listener was deleted successfully", LISTENER_DELETE_RESPONSE)
     @listener_ns.marshal_with(LISTENER_DELETE_RESPONSE)
     def delete(self, uuid):  # delete one listener based on ID
         """
@@ -91,12 +89,7 @@ class Listener(Resource):
         """
         ip = request.remote_addr
 
-        api_logger.info(
-            f"Stopping listener {uuid}",
-            extra={
-                "caller_ip": ip,
-            },
-        )
+        api_logger.info("Stopping listener", listener_uuid=uuid, caller_ip=ip)
         check_type(uuid, str, "uuid")
 
         # if successful, remove from db
@@ -106,12 +99,7 @@ class Listener(Resource):
             listener_service = ListenerService(session)
             listener_service.delete(uuid)
 
-        api_logger.info(
-            f"Listener {uuid} deleted successfully",
-            extra={
-                "caller_ip": ip,
-            },
-        )
+        api_logger.info("Listener deleted successfully", listener_uuid=uuid, caller_ip=ip)
 
         api_response = APIResponse(
             status=200,
@@ -125,9 +113,7 @@ class Listener(Resource):
         responses=COMMON_ERRORS,
         params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
     )
-    @listener_ns.response(
-        200, "The listener was restarted successfully", LISTENER_PATCH_RESPONSE
-    )
+    @listener_ns.response(200, "The listener was restarted successfully", LISTENER_PATCH_RESPONSE)
     @listener_ns.marshal_with(LISTENER_PATCH_RESPONSE)
     def patch(self, uuid):
         """
@@ -184,9 +170,7 @@ class Listeners(Resource):
         description="Retrieve all listeners in the DB.",
         responses=COMMON_ERRORS,
     )
-    @listener_ns.response(
-        200, "Retrieved all listener data successfully", LISTENERS_GET_RESPONSE
-    )
+    @listener_ns.response(200, "Retrieved all listener data successfully", LISTENERS_GET_RESPONSE)
     @listener_ns.marshal_with(LISTENERS_GET_RESPONSE)
     def get(self):
         """
@@ -194,12 +178,7 @@ class Listeners(Resource):
         """
         ip = request.remote_addr
 
-        api_logger.info(
-            "Getting all listeners",
-            extra={
-                "caller_ip": ip,
-            },
-        )
+        api_logger.info("Getting all listeners", caller_ip=ip)
 
         with get_mysql_session() as session:
             listener_service = ListenerService(session)
@@ -222,9 +201,7 @@ class Listeners(Resource):
         responses=COMMON_ERRORS,
     )
     @listener_ns.expect(LISTENERS_POST_INPUT)
-    @listener_ns.response(
-        200, "Successfully created a new listener", LISTENERS_POST_RESPONSE
-    )
+    @listener_ns.response(200, "Successfully created a new listener", LISTENERS_POST_RESPONSE)
     @listener_ns.marshal_with(LISTENERS_POST_RESPONSE)
     def post(self):
         """
@@ -232,12 +209,7 @@ class Listeners(Resource):
         """
         ip = request.remote_addr
 
-        api_logger.info(
-            "Creating a listener",
-            extra={
-                "caller_ip": ip,
-            },
-        )
+        api_logger.info("Creating a listener", caller_ip=ip)
 
         listener_uuid = str(uuid7())
         listener_dataclass = ListenerCreate(
@@ -274,12 +246,7 @@ class Listeners(Resource):
             data=data,
         )
 
-        api_logger.info(
-            f"Listener {listener_id} started",
-            extra={
-                "caller_ip": ip,
-            },
-        )
+        api_logger.info("Listener started", listener_uuid=listener_id, caller_ip=ip)
 
         return api_response
 

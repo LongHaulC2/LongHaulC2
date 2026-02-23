@@ -16,12 +16,11 @@ from client.src.client.modules.task_definitions import (
     get_all_command_names,
     task_tree,
 )
-from client.src.client.pages.dialogues import *
+from client.src.client.pages.dialogues import upload_dialog
 from client.src.client.pages.listeners import start_listener_dialogue
 from client.src.client.pages.menu import setup_menu
 from client.src.client.pages.notes import open_notes_dialog
 from client.src.client.pages.payloads import start_payload_dialogue
-from client.src.client.style import BUTTON_COLOR, ICON_COLOR, TEXT_COLOR
 from client.src.client.utils.url import generate_url
 
 from ..utils.checks import check_type
@@ -63,12 +62,10 @@ async def operations():
     # Main Layout (Splitter)
     # Using a container that matches the background
     with ui.element().classes("w-full h-full gap-0"):
-
         # Splitter: Left (Implants) vs Right (Terminal)
         with ui.splitter(horizontal=True, value=50).classes("w-full h-full").props(
             "separator-class=bg-white/10 separator-style=width:1px"
         ) as splitter:
-
             with splitter.before:
                 await implant_view()
 
@@ -87,20 +84,13 @@ async def delete_implant(implant_uuid=str) -> None:
 # IMPLANT VIEW (LEFT PANEL)
 # -------------------------------
 async def implant_view():
-
     previous_ids = set()
     table_initialized = False
 
     # Glass Panel Container
-    with ui.column().classes(
-        "w-full h-full gap-0 tech-glass-panel rounded-none border-0 border-r border-white/5"
-    ):
-
+    with ui.column().classes("w-full h-full gap-0 tech-glass-panel rounded-none border-0 border-r border-white/5"):
         # Header Bar
-        with ui.row().classes(
-            "w-full items-center justify-between tech-header-bar h-14"
-        ):
-
+        with ui.row().classes("w-full items-center justify-between tech-header-bar h-14"):
             # Title
             with ui.row().classes("items-center gap-2"):
                 ui.icon("hub", color="emerald-500").classes("text-xl")
@@ -108,18 +98,17 @@ async def implant_view():
 
             # Toolbar
             with ui.row().classes("items-center gap-1"):
-
                 # Payloads
-                with ui.button(on_click=lambda: start_payload_dialogue()).classes(
-                    "tech-btn-action px-2"
-                ).props("dense flat size=sm"):
+                with ui.button(on_click=lambda: start_payload_dialogue()).classes("tech-btn-action px-2").props(
+                    "dense flat size=sm"
+                ):
                     ui.icon("add", size="xs").classes("mr-1")
                     ui.label("PAYLOAD").classes("text-[10px] font-bold")
                     ui.tooltip("Build New Payload")
 
-                with ui.button(on_click=lambda: start_listener_dialogue()).classes(
-                    "tech-btn-action px-2"
-                ).props("dense flat size=sm"):
+                with ui.button(on_click=lambda: start_listener_dialogue()).classes("tech-btn-action px-2").props(
+                    "dense flat size=sm"
+                ):
                     ui.icon("add", size="xs").classes("mr-1")
                     ui.label("LISTENER").classes("text-[10px] font-bold")
                     ui.tooltip("Start a Listener")
@@ -127,11 +116,9 @@ async def implant_view():
                 ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
 
                 # Terminal (Open)
-                ui.button(
-                    icon="terminal", on_click=lambda: action_open_terminal()
-                ).classes("tech-btn-ghost").props("dense flat size=sm round").tooltip(
-                    "Open Terminal for Selected"
-                )
+                ui.button(icon="terminal", on_click=lambda: action_open_terminal()).classes("tech-btn-ghost").props(
+                    "dense flat size=sm round"
+                ).tooltip("Open Terminal for Selected")
 
                 # God Shell
                 # ui.button(
@@ -147,26 +134,20 @@ async def implant_view():
                 ui.button(
                     # get all selected to upload to
                     icon="present_to_all",
-                    on_click=lambda: upload_dialog(
-                        [row["implant_uuid"] for row in table.selected]
-                    ),
-                ).classes(
-                    "text-orange-400 hover:text-orange-200 transition-colors"
-                ).props(
+                    on_click=lambda: upload_dialog([row["implant_uuid"] for row in table.selected]),
+                ).classes("text-orange-400 hover:text-orange-200 transition-colors").props(
                     "dense flat size=sm round"
-                ).tooltip(
-                    "Upload File"
-                )
+                ).tooltip("Upload File")
 
                 # Notes
-                ui.button(icon="notes", on_click=lambda: handle_notes()).classes(
-                    "tech-btn-ghost"
-                ).props("dense flat size=sm round").tooltip("Edit Notes")
+                ui.button(icon="notes", on_click=lambda: handle_notes()).classes("tech-btn-ghost").props(
+                    "dense flat size=sm round"
+                ).tooltip("Edit Notes")
 
                 # Refresh
-                ui.button(icon="refresh", on_click=lambda: refresh()).classes(
-                    "tech-btn-ghost"
-                ).props("dense flat size=sm round").tooltip("Force Refresh")
+                ui.button(icon="refresh", on_click=lambda: refresh()).classes("tech-btn-ghost").props(
+                    "dense flat size=sm round"
+                ).tooltip("Force Refresh")
 
                 ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
 
@@ -176,10 +157,7 @@ async def implant_view():
                 ).props("dense flat size=sm round").tooltip("Nuke Selected")
 
         # Table Container
-        with ui.column().classes(
-            "w-full flex-grow relative overflow-hidden bg-transparent"
-        ):
-
+        with ui.column().classes("w-full flex-grow relative overflow-hidden bg-transparent"):
             table = (
                 ui.table(
                     columns=[],
@@ -218,11 +196,11 @@ async def implant_view():
             table.add_slot(
                 "body-cell-notes",
                 r"""
-                <q-td :props="props">
-                    <div style="max-height: 20px; max-width: 200px; overflow: hidden;" class="opacity-70 text-xs font-mono"> 
-                        <span v-if="props.row.notes" v-html="props.row.notes"></span>
-                    </div>
-                </q-td>
+<q-td :props="props">
+    <div style="max-height: 20px; max-width: 200px; overflow: hidden;" class="opacity-70 text-xs font-mono">
+        <span v-if="props.row.notes" v-html="props.row.notes"></span>
+    </div>
+</q-td>
             """,
             )
 
@@ -230,12 +208,12 @@ async def implant_view():
             table.add_slot(
                 "header",
                 r"""
-                <q-tr :props="props" class="bg-white/5 text-neutral-400 uppercase text-xs tracking-wider border-b border-white/10">
-                    <q-th auto-width />
-                    <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                        {{ col.label }}
-                    </q-th>
-                </q-tr>
+<q-tr :props="props" class="bg-white/5 text-neutral-400 uppercase text-xs tracking-wider border-b border-white/10">
+    <q-th auto-width />
+    <q-th v-for="col in props.cols" :key="col.name" :props="props">
+        {{ col.label }}
+    </q-th>
+</q-tr>
             """,
             )
 
@@ -262,20 +240,14 @@ async def implant_view():
             implant_uuid = ids[0]
             implant_data = await get_implant_data(implant_uuid=implant_uuid)
             implant_notes = implant_data.get("data", {}).get("notes")
-            notes = await open_notes_dialog(
-                implant_uuid=f"ID: {implant_uuid}", populate_editor_with=implant_notes
-            )
+            notes = await open_notes_dialog(implant_uuid=f"ID: {implant_uuid}", populate_editor_with=implant_notes)
             await update_implant(implant_uuid=implant_uuid, data={"notes": notes})
         elif len(ids) > 1:
-            notes = await open_notes_dialog(
-                implant_uuid=f"Editing {len(ids)} implants notes"
-            )
+            notes = await open_notes_dialog(implant_uuid=f"Editing {len(ids)} implants notes")
             for implant_uuid in ids:
                 await update_implant(implant_uuid=implant_uuid, data={"notes": notes})
         else:
-            ui.notify(
-                "Select an implant to edit notes", type="warning", color="orange-9"
-            )
+            ui.notify("Select an implant to edit notes", type="warning", color="orange-9")
 
     ui.timer(1, refresh)
 
@@ -287,14 +259,9 @@ async def terminal_view():
     global tabs, panels
 
     # Glass Panel Container
-    with ui.column().classes(
-        "w-full h-full gap-0 tech-glass-panel rounded-none border-0"
-    ):
-
+    with ui.column().classes("w-full h-full gap-0 tech-glass-panel rounded-none border-0"):
         # Header / Tabs
-        with ui.row().classes(
-            "w-full items-center bg-black/20 border-b border-white/5 px-2 h-10 gap-2"
-        ):
+        with ui.row().classes("w-full items-center bg-black/20 border-b border-white/5 px-2 h-10 gap-2"):
             ui.icon("terminal", size="xs", color="emerald-500")
             ui.label("TERMINAL //").classes("tech-label-subtitle mr-4")
 
@@ -305,18 +272,12 @@ async def terminal_view():
             tabs.classes("bg-transparent h-full flex-grow")
 
             ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
-            ui.button(icon="delete_sweep", on_click=terminal_close_all).props(
-                "flat dense round size=sm"
-            ).classes("text-neutral-500 hover:text-red-400 transition-colors").tooltip(
-                "Close All Terminals"
-            )
+            ui.button(icon="delete_sweep", on_click=terminal_close_all).props("flat dense round size=sm").classes(
+                "text-neutral-500 hover:text-red-400 transition-colors"
+            ).tooltip("Close All Terminals")
 
         # The Panel Container
-        panels = (
-            ui.tab_panels(tabs)
-            .classes("w-full h-full bg-neutral-900/40")
-            .props("dense transition-duration=0")
-        )
+        panels = ui.tab_panels(tabs).classes("w-full h-full bg-neutral-900/40").props("dense transition-duration=0")
     # Inside your terminal_view header or tab label
     # label_checkin = ui.label("..").classes("font-mono text-xs text-neutral-500")
 
@@ -357,16 +318,12 @@ async def terminal_add_tab(implant_uuid: str):
     # Create Tab with explicit 'name'
     with tabs:
         # name=tab_id ensures the tab system tracks it by full UUID
-        with ui.tab(name=tab_id, label="").classes(
-            "h-full px-3 min-h-0 border-r border-white/5"
-        ) as tab:
+        with ui.tab(name=tab_id, label="").classes("h-full px-3 min-h-0 border-r border-white/5") as tab:
             tab.meta = {"implant_uuid": implant_uuid}
             with ui.row().classes("items-center gap-2"):
                 # Display the short label visually
                 ui.label(tab_label).classes("text-xs font-mono text-emerald-500")
-                ui.button(
-                    "✕", on_click=lambda e: terminal_close_tab(implant_uuid)
-                ).props("flat dense size=xs").classes(
+                ui.button("✕", on_click=lambda e: terminal_close_tab(implant_uuid)).props("flat dense size=xs").classes(
                     "text-neutral-600 hover:text-white px-0"
                 )
 
@@ -414,7 +371,6 @@ async def terminal(implant_uuid: str):
 
     # Layout: Output gets all space, Input gets fixed bottom
     with ui.column().classes("w-full h-full gap-0"):
-
         # LOG OUTPUT (Scrollable)
         # Using flex-grow to take up all available space
         ui_log = ui.log().classes(
@@ -422,27 +378,21 @@ async def terminal(implant_uuid: str):
         )
 
         # INPUT BAR (Fixed Bottom)
-        with ui.row().classes(
-            "w-full bg-black/40 border-t border-white/10 p-2 gap-2 items-center"
-        ):
-            ui.label(terminal_prepend).classes(
-                "font-mono text-xs text-neutral-500 shrink-0"
-            )
+        with ui.row().classes("w-full bg-black/40 border-t border-white/10 p-2 gap-2 items-center"):
+            ui.label(terminal_prepend).classes("font-mono text-xs text-neutral-500 shrink-0")
 
             ui_user_input = (
                 ui.input(autocomplete=list_of_commands_for_autocomplete)
                 .classes("flex-grow")
-                .props(
-                    "dense borderless dark input-class=text-emerald-400 input-style=font-family:monospace"
-                )
+                .props("dense borderless dark input-class=text-emerald-400 input-style=font-family:monospace")
                 .on("keydown.enter", lambda: handle_command())
                 .on("keydown.up", lambda: navigate_history("up"))  # <--- Add this
                 .on("keydown.down", lambda: navigate_history("down"))
             )
 
-            ui.button("SEND", on_click=lambda: handle_command()).classes(
-                "tech-btn-action px-3"
-            ).props("dense flat size=sm")
+            ui.button("SEND", on_click=lambda: handle_command()).classes("tech-btn-action px-3").props(
+                "dense flat size=sm"
+            )
 
     # --- LOGIC ---
     async def push_text_to_terminal(data):
@@ -470,9 +420,7 @@ async def terminal(implant_uuid: str):
         command = parts[0]
         args = " ".join(parts[1:])
 
-        result_type, result_data = await task_tree(
-            command=command, args=args, implant_uuid=implant_uuid
-        )
+        result_type, result_data = await task_tree(command=command, args=args, implant_uuid=implant_uuid)
 
         if result_type == ResultType.TASK:
             await queue_task(implant_uuid=implant_uuid, task=result_data)
@@ -499,9 +447,7 @@ async def terminal(implant_uuid: str):
             if task_request:
                 task_name = task_request.get("task", {}).get("task_name", "?")
                 args = task_response.get("task", {}).get("args", {})
-                fmt_req = task_name + (
-                    " " + " ".join(f"{k}={v}" for k, v in args.items()) if args else ""
-                )
+                fmt_req = task_name + (" " + " ".join(f"{k}={v}" for k, v in args.items()) if args else "")
                 await push_text_to_terminal(fmt_req)
 
             if task_response:
@@ -514,9 +460,7 @@ async def terminal(implant_uuid: str):
 
     async def update_terminal():
         nonlocal last_uuid
-        task_history = await get_implant_task_history_since_uuid(
-            implant_uuid, since_task_uuid=last_uuid
-        )
+        task_history = await get_implant_task_history_since_uuid(implant_uuid, since_task_uuid=last_uuid)
         if not task_history:
             return
 

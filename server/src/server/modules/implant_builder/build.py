@@ -1,10 +1,7 @@
-import logging
-import re
 import shutil
 import tempfile
 import zipfile
 from pathlib import Path
-from typing import Dict
 
 import docker
 import structlog
@@ -14,28 +11,26 @@ from docker.models.containers import Container
 from ...db.mysql_connector import get_mysql_session
 from ...modules.mysql_functions import ListenerService, MySQLImplantPayloadService
 from .render import render_implant, sanitize_cpp_name
-from .types import BuildJobConfig, BuildRequestListener, ListenerProfile
+from .types import ListenerProfile
 
 IMPLANT_BASE = Path(__file__).parent / "implant_base"
-server_logger = logging.getLogger("server")
+server_logger = structlog.getLogger("server")
 
 
 def build_implant(
     implant_name: str,
-    listener_uuids: list,  # this is the API data that is sent in. We use data from here to get the rest of the listener data.
+    # this is the API data that is sent in. We use data from here to get the rest of the listener data.
+    listener_uuids: list,
     build_uuid: str,
     init_get_profile_listener_uuid: str,
     init_post_profile_listener_uuid: str,
 ) -> None:
-
     structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        build_uuid=build_uuid, implant_name=implant_name
-    )
+    structlog.contextvars.bind_contextvars(build_uuid=build_uuid, implant_name=implant_name)
     server_logger.info("Starting implant build process")
 
     # Get full listener data from DB
-    full_listeners_data: Dict[str, ListenerProfile] = {}
+    full_listeners_data: dict[str, ListenerProfile] = {}
 
     with get_mysql_session() as session:
         listener_service = ListenerService(session)
@@ -46,34 +41,27 @@ def build_implant(
             payload_name=implant_name,
             build_uuid=build_uuid,
         )
-        payload_service.update_build_status(
-            build_uuid=build_uuid, build_status="building"
-        )
+        payload_service.update_build_status(build_uuid=build_uuid, build_status="building")
 
         try:
             for uuid in listener_uuids:
-
                 # Fetch full details from DB of the listener to include
                 db_listener = listener_service.get_by_id(uuid)
 
                 if not db_listener:
-                    server_logger.error(f"Listener {uuid} not found.")
+                    server_logger.error("Listener not found.", listener_uuid=uuid)
                     raise ValueError(f"Invalid listener UUID: {uuid}")
 
                 # snag and sanitize the name of that listeenr
                 listener_data = db_listener.to_dict()
-                listener_data["listener_profile_name"] = sanitize_cpp_name(
-                    listener_data["listener_name"]
-                )
+                listener_data["listener_profile_name"] = sanitize_cpp_name(listener_data["listener_name"])
 
                 # Store data for the renderer
                 full_listeners_data[uuid] = listener_data
 
         except Exception as e:
-            server_logger.error(f"Failed to prepare listener data: {e}")
-            payload_service.update_build_status(
-                build_uuid=build_uuid, build_status="failed"
-            )
+            server_logger.error("Failed to prepare listener data", error=e)
+            payload_service.update_build_status(build_uuid=build_uuid, build_status="failed")
             return
 
     # Build Environment & Logic (Now using full_listeners_data)
@@ -95,35 +83,31 @@ def build_implant(
             else:
                 raise RuntimeError("Compilation failed")
 
-        except Exception as e:
+        except Exception:
             server_logger.exception("Build failed")
             with get_mysql_session() as session:
-                MySQLImplantPayloadService(session).update_build_status(
-                    build_uuid=build_uuid, build_status="failed"
-                )
+                MySQLImplantPayloadService(session).update_build_status(build_uuid=build_uuid, build_status="failed")
 
 
 def _prepare_listener_data(
-    raw_listeners: Dict[str, dict],
-) -> Dict[str, ListenerProfile]:
+    raw_listeners: dict[str, dict],
+) -> dict[str, ListenerProfile]:
     """Sanitizes names and validates structure before processing."""
     clean_listeners = {}
     for uuid, data in raw_listeners.items():
-        data["listener_profile_name"] = sanitize_cpp_name(
-            data.get("listener_profile_name", "default")
-        )
+        data["listener_profile_name"] = sanitize_cpp_name(data.get("listener_profile_name", "default"))
         clean_listeners[uuid] = data
     return clean_listeners
 
 
 def _generate_source_code(
     build_dir: Path,
-    listeners: Dict[str, ListenerProfile],
+    listeners: dict[str, ListenerProfile],
     init_get_uuid: str,
     init_post_uuid: str,
 ):
     """Copies base structure and renders templates."""
-    server_logger.debug(f"Generating source code in {build_dir}")
+    server_logger.debug("Generating source code", build_dir=build_dir)
 
     # Copy base
     if not IMPLANT_BASE.exists():
@@ -171,14 +155,14 @@ def _run_docker_build(build_dir: Path) -> bool:
         container.remove()
 
         if exit_code == 0:
-            server_logger.debug(f"Docker Build Success.\n{logs}")
+            server_logger.debug("Docker Build Success", logs=logs)
             return True
         else:
-            server_logger.error(f"Docker Build Failed (Exit {exit_code}).\n{logs}")
+            server_logger.error("Docker Build Failed", exit_code=exit_code, logs=logs)
             return False
 
     except Exception as e:
-        server_logger.error(f"Docker infrastructure error: {e}")
+        server_logger.error("Docker infrastructure error", error=e)
         return False
 
 
@@ -216,4 +200,4 @@ def _store_artifacts(build_dir: Path, implant_name: str, build_uuid: str):
         # Update the build status to complete/success
         service.update_build_status(build_uuid=build_uuid, build_status="complete")
 
-    server_logger.info(f"Stored {len(artifacts)} artifacts for {implant_name}")
+    server_logger.info("Stored artifacts", number_of_artifacts=len(artifacts), implant_name=implant_name)

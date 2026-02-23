@@ -1,13 +1,16 @@
-import logging
-import tempfile
-from pathlib import Path
+import re
 
 import structlog
-from mpp import *
+from mpp import MalleableProfile
 
-from ....listeners.malc2 import *  # load_malleable_profile comes from here, along with a few others
+from ....listeners.malc2 import (
+    HttpGetBlockClientParser,
+    HttpGetBlockServerParser,
+    HttpPostBlockClientParser,
+    load_malleable_profile,
+)
 
-server_logger = logging.getLogger("server")
+server_logger = structlog.getLogger("server")
 
 
 def generate_http_wininet_context(
@@ -63,7 +66,7 @@ def generate_http_wininet_context(
     )
 
     # Debug output for verification
-    server_logger.debug(f"Context generation complete")
+    server_logger.debug("Context generation complete")
 
     return context
 
@@ -105,9 +108,7 @@ def _extract_http_get_options(profile: MalleableProfile) -> dict:
     context_dict["http_get_verb"] = verb.value if verb is not None else "GET"
 
     # Transforms (Client Metadata)
-    context_dict["http_get_client_metadata_transforms_list"] = (
-        client_parser.get_client_metadata_transforms_list()
-    )
+    context_dict["http_get_client_metadata_transforms_list"] = client_parser.get_client_metadata_transforms_list()
 
     # Terminator (Where to store metadata)
     term_type, term_value = client_parser.get_metadata_terminator()
@@ -131,12 +132,13 @@ def _extract_http_get_options(profile: MalleableProfile) -> dict:
 
     # List of headers or parameters to add to the request
     """
-    [{'name': 'parameter', 'key': 'utmac', 'value': 'UA-2202604-2'}, {'name': 'parameter', 'key': 'utmcn', 'value': '1'}, {'name': 'parameter', 'key': 'utmcs', 'value': 'ISO-8859-1'}, {'name': 'parameter', 'key': 'utmsr', 'value': '1280x1024'}, {'name': 'parameter', 'key': 'utmsc', 'value': '32-bit'}, {'name': 'parameter', 'key': 'utmul', 'value': 'en-US'}]    
+    [{'name': 'parameter', 'key': 'utmac', 'value': 'UA-2202604-2'},{'name': 'parameter', 'key': 'utmcn', 'value': '1'}
+    , {'name': 'parameter', 'key': 'utmcs', 'value': 'ISO-8859-1'},
+    {'name': 'parameter', 'key': 'utmsr', 'value': '1280x1024'},
+    {'name': 'parameter', 'key': 'utmsc', 'value': '32-bit'}, {'name': 'parameter', 'key': 'utmul', 'value': 'en-US'}]
     """
     headers_and_parameters_list = client_parser.get_headers_and_parameters_list()
-    context_dict["http_get_client_headers_or_parameters_list"] = (
-        headers_and_parameters_list
-    )
+    context_dict["http_get_client_headers_or_parameters_list"] = headers_and_parameters_list
 
     # --- Server Configuration ---
     server_parser = HttpGetBlockServerParser(profile.http_get.server)
@@ -187,15 +189,11 @@ def _extract_http_post_options(profile: MalleableProfile) -> dict:
     context_dict["http_post_verb"] = verb.value if verb is not None else "POST"
 
     # Transforms (Client ID)
-    context_dict["http_post_client_id_transforms_list"] = (
-        client_parser.post_client_id_transforms_list()
-    )
+    context_dict["http_post_client_id_transforms_list"] = client_parser.post_client_id_transforms_list()
 
     # get addtl headers/params
     headers_and_parameters_list = client_parser.get_headers_and_parameters_list()
-    context_dict["http_post_client_headers_or_parameters_list"] = (
-        headers_and_parameters_list
-    )
+    context_dict["http_post_client_headers_or_parameters_list"] = headers_and_parameters_list
 
     # Terminator (ID)
     id_term_type, id_term_value = client_parser.get_id_terminator()
@@ -214,9 +212,7 @@ def _extract_http_post_options(profile: MalleableProfile) -> dict:
             context_dict["http_post_client_id_terminator"] = "print"
 
     # Transforms (Client Output)
-    context_dict["http_post_client_output_transforms_list"] = (
-        client_parser.post_client_output_transforms_list()
-    )
+    context_dict["http_post_client_output_transforms_list"] = client_parser.post_client_output_transforms_list()
 
     # Terminator (Output/Response)
     out_term_type, out_term_value = client_parser.get_output_terminator()

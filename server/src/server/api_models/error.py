@@ -1,4 +1,4 @@
-from flask_restx import Namespace, Resource, fields
+from flask_restx import fields
 
 from ..instance import api
 
@@ -6,9 +6,7 @@ ERROR_MODEL = api.model(
     "ErrorResponse",
     {
         "status": fields.String(example="400", description="The HTTP error code"),
-        "message": fields.String(
-            description="The error message", example="Resource not found"
-        ),
+        "message": fields.String(description="The error message", example="Resource not found"),
         "data": fields.Raw(description="Extra error details", example=""),
     },
 )

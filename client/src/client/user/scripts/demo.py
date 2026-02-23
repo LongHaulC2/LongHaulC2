@@ -1,4 +1,3 @@
-import requests
 from yarl import URL
 
 # setup server variables

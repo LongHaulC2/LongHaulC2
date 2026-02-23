@@ -1,7 +1,5 @@
 import base64
 import json
-import logging
-import traceback
 import urllib.parse
 from contextlib import contextmanager
 
@@ -10,23 +8,25 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
-#!! Importing base, as re-declaring it in diff py files makes it so there are different bases, and create_all does not work (tables do not get created)
+#!! Importing base, as re-declaring it in diff py files makes it so there are different bases, and create_all
+# does not work (tables do not get created)
 from ..db.mysql_models import Base
 from ..instance import env_config
 
 # Logger setup
-logger = logging.getLogger("server")
+logger = structlog.getLogger("server")
 
 
 # = Serializer for bytes ======================================
-# Add a serializer for bytes, so they are stored as base64 in db. this is needed for storing task responses, which can commonly have binary data (ex: file download response)
-# it also makes it easier on clients/api, to get this data as base64 string, rather than raw bytes.
+# Add a serializer for bytes, so they are stored as base64 in db. this is needed for storing task responses,
+# which can commonly have binary data (ex: file download response).
+
+
+# This also makes it easier on clients/api, to get this data as base64 string, rather than raw bytes.
 class BytesEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, bytes):
-            logger.debug(
-                "Encoding bytes to base64 string for JSON serialization in MySQL"
-            )
+            logger.debug("Encoding bytes to base64 string for JSON serialization in MySQL")
             return base64.b64encode(o).decode(
                 "ascii"
             )  # ascii cuz A-Z, a-z, digits, +, /, = only, so no risk of decode issues.
@@ -52,9 +52,7 @@ def _get_db_connection_params():
     database = env_config.get("MYSQL_DATABASE")
 
     if None in (host, port, user, password, database):
-        logger.critical(
-            "Database configuration is missing in .env file. Cannot continue."
-        )
+        logger.critical("Database configuration is missing in .env file. Cannot continue.")
         exit()
 
     encoded_user = urllib.parse.quote_plus(user)
@@ -74,7 +72,7 @@ def _create_db_if_not_exist(host, port, user, password, database):
         with temp_engine.connect() as conn:
             # can probably inject this, but it's specified in the makefile so it's "trusted" input
             conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {database}"))
-            logger.debug(f"Ensured database '{database}' exists.")
+            logger.debug("Ensured database exists.", database=database)
     finally:
         temp_engine.dispose()  # Clean up the temp connection immediately
 
@@ -85,9 +83,7 @@ def mysql_setup():
     host, port, user, password, database = _get_db_connection_params()
 
     structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        host=host, port=port, user=user, database=database
-    )
+    structlog.contextvars.bind_contextvars(host=host, port=port, user=user, database=database)
 
     _create_db_if_not_exist(host, port, user, password, database)
 
@@ -101,7 +97,10 @@ def mysql_setup():
             conn.execute(text("SELECT 1"))
             result = conn.execute(text("SELECT DATABASE();"))
             db_name = result.fetchone()
-            logger.debug(f"Connected to database: {db_name[0]}")
+            if db_name:
+                logger.debug("Connected to database", database_name=db_name[0])
+            else:
+                logger.warning("Could not get name of the database")
 
         SessionLocal = sessionmaker(bind=engine)
         logger.info("Main MySQL engine initialized successfully.")
@@ -111,10 +110,10 @@ def mysql_setup():
         logger.debug("Table 'implants' created successfully.")
 
     except SQLAlchemyError as e:
-        logger.critical(f"Database setup failed: {e}\n{traceback.format_exc()}")
+        logger.critical("Database setup failed", error=e)
         engine = None
     except Exception as e:
-        logger.critical(f"Unexpected error during setup: {e}\n{traceback.format_exc()}")
+        logger.critical("Unexpected error during setup", error=e)
         engine = None
     finally:
         # clear out any extra vars set after init
@@ -131,16 +130,14 @@ with get_mysql_session() as session:
 @contextmanager
 def get_mysql_session():
     if engine is None or SessionLocal is None:
-        raise Exception(
-            "Database engine not initialized. Ensure mysql_setup() ran successfully before querying."
-        )
+        raise Exception("Database engine not initialized. Ensure mysql_setup() ran successfully before querying.")
 
     session = SessionLocal()
     try:
         yield session
         session.commit()
     except Exception as e:
-        logger.error(f"An error occurred with the MYSQL session: {e}")
+        logger.error("An error occurred with the MYSQL session", error=e)
         session.rollback()
         raise
     finally:

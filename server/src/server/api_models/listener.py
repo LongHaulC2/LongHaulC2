@@ -1,4 +1,4 @@
-from flask_restx import Namespace, Resource, fields
+from flask_restx import fields
 
 from ..instance import api
 
@@ -34,9 +34,7 @@ def wrap_response_empty(api, model_name):
     return api.model(
         model_name,
         {
-            "data": fields.String(
-                example="", description="No data returned", default=None
-            ),
+            "data": fields.String(example="", description="No data returned", default=None),
             "message": fields.String(example="Success"),
             "status": fields.String(example="200"),
         },
@@ -52,29 +50,17 @@ def wrap_response_empty(api, model_name):
 LISTENER_GET_MODEL = api.model(
     "LISTENER_GET_MODEL",
     {
-        "listener_active": fields.Boolean(
-            description="Whether the listener is currently running", example=True
-        ),
-        "listener_host": fields.String(
-            description="The IP or DNS host the listener binds to", example="10.0.0.30"
-        ),
-        "listener_name": fields.String(
-            description="User-defined name for the listener", example="amazon_prod"
-        ),
-        "listener_notes": fields.String(
-            description="Optional notes about the listener", example="Main HTTP egress"
-        ),
+        "listener_active": fields.Boolean(description="Whether the listener is currently running", example=True),
+        "listener_host": fields.String(description="The IP or DNS host the listener binds to", example="10.0.0.30"),
+        "listener_name": fields.String(description="User-defined name for the listener", example="amazon_prod"),
+        "listener_notes": fields.String(description="Optional notes about the listener", example="Main HTTP egress"),
         "listener_port": fields.Integer(description="Port number", example=9090),
         "listener_profile_contents": fields.String(
             description="The full Malleable C2 profile configuration text",
             example="set sleeptime '5000'; ...",
         ),
-        "listener_profile_name": fields.String(
-            description="The filename of the profile", example="amazon.profile"
-        ),
-        "listener_type": fields.String(
-            description="Protocol type (http, https, etc)", example="http"
-        ),
+        "listener_profile_name": fields.String(description="The filename of the profile", example="amazon.profile"),
+        "listener_type": fields.String(description="Protocol type (http, https, etc)", example="http"),
         "listener_uuid": fields.String(
             description="Unique identifier for the listener",
             example="019c67f6-4e24-789a-800f-473a4c70e4f2",
@@ -105,9 +91,7 @@ LISTENERS_GET_MODEL = api.model(
         "listener_name": fields.String(example="aaa"),
         "listener_notes": fields.String(example=""),
         "listener_port": fields.Integer(example=9090),
-        "listener_profile_contents": fields.String(
-            description="Malleable C2 Profile Text"
-        ),
+        "listener_profile_contents": fields.String(description="Malleable C2 Profile Text"),
         "listener_profile_name": fields.String(example="amazon.profile"),
         "listener_type": fields.String(example="http"),
         "listener_uuid": fields.String(example="019c67f6-4e24-789a-800f-473a4c70e4f2"),
@@ -124,20 +108,12 @@ LISTENERS_POST_INPUT = api.model(
             required=True,
             description="Host the listener will listen on (DNS Host, or IP address)",
         ),
-        "listener_port": fields.Integer(
-            required=False, description="Port to spawn the listener on"
-        ),
-        "listener_type": fields.String(
-            required=True, description="What type of listener to spawn"
-        ),
+        "listener_port": fields.Integer(required=False, description="Port to spawn the listener on"),
+        "listener_type": fields.String(required=True, description="What type of listener to spawn"),
         "listener_name": fields.String(required=True, description="Name of listener"),
         "listener_notes": fields.String(required=False, description="Listener notes"),
-        "listener_profile_name": fields.String(
-            required=True, description="Listener malleable c2 profile name"
-        ),
-        "listener_profile_contents": fields.String(
-            required=True, description="Listener malleable c2 profile contents"
-        ),
+        "listener_profile_name": fields.String(required=True, description="Listener malleable c2 profile name"),
+        "listener_profile_contents": fields.String(required=True, description="Listener malleable c2 profile contents"),
     },
 )
 

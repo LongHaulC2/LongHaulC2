@@ -1,30 +1,28 @@
 import io
-import logging
-from dataclasses import asdict
 
+import structlog
 from edwh_uuid7 import uuid7
 from flask import request, send_file
-from flask_restx import Namespace, Resource, fields
+from flask_restx import Namespace, Resource
 
-from ...api_models.build import *
-from ...api_models.error import *
+from ...api_models.build import (
+    BINARYACTIONS_DELETE_RESPONSE,
+    BUILD_GET_RESPONSE,
+    BUILD_POST_INPUT,
+    BUILD_POST_RESPONSE,
+    BUILDJOBS_GET_RESPONSE,
+)
+from ...api_models.error import COMMON_ERRORS
 from ...db.mysql_connector import get_mysql_session
 from ...instance import api
-from ...listeners.supervisor import start_listener, stop_listener
 from ...modules.implant_builder.build import build_implant
-from ...modules.implant_builder.types import (
-    BuildJobConfig,
-    BuildRequestListener,
-    ListenerProfile,
-)
 from ...modules.mysql_functions import MySQLImplantPayloadService
-from ...schemas.listeners import ListenerCreate
 from ...utils.checks import check_type
 from ...utils.response import APIResponse
 
 build_ns = Namespace("build", description="Build related operations")
-api_logger = logging.getLogger("api")
-server_logger = logging.getLogger("server")
+api_logger = structlog.getLogger("api")
+server_logger = structlog.getLogger("server")
 
 
 # Error handlers
@@ -61,7 +59,7 @@ class Build(Resource):
 
         # change this to a dict
         """
-        
+
         listeners_dict: Dict[
             str, BuildRequestListener
         ]
@@ -72,22 +70,14 @@ class Build(Resource):
         # listener_uuid = data["implant_listener_uuid"]
         # variant = data["implant_variant"]
         implant_name = data["implant_name"]
-        output_format = data["output_format"]
+        # output_format = data["output_format"]
         # listener_dict = data.get("listener_dict", {})
         listener_uuids = data.get("listener_uuids", [])
 
-        initial_get_profile_listener_uuid = data.get(
-            "initial_get_profile_listener_uuid", None
-        )
-        initial_post_profile_listener_uuid = data.get(
-            "initial_post_profile_listener_uuid", None
-        )
+        initial_get_profile_listener_uuid = data.get("initial_get_profile_listener_uuid", None)
+        initial_post_profile_listener_uuid = data.get("initial_post_profile_listener_uuid", None)
 
-        api_logger.info(
-            f"Build requested",
-            extra={"caller_ip": request.remote_addr},
-            # listener_dict=listener_dict,
-        )
+        api_logger.info("Build requested", caller_ip=request.remote_addr)
 
         # Trigger Build
         build_uuid = str(uuid7())
@@ -103,9 +93,7 @@ class Build(Resource):
 
         response = {"build_uuid": build_uuid}
         # Return immediately
-        return APIResponse(
-            status="200", message="Build process initiated successfully", data=response
-        )
+        return APIResponse(status="200", message="Build process initiated successfully", data=response)
 
     @build_ns.doc(
         summary="Get all builds",
@@ -120,12 +108,7 @@ class Build(Resource):
         """
         ip = request.remote_addr
 
-        api_logger.info(
-            f"Getting all payloads",
-            extra={
-                "caller_ip": ip,
-            },
-        )
+        api_logger.info("Getting all payloads", caller_ip=ip)
 
         # sql call to get implant data, return it as a dict (including bin data)
         with get_mysql_session() as session:
@@ -160,12 +143,7 @@ class BuildJobs(Resource):
         """
         ip = request.remote_addr
 
-        api_logger.info(
-            f"Getting status of build job {build_uuid}",
-            extra={
-                "caller_ip": ip,
-            },
-        )
+        api_logger.info("Getting status of build job", build_uuid=build_uuid, caller_ip=ip)
 
         check_type(build_uuid, str, "build_uuid")
 
@@ -177,7 +155,8 @@ class BuildJobs(Resource):
 
             if isinstance(data.get("payload_hash"), bytes):
                 data["payload_hash"] = data["payload_hash"].hex()
-            # remove bytes (payload and source), as flask can't handle them/encode them as responses. There are endpoitns for this specifially that send as a file
+            # remove bytes (payload and source), as flask can't handle them/encode them as responses.
+            # There are endpoints for this specifically that send as a file
             if "payload_bytes" in data:
                 del data["payload_bytes"]
 
@@ -220,8 +199,9 @@ class BinaryActions(Resource):
         check_type(hash, str, "hash")
 
         api_logger.info(
-            f"Download requested for hash {hash}",
-            extra={"caller_ip": ip},
+            "Download requested for hash",
+            hash=hash,
+            caller_ip=ip,
         )
 
         # Fetch Data
@@ -230,7 +210,7 @@ class BinaryActions(Resource):
             payload = service.get_payload_by_hash(hash)
 
             if not payload:
-                api_logger.warning(f"Payload not found: {hash}")
+                api_logger.warning("Payload not found", hash=hash)
                 return APIResponse(status="404", message="Payload not found")
 
             # Serve File
@@ -265,12 +245,7 @@ class BinaryActions(Resource):
         """
         ip = request.remote_addr
 
-        api_logger.info(
-            f"Getting implant {hash}",
-            extra={
-                "caller_ip": ip,
-            },
-        )
+        api_logger.info("Getting implant", hash=hash, caller_ip=ip)
         check_type(hash, str, "hash")
 
         # sql call to get implant data, return it as a dict (including bin data)
@@ -308,8 +283,9 @@ class SourceActions(Resource):
         check_type(hash, str, "hash")
 
         api_logger.info(
-            f"Source download requested for hash {hash}",
-            extra={"caller_ip": ip},
+            "Source download requested for hash",
+            hash=hash,
+            caller_ip=ip,
         )
 
         # Fetch Data
@@ -318,7 +294,7 @@ class SourceActions(Resource):
             payload = service.get_payload_by_hash(hash)
 
             if not payload:
-                api_logger.warning(f"Payload source not found: {hash}")
+                api_logger.warning("Payload source not found", hash=hash)
                 # Return JSON error
                 return {"message": "Payload source not found"}, 404
 
@@ -328,11 +304,7 @@ class SourceActions(Resource):
                 io.BytesIO(payload.payload_source_code_bytes),
                 mimetype="application/octet-stream",
                 as_attachment=True,
-                download_name=(
-                    f"{payload.payload_name}_source.zip"
-                    if payload.payload_name
-                    else f"{hash}.zip"
-                ),
+                download_name=(f"{payload.payload_name}_source.zip" if payload.payload_name else f"{hash}.zip"),
             )
 
 

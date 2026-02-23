@@ -1,4 +1,3 @@
-from edwh_uuid7 import uuid7
 from sqlalchemy import (
     JSON,
     BigInteger,
@@ -67,12 +66,16 @@ class ImplantTask(Base):
 
     # Add generated columns for full-text indexing because json can't be indexed by itself
     task_request_text = Column(
-        MEDIUMTEXT,  # up to 16mb of text, should be enough for most requests, and allows for indexing. Can change to longtext if needed later, but that adds a lot of overhead.
+        # up to 16mb of text, should be enough for most requests, and allows for indexing.
+        # Can change to longtext if needed later, but that adds a lot of overhead.
+        MEDIUMTEXT,
         Computed("JSON_UNQUOTE(JSON_EXTRACT(task_request, '$'))", persisted=True),
         nullable=True,
     )
     task_response_text = Column(
-        MEDIUMTEXT,  # up to 16mb of text, should be enough for most responses, and allows for indexing. Can change to longtext if needed later, but that adds a lot of overhead.
+        # up to 16mb of text, should be enough for most responses, and allows for indexing.
+        # Can change to longtext if needed later, but that adds a lot of overhead.
+        MEDIUMTEXT,
         Computed("JSON_UNQUOTE(JSON_EXTRACT(task_response, '$'))", persisted=True),
         nullable=True,
     )
@@ -97,9 +100,7 @@ class Listener(Base):
     __tablename__ = "listeners"
     listener_uuid = Column(String(36), primary_key=True)
 
-    listener_host = Column(
-        String(256)
-    )  # 256 is I hope long enough for now for a dns/host name...
+    listener_host = Column(String(256))  # 256 is I hope long enough for now for a dns/host name...
     listener_port = Column(Integer)
 
     listener_type = Column(String(255))
@@ -112,11 +113,7 @@ class Listener(Base):
     listener_profile_contents = Column(Text)  # FULL malleablec2 profile
 
     # Adding UniqueConstraint to enforce unique combination of listener_host and listener_port
-    __table_args__ = (
-        UniqueConstraint(
-            "listener_host", "listener_port", "listener_active", name="_host_port_uc"
-        ),
-    )
+    __table_args__ = (UniqueConstraint("listener_host", "listener_port", "listener_active", name="_host_port_uc"),)
 
 
 class ImplantPayload(Base):
@@ -126,11 +123,10 @@ class ImplantPayload(Base):
 
     payload_hash = Column(TINYBLOB(16))  # md5 hash
 
-    # using deffered here, waits until the field is explicity called before loading the data, otherwise we'll be querying lots of unneeded data at once
+    # using deffered here, waits until the field is explicitly called before loading the data,
+    # otherwise we'll be querying lots of unneeded data at once
     # https://docs.sqlalchemy.org/en/14/orm/loading_columns.html
-    payload_bytes = deferred(
-        Column(LONGBLOB)
-    )  # LONGBLOB is 4gb (massive, intentional for expandability)
+    payload_bytes = deferred(Column(LONGBLOB))  # LONGBLOB is 4gb (massive, intentional for expandability)
     payload_source_code_bytes = deferred(Column(LONGBLOB))
     # payload_listener_uuid = Column(String(36))  # matches Listener model uuid
 

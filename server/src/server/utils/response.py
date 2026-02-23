@@ -1,17 +1,17 @@
-import logging
 from dataclasses import asdict, dataclass
-from typing import Any, Optional
+from typing import Any
 
+import structlog
 from flask import jsonify
 
-api_logger = logging.getLogger("api")
+api_logger = structlog.getLogger("api")
 
 
 @dataclass
 class APIResponse:
     status: str
     message: str
-    data: Optional[Any] = None
+    data: Any | None = None
     # errors: Optional[Any] = None
     # code: Optional[str] = None
 

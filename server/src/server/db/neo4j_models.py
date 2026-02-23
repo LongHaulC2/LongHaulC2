@@ -1,10 +1,7 @@
 from neomodel import (
-    BooleanProperty,
-    IntegerProperty,
     RelationshipFrom,
     RelationshipTo,
     StringProperty,
-    StructuredNode,
     StructuredRel,
 )
 from neomodel.contrib import SemiStructuredNode
@@ -30,7 +27,7 @@ Relationships:
  - ON_SUBNET: host to network, network to network
  - ROUTES_TO: network -> network
 
- 
+
  for now, start with rel to (simplicity), then add rel_from later when advanced querying is needed.
  """
 
@@ -85,9 +82,7 @@ class Neo4jHostNode(SemiStructuredNode):
     on_subnet = RelationshipTo("Neo4jNetworkNode", "ON_SUBNET")
 
     # things the host can see
-    neighbors = RelationshipTo(
-        "Neo4jHostNode", "DISCOVERED_VIA", model=DiscoveredViaRel
-    )
+    neighbors = RelationshipTo("Neo4jHostNode", "DISCOVERED_VIA", model=DiscoveredViaRel)
 
     # disk file -> host, inverse from the Neo4jFileNode
     stored_on = RelationshipFrom("Neo4jHostNode", "STORED_ON")
@@ -161,9 +156,7 @@ class Neo4jC2ChannelNode(SemiStructuredNode):
     Intermediate node representing the communication path.
     """
 
-    channel_id = StringProperty(
-        unique_index=True, required=True
-    )  # e.g., session_id or protocol_host_hash
+    channel_id = StringProperty(unique_index=True, required=True)  # e.g., session_id or protocol_host_hash
     protocol = StringProperty(required=True)  # "HTTPS", "DNS", "SMB"
     # jitter = IntegerProperty(default=0)
     # sleep = IntegerProperty(default=5)

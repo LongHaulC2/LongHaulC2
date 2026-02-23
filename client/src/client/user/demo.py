@@ -1,10 +1,13 @@
-'''
+import requests
+from yarl import URL
+
+"""
 A demo script meant to populate the server with various data
 
 The functions here also demo how to use the API, etc.
-'''
+"""
 
-profile = '''
+profile = """
 # make our C2 look like a Google Web Bug
 # https://developers.google.com/analytics/resources/articles/gaTrackingTroubleshooting
 #
@@ -66,39 +69,38 @@ http-post {
 		}
 	}
 }
-'''
+"""
 
-import requests
-from yarl import URL
 
 # setup server variables
 api_url = URL("http://10.0.0.30:45045/api/v1")
 
 
 def start_listener(host, port, type="http", name="http_listener"):
-    '''
+    """
     Start a listener
-    '''
+    """
     listener_spawn_url = api_url / "listeners"
 
     listener_data = {
-      "listener_host": host,
-      "listener_port": port,
-      "listener_type": type,
-      "listener_name": name,
-      "listener_notes": "Generic Listener",
-      "listener_profile_name": "profile",
-      "listener_profile_contents": profile
+        "listener_host": host,
+        "listener_port": port,
+        "listener_type": type,
+        "listener_name": name,
+        "listener_notes": "Generic Listener",
+        "listener_profile_name": "profile",
+        "listener_profile_contents": profile,
     }
-    
+
     r = requests.post(str(listener_spawn_url), json=listener_data)
     print(r.status_code)
     print(r.text)
 
+
 def generate_implants():
-    '''
+    """
     Generate implants for each listener listed
-    '''
+    """
     # get a list of listeners
     listener_list_url = api_url / "listeners"
     r = requests.get(str(listener_list_url))
@@ -111,15 +113,16 @@ def generate_implants():
         listener_uuid = listener.get("listener_uuid")
 
         req_data = {
-          "implant_variant": "http_wininet",
-          "output_format": "exe",
-          "implant_name": "my_implant",
-          "implant_listener_uuid": listener_uuid
+            "implant_variant": "http_wininet",
+            "output_format": "exe",
+            "implant_name": "my_implant",
+            "implant_listener_uuid": listener_uuid,
         }
 
         r = requests.post(str(build_payload_url), json=req_data)
         print(r.status_code)
         print(r.text)
+
 
 def main():
     print("========================================")
@@ -128,12 +131,11 @@ def main():
     for i in range(0, 50):
         # Start some listeners
         start_listener("0.0.0.0", 9090 + int(i))
-    
-    # generate some implants for those listeners... 
-    # These will generate in the background, and might take a second to generate. 
-    for i in range(0,1):
+
+    # generate some implants for those listeners...
+    # These will generate in the background, and might take a second to generate.
+    for i in range(0, 1):
         generate_implants()
 
-main()
 
-    
+main()

@@ -1,12 +1,10 @@
 import asyncio
 import logging
-from typing import Optional
 
 import httpx
 from nicegui import events, ui
 
 from client.src.client.pages.menu import setup_menu
-from client.src.client.style import TEXT_COLOR
 from client.src.client.utils.url import generate_url
 
 from ..utils.checks import check_type
@@ -28,16 +26,14 @@ async def search():
 
 
 async def search_view():
-
     # Global state for the search logic
     api = httpx.AsyncClient()
-    running_query: Optional[asyncio.Task] = None
+    running_query: asyncio.Task | None = None
 
     # --- UI LAYOUT ---
 
     # Main Glass Panel
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
-
         # Header Bar
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
             with ui.row().classes("items-center gap-3"):
@@ -45,10 +41,7 @@ async def search_view():
                 ui.label("GLOBAL_SEARCH //").classes("tech-label-title")
 
         # Command Bar (Search Inputs)
-        with ui.row().classes(
-            "w-full p-4 border-b border-white/5 bg-black/20 gap-4 items-center"
-        ):
-
+        with ui.row().classes("w-full p-4 border-b border-white/5 bg-black/20 gap-4 items-center"):
             # Search Type Dropdown
             # Using a styled select instead of a dropdown button for cleaner UI
             search_type = (
@@ -66,9 +59,7 @@ async def search_view():
                 ui.input(
                     placeholder="Enter query...",
                 )
-                .props(
-                    "outlined dense dark color=emerald input-class=text-emerald-400 autofocus"
-                )
+                .props("outlined dense dark color=emerald input-class=text-emerald-400 autofocus")
                 .classes("flex-grow")
             )
 
@@ -76,22 +67,14 @@ async def search_view():
                 ui.icon("search", color="emerald-500")
 
             # Spinner (Hidden by default)
-            search_spinner = ui.spinner(size="sm", color="emerald-500").classes(
-                "opacity-0 transition-opacity"
-            )
+            search_spinner = ui.spinner(size="sm", color="emerald-500").classes("opacity-0 transition-opacity")
 
         # Results Area
-        with ui.column().classes(
-            "w-full flex-grow relative overflow-hidden bg-transparent"
-        ) as results_container:
+        with ui.column().classes("w-full flex-grow relative overflow-hidden bg-transparent") as results_container:
             # Initial Empty State
-            with ui.column().classes(
-                "w-full h-full items-center justify-center opacity-30"
-            ):
+            with ui.column().classes("w-full h-full items-center justify-center opacity-30"):
                 ui.icon("radar", size="6em")
-                ui.label("AWAITING INPUT").classes(
-                    "font-mono text-sm mt-4 tracking-widest"
-                )
+                ui.label("AWAITING INPUT").classes("font-mono text-sm mt-4 tracking-widest")
 
     # --- LOGIC ---
 
@@ -119,13 +102,9 @@ async def search_view():
         if not search_field.value:
             search_spinner.classes(add="opacity-0")
             with results_container:
-                with ui.column().classes(
-                    "w-full h-full items-center justify-center opacity-30"
-                ):
+                with ui.column().classes("w-full h-full items-center justify-center opacity-30"):
                     ui.icon("radar", size="6em")
-                    ui.label("AWAITING INPUT").classes(
-                        "font-mono text-sm mt-4 tracking-widest"
-                    )
+                    ui.label("AWAITING INPUT").classes("font-mono text-sm mt-4 tracking-widest")
             return
 
         request_body = {"search_term": search_field.value}
@@ -139,12 +118,8 @@ async def search_view():
                     # Render Results
                     with results_container:
                         if not data:
-                            with ui.column().classes(
-                                "w-full h-1/2 items-center justify-center opacity-50"
-                            ):
-                                ui.label("NO MATCHES FOUND").classes(
-                                    "font-mono text-sm text-red-400"
-                                )
+                            with ui.column().classes("w-full h-1/2 items-center justify-center opacity-50"):
+                                ui.label("NO MATCHES FOUND").classes("font-mono text-sm text-red-400")
                         else:
                             await display_func(data=data)
             except Exception as err:
@@ -195,11 +170,11 @@ async def implants_list_layout(data: list[dict]):
     table.add_slot(
         "header",
         r"""
-        <q-tr :props="props" class="bg-white/5 text-neutral-400 uppercase text-xs tracking-wider border-b border-white/10">
-            <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
-            </q-th>
-        </q-tr>
+<q-tr :props="props" class="bg-white/5 text-neutral-400 uppercase text-xs tracking-wider border-b border-white/10">
+    <q-th v-for="col in props.cols" :key="col.name" :props="props">
+        {{ col.label }}
+    </q-th>
+</q-tr>
     """,
     )
 
@@ -208,7 +183,7 @@ async def implants_list_layout(data: list[dict]):
         "body-cell-notes",
         r"""
         <q-td :props="props">
-            <div style="max-height: 20px; max-width: 300px; overflow: hidden;" class="opacity-70 text-xs font-mono"> 
+            <div style="max-height: 20px; max-width: 300px; overflow: hidden;" class="opacity-70 text-xs font-mono">
                 <span v-if="props.row.notes" v-html="props.row.notes"></span>
             </div>
         </q-td>
@@ -246,12 +221,12 @@ async def tasks_list_layout(data):
     table.add_slot(
         "header",
         r"""
-        <q-tr :props="props" class="bg-white/5 text-neutral-400 uppercase text-xs tracking-wider border-b border-white/10">
-            <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
-            </q-th>
-        </q-tr>
-    """,
+<q-tr :props="props" class="bg-white/5 text-neutral-400 uppercase text-xs tracking-wider border-b border-white/10">
+    <q-th v-for="col in props.cols" :key="col.name" :props="props">
+        {{ col.label }}
+    </q-th>
+</q-tr>
+        """,
     )
 
     # Notes Rendering
@@ -259,7 +234,7 @@ async def tasks_list_layout(data):
         "body-cell-notes",
         r"""
         <q-td :props="props">
-            <div style="max-height: 20px; max-width: 300px; overflow: hidden;" class="opacity-70 text-xs font-mono"> 
+            <div style="max-height: 20px; max-width: 300px; overflow: hidden;" class="opacity-70 text-xs font-mono">
                 <span v-if="props.row.notes" v-html="props.row.notes"></span>
             </div>
         </q-td>

@@ -1,6 +1,8 @@
-import logging
+import inspect
 
-server_logger = logging.getLogger("server")
+import structlog
+
+server_logger = structlog.getLogger("server")
 
 
 # def check_type(obj, expected_type, var_name="variable"):
@@ -19,10 +21,9 @@ server_logger = logging.getLogger("server")
 
 
 """
-This is the much more useful/stack trace version of check_type. Use for debugging, but use the above one for prod. 
+This is the much more useful/stack trace version of check_type. Use for debugging, but use the above one for prod.
 This is a lot heaver on resources, etc.
 """
-import inspect
 
 
 def check_type(obj, expected_type, var_name="variable"):
@@ -43,12 +44,13 @@ def check_type(obj, expected_type, var_name="variable"):
             else:
                 caller_info = "<unknown caller>"
 
+            # this log needs f strings for better output, skipping G004
             server_logger.warning(
-                f"Potential Type Mismatch [{var_name}]: "
-                f"Expected '{getattr(expected_type, '__name__', repr(expected_type))}', "
-                f"but got '{type(obj).__name__}'. Value: {obj}. "
-                f"Caller: {caller_info}"
+                f"Potential Type Mismatch [{var_name}]: "  # noqa: G004
+                f"Expected '{getattr(expected_type, '__name__', repr(expected_type))}', "  # noqa: G004
+                f"but got '{type(obj).__name__}'. Value: {obj}. "  # noqa: G004
+                f"Caller: {caller_info}"  # noqa: G004
             )
     except Exception as e:
         # Never let debug helpers cause crashes
-        server_logger.debug(f"check_type inspection failed: {e}")
+        server_logger.debug("check_type inspection failed", error=e)

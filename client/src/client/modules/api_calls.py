@@ -17,7 +17,8 @@ async def queue_task(implant_uuid: str, task: dict):
     """
     Submit a new task to be executed by a specific implant.
 
-    Note, this converts the task to msgpack, for sending binary data in the tasks. The server is setup to accept both json and msgpack, but msgpack is preferred for tasks to allow for more flexible data structures and binary data.
+    Note, this converts the task to msgpack, for sending binary data in the tasks. The server is setup to accept both
+    json and msgpack, but msgpack is preferred for tasks to allow for more flexible data structures and binary data.
 
     Args:
         implant_uuid (str): The unique identifier (UUID) of the target implant.
@@ -39,18 +40,14 @@ async def queue_task(implant_uuid: str, task: dict):
     url = generate_url(f"/api/v1/implants/{implant_uuid}/task")
 
     structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        method="POST", url=url, implant_uuid=implant_uuid, task=task
-    )
-    api_log.debug(f"Queueing a task for implant")
+    structlog.contextvars.bind_contextvars(method="POST", url=url, implant_uuid=implant_uuid, task=task)
+    api_log.debug("Queueing a task for implant")
 
     task_msgpack = msgpack.packb(task)
 
     async with httpx.AsyncClient() as client:
         # send as msgpack
-        response = await client.post(
-            url, content=task_msgpack, headers={"Content-Type": "application/msgpack"}
-        )
+        response = await client.post(url, content=task_msgpack, headers={"Content-Type": "application/msgpack"})
         return response
 
 
@@ -76,10 +73,8 @@ async def update_implant(implant_uuid: str, data: dict):
     url = generate_url(f"/api/v1/implants/{implant_uuid}")
 
     structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        method="GET", url=url, implant_uuid=implant_uuid
-    )
-    api_log.debug(f"Updating data for implant")
+    structlog.contextvars.bind_contextvars(method="GET", url=url, implant_uuid=implant_uuid)
+    api_log.debug("Updating data for implant")
 
     async with httpx.AsyncClient() as client:
         response = await client.put(url, json=data)
@@ -108,10 +103,8 @@ async def get_implant_data(implant_uuid: str) -> dict:
     url = generate_url(f"/api/v1/implants/{implant_uuid}")
 
     structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        method="GET", url=url, implant_uuid=implant_uuid
-    )
-    api_log.debug(f"Getting data for implant")
+    structlog.contextvars.bind_contextvars(method="GET", url=url, implant_uuid=implant_uuid)
+    api_log.debug("Getting data for implant")
 
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
@@ -135,7 +128,7 @@ async def get_all_implant_data() -> dict:
 
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(method="GET", url=url)
-    api_log.debug(f"Getting all implant data")
+    api_log.debug("Getting all implant data")
 
     # get implants
     async with httpx.AsyncClient() as client:
@@ -160,7 +153,7 @@ async def get_all_listener_data() -> dict:
 
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(method="GET", url=url)
-    api_log.debug(f"Getting all listener data")
+    api_log.debug("Getting all listener data")
 
     # get implants
     async with httpx.AsyncClient() as client:
@@ -193,10 +186,8 @@ async def get_listener_data(listener_uuid: str) -> dict:
     url = generate_url(f"/api/v1/listeners/{listener_uuid}")
 
     structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        method="GET", url=url, listener_uuid=listener_uuid
-    )
-    api_log.debug(f"Getting data for listener")
+    structlog.contextvars.bind_contextvars(method="GET", url=url, listener_uuid=listener_uuid)
+    api_log.debug("Getting data for listener")
 
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
@@ -224,10 +215,8 @@ async def stop_listener(listener_uuid: str) -> dict:
     url = generate_url(f"/api/v1/listeners/{listener_uuid}")
 
     structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        method="DELETE", url=url, listener_uuid=listener_uuid
-    )
-    api_log.debug(f"Getting data for listener")
+    structlog.contextvars.bind_contextvars(method="DELETE", url=url, listener_uuid=listener_uuid)
+    api_log.debug("Getting data for listener")
 
     async with httpx.AsyncClient() as client:
         response = await client.delete(url)
@@ -255,9 +244,7 @@ async def restart_listener(listener_uuid: str) -> dict:
     url = generate_url(f"/api/v1/listeners/{listener_uuid}")
 
     structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        method="PATCH", url=url, listener_uuid=listener_uuid
-    )
+    structlog.contextvars.bind_contextvars(method="PATCH", url=url, listener_uuid=listener_uuid)
     # api_log.debug(f"Getting data for listener")
 
     async with httpx.AsyncClient() as client:
@@ -319,12 +306,12 @@ async def start_listener(
     listener_host = listener_host.strip()
     listener_name = listener_name.strip()
 
-    url = generate_url(f"/api/v1/listeners/")
+    url = generate_url("/api/v1/listeners/")
 
     # --- core logic placeholder ---
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(method="POST", url=url)
-    api_log.debug(f"Getting data for listener")
+    api_log.debug("Getting data for listener")
 
     async with httpx.AsyncClient() as client:
         response = await client.post(url, json=listener_request_data)
@@ -374,12 +361,8 @@ async def build_implant(
     check_type(output_format, str, "output_format")
     check_type(listener_uuids, list, "listener_uuids")
 
-    check_type(
-        initial_get_profile_listener_uuid, str, "initial_get_profile_listener_uuid"
-    )
-    check_type(
-        initial_post_profile_listener_uuid, str, "initial_post_profile_listener_uuid"
-    )
+    check_type(initial_get_profile_listener_uuid, str, "initial_get_profile_listener_uuid")
+    check_type(initial_post_profile_listener_uuid, str, "initial_post_profile_listener_uuid")
 
     build_request_data = {
         # "implant_name": implant_name,
@@ -390,7 +373,7 @@ async def build_implant(
         "initial_post_profile_listener_uuid": initial_post_profile_listener_uuid,
     }
 
-    url = generate_url(f"/api/v1/build/")
+    url = generate_url("/api/v1/build/")
 
     # --- core logic placeholder ---
     structlog.contextvars.clear_contextvars()
@@ -441,7 +424,7 @@ async def get_payload_data() -> dict:
             {"payload_hash": "abcdabcdabcd==", "implant_name": "Beta", "build_date": "..."}
         ]
     """
-    url = generate_url(f"/api/v1/build/")
+    url = generate_url("/api/v1/build/")
 
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(method="GET", url=url)
@@ -504,9 +487,7 @@ async def get_payload_source_bytes(payload_hash: str) -> dict:
         return response.content
 
 
-async def get_implant_task_history_since_uuid(
-    implant_uuid: str, since_task_uuid: str
-) -> dict:
+async def get_implant_task_history_since_uuid(implant_uuid: str, since_task_uuid: str) -> dict:
     """
     Retrieve task history for an implant that occurred after a specific task UUID.
 
@@ -522,9 +503,7 @@ async def get_implant_task_history_since_uuid(
         ]
     """
     url_params = {"since": since_task_uuid}
-    url = generate_url(
-        f"/api/v1/implants/{implant_uuid}/tasks/history", params=url_params
-    )
+    url = generate_url(f"/api/v1/implants/{implant_uuid}/tasks/history", params=url_params)
 
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(method="GET", url=url)
@@ -572,7 +551,7 @@ async def get_all_graph_data() -> dict:
 
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(method="GET", url=url)
-    api_log.debug(f"Getting all graph data")
+    api_log.debug("Getting all graph data")
 
     # get implants
     async with httpx.AsyncClient() as client:

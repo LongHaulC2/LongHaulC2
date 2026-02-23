@@ -1,16 +1,13 @@
-import logging
 from dataclasses import asdict
 
-from ..schemas.implant import Task
-
-server_logger = logging.getLogger("server")
-
-import logging
-
 import msgpack
+import structlog
 
 from ..db.redis_connector import get_redis_connection
+from ..schemas.implant import Task
 from ..utils.checks import check_type
+
+server_logger = structlog.getLogger("server")
 
 
 class RedisImplantTaskService:
@@ -36,7 +33,7 @@ class RedisImplantTaskService:
             # get datatclass, convert to dict
             # using as dict as we have a nested dataclass (TaskData), rather than vars(task)
             payload = asdict(task)
-            server_logger.debug(f"Adding task to queue: {payload}")
+            server_logger.debug("Adding task to queue", payload=payload)
             packed = msgpack.packb(payload, use_bin_type=True)
             self.redis.rpush(self.outbox_key, packed)
 

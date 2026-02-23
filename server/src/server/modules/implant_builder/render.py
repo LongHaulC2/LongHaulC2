@@ -1,17 +1,13 @@
-import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, Tuple
 
 import structlog
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-# Assumed imports based on your file
-from ...listeners.malc2 import *
 from .context_generators.http_wininet import generate_http_wininet_context
 from .types import FunctionMapping, ListenerProfile  # Import your types
 
-server_logger = logging.getLogger("server")
+server_logger = structlog.getLogger("server")
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 
 # Initialize Jinja Environment once
@@ -31,7 +27,7 @@ ENV = Environment(
 
 def render_implant(
     output_dir: Path,
-    listeners_data_dict: Dict[str, ListenerProfile],
+    listeners_data_dict: dict[str, ListenerProfile],
     initial_get_profile_listener_uuid: str,
     initial_post_profile_listener_uuid: str,
 ):
@@ -43,13 +39,12 @@ def render_implant(
     """
 
     # Mappings for c2.cpp: { "profile_name": { "key": sanitized, "value": actual } }
-    get_func_mappings: Dict[str, FunctionMapping] = {}
-    post_func_mappings: Dict[str, FunctionMapping] = {}
+    get_func_mappings: dict[str, FunctionMapping] = {}
+    post_func_mappings: dict[str, FunctionMapping] = {}
 
     # Render Listener Communication Modules (comms.cpp)
     # This loop appends code to comms.cpp for every listener
     for uuid, listener in listeners_data_dict.items():
-
         # Setup Logger Context
         # print(listeners_data_dict)
         structlog.contextvars.bind_contextvars(listener_type=listener["listener_type"])
@@ -64,17 +59,13 @@ def render_implant(
             post_func_mappings[profile_name] = mappings["post"]
 
         except Exception as e:
-            server_logger.error(f"Failed to render listener {uuid}: {e}")
+            server_logger.error("Failed to render listener", listener_uuid=uuid, error=e)
             raise e
 
     # Determine Initial Profile Functions
     # Retrieve the profile name associated with the initial UUIDs
-    init_get_name = listeners_data_dict[initial_get_profile_listener_uuid][
-        "listener_profile_name"
-    ]
-    init_post_name = listeners_data_dict[initial_post_profile_listener_uuid][
-        "listener_profile_name"
-    ]
+    init_get_name = listeners_data_dict[initial_get_profile_listener_uuid]["listener_profile_name"]
+    init_post_name = listeners_data_dict[initial_post_profile_listener_uuid]["listener_profile_name"]
     # Lookup the sanitized C++ function name
     init_get_func = get_func_mappings.get(init_get_name, {}).get("value")
     init_post_func = post_func_mappings.get(init_post_name, {}).get("value")
@@ -93,9 +84,7 @@ def render_implant(
     )
 
 
-def _render_listener_variant(
-    output_dir: Path, listener: ListenerProfile
-) -> Dict[str, FunctionMapping]:
+def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dict[str, FunctionMapping]:
     """
     Handles the logic for a specific listener type (e.g. HTTP).
     Renders the comms code and returns the function names generated.
@@ -165,7 +154,7 @@ def _render_file(dest_path: Path, template_name: str, context: dict, mode: str =
             f.write(rendered_code)
 
     except Exception as e:
-        server_logger.error(f"Template render error ({template_name}): {e}")
+        server_logger.error("Template render error", template_name=template_name, error=e)
         raise e
 
 

@@ -1,19 +1,34 @@
-import logging
+import re
 import tempfile
 
-from mpp import *
+import structlog
+from mpp import MalleableProfile
 
 from ..utils.checks import check_type
-from .transform import *
+from .transform import (
+    base64_decode,
+    base64_encode,
+    base64url_decode,
+    base64url_encode,
+    netbios_decode,
+    netbios_encode,
+    netbiosu_decode,
+    netbiosu_encode,
+    transform_append,
+    transform_prepend,
+    undo_transform_append,
+    undo_transform_prepend,
+    xor_mask,
+)
 
 """
 Logic for extracting Malleable C2 options within the profiles. Piggybacks off of MalleableProfile (mpp)
-to get the values needed. 
+to get the values needed.
 
-This is currently purely for server side logic, does not have the logic to setup implants with the same options. 
+This is currently purely for server side logic, does not have the logic to setup implants with the same options.
 """
-api_logger = logging.getLogger("api")
-server_logger = logging.getLogger("server")
+api_logger = structlog.getLogger("api")
+server_logger = structlog.getLogger("server")
 
 ###################################
 # Profile Cleaning/Util funcs
@@ -28,7 +43,7 @@ def load_malleable_profile(malleable_c2_profile: str) -> MalleableProfile:
     Additionally, formats/cleans various quirks with Malleable profiles, ex, delimiters.
 
     """
-    server_logger.debug(f"Parsing Malleable C2 profile.")
+    server_logger.debug("Parsing Malleable C2 profile.")
 
     try:
         # with open(path, "r") as file:
@@ -172,7 +187,6 @@ class HttpConfigBlockServerParser:
         for stmt in self.http_config.data:
             # Check if the object has an 'option' attribute and matches 'block_useragents'
             if hasattr(stmt, "option") and stmt.option == "allow_useragents":
-
                 allow_useragents = stmt.value.strip().split(",")
                 return allow_useragents
         return []
@@ -181,7 +195,6 @@ class HttpConfigBlockServerParser:
         for stmt in self.http_config.data:
             # Check if the object has an 'option' attribute and matches 'block_useragents'
             if hasattr(stmt, "option") and stmt.option == "block_useragents":
-
                 block_useragents = stmt.value.strip().split(",")
                 return block_useragents
         return []
@@ -196,13 +209,9 @@ class HttpConfigBlockServerParser:
 
         # Add in rest of headers based on declared headers
         headers.update(
-            {
-                stmt.key: stmt.value
-                for stmt in self.http_config.data
-                if getattr(stmt, "statement", None) == "header"
-            }
+            {stmt.key: stmt.value for stmt in self.http_config.data if getattr(stmt, "statement", None) == "header"}
         )
-        server_logger.debug(f"Extracted Headers: {list(headers.items())}")
+        server_logger.debug("Extracted Headers", headers=list(headers.items()))
         return headers
 
     def reorder_headers(self, headers) -> dict:
@@ -238,15 +247,14 @@ class HttpConfigBlockServerParser:
             # print(ordered_headers)
 
         # Reorder the headers according to the desired_order
-        ordered_headers = {
-            header: headers[header] for header in ordered_headers if header in headers
-        }
+        ordered_headers = {header: headers[header] for header in ordered_headers if header in headers}
         # print(ordered_headers)
         return ordered_headers
         # You can now return the ordered headers in the response
         # return Response(content="Headers have been reordered.", headers=ordered_headers)
 
-    def get_headers_to_remove_from_request(self) -> dict: ...
+    def get_headers_to_remove_from_request(self) -> dict:
+        ...
 
 
 class HttpGetBlockServerParser:
@@ -280,12 +288,8 @@ class HttpGetBlockServerParser:
         }
 
         """
-        headers = {
-            stmt.key: stmt.value
-            for stmt in self.server.data
-            if getattr(stmt, "statement", None) == "header"
-        }
-        server_logger.debug(f"Extracted Headers: {list(headers.items())}")
+        headers = {stmt.key: stmt.value for stmt in self.server.data if getattr(stmt, "statement", None) == "header"}
+        server_logger.debug("Extracted Headers", header=list(headers.items()))
         return headers
 
     def generate_data(self, data: bytes):
@@ -647,12 +651,8 @@ class HttpPostBlockServerParser:
             }
         }
         """
-        headers = {
-            stmt.key: stmt.value
-            for stmt in self.server.data
-            if getattr(stmt, "statement", None) == "header"
-        }
-        server_logger.debug(f"Extracted Headers: {list(headers.items())}")
+        headers = {stmt.key: stmt.value for stmt in self.server.data if getattr(stmt, "statement", None) == "header"}
+        server_logger.debug("Extracted Headers", headers=list(headers.items()))
         return headers
 
     def get_output_terminator(self):

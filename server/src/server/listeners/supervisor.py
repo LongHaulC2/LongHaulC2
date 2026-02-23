@@ -1,7 +1,8 @@
 # listener supervisor
-import logging
 import multiprocessing
 import threading
+
+import structlog
 
 from ..db.mysql_connector import get_mysql_session
 from ..modules.mysql_functions import ListenerService
@@ -18,10 +19,10 @@ listeners_lock = threading.Lock()
 listeners = {}  # UUID -> Process object. internal, the start/stop keep track of pid's.
 # ex: {1234-1234-1234-1234:process_object}
 
-# problem, listeners get added to db, without a "state". Need to update state to be like disabled at shutdown, etc. otherwise
-# the api thinks the listeners are still up & existing.
+# problem, listeners get added to db, without a "state". Need to update state to be like disabled at shutdown,
+# etc. otherwise the api thinks the listeners are still up & existing.
 
-server_logger = logging.getLogger("server")
+server_logger = structlog.getLogger("server")
 
 
 def restart_active_listeners():
@@ -34,7 +35,7 @@ def restart_active_listeners():
         ls = ListenerService(session)
         all_listeners = ls.get_all()
         for listener in all_listeners:
-            if listener.listener_active == True:
+            if listener.listener_active:
                 # create our dataclass with listener data, as that's what the start endpoint wants
                 # note, listener is a sql object, so need to convert to dict then pass for a proper unpacking
                 listener_dict = listener.to_dict()
@@ -48,7 +49,7 @@ def start_listener(
     check_type(listener_data, ListenerCreate, "listener_data")
 
     try:
-        server_logger.info(f"Starting listener {listener_data.listener_uuid}")
+        server_logger.info("Starting listener", listener_uuid=listener_data.listener_uuid)
 
         # could be less code, but for explicity/expandability it's not.
         # Also this allows for per listener kwargs if needed.
@@ -68,14 +69,10 @@ def start_listener(
                 # THREAD-SAFE ADDITION
                 with listeners_lock:
                     listeners[listener_data.listener_uuid] = p
-                server_logger.info(
-                    f"Listener {listener_data.listener_uuid} started, PID={p.pid}"
-                )
+                server_logger.info("Listener started", listener_uuid=listener_data.listener_uuid, pid=p.pid)
 
             case _:
-                server_logger.warning(
-                    f"Invalid listener type: {listener_data.listener_type}"
-                )
+                server_logger.warning("Invalid listener type", listener_type=listener_data.listener_type)
                 # throw custom error if invalid listener type
                 raise InvalidListenerType
 
@@ -100,7 +97,7 @@ def stop_listener(listener_uuid: str):
     check_type(listener_uuid, str, "listener_uuid")
 
     try:
-        server_logger.info(f"Stopping listener {listener_uuid}")
+        server_logger.info("Stopping listener", listener_uuid=listener_uuid)
         # THREAD-SAFE POP
         with listeners_lock:
             proc = listeners.pop(listener_uuid, None)
@@ -115,7 +112,7 @@ def stop_listener(listener_uuid: str):
 
 def stop_all():
     try:
-        server_logger.info(f"Stopping all listeners")
+        server_logger.info("Stopping all listeners")
         # list creates a snapshot of the current listeners to operate on
         with listeners_lock:
             snapshot = list(listeners.keys())

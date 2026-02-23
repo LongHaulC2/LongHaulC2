@@ -1,14 +1,13 @@
-import logging
+from collections.abc import Mapping
+from typing import Any
 
 import structlog
 from yarl import URL
 
 from ..utils.checks import check_type
 
-server_log = logging.getLogger("server")
+server_log = structlog.getLogger("server")
 
-
-from typing import Any, Mapping
 
 # todo: find a way to get args/startup things to this later, for more dynamic url generation
 # ex, python3 client --host https://127.0.0.1:1234

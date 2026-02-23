@@ -1,7 +1,7 @@
-from pathlib import Path
-from typing import Dict, List, Optional, TypedDict, Union
+from typing import TypedDict
 
-# usigng TypedDicts to define structured data types for the implant builder module, which makes everything clearer and easier to manage.
+# usigng TypedDicts to define structured data types for the implant builder module, which makes everything
+# clearer and easier to manage.
 
 
 class ListenerProfile(TypedDict):
@@ -37,6 +37,6 @@ class BuildJobConfig(TypedDict):
     implant_name: str
     build_uuid: str
     # Maps listener_uuid -> ListenerProfile
-    listeners: Dict[str, ListenerProfile]
+    listeners: dict[str, ListenerProfile]
     init_get_profile_uuid: str
     init_post_profile_uuid: str

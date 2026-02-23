@@ -1,5 +1,4 @@
 import logging
-from itertools import groupby
 
 from nicegui import ui
 
@@ -8,7 +7,6 @@ from client.src.client.modules.api_calls import (
     build_implant,
     get_all_listener_data,
     get_build_status,
-    get_listener_data,
     get_payload_bytes,
     get_payload_data,
     get_payload_source_bytes,
@@ -23,17 +21,11 @@ server_log = logging.getLogger("server")
 # ==============================================================================
 def stat_widget(label: str, value: str, icon: str, color: str = "emerald"):
     """Creates a small tech-styled stat card"""
-    with ui.card().classes(
-        "flex-1 min-w-[150px] p-3 gap-1 bg-white/5 border border-white/10 rounded-sm no-shadow"
-    ):
+    with ui.card().classes("flex-1 min-w-[150px] p-3 gap-1 bg-white/5 border border-white/10 rounded-sm no-shadow"):
         with ui.row().classes("w-full items-center justify-between"):
-            ui.label(label).classes(
-                "text-[10px] font-mono tracking-widest text-neutral-500 uppercase"
-            )
+            ui.label(label).classes("text-[10px] font-mono tracking-widest text-neutral-500 uppercase")
             ui.icon(icon, size="xs", color=f"{color}-500").classes("opacity-80")
-        ui.label(str(value)).classes(
-            "text-xl font-bold font-mono tracking-wide text-neutral-200 truncate"
-        )
+        ui.label(str(value)).classes("text-xl font-bold font-mono tracking-wide text-neutral-200 truncate")
 
 
 @ui.page("/payloads")
@@ -53,7 +45,6 @@ async def payloads():
 async def payloads_view():
     # --- MAIN GLASS PANEL ---
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
-
         # --- HEADER BAR ---
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
             # Left: Identity
@@ -63,19 +54,18 @@ async def payloads_view():
 
             # Right: Controls
             with ui.row().classes("items-center gap-2"):
-                with ui.button(on_click=start_payload_dialogue).classes(
-                    "tech-btn-action px-4"
-                ).props("flat no-caps dense"):
+                with ui.button(on_click=start_payload_dialogue).classes("tech-btn-action px-4").props(
+                    "flat no-caps dense"
+                ):
                     ui.icon("add_circle", size="xs").classes("mr-2")
                     ui.label("COMPILE NEW").classes("text-xs font-bold tracking-wide")
 
-                ui.button(
-                    icon="refresh", on_click=lambda: ui.navigate.to("/payloads")
-                ).props("dense flat size=sm").classes("tech-btn-ghost")
+                ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/payloads")).props(
+                    "dense flat size=sm"
+                ).classes("tech-btn-ghost")
 
         # --- CONTENT AREA ---
         with ui.column().classes("w-full flex-grow p-6 gap-6 overflow-hidden"):
-
             # Fetch Data
             payload_data_response = await get_payload_data()
             payload_data = payload_data_response.get("data", [])
@@ -96,9 +86,7 @@ async def payloads_view():
                 "w-full flex-grow bg-white/5 border border-white/5 p-0 rounded overflow-hidden flex flex-col"
             ):
                 if not payload_data:
-                    with ui.column().classes(
-                        "w-full h-full items-center justify-center opacity-30"
-                    ):
+                    with ui.column().classes("w-full h-full items-center justify-center opacity-30"):
                         ui.icon("inbox", size="4em")
                         ui.label("NO ARTIFACTS FOUND").classes("font-mono text-sm mt-2")
                 else:
@@ -112,7 +100,7 @@ async def render_payloads(payload_data: dict):
     all_listeners_resp = await get_all_listener_data()
     all_listeners = all_listeners_resp.get("data", [])
     listener_map = {
-        l.get("listener_uuid"): l.get("listener_name", "Unknown") for l in all_listeners
+        listener.get("listener_uuid"): listener.get("listener_name", "Unknown") for listener in all_listeners
     }
 
     # Helper to guess format for badge styling
@@ -208,12 +196,16 @@ async def render_payloads(payload_data: dict):
     table.add_slot(
         "header",
         r"""
-        <q-tr :props="props" class="bg-black/20 text-neutral-500 uppercase text-[10px] font-bold tracking-widest border-b border-white/10">
+        <q-tr
+            :props="props"
+            class="bg-black/20 text-neutral-500 uppercase text-[10px]
+                font-bold tracking-widest border-b border-white/10"
+        >
             <q-th v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.label }}
             </q-th>
         </q-tr>
-    """,
+        """,
     )
 
     # Format Badge Slot
@@ -221,7 +213,7 @@ async def render_payloads(payload_data: dict):
         "body-cell-fmt",
         r"""
         <q-td :props="props">
-            <q-badge :color="props.value === 'EXE' ? 'blue-9' : props.value === 'DLL' ? 'purple-9' : 'grey-8'" 
+            <q-badge :color="props.value === 'EXE' ? 'blue-9' : props.value === 'DLL' ? 'purple-9' : 'grey-8'"
                      text-color="white" :label="props.value" class="font-mono text-[10px] px-2 py-0.5 rounded-sm" />
         </q-td>
     """,
@@ -246,12 +238,12 @@ async def render_payloads(payload_data: dict):
         r"""
         <q-td :props="props">
             <div class="row items-center justify-end no-wrap gap-1">
-                <q-btn icon="download" flat dense size="sm" color="grey-5" 
+                <q-btn icon="download" flat dense size="sm" color="grey-5"
                     class="hover:text-emerald-400 transition-colors"
                     @click="$parent.$emit('download', props.row)">
                     <q-tooltip class="bg-neutral-900 text-xs">BINARY</q-tooltip>
                 </q-btn>
-                <q-btn icon="code" flat dense size="sm" color="grey-5" 
+                <q-btn icon="code" flat dense size="sm" color="grey-5"
                     class="hover:text-emerald-400 transition-colors"
                     @click="$parent.$emit('source_download', props.row)">
                     <q-tooltip class="bg-neutral-900 text-xs">SOURCE</q-tooltip>
@@ -277,7 +269,7 @@ async def start_payload_dialogue():
     listeners_list = response.get("data", [])
 
     # Map Name -> UUID
-    listener_uuid_map = {l["listener_name"]: l["listener_uuid"] for l in listeners_list}
+    listener_uuid_map = {listener["listener_name"]: listener["listener_uuid"] for listener in listeners_list}
 
     # --- 2. Event Handlers ---
 
@@ -292,10 +284,7 @@ async def start_payload_dialogue():
 
         if selected_names:
             profile_get_select.enable()
-            if (
-                not profile_get_select.value
-                or profile_get_select.value not in selected_names
-            ):
+            if not profile_get_select.value or profile_get_select.value not in selected_names:
                 profile_get_select.value = selected_names[0]
         else:
             profile_get_select.value = None
@@ -306,10 +295,7 @@ async def start_payload_dialogue():
 
         if selected_names:
             profile_post_select.enable()
-            if (
-                not profile_post_select.value
-                or profile_post_select.value not in selected_names
-            ):
+            if not profile_post_select.value or profile_post_select.value not in selected_names:
                 profile_post_select.value = selected_names[0]
         else:
             profile_post_select.value = None
@@ -358,12 +344,8 @@ async def start_payload_dialogue():
             implant_name=name_input.value,
             listener_uuids=listener_uuids,
             output_format=format_select.value,
-            initial_get_profile_listener_uuid=listener_uuid_map.get(
-                profile_get_select.value
-            ),
-            initial_post_profile_listener_uuid=listener_uuid_map.get(
-                profile_post_select.value
-            ),
+            initial_get_profile_listener_uuid=listener_uuid_map.get(profile_get_select.value),
+            initial_post_profile_listener_uuid=listener_uuid_map.get(profile_post_select.value),
         )
 
         # Build Status Polling Logic
@@ -386,15 +368,11 @@ async def start_payload_dialogue():
                 build_btn.props("loading=false")
 
                 download_payload_button.enable()
-                download_payload_button.on_click(
-                    lambda: download_payload(hash=payload_hash, name=payload_name)
-                )
+                download_payload_button.on_click(lambda: download_payload(hash=payload_hash, name=payload_name))
 
                 download_payload_source_button.enable()
                 download_payload_source_button.on_click(
-                    lambda: download_payload_source(
-                        hash=payload_hash, name=payload_name
-                    )
+                    lambda: download_payload_source(hash=payload_hash, name=payload_name)
                 )
 
                 status_timer.deactivate()
@@ -411,26 +389,16 @@ async def start_payload_dialogue():
         status_timer = ui.timer(1.0, poll_build_status, active=True)
 
     # --- 3. UI Layout ---
-    with ui.dialog() as dialog, ui.card().classes(
-        "tech-dialog w-[600px] p-0 rounded overflow-hidden"
-    ):
-
+    with ui.dialog() as dialog, ui.card().classes("tech-dialog w-[600px] p-0 rounded overflow-hidden"):
         # Header
-        with ui.row().classes(
-            "w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"
-        ):
+        with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
             with ui.row().classes("gap-2 items-center"):
                 ui.icon("terminal", color="emerald-500")
-                ui.label("COMPILE_ARTIFACT").classes(
-                    "text-sm font-bold tracking-widest text-emerald-500 font-mono"
-                )
-            ui.button(icon="close", on_click=dialog.close).props(
-                "dense flat size=sm color=grey"
-            )
+                ui.label("COMPILE_ARTIFACT").classes("text-sm font-bold tracking-widest text-emerald-500 font-mono")
+            ui.button(icon="close", on_click=dialog.close).props("dense flat size=sm color=grey")
 
         # Body
         with ui.column().classes("p-6 gap-5 w-full"):
-
             # IDENTITY & FORMAT
             with ui.row().classes("w-full gap-4"):
                 name_input = (
@@ -457,19 +425,14 @@ async def start_payload_dialogue():
                     multiple=True,
                     on_change=_on_listener_change,
                 )
-                .props(
-                    "outlined dense dark color=emerald options-dense use-chips stack-label"
-                )
+                .props("outlined dense dark color=emerald options-dense use-chips stack-label")
                 .classes("w-full")
             )
             with listener_select:
-                ui.tooltip("The profiles to include in the payload").classes(
-                    "bg-green-700"
-                )
+                ui.tooltip("The profiles to include in the payload").classes("bg-green-700")
 
             # PROFILE CONFIG
             with ui.row().classes("w-full"):  # bg-white/5 rounded border border-white/5
-
                 profile_get_select = (
                     ui.select(label="Initial Get Profile", options=[])
                     .props("outlined dense dark color=emerald options-dense")
@@ -485,34 +448,23 @@ async def start_payload_dialogue():
                 profile_post_select.disable()
 
                 with profile_get_select:
-                    ui.tooltip(
-                        "The profile to use for the initial GET requests"
-                    ).classes("bg-green-700")
+                    ui.tooltip("The profile to use for the initial GET requests").classes("bg-green-700")
                 with profile_post_select:
-                    ui.tooltip(
-                        "The profile to use for the initial POST requests"
-                    ).classes("bg-green-700")
+                    ui.tooltip("The profile to use for the initial POST requests").classes("bg-green-700")
 
         # Footer
-        with ui.row().classes(
-            "w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3 relative"
-        ):
-
+        with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3 relative"):
             # Progress Bars
             progress_bar = (
                 ui.linear_progress(value=0, show_value=False, color="emerald-400")
                 .props("instant-feedback track-color=transparent")
-                .classes(
-                    "absolute top-0 left-0 w-full h-[2px] opacity-0 transition-opacity"
-                )
+                .classes("absolute top-0 left-0 w-full h-[2px] opacity-0 transition-opacity")
             )
 
             progress_bar_fail = (
                 ui.linear_progress(value=0, show_value=False, color="red-500")
                 .props("instant-feedback track-color=transparent")
-                .classes(
-                    "absolute top-0 left-0 w-full h-[2px] opacity-0 transition-opacity"
-                )
+                .classes("absolute top-0 left-0 w-full h-[2px] opacity-0 transition-opacity")
             )
 
             # Buttons

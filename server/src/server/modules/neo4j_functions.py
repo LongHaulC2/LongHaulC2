@@ -1,5 +1,4 @@
 # neo4j functions
-import logging
 
 import structlog
 from neomodel import db
@@ -15,20 +14,19 @@ from ..db.neo4j_models import (
     Neo4jNetworkNode,
     Neo4jNicNode,
 )
-from .mysql_functions import ListenerService, MySQLImplantTaskService
-from .redis_functions import RedisImplantTaskService
+from .mysql_functions import ListenerService
 
-neo4j_logger = logging.getLogger("neo4j_logger")
+neo4j_logger = structlog.getLogger("neo4j_logger")
 
 """
 each service class should have a:
- 
+
 @staticmethod
 def create_or_get_node(args) -> object that returns model object:
 
-> I try to use `create_or_get_node` when possible, that way, if there isn't a node, and something comes in and wants that node, 
-it gets created in the DB. It's a bit backwards than making sure that node exists, but every bit of data that 
-can be pulled out of these implants is important, hence this decision. 
+> I try to use `create_or_get_node` when possible, that way, if there isn't a node, and something comes in and wants
+that node, it gets created in the DB. It's a bit backwards than making sure that node exists,
+but every bit of data that can be pulled out of these implants is important, hence this decision.
 """
 
 
@@ -44,7 +42,7 @@ class Neo4jImplantNodeService:
     An implant can:
 
     - Connect to a host
-    
+
     """
     # create node...
 
@@ -61,15 +59,14 @@ class Neo4jImplantNodeService:
         del data_for_neo["nics"]  # tldr neo4j doenst like structured data.
         # This prevents the race condition where two threads check find_existing
         # at the same time and both see 'None'
-        db.cypher_query(
-            query, {"implant_uuid": self.implant_uuid, "props": data_for_neo}
-        )
+        db.cypher_query(query, {"implant_uuid": self.implant_uuid, "props": data_for_neo})
 
         # Refresh the local object reference
         self.implant_node = Neo4jImplantNode.nodes.get(implant_uuid=self.implant_uuid)
 
         hostname = kwargs.get("system_hostname")
-        # the only auto linking/magic that happens here is linking our implant to a host, and linking our implant to a listener.
+        # the only auto linking/magic that happens here is linking our implant to a host, and linking our implant
+        # to a listener.
         self.connect_implant_to_listener(self.listener_uuid)
         self.connect_implant_to_host(hostname)
 
@@ -80,9 +77,7 @@ class Neo4jImplantNodeService:
         for nic_mac_address, data in nics.items():
             # exlude NIC's that didn't return a mac for some reason.
             if not nic_mac_address:
-                neo4j_logger.debug(
-                    f"mac address missing from nic, skipping. Data: {data}"
-                )
+                neo4j_logger.debug("mac address missing from nic, skipping", data=data)
                 continue
 
             # create our NIC
@@ -90,18 +85,14 @@ class Neo4jImplantNodeService:
 
             # link nic to our host
             nic_ip_address = data.get("ip")
-            Neo4jNicNodeService.connect_nic_to_host(
-                hostname, mac_address=nic_mac_address, ip_address=nic_ip_address
-            )
+            Neo4jNicNodeService.connect_nic_to_host(hostname, mac_address=nic_mac_address, ip_address=nic_ip_address)
 
             # link NIC to network, if we have data for it
             cidr = data.get("cidr")
             gateway = data.get("gateway")
             if cidr and gateway:
                 network_segment = f"{gateway}/{cidr}"
-                Neo4jNicNodeService.connect_nic_to_network(
-                    network_segment, nic_mac_address
-                )
+                Neo4jNicNodeService.connect_nic_to_network(network_segment, nic_mac_address)
 
     @staticmethod
     def create_or_get_node(implant_uuid):
@@ -112,7 +103,7 @@ class Neo4jImplantNodeService:
         implant_node = Neo4jImplantNode.find_existing(implant_uuid=implant_uuid)
         if not implant_node:
             implant_node = Neo4jImplantNode(implant_uuid=implant_uuid).save()
-            neo4j_logger.info(f"New node created: {implant_uuid}")
+            neo4j_logger.info("New node created", implant_uuid=implant_uuid)
 
         return implant_node
 
@@ -139,7 +130,7 @@ class Neo4jImplantNodeService:
             c2_channel_node.targets.connect(listener_node)
 
         neo4j_logger.info(
-            f"Implant {self.implant_uuid} connected to listener {self.listener_uuid}"
+            "Implant connected to listener", implant_uuid=self.implant_uuid, listener_uuid=self.listener_uuid
         )
 
     def _update_node(self, data: dict):
@@ -162,15 +153,13 @@ class Neo4jImplantNodeService:
             # add us to it
             self.implant_node.running_on.connect(host_node)
 
-        neo4j_logger.info(f"Implant {self.implant_uuid} connected to host {hostname}")
+        neo4j_logger.info("Implant connected to host", implant_uuid=self.implant_uuid, hostname=hostname)
 
     # funcs to replicate api func
     @staticmethod
     def get_all():
         """Gets all Neo4jImplantNode instances in the DB, returns their properties."""
-        node_data, _ = db.cypher_query(
-            "MATCH (h:Neo4jImplantNode) RETURN properties(h)"
-        )
+        node_data, _ = db.cypher_query("MATCH (h:Neo4jImplantNode) RETURN properties(h)")
         return [row[0] for row in node_data]
 
         # need to take that, then get .properties, and return just properties
@@ -194,9 +183,7 @@ class Neo4jImplantNodeService:
         RETURN properties(n)
         """
 
-        results, _ = db.cypher_query(
-            query, {"implant_uuid": implant_uuid, "props": data}
-        )
+        results, _ = db.cypher_query(query, {"implant_uuid": implant_uuid, "props": data})
         # no return to save some processing
 
     @staticmethod
@@ -217,7 +204,7 @@ class Neo4jImplantNodeService:
         formatted_term = f"{search_term}*"
 
         query = """
-        CALL db.index.fulltext.queryNodes("implant_search_index", $term) 
+        CALL db.index.fulltext.queryNodes("implant_search_index", $term)
         YIELD node, score
         RETURN properties(node) AS props
         ORDER BY score DESC
@@ -260,7 +247,7 @@ class Neo4jHostNodeService:
     Host can have:
      - A network its connected to
      - implants that connect to it
-    
+
     """
 
     @staticmethod
@@ -272,7 +259,7 @@ class Neo4jHostNodeService:
         host_node = Neo4jHostNode.find_existing(hostname=hostname)
         if not host_node:
             host_node = Neo4jHostNode(hostname=hostname).save()
-            neo4j_logger.info(f"New Host discovered: {hostname}")
+            neo4j_logger.info("New Host discovered", hostname=hostname)
 
         return host_node
 
@@ -307,7 +294,7 @@ class Neo4jListenerNodeService:
         listener_node = Neo4jListenerNode.find_existing(listener_uuid=listener_uuid)
         if not listener_node:
             listener_node = Neo4jListenerNode(listener_uuid=listener_uuid).save()
-            neo4j_logger.info(f"New listener node created: {listener_uuid}")
+            neo4j_logger.info("New listener node created", listener_uuid=listener_uuid)
 
         return listener_node
 
@@ -319,12 +306,10 @@ class Neo4jListenerNodeService:
         listener_node = Neo4jListenerNode.find_existing(self.listener_uuid)
 
         if not listener_node:
-            neo4j_logger.info(f"Registering new Listener: {self.listener_uuid}")
-            listener_node = Neo4jListenerNode(
-                listener_uuid=self.listener_uuid, **kwargs
-            ).save()
+            neo4j_logger.info("Registering new Listener", listener_uuid=self.listener_uuid)
+            listener_node = Neo4jListenerNode(listener_uuid=self.listener_uuid, **kwargs).save()
         else:
-            neo4j_logger.debug(f"Updating existing Listener: {self.listener_uuid}")
+            neo4j_logger.debug("Updating existing Listener", listener_uuid=self.listener_uuid)
             # Update dynamic properties (status, current connections, etc.)
             for key, value in kwargs.items():
                 setattr(listener_node, key, value)
@@ -343,7 +328,7 @@ class Neo4jNicNodeService:
         listener_node = Neo4jNicNode.find_existing(mac_address=mac_address)
         if not listener_node:
             listener_node = Neo4jNicNode(mac_address=mac_address).save()
-            neo4j_logger.info(f"New nic node created: {mac_address}")
+            neo4j_logger.info("New nic node created", mac_address=mac_address)
 
         return listener_node
 
@@ -369,7 +354,7 @@ class Neo4jNicNodeService:
         if not nic_node.attached_to.is_connected(host_node):
             nic_node.attached_to.connect(host_node)
 
-        neo4j_logger.info(f"Nic -> host successful")
+        neo4j_logger.info("Nic -> host successful")
 
     @staticmethod
     def connect_nic_to_network(network_cidr, nic_mac_address: str):
@@ -384,7 +369,7 @@ class Neo4jNicNodeService:
         if not nic_node.in_network.is_connected(network_node):
             nic_node.in_network.connect(network_node)
 
-        neo4j_logger.info(f"Nic -> network successful")
+        neo4j_logger.info("Nic -> network successful")
 
 
 class Neo4jNetworkNodeService:
@@ -397,7 +382,7 @@ class Neo4jNetworkNodeService:
         listener_node = Neo4jNetworkNode.find_existing(cidr=network_cidr)
         if not listener_node:
             listener_node = Neo4jNetworkNode(cidr=network_cidr).save()
-            neo4j_logger.info(f"New network created: {network_cidr}")
+            neo4j_logger.info("New network created", network_cidr=network_cidr)
 
         return listener_node
 
@@ -425,11 +410,8 @@ class Neo4jC2ChannelNodeService:
 
         channel_node = Neo4jC2ChannelNode.find_existing(channel_id=channel_id)
         if not channel_node:
-
-            channel_node = Neo4jC2ChannelNode(
-                channel_id=channel_id, protocol=listener_type
-            ).save()
-            neo4j_logger.info(f"New c2 channel node created: {channel_id}")
+            channel_node = Neo4jC2ChannelNode(channel_id=channel_id, protocol=listener_type).save()
+            neo4j_logger.info("New c2 channel node created", channel_id=channel_id)
 
         return channel_node
 
@@ -462,14 +444,12 @@ class Neo4jMemstoreFileNodeService:
         listener_node = Neo4jMemstoreFileNode.find_existing(file_name=file_name)
         if not listener_node:
             listener_node = Neo4jMemstoreFileNode(file_name=file_name).save()
-            neo4j_logger.info(f"New memstore file node created: {file_name}")
+            neo4j_logger.info("New memstore file node created", file_name=file_name)
 
         return listener_node
 
     @staticmethod
-    def connect_memstore_file_to_implant(
-        file_name, implant_uuid, file_hash_md5: str = ""
-    ):
+    def connect_memstore_file_to_implant(file_name, implant_uuid, file_hash_md5: str = ""):
         """
         hostname: hostname of host to connect the nic to
 
@@ -493,7 +473,7 @@ class Neo4jMemstoreFileNodeService:
         if not memstore_file_node.stored_in.is_connected(implant_node):
             memstore_file_node.stored_in.connect(implant_node)
 
-        neo4j_logger.info(f"Memstore file -> Implant successful")
+        neo4j_logger.info("Memstore file -> Implant successful")
 
     @staticmethod
     def get_all_files_nodes_for_implant(
@@ -522,7 +502,7 @@ class Neo4jFileNodeService:
         listener_node = Neo4jFileNode.find_existing(file_path=file_path)
         if not listener_node:
             listener_node = Neo4jFileNode(file_path=file_path).save()
-            neo4j_logger.info(f"New file node created: {file_path}")
+            neo4j_logger.info("New file node created", file_path=file_path)
 
         return listener_node
 
@@ -549,7 +529,7 @@ class Neo4jFileNodeService:
         if not file_node.stored_on.is_connected(host_node):
             file_node.stored_on.connect(host_node)
 
-        neo4j_logger.info(f"Disk File -> Implant successful")
+        neo4j_logger.info("Disk File -> Implant successful")
 
     # @staticmethod
     # def get_all_files_nodes_for_host(

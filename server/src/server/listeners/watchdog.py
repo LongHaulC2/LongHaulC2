@@ -1,12 +1,13 @@
-import logging
 import threading
 import time
+
+import structlog
 
 from ..db.mysql_connector import get_mysql_session
 from ..modules.mysql_functions import ListenerService
 from .supervisor import listeners, listeners_lock
 
-server_logger = logging.getLogger("server")
+server_logger = structlog.getLogger("server")
 
 
 def start_watchdog():
@@ -26,16 +27,14 @@ def _watchdog():
         for listener_uuid, proc in snapshot:
             # Process was never started or already cleaned up
             if proc is None or proc.pid is None:
-                server_logger.warning(f"Listener {listener_uuid} invalid process state")
+                server_logger.warning("Listener invalid process state", listener_uuid=listener_uuid)
                 with listeners_lock:
                     listeners.pop(listener_uuid, None)
                 continue
 
             if not proc.is_alive():
                 print(f"{listener_uuid}: offline")
-                server_logger.warning(
-                    f"Listener {listener_uuid} went offline (pid={proc.pid})"
-                )
+                server_logger.warning("Listener went offline", listener_uuid=listener_uuid, pid=proc.pid)
 
                 # cleanup dead listener
                 proc.join(timeout=0)

@@ -1,23 +1,22 @@
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
 class ListenerCreate:
     listener_uuid: str
-    listener_type: Optional[str] = None
-    listener_host: Optional[str] = None
-    listener_port: Optional[int] = None
-    listener_name: Optional[str] = None
-    listener_notes: Optional[str] = None
-    listener_profile_name: Optional[str] = None
-    listener_profile_contents: Optional[str] = None
+    listener_type: str | None = None
+    listener_host: str | None = None
+    listener_port: int | None = None
+    listener_name: str | None = None
+    listener_notes: str | None = None
+    listener_profile_name: str | None = None
+    listener_profile_contents: str | None = None
     # not required by api
-    listener_active: Optional[bool] = None
+    listener_active: bool | None = None
 
 
 # not currently used afaik
 @dataclass
 class ListenerUpdate:
-    listener_host: Optional[str] = None
-    listener_port: Optional[int] = None
+    listener_host: str | None = None
+    listener_port: int | None = None

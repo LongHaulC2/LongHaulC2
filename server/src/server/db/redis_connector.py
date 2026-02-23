@@ -1,12 +1,9 @@
-import logging
-import traceback
-
 import redis
+import structlog
 
 from ..instance import env_config
 
-logger = logging.getLogger("server")  # Get the logger with the same name
-import structlog
+logger = structlog.getLogger("server")  # Get the logger with the same name
 
 # flag for not printing connection logs after the first connect
 _shut_the_f_up_after_first_connect = False
@@ -24,18 +21,17 @@ def get_redis_connection() -> object | None:
         structlog.contextvars.bind_contextvars(host=host, port=port, user=user)
 
         if None in (host, user, password):
-            logger.critical(
-                "Host, User, or Password for REDIS is None. Check .env file, Cannot Continue"
-            )
+            logger.critical("Host, User, or Password for REDIS is None. Check .env file, Cannot Continue")
             exit()
 
         if not _shut_the_f_up_after_first_connect:
-            logger.info(f"Connecting to REDIS server")
+            logger.info("Connecting to REDIS server")
 
         r = redis.Redis(
             host=host,
             port=port,
-            decode_responses=False,  # needs to be OFF, otherwise redis tries to decode stored msgpack as utf-8, which errors out.
+            # needs to be OFF, otherwise redis tries to decode stored msgpack as utf-8, which errors out.
+            decode_responses=False,
             username=user,
             password=password,
             # socket_connect_timeout=5, #timeouts are 10 seconds by default
@@ -49,7 +45,7 @@ def get_redis_connection() -> object | None:
                     logger.info("REDIS connection is alive")
                     _shut_the_f_up_after_first_connect = True
         except redis.ConnectionError as e:
-            logger.warning(f"Failed to connect to REDIS: {e}")
+            logger.warning("Failed to connect to REDIS", error=e)
 
         # clear structlog
         structlog.contextvars.clear_contextvars()
@@ -57,6 +53,6 @@ def get_redis_connection() -> object | None:
         return r
 
     except Exception as e:
-        logger.error(f"Error connecting to REDIS: {e}\n{traceback.format_exc()}")
+        logger.error("Error connecting to REDIS", error=e)
         structlog.contextvars.clear_contextvars()
         return None

@@ -87,7 +87,6 @@ def load_doc_content(relative_path: str) -> str:
 
 @ui.page("/docs")
 async def docs_page():
-
     # 1. Page Setup
     ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(
@@ -103,7 +102,8 @@ async def docs_page():
                 font-family: 'Roboto Mono', monospace; color: #ffffff;
                 margin-top: 1.5em; margin-bottom: 0.5em; letter-spacing: -0.02em;
             }
-            .doc-content h1 { font-size: 2.25rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; color: #10b981; }
+            .doc-content h1 { font-size: 2.25rem; border-bottom: 1px solid rgba(255,255,255,0.1);
+              padding-bottom: 0.5rem; color: #10b981; }
             .doc-content h2 { font-size: 1.5rem; color: #34d399; }
             .doc-content h3 { font-size: 1.25rem; color: #6ee7b7; }
             .doc-content p { margin-bottom: 1em; }
@@ -140,21 +140,14 @@ async def docs_page():
 
 
 async def docs_view(tree_data: list):
-
     # --- LAYOUT CONTAINER ---
     with ui.row().classes("w-full h-full gap-0 tech-glass-panel"):
-
         # ======================================================================
         #   LEFT SIDEBAR: NAVIGATION TREE
         # ======================================================================
-        with ui.column().classes(
-            "w-72 h-full border-r border-white/5 bg-black/20 flex-shrink-0"
-        ):
-
+        with ui.column().classes("w-72 h-full border-r border-white/5 bg-black/20 flex-shrink-0"):
             # Header
-            with ui.row().classes(
-                "w-full p-4 items-center gap-2 border-b border-white/5"
-            ):
+            with ui.row().classes("w-full p-4 items-center gap-2 border-b border-white/5"):
                 ui.icon("library_books", color="emerald-500")
                 ui.label("KNOWLEDGE_BASE").classes("tech-label-title text-xs")
 
@@ -167,9 +160,7 @@ async def docs_view(tree_data: list):
             # Tree Navigation
             with ui.scroll_area().classes("w-full flex-grow p-2"):
                 if not tree_data:
-                    ui.label("No docs found in client/src/client/docs").classes(
-                        "text-xs text-red-400 font-mono p-4"
-                    )
+                    ui.label("No docs found in client/src/client/docs").classes("text-xs text-red-400 font-mono p-4")
                 else:
                     # Tree Component
                     docs_tree = (
@@ -178,9 +169,7 @@ async def docs_view(tree_data: list):
                             label_key="label",
                             on_select=lambda e: update_content(e.value),
                         )
-                        .props(
-                            "dark dense no-connectors selected-color=emerald expand-icon=chevron_right"
-                        )
+                        .props("dark dense no-connectors selected-color=emerald expand-icon=chevron_right")
                         .classes("text-neutral-400 font-mono text-xs")
                     )
 
@@ -189,31 +178,21 @@ async def docs_view(tree_data: list):
 
             # Footer
             with ui.row().classes("w-full p-3 border-t border-white/5 bg-white/5"):
-                ui.label("LOCAL_FS_MODE").classes(
-                    "text-[9px] font-mono text-neutral-600"
-                )
+                ui.label("LOCAL_FS_MODE").classes("text-[9px] font-mono text-neutral-600")
 
         # ======================================================================
         #   RIGHT SIDEBAR: CONTENT READER
         # ======================================================================
         with ui.column().classes("flex-grow h-full relative"):
-
             # --- Breadcrumbs Bar ---
-            with ui.row().classes(
-                "w-full p-4 border-b border-white/5 bg-black/10 items-center justify-between"
-            ):
-
+            with ui.row().classes("w-full p-4 border-b border-white/5 bg-black/10 items-center justify-between"):
                 # Dynamic Breadcrumbs Container
-                breadcrumbs_container = ui.element("q-breadcrumbs").classes(
-                    "text-xs font-mono text-neutral-500"
-                )
+                breadcrumbs_container = ui.element("q-breadcrumbs").classes("text-xs font-mono text-neutral-500")
                 with breadcrumbs_container:
                     with ui.element("q-breadcrumbs-el").props("icon=home label=DOCS"):
                         pass
                     # Placeholder until something is selected
-                    with ui.element("q-breadcrumbs-el").props(
-                        'label="SELECT TOPIC"'
-                    ).classes("text-emerald-500"):
+                    with ui.element("q-breadcrumbs-el").props('label="SELECT TOPIC"').classes("text-emerald-500"):
                         pass
 
                 # maybe change to a download button
@@ -225,11 +204,10 @@ async def docs_view(tree_data: list):
             # --- Markdown Content Area ---
             with ui.scroll_area().classes("w-full flex-grow p-8"):
                 with ui.column().classes("w-full max-w-4xl mx-auto pb-20"):
-
                     # Markdown Container
-                    markdown_view = ui.markdown(
-                        "# Welcome\nSelect a document from the navigation tree."
-                    ).classes("doc-content w-full")
+                    markdown_view = ui.markdown("# Welcome\nSelect a document from the navigation tree.").classes(
+                        "doc-content w-full"
+                    )
 
                     ui.separator().classes("bg-white/10 my-8")
 
@@ -255,7 +233,5 @@ async def docs_view(tree_data: list):
                 clean_label = Path(part).stem.replace("_", " ").upper()
 
                 color_class = "text-emerald-500" if is_last else ""
-                with ui.element("q-breadcrumbs-el").props(
-                    f'label="{clean_label}"'
-                ).classes(color_class):
+                with ui.element("q-breadcrumbs-el").props(f'label="{clean_label}"').classes(color_class):
                     pass

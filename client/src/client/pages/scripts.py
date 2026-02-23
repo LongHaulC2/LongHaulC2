@@ -2,12 +2,10 @@ import asyncio
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
 
 from nicegui import ui
 
 from client.src.client.pages.menu import setup_menu
-from client.src.client.style import BUTTON_COLOR, ICON_COLOR
 
 from ..utils.checks import check_type
 
@@ -53,24 +51,19 @@ async def scripts():
     # Main Layout (Splitter)
     # Using a container that matches the background
     with ui.element().classes("w-full h-full gap-0"):
-
         # Primary Splitter (Left: Files, Right: IDE/Term)
         # separator-class: Makes the divider a subtle thin line
         with ui.splitter(value=15, limits=(10, 50)).classes("w-full h-full").props(
             "separator-class=bg-white/10 separator-style=width:1px"
         ) as splitter:
-
             with splitter.before:
                 await file_picker()
 
             with splitter.after:
                 # Secondary Splitter (Top: IDE, Bottom: Terminal)
-                with ui.splitter(horizontal=True, value=70, limits=(10, 90)).classes(
-                    "w-full h-full"
-                ).props(
+                with ui.splitter(horizontal=True, value=70, limits=(10, 90)).classes("w-full h-full").props(
                     "separator-class=bg-white/10 separator-style=height:1px"
                 ) as splitter:
-
                     with splitter.before:
                         await ide_setup()
 
@@ -85,14 +78,9 @@ async def terminal_setup():
     global terminal_tabs_parent, terminal_panels_parent
 
     # Wrapper for the bottom right panel
-    with ui.column().classes(
-        "w-full h-full gap-0 tech-glass-panel rounded-none border-0 border-t border-white/5"
-    ):
-
+    with ui.column().classes("w-full h-full gap-0 tech-glass-panel rounded-none border-0 border-t border-white/5"):
         # Header / Tabs container
-        with ui.row().classes(
-            "w-full items-center bg-black/20 border-b border-white/5 px-2 h-10 gap-2"
-        ):
+        with ui.row().classes("w-full items-center bg-black/20 border-b border-white/5 px-2 h-10 gap-2"):
             ui.icon("terminal", size="xs", color="emerald-500")
             ui.label("TERMINAL_OUTPUT //").classes("tech-label-subtitle mr-4")
 
@@ -124,11 +112,9 @@ async def terminal_add_tab(tab_name: str):
             tab.meta = {"tab_name": tab_name}
             with ui.row().classes("items-center gap-2"):
                 ui.label(tab_name).classes("text-xs font-mono lowercase")
-                ui.button(
-                    icon="close", on_click=lambda tn=tab_name: terminal_close_tab(tn)
-                ).props("flat dense size=xs rounded").classes(
-                    "text-neutral-500 hover:text-white"
-                )
+                ui.button(icon="close", on_click=lambda tn=tab_name: terminal_close_tab(tn)).props(
+                    "flat dense size=xs rounded"
+                ).classes("text-neutral-500 hover:text-white")
 
     # Create Tab Body
     with terminal_panels_parent:
@@ -213,14 +199,9 @@ async def file_picker():
     server_log.info(f"Loading scripts from {str(script_path)}")
 
     # Left Panel Container
-    with ui.column().classes(
-        "w-full h-full gap-0 tech-glass-panel rounded-none border-0 border-r border-white/5"
-    ):
-
+    with ui.column().classes("w-full h-full gap-0 tech-glass-panel rounded-none border-0 border-r border-white/5"):
         # Header
-        with ui.row().classes(
-            "w-full items-center justify-between tech-header-bar h-12"
-        ):
+        with ui.row().classes("w-full items-center justify-between tech-header-bar h-12"):
             with ui.row().classes("gap-2 items-center"):
                 ui.icon("folder_open", color="emerald-500")
                 ui.label("SCRIPTS //").classes("tech-label-title")
@@ -229,26 +210,18 @@ async def file_picker():
                 ui.button(
                     icon="add",
                     on_click=lambda: create_new_file_dialog(str(script_path)),
-                ).classes("tech-btn-action px-2").props(
-                    "dense flat size=xs round"
-                ).tooltip(
-                    "New Script"
-                )
+                ).classes("tech-btn-action px-2").props("dense flat size=xs round").tooltip("New Script")
 
-                ui.button(
-                    icon="refresh", on_click=lambda: file_picker.refresh()
-                ).classes("tech-btn-ghost").props("dense flat size=xs round").tooltip(
-                    "Reload Tree"
-                )
+                ui.button(icon="refresh", on_click=lambda: file_picker.refresh()).classes("tech-btn-ghost").props(
+                    "dense flat size=xs round"
+                ).tooltip("Reload Tree")
 
         # Tree Content
         with ui.scroll_area().classes("w-full flex-grow p-2 tech-scroll"):
 
             def build_tree(path: Path):
                 nodes = []
-                for p in sorted(
-                    path.iterdir(), key=lambda x: (x.is_file(), x.name.lower())
-                ):
+                for p in sorted(path.iterdir(), key=lambda x: (x.is_file(), x.name.lower())):
                     node = {
                         "id": str(p),
                         "label": p.name,
@@ -280,32 +253,16 @@ async def file_picker():
 
 async def create_new_file_dialog(scripts_path):
     # Tech Dialog
-    with ui.dialog() as dialog, ui.card().classes(
-        "tech-dialog w-96 p-0 rounded overflow-hidden"
-    ):
-        with ui.row().classes(
-            "w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"
-        ):
-            ui.label("NEW_SCRIPT").classes(
-                "text-sm font-bold tracking-widest text-emerald-500 font-mono"
-            )
-            ui.button(icon="close", on_click=dialog.close).props(
-                "dense flat size=sm color=grey"
-            )
+    with ui.dialog() as dialog, ui.card().classes("tech-dialog w-96 p-0 rounded overflow-hidden"):
+        with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
+            ui.label("NEW_SCRIPT").classes("text-sm font-bold tracking-widest text-emerald-500 font-mono")
+            ui.button(icon="close", on_click=dialog.close).props("dense flat size=sm color=grey")
 
         with ui.column().classes("p-4 gap-4 w-full"):
-            input_file_name = (
-                ui.input("FILENAME")
-                .props("outlined dense dark color=emerald")
-                .classes("w-full")
-            )
+            input_file_name = ui.input("FILENAME").props("outlined dense dark color=emerald").classes("w-full")
 
-        with ui.row().classes(
-            "w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"
-        ):
-            ui.button("CANCEL", on_click=dialog.close).props(
-                "flat dense color=grey no-caps"
-            )
+        with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"):
+            ui.button("CANCEL", on_click=dialog.close).props("flat dense color=grey no-caps")
             ui.button("CREATE", on_click=lambda: on_create()).props(
                 "unelevated dense color=emerald text-color=white no-caps"
             )
@@ -345,14 +302,9 @@ async def ide_setup():
     global ide_tabs_parent, ide_panels_parent
 
     # Wrapper
-    with ui.column().classes(
-        "w-full h-full gap-0 tech-glass-panel rounded-none border-0"
-    ):
-
+    with ui.column().classes("w-full h-full gap-0 tech-glass-panel rounded-none border-0"):
         # Header
-        with ui.row().classes(
-            "w-full items-center bg-black/20 border-b border-white/5 px-2 h-10 gap-2"
-        ):
+        with ui.row().classes("w-full items-center bg-black/20 border-b border-white/5 px-2 h-10 gap-2"):
             ui.icon("code", size="xs", color="emerald-500")
             ui.label("EDITOR //").classes("tech-label-subtitle mr-4")
 
@@ -370,9 +322,7 @@ async def ide_setup():
         )
 
 
-async def code_editor(
-    file_path: str, script_output_terminal_tab_name: str, executable=False
-):
+async def code_editor(file_path: str, script_output_terminal_tab_name: str, executable=False):
     check_type(file_path, str, "file_path")
 
     async def load_file():
@@ -385,19 +335,15 @@ async def code_editor(
     with ui.splitter(value=95, limits=(90, 98)).classes("w-full h-full").props(
         "separator-class=bg-white/5 separator-style=width:1px"
     ) as splitter:
-
         # Editor
         with splitter.before:
-            editor = ui.codemirror(
-                file_contents, theme="androidstudio", language="Python"
-            ).classes("h-full w-full outline-none text-sm font-mono")
+            editor = ui.codemirror(file_contents, theme="androidstudio", language="Python").classes(
+                "h-full w-full outline-none text-sm font-mono"
+            )
 
         # Toolbar
         with splitter.after:
-            with ui.column().classes(
-                "h-full w-full bg-black/20 items-center py-2 gap-2 border-l border-white/5"
-            ):
-
+            with ui.column().classes("h-full w-full bg-black/20 items-center py-2 gap-2 border-l border-white/5"):
                 # Run
                 if executable:
                     with ui.button(
@@ -416,21 +362,15 @@ async def code_editor(
                         f.write(editor.value)
                     ui.notify("Saved", type="positive", color="emerald-9")
 
-                with ui.button(on_click=save_logic).classes("tech-btn-ghost").props(
-                    "flat round dense size=sm"
-                ):
+                with ui.button(on_click=save_logic).classes("tech-btn-ghost").props("flat round dense size=sm"):
                     ui.icon("save", size="xs")
                     ui.tooltip("Quick Save")
 
                 # Save As (Dialog)
                 async def open_save_as():
                     with ui.dialog() as d, ui.card().classes("tech-dialog w-96 p-0"):
-                        with ui.row().classes(
-                            "bg-neutral-900/50 p-4 border-b border-white/5"
-                        ):
-                            ui.label("SAVE_AS").classes(
-                                "text-sm font-bold text-emerald-500 font-mono"
-                            )
+                        with ui.row().classes("bg-neutral-900/50 p-4 border-b border-white/5"):
+                            ui.label("SAVE_AS").classes("text-sm font-bold text-emerald-500 font-mono")
 
                         with ui.column().classes("p-4 gap-4"):
                             new_name = (
@@ -439,12 +379,8 @@ async def code_editor(
                                 .classes("w-full")
                             )
 
-                        with ui.row().classes(
-                            "bg-black/20 p-4 border-t border-white/5 justify-end"
-                        ):
-                            ui.button("SAVE", on_click=lambda: finalize_save()).props(
-                                "unelevated dense color=emerald"
-                            )
+                        with ui.row().classes("bg-black/20 p-4 border-t border-white/5 justify-end"):
+                            ui.button("SAVE", on_click=lambda: finalize_save()).props("unelevated dense color=emerald")
 
                         def finalize_save():
                             new_p = Path(file_path).parent / new_name.value
@@ -456,9 +392,7 @@ async def code_editor(
 
                     d.open()
 
-                with ui.button(on_click=open_save_as).classes("tech-btn-ghost").props(
-                    "flat round dense size=sm"
-                ):
+                with ui.button(on_click=open_save_as).classes("tech-btn-ghost").props("flat round dense size=sm"):
                     ui.icon("save_as", size="xs")
                     ui.tooltip("Save As...")
 
@@ -467,9 +401,7 @@ async def code_editor(
                     editor.value = await load_file()
                     ui.notify("Reloaded from disk")
 
-                with ui.button(on_click=reload_logic).classes("tech-btn-ghost").props(
-                    "flat round dense size=sm"
-                ):
+                with ui.button(on_click=reload_logic).classes("tech-btn-ghost").props("flat round dense size=sm"):
                     ui.icon("refresh", size="xs")
                     ui.tooltip("Reload from Disk")
 
@@ -489,11 +421,9 @@ async def ide_add_tab(tab_name: str, script_path: str, executable=False):
             with ui.row().classes("items-center gap-2"):
                 ui.icon("description", size="xs").classes("opacity-50")
                 ui.label(tab_name).classes("text-xs font-mono")
-                ui.button(
-                    icon="close", on_click=lambda tn=tab_name: ide_close_tab(tn)
-                ).props("flat dense size=xs rounded").classes(
-                    "text-neutral-500 hover:text-white"
-                )
+                ui.button(icon="close", on_click=lambda tn=tab_name: ide_close_tab(tn)).props(
+                    "flat dense size=xs rounded"
+                ).classes("text-neutral-500 hover:text-white")
 
     # Create Panel
     with ide_panels_parent:

@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from typing import Optional, Union
 
 """
 Using dataclasses here for easier creation of correct data input to these functions below,
-and it's easier to update for future fields. 
+and it's easier to update for future fields.
 
 Additionally, any unknown/extra keys throw an immediate error when the dataclass is being created:
 `TypeError: ImplantUpdate.__init__() got an unexpected keyword argument 'urmom'`
@@ -11,39 +10,40 @@ This prevents any unintended fields from slipping through.
 """
 
 
-# Explicitly does NOT have implant_uuid, as this is meant for the creation of implants. TLDR: DB adds the implant uuid, and if we had one here, this would overwrite it.
+# Explicitly does NOT have implant_uuid, as this is meant for the creation of implants. TLDR: DB adds the implant uuid,
+# and if we had one here, this would overwrite it.
 @dataclass
 class ImplantCreate:
-    external_ip: Optional[str] = None
+    external_ip: str | None = None
     # internal_ip: Optional[str] = None
-    nics: Optional[list] = None
-    listener: Optional[str] = None
-    user: Optional[str] = None
-    system_hostname: Optional[str] = None
-    notes: Optional[str] = None
-    process: Optional[str] = None
-    pid: Optional[int] = None
-    arch: Optional[str] = None
-    last_checkin: Optional[int] = None
-    sleep_value: Optional[int] = None
+    nics: list | None = None
+    listener: str | None = None
+    user: str | None = None
+    system_hostname: str | None = None
+    notes: str | None = None
+    process: str | None = None
+    pid: int | None = None
+    arch: str | None = None
+    last_checkin: int | None = None
+    sleep_value: int | None = None
     # subnet_cidr: Optional[str] = None
 
 
 @dataclass
 class ImplantUpdate:
     implant_uuid: str
-    external_ip: Optional[str] = None
+    external_ip: str | None = None
     # internal_ip: Optional[str] = None
-    nics: Optional[list] = None
-    listener: Optional[str] = None
-    user: Optional[str] = None
-    system_hostname: Optional[str] = None
-    notes: Optional[str] = None
-    process: Optional[str] = None
-    pid: Optional[int] = None
-    arch: Optional[str] = None
-    last_checkin: Optional[int] = None
-    sleep_value: Optional[int] = None
+    nics: list | None = None
+    listener: str | None = None
+    user: str | None = None
+    system_hostname: str | None = None
+    notes: str | None = None
+    process: str | None = None
+    pid: int | None = None
+    arch: str | None = None
+    last_checkin: int | None = None
+    sleep_value: int | None = None
 
 
 @dataclass
@@ -84,7 +84,7 @@ class Task:
 @dataclass
 class TaskResult:
     data_type: str  # Literal["text", "binary"] # if I waant to  validate an option
-    data: Union[str, bytes]  # str or bytes here
+    data: str | bytes  # str or bytes here
 
 
 @dataclass

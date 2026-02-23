@@ -1,10 +1,7 @@
 import logging
-from itertools import groupby
 from pathlib import Path
 
-import httpx
 from nicegui import ui
-from nicegui.events import KeyEventArguments
 
 # --- Imports ---
 from client.src.client.modules.api_calls import (
@@ -14,7 +11,6 @@ from client.src.client.modules.api_calls import (
     stop_listener,
 )
 from client.src.client.pages.menu import setup_menu
-from client.src.client.style import BUTTON_COLOR, TEXT_COLOR
 
 server_log = logging.getLogger("server")
 server_log.info("Loading /listeners page")
@@ -25,17 +21,11 @@ server_log.info("Loading /listeners page")
 # ==============================================================================
 def stat_widget(label: str, value: str, icon: str, color: str = "emerald"):
     """Creates a small tech-styled stat card"""
-    with ui.card().classes(
-        "flex-1 min-w-[150px] p-3 gap-1 bg-white/5 border border-white/10 rounded-sm no-shadow"
-    ):
+    with ui.card().classes("flex-1 min-w-[150px] p-3 gap-1 bg-white/5 border border-white/10 rounded-sm no-shadow"):
         with ui.row().classes("w-full items-center justify-between"):
-            ui.label(label).classes(
-                "text-[10px] font-mono tracking-widest text-neutral-500 uppercase"
-            )
+            ui.label(label).classes("text-[10px] font-mono tracking-widest text-neutral-500 uppercase")
             ui.icon(icon, size="xs", color=f"{color}-500").classes("opacity-80")
-        ui.label(str(value)).classes(
-            "text-xl font-bold font-mono tracking-wide text-neutral-200 truncate"
-        )
+        ui.label(str(value)).classes("text-xl font-bold font-mono tracking-wide text-neutral-200 truncate")
 
 
 @ui.page("/listeners")
@@ -57,7 +47,6 @@ async def listener_view():
 
     # --- MAIN GLASS PANEL ---
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
-
         # --- HEADER BAR ---
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
             # Left: Title
@@ -68,31 +57,28 @@ async def listener_view():
             # Right: Controls
             with ui.row().classes("items-center gap-2"):
                 # ADD BUTTON
-                with ui.button(on_click=start_listener_dialogue).classes(
-                    "tech-btn-action px-3"
-                ).props("flat no-caps dense"):
+                with ui.button(on_click=start_listener_dialogue).classes("tech-btn-action px-3").props(
+                    "flat no-caps dense"
+                ):
                     ui.icon("add", size="xs").classes("mr-2")
                     ui.label("LISTENER").classes("text-xs font-bold tracking-wide")
 
                 # REFRESH
-                ui.button(
-                    icon="refresh", on_click=lambda: ui.navigate.to("/listeners")
-                ).props("dense flat size=sm").classes("tech-btn-ghost")
+                ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/listeners")).props(
+                    "dense flat size=sm"
+                ).classes("tech-btn-ghost")
 
         # --- CONTENT AREA ---
         with ui.column().classes("w-full flex-grow p-6 gap-6 overflow-hidden"):
-
             # Fetch Data
             data_resp = await get_all_listener_data()
             listener_data = data_resp.get("data", [])
 
             # --- 1. TELEMETRY CARDS ---
             total_count = len(listener_data)
-            http_count = len(
-                [l for l in listener_data if l.get("listener_type") == "http"]
-            )
+            http_count = len([listener for listener in listener_data if listener.get("listener_type") == "http"])
             active_count = len(
-                [l for l in listener_data if l.get("active", True)]
+                [listener for listener in listener_data if listener.get("active", True)]
             )  # Default true for now
 
             with ui.row().classes("w-full gap-4"):
@@ -105,13 +91,9 @@ async def listener_view():
                 "w-full flex-grow bg-white/5 border border-white/5 p-0 rounded overflow-hidden flex flex-col"
             ):
                 if not listener_data:
-                    with ui.column().classes(
-                        "w-full h-full items-center justify-center opacity-30"
-                    ):
+                    with ui.column().classes("w-full h-full items-center justify-center opacity-30"):
                         ui.icon("router", size="4em")
-                        ui.label("NO ACTIVE LISTENERS").classes(
-                            "font-mono text-sm mt-2"
-                        )
+                        ui.label("NO ACTIVE LISTENERS").classes("font-mono text-sm mt-2")
                 else:
                     await render_listeners_table()
 
@@ -187,30 +169,26 @@ async def render_listeners_table():  # 'data' arg is kept for compatibility, but
             # Fetch fresh data
             response = await get_all_listener_data()
             # Handle if response is list or dict
-            fresh_data = (
-                response if isinstance(response, list) else response.get("data", [])
-            )
+            fresh_data = response if isinstance(response, list) else response.get("data", [])
 
             new_rows = []
-            for l in fresh_data:
-                bind_addr = (
-                    f"{l.get('listener_host', '0.0.0.0')}:{l.get('listener_port', '0')}"
-                )
+            for listener in fresh_data:
+                bind_addr = f"{listener.get('listener_host', '0.0.0.0')}:{listener.get('listener_port', '0')}"
 
                 # STATUS FIX: Use the specific DB key 'listener_active'
-                raw_active = l.get("listener_active", 0)
+                raw_active = listener.get("listener_active", 0)
                 is_active = bool(raw_active)
 
                 new_rows.append(
                     {
-                        "id": l.get("listener_uuid"),
+                        "id": listener.get("listener_uuid"),
                         "status": is_active,
-                        "name": l.get("listener_name", "Unknown"),
-                        "type": l.get("listener_type", "http"),
+                        "name": listener.get("listener_name", "Unknown"),
+                        "type": listener.get("listener_type", "http"),
                         "bind": bind_addr,
-                        "profile": l.get("listener_profile_name", "Default"),
-                        "notes": l.get("listener_notes", ""),
-                        "listener_uuid": l.get("listener_uuid"),
+                        "profile": listener.get("listener_profile_name", "Default"),
+                        "notes": listener.get("listener_notes", ""),
+                        "listener_uuid": listener.get("listener_uuid"),
                     }
                 )
 
@@ -233,13 +211,16 @@ async def render_listeners_table():  # 'data' arg is kept for compatibility, but
     table.add_slot(
         "header",
         r"""
-        <q-tr :props="props" class="bg-black/20 text-neutral-500 uppercase text-[10px] font-bold tracking-widest border-b border-white/10">
-            <q-th auto-width />
-            <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
-            </q-th>
-        </q-tr>
-    """,
+<q-tr
+    :props="props"
+    class="bg-black/20 text-neutral-500 uppercase text-[10px]
+           font-bold tracking-widest border-b border-white/10"
+>
+    <q-th v-for="col in props.cols" :key="col.name" :props="props">
+        {{ col.label }}
+    </q-th>
+</q-tr>
+        """,
     )
 
     # STATUS SLOT (Uses props.row.status for safety)
@@ -254,7 +235,7 @@ async def render_listeners_table():  # 'data' arg is kept for compatibility, but
                 </div>
                 <span class="text-[10px] font-bold text-emerald-400 tracking-wider">ONLINE</span>
             </div>
-            
+
             <div v-else class="row items-center gap-2 opacity-50">
                 <div class="w-1.5 h-1.5 rounded-full bg-red-500"></div>
                 <span class="text-[10px] font-bold text-red-500 tracking-wider">OFFLINE</span>
@@ -268,8 +249,8 @@ async def render_listeners_table():  # 'data' arg is kept for compatibility, but
         "body-cell-type",
         r"""
         <q-td :props="props">
-            <q-badge :color="props.value === 'http' ? 'blue-9' : props.value === 'ntp' ? 'purple-9' : 'grey-8'" 
-                     text-color="white" :label="props.value.toUpperCase()" 
+            <q-badge :color="props.value === 'http' ? 'blue-9' : props.value === 'ntp' ? 'purple-9' : 'grey-8'"
+                     text-color="white" :label="props.value.toUpperCase()"
                      class="font-mono text-[10px] px-2 py-0.5 rounded-sm shadow-sm" />
         </q-td>
     """,
@@ -293,7 +274,7 @@ async def render_listeners_table():  # 'data' arg is kept for compatibility, but
         "body-cell-notes",
         r"""
         <q-td :props="props">
-            <div style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" 
+            <div style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
                  class="opacity-60 text-xs italic">
                 {{ props.value }}
             </div>
@@ -302,9 +283,7 @@ async def render_listeners_table():  # 'data' arg is kept for compatibility, but
     )
 
     # --- FOOTER CONTROLS ---
-    with ui.row().classes(
-        "w-full p-2 justify-end border-t border-white/5 bg-red-900/5"
-    ):
+    with ui.row().classes("w-full p-2 justify-end border-t border-white/5 bg-red-900/5"):
 
         async def stop_selected():
             selected_rows = table.selected
@@ -355,7 +334,6 @@ async def render_listeners_table():  # 'data' arg is kept for compatibility, but
 #   DIALOG LOGIC
 # ==============================================================================
 async def start_listener_dialogue():
-
     async def _start_listener():
         if not all(
             [
@@ -367,12 +345,7 @@ async def start_listener_dialogue():
             ui.notify("Missing required fields", type="warning", color="orange-9")
             return
 
-        file_path = (
-            Path(__file__).resolve().parent.parent
-            / "user"
-            / "profiles"
-            / str(listener_profile_field.value)
-        )
+        file_path = Path(__file__).resolve().parent.parent / "user" / "profiles" / str(listener_profile_field.value)
 
         if not file_path.exists():
             ui.notify(f"Profile not found: {file_path.name}", type="warning")
@@ -400,27 +373,17 @@ async def start_listener_dialogue():
             ui.notify("Failed to start listener", type="negative")
 
     # --- TECH DIALOG ---
-    with ui.dialog() as dialog, ui.card().classes(
-        "tech-dialog w-[600px] p-0 rounded overflow-hidden"
-    ):
-        with ui.row().classes(
-            "w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"
-        ):
+    with ui.dialog() as dialog, ui.card().classes("tech-dialog w-[600px] p-0 rounded overflow-hidden"):
+        with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
             with ui.row().classes("gap-2 items-center"):
                 ui.icon("rocket_launch", color="emerald-500")
-                ui.label("INITIALIZE_listener").classes(
-                    "text-sm font-bold tracking-widest text-emerald-500 font-mono"
-                )
-            ui.button(icon="close", on_click=dialog.close).props(
-                "dense flat size=sm color=grey"
-            )
+                ui.label("INITIALIZE_listener").classes("text-sm font-bold tracking-widest text-emerald-500 font-mono")
+            ui.button(icon="close", on_click=dialog.close).props("dense flat size=sm color=grey")
 
         with ui.column().classes("p-6 gap-6 w-full"):
             with ui.row().classes("w-full gap-4"):
                 listener_name_field = (
-                    ui.input("LISTENER NAME")
-                    .props("outlined dense dark color=emerald")
-                    .classes("flex-1")
+                    ui.input("LISTENER NAME").props("outlined dense dark color=emerald").classes("flex-1")
                 )
 
                 listener_type_field = (
@@ -430,11 +393,7 @@ async def start_listener_dialogue():
                 )
 
             with ui.row().classes("w-full gap-4"):
-                listener_host_field = (
-                    ui.input("BIND HOST")
-                    .props("outlined dense dark color=emerald")
-                    .classes("flex-1")
-                )
+                listener_host_field = ui.input("BIND HOST").props("outlined dense dark color=emerald").classes("flex-1")
                 with listener_host_field:
                     ui.tooltip("External IP/Hostname (No 0.0.0.0)")
 
@@ -442,9 +401,7 @@ async def start_listener_dialogue():
                     ui.input(
                         label="PORT",
                         placeholder="80",
-                        validation={
-                            "Invalid": lambda v: v.isdigit() and 1 <= int(v) <= 65535
-                        },
+                        validation={"Invalid": lambda v: v.isdigit() and 1 <= int(v) <= 65535},
                     )
                     .props("outlined dense dark type=number color=emerald")
                     .classes("w-32")
@@ -462,21 +419,15 @@ async def start_listener_dialogue():
 
             listener_notes_field = (
                 ui.textarea("OPERATIONAL NOTES")
-                .props(
-                    "outlined dark color=emerald input-class='h-32 resize-none'"
-                )  # Apply height directly to input
+                .props("outlined dark color=emerald input-class='h-32 resize-none'")  # Apply height directly to input
                 .classes("w-full")  # Keep width on the wrapper
             )
 
-        with ui.row().classes(
-            "w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"
-        ):
+        with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"):
             dialog_spinner = ui.spinner(size="sm", color="emerald-500")
             dialog_spinner.visible = False
 
-            ui.button("CANCEL", on_click=dialog.close).props(
-                "flat dense color=grey no-caps"
-            )
+            ui.button("CANCEL", on_click=dialog.close).props("flat dense color=grey no-caps")
 
             ui.button("SPAWN LISTENER", on_click=_start_listener).props(
                 "unelevated dense color=emerald text-color=white no-caps"
@@ -489,16 +440,14 @@ def get_malleable_profiles_list() -> list:
     try:
         script_path = Path(__file__).resolve().parent.parent / "user" / "profiles"
         script_path.mkdir(parents=True, exist_ok=True)
-        return sorted(
-            (p.name for p in script_path.iterdir() if p.is_file()), key=str.lower
-        )
+        return sorted((p.name for p in script_path.iterdir() if p.is_file()), key=str.lower)
     except Exception:
         return []
 
 
 def get_malleable_profile_content(file_path) -> str:
     try:
-        with open(file_path, "r") as file:
+        with open(file_path) as file:
             return file.read()
     except Exception:
         return ""
