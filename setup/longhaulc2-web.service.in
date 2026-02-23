@@ -9,7 +9,7 @@ Group=longhaul
 
 WorkingDirectory=@INSTALL_DIR@/web
 
-ExecStart=@INSTALL_DIR@/client/venv/bin/python -m client.src.client.main
+ExecStart=@INSTALL_DIR@/web/venv/bin/python -m client.src.client.main
 
 Restart=always
 RestartSec=5

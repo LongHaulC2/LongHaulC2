@@ -1,2 +1,5 @@
 nicegui
 pywebview
+structlog
+msgpack
+httpx
