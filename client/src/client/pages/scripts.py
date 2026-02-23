@@ -194,7 +194,8 @@ async def open_tab_and_execute_script(tab_name: str, script_path: str):
 # -------------------------------
 @ui.refreshable
 async def file_picker():
-    script_path = Path(__file__).resolve().parent.parent / "user"
+    # hardcoded for now
+    script_path = Path("/var/lib/longhaulc2")  # Path(__file__).resolve().parent.parent / "user"
     script_path.mkdir(parents=True, exist_ok=True)
     server_log.info(f"Loading scripts from {str(script_path)}")
 
@@ -268,13 +269,15 @@ async def create_new_file_dialog(scripts_path):
             )
 
     async def on_create():
-        await create_new_file(scripts_path, input_file_name.value)
-        dialog.close()
+        success = await create_new_file(scripts_path, input_file_name.value)
+        # if it waas created successfully, close the dialog automatically
+        if success:
+            dialog.close()
 
     dialog.open()
 
 
-async def create_new_file(file_path: str, file_name: str):
+async def create_new_file(file_path: str, file_name: str) -> bool:
     # Same logic, just adding type safety for my sanity
     check_type(file_path, str, "file_path")
     check_type(file_name, str, "file_name")
@@ -284,15 +287,19 @@ async def create_new_file(file_path: str, file_name: str):
 
     if not full_path.resolve().is_relative_to(base_path):
         ui.notify("Directory traversal detected", type="negative")
-        return
+        ui.label("The image of shame will be displayed until you put in a valid file path/name")
+        ui.image("/static/master_hacker.png")
+        return False
 
     try:
         with open(full_path, "w") as f:
             f.write("")
         ui.notify(f"Created {file_name}", type="positive", color="emerald-9")
         file_picker.refresh()
+        return True
     except Exception as e:
         ui.notify(f"Error: {e}", type="negative")
+        return False
 
 
 # -------------------------------
@@ -346,11 +353,15 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
             with ui.column().classes("h-full w-full bg-black/20 items-center py-2 gap-2 border-l border-white/5"):
                 # Run
                 if executable:
-                    with ui.button(
-                        on_click=lambda: open_tab_and_execute_script(
-                            script_output_terminal_tab_name, script_path=file_path
+                    with (
+                        ui.button(
+                            on_click=lambda: open_tab_and_execute_script(
+                                script_output_terminal_tab_name, script_path=file_path
+                            )
                         )
-                    ).classes("tech-btn-action").props("flat round dense size=sm"):
+                        .classes("tech-btn-action")
+                        .props("flat round dense size=sm")
+                    ):
                         ui.icon("play_arrow", size="xs")
                         ui.tooltip("Execute")
 

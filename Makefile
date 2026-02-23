@@ -2,7 +2,7 @@ PREFIX ?= /opt
 INSTALL_DIR = $(PREFIX)/longhaulc2
 SVC_USER = longhaul
 DOCKER_DIR := setup/docker_images
-
+WORKSPACE_DIR = /var/lib/longhaulc2
 # Dependencies
 APT_PACKAGES = python3 python3-pip virtualenv docker.io redis-tools postgresql-client
 SYSTEMD_SERVICES = longhaulc2-server longhaulc2-web
@@ -28,6 +28,8 @@ NEO4J_USER ?= neo4j
 NEO4J_PASSWORD ?= P@ssw0rd1!
 # can specify creds manually with:
 #make install MYSQL_ROOT_PASSWORD=SuperSecure123
+
+# ideas - a skip DB, which leaves all the DB files, but resets everything else for deploy
 
 # ======================================
 # For prod deployment
@@ -71,8 +73,13 @@ deploy:
 	mkdir -p $(INSTALL_DIR)/server/venv
 	mkdir -p $(INSTALL_DIR)/client/venv
 
-	mkdir -p /var/lib/longhaulc2
+	# /var/lib/longhaulc2 for workspace items
+	mkdir -p $(WORKSPACE_DIR)
+	# log dir
 	mkdir -p /var/log/longhaulc2
+
+	# copy over user contents into new workspace
+	cp -r ./client/src/client/user/. $(WORKSPACE_DIR)
 
 	@echo "=================================================="
 	@echo "Copying files"
@@ -373,5 +380,3 @@ print_all_install_locations:
 	@echo "mysql:latest -> running as $(MYSQL_CONTAINER)" >> install_reference
 	@echo "redis-stack:latest -> running as $(REDIS_CONTAINER)" >> install_reference
 	@echo "neo4j:latest -> running as $(NEO4J_CONTAINER)" >> install_reference
-
-

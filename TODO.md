@@ -87,6 +87,8 @@ working on response_pipeline. todo's left:
 
 known broken on deploy:
  - [ ] script editor
+      > move scripts to /var/lib/longhaulc2
+
  - [X] compilation of bins
    > working on - was a docker permission
 
