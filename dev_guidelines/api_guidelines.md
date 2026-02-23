@@ -1,6 +1,6 @@
 # API Response Standards
 
-## Naming Conventions
+## Data Naming Conventions
 - Use **explicit names** for clarity.
 - **Example**: `listener_host` instead of `host`.
 
