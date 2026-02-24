@@ -119,7 +119,7 @@ async def status_page():
 
         with container:
             row_box = ui.row().classes(
-                f"w-full items-center justify-between p-3 rounded border border-{color}-500/20 bg-{color}-900/10"
+                f"w-full items-center justify-between p-3 rounded border border-{color}-500/20 bg-{color}-900/10 "
                 "transition-colors duration-300"
             )
 
@@ -130,7 +130,7 @@ async def status_page():
                     with ui.column().classes("gap-0"):
                         ui.label(svc_name.upper()).classes("text-xs font-bold font-mono text-white")
                         status_text = ui.label(text).classes(
-                            f"text-[10px] font-mono text-{color}-400 font-bold tracking-widest transition-colors"
+                            f"text-[10px] font-mono text-{color}-400 font-bold tracking-widest transition-colors "
                             "duration-300"
                         )
 
@@ -183,7 +183,7 @@ async def status_page():
         registry_entry["status_icon"].props(f"color={color}-500")
 
         registry_entry["row_box"].classes(
-            replace=f"w-full items-center justify-between p-3 rounded border border-{color}-500/20 bg-{color}-900/10"
+            replace=f"w-full items-center justify-between p-3 rounded border border-{color}-500/20 bg-{color}-900/10 "
             "transition-colors duration-300"
         )
 
