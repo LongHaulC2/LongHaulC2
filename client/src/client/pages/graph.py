@@ -152,7 +152,7 @@ async def graph_view():
 
         # Look up the specific naming logic for this exact type, fallback to a generic name
         props = node.get("props", {})
-        naming_func = name_mappers.get(new_cat, lambda p: "Unknown Node")
+        naming_func = name_mappers.get(new_cat, lambda: "Unknown Node")
 
         # Apply the explicit naming logic to the node
         node["name"] = naming_func(props)

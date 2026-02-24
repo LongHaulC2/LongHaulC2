@@ -77,7 +77,7 @@ def login_page():
 
                 ui.label("SECURE_CONNECTION").classes("text-[10px] font-mono text-neutral-600")
 
-    def handle_login(host, user, password):
+    def handle_login(host, user, password):  # noqa: ARG001 - going to be filled in when login logic is done
         if host:
             # Save the host directly to the user's session
             app.storage.user["api_host"] = host

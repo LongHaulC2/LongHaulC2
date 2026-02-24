@@ -3,7 +3,7 @@ import contextlib
 import logging
 
 import httpx
-from nicegui import events, ui
+from nicegui import ui
 
 from client.src.client.pages.menu import setup_menu
 from client.src.client.utils.url import generate_url
@@ -79,7 +79,7 @@ async def search_view():
 
     # --- LOGIC ---
 
-    async def run_search(e: events.ValueChangeEventArguments) -> None:
+    async def run_search() -> None:
         nonlocal running_query
 
         # UI Feedback

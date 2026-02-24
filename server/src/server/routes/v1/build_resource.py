@@ -28,11 +28,13 @@ server_logger = structlog.getLogger("server")
 # Error handlers
 @build_ns.errorhandler(ValueError)
 def handle_value_error(e):
+    server_logger.error("An error occured", error=e)
     return {"status": "400", "message": str(e), "data": None}, 400
 
 
 @build_ns.errorhandler(Exception)
 def handle_general_error(e):
+    server_logger.error("An error occured", error=e)
     return {"status": "500", "message": "An internal error occurred", "data": None}, 500
 
 

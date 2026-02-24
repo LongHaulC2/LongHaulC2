@@ -757,7 +757,7 @@ def http_post_response(data_from_implant: bytes, implant_uuid):
 
 
 # Capture EVERYTHING (The "Jetty" method)
-async def http_catchall(request: Request, full_path: str):
+async def http_catchall(request: Request, full_path: str):  # noqa ARG001 - Potentially unused, haven't tested
     # Important: The path might come in without the leading slash from the param
     actual_path = request.url.path
 

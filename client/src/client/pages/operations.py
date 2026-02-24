@@ -327,7 +327,7 @@ async def terminal_add_tab(implant_uuid: str):
             with ui.row().classes("items-center gap-2"):
                 # Display the short label visually
                 ui.label(tab_label).classes("text-xs font-mono text-emerald-500")
-                ui.button("✕", on_click=lambda e: terminal_close_tab(implant_uuid)).props("flat dense size=xs").classes(
+                ui.button("✕", on_click=lambda: terminal_close_tab(implant_uuid)).props("flat dense size=xs").classes(
                     "text-neutral-600 hover:text-white px-0"
                 )
 
