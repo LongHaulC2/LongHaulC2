@@ -8,6 +8,7 @@ from client.src.client.modules.api_calls import (
     get_all_listener_data,
     restart_listener,
     start_listener,
+    start_listener_from_existing,
     stop_listener,
 )
 from client.src.client.pages.menu import setup_menu
@@ -57,8 +58,10 @@ async def listener_view():
             # Right: Controls
             with ui.row().classes("items-center gap-2"):
                 # ADD BUTTON
-                with ui.button(on_click=start_listener_dialogue).classes("tech-btn-action px-3").props(
-                    "flat no-caps dense"
+                with (
+                    ui.button(on_click=start_listener_dialogue)
+                    .classes("tech-btn-action px-3")
+                    .props("flat no-caps dense")
                 ):
                     ui.icon("add", size="xs").classes("mr-2")
                     ui.label("LISTENER").classes("text-xs font-bold tracking-wide")
@@ -311,6 +314,27 @@ async def render_listeners_table():  # 'data' arg is kept for compatibility, but
 
             ui.notify(f"Restarted {count} listeners", type="positive")
             await update_table_data()
+
+        async def start_selected():
+            selected_rows = table.selected
+            if not selected_rows:
+                ui.notify("No listeners selected", type="warning", color="orange-9")
+                return
+
+            count = len(selected_rows)
+            for row in selected_rows:
+                await start_listener_from_existing(row["listener_uuid"])
+
+            ui.notify(f"Started {count} listeners", type="positive")
+            await update_table_data()
+
+        start = (
+            ui.button("START SELECTED", icon="play_arrow", on_click=start_selected)
+            .props("flat dense color=green no-caps size=sm")
+            .classes("font-bold tracking-wide hover:bg-emerald-500/20")
+        )
+        with start:
+            ui.tooltip("Start the selected listeners.")
 
         restart = (
             ui.button("RESTART SELECTED", icon="restart_alt", on_click=restart_selected)
