@@ -23,6 +23,7 @@ import client.src.client.pages.operations  # noqa: F401
 import client.src.client.pages.payloads  # noqa: F401
 import client.src.client.pages.scripts  # noqa: F401
 import client.src.client.pages.search  # noqa: F401
+import client.src.client.pages.status  # noqa: F401
 
 server_log = logging.getLogger("server")
 

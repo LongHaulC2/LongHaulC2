@@ -2,7 +2,6 @@ import docker
 
 from ...instance import active_processes, active_threads, env_config
 
-# getenv for docker name
 MYSQL_CONTAINER = env_config.get("MYSQL_CONTAINER")
 REDIS_CONTAINER = env_config.get("REDIS_CONTAINER")
 NEO4J_CONTAINER = env_config.get("NEO4J_CONTAINER")
@@ -19,14 +18,13 @@ def get_health_status() -> dict:
     processes = {
         name: ("running" if p and p.is_alive() else f"stopped({p.exitcode})") for name, p in active_processes.items()
     }
-    # Merge into a single flat map first for processing
+    # Merge into one flat dict
     all_statuses = containers | threads | processes
 
     # split into categories
     health_report = {
         "core": {},
         "listeners": {},
-        # "overall_status": "nominal" # nominal, degraded, or failure
     }
 
     for name, status in all_statuses.items():
@@ -40,7 +38,7 @@ def get_health_status() -> dict:
 
 def get_container_status(container_name: str) -> str:
     if not container_name:
-        return "misconfigured"  # Handle the empty Resource ID case
+        return "misconfigured"
 
     client = docker.from_env()
     try:
