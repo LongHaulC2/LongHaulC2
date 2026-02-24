@@ -152,7 +152,7 @@ async def render_dashboard(data: dict, implant_uuid: str):
                         "w-full flex-grow bg-transparent p-0 overflow-hidden"
                     ):
                         # --- PANEL 1: SYSTEM DNA ---
-                        with ui.tab_panel("dna").classes("w-full h-full p-0"):
+                        with ui.tab_panel("dna").classes("w-full h-full p-0"):  # noqa: SIM117
                             with ui.scroll_area().classes("w-full h-full p-4"):
                                 info_row("Operating System", data.get("os_details", "N/A"))
                                 info_row("Build Number", "19044.1234 (Mock)")
@@ -218,7 +218,7 @@ async def render_dashboard(data: dict, implant_uuid: str):
                         ui.label("CONTROLS //").classes("tech-label-subtitle")
 
                     # Scrollable Config
-                    with ui.scroll_area().classes("w-full flex-grow"):
+                    with ui.scroll_area().classes("w-full flex-grow"):  # noqa: SIM117
                         with ui.column().classes("p-4 w-full gap-4"):
                             # Config
                             ui.label("BEACON SETTINGS").classes("text-[10px] font-bold text-neutral-500")
@@ -273,15 +273,14 @@ def render_history_row(task: dict):
     status_icon = "check_circle" if is_complete else "pending"
 
     with ui.expansion().classes("w-full border-b border-white/5 group bg-transparent") as expansion:
-        with expansion.add_slot("header"):
-            with ui.row().classes("w-full items-center py-2 px-1 gap-4"):
-                ui.icon(status_icon, color=status_color).classes("text-lg opacity-80")
-                with ui.column().classes("gap-0 flex-grow"):
-                    with ui.row().classes("items-center gap-2"):
-                        ui.label(task_name.upper()).classes("text-sm font-bold text-neutral-200 font-mono")
-                        if args_str:
-                            ui.label(args_str).classes("text-xs text-neutral-500 font-mono truncate max-w-[200px]")
-                    ui.label(f"ID: {task.get('task_uuid', '')}").classes("text-[10px] text-neutral-600 font-mono")
+        with expansion.add_slot("header"), ui.row().classes("w-full items-center py-2 px-1 gap-4"):
+            ui.icon(status_icon, color=status_color).classes("text-lg opacity-80")
+            with ui.column().classes("gap-0 flex-grow"):
+                with ui.row().classes("items-center gap-2"):
+                    ui.label(task_name.upper()).classes("text-sm font-bold text-neutral-200 font-mono")
+                    if args_str:
+                        ui.label(args_str).classes("text-xs text-neutral-500 font-mono truncate max-w-[200px]")
+                ui.label(f"ID: {task.get('task_uuid', '')}").classes("text-[10px] text-neutral-600 font-mono")
 
         with ui.column().classes("w-full bg-black/40 p-4 border-t border-white/5 shadow-inner"):
             ui.label("OUTPUT STREAM //").classes("text-[10px] font-bold text-neutral-600 font-mono mb-2")

@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 
 import httpx
@@ -35,7 +36,7 @@ async def search_view():
     # Main Glass Panel
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
         # Header Bar
-        with ui.row().classes("w-full items-center justify-between tech-header-bar"):
+        with ui.row().classes("w-full items-center justify-between tech-header-bar"):  # noqa: SIM117
             with ui.row().classes("items-center gap-3"):
                 ui.icon("manage_search", color="emerald-500").classes("text-xl")
                 ui.label("GLOBAL_SEARCH //").classes("tech-label-title")
@@ -70,7 +71,7 @@ async def search_view():
             search_spinner = ui.spinner(size="sm", color="emerald-500").classes("opacity-0 transition-opacity")
 
         # Results Area
-        with ui.column().classes("w-full flex-grow relative overflow-hidden bg-transparent") as results_container:
+        with ui.column().classes("w-full flex-grow relative overflow-hidden bg-transparent") as results_container:  # noqa: SIM117
             # Initial Empty State
             with ui.column().classes("w-full h-full items-center justify-center opacity-30"):
                 ui.icon("radar", size="6em")
@@ -101,7 +102,7 @@ async def search_view():
         # If empty input, reset to empty state
         if not search_field.value:
             search_spinner.classes(add="opacity-0")
-            with results_container:
+            with results_container:  # noqa: SIM117
                 with ui.column().classes("w-full h-full items-center justify-center opacity-30"):
                     ui.icon("radar", size="6em")
                     ui.label("AWAITING INPUT").classes("font-mono text-sm mt-4 tracking-widest")
@@ -128,10 +129,8 @@ async def search_view():
                 search_spinner.classes(add="opacity-0")  # Hide spinner
 
         running_query = asyncio.create_task(fetch())
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await running_query
-        except asyncio.CancelledError:
-            pass
 
     # Attach Handler
     search_field.on_value_change(run_search)
@@ -157,7 +156,7 @@ async def implants_list_layout(data: list[dict]):
             "sortable": True,
             "align": "left",
         }
-        for key in first_row.keys()
+        for key in first_row
     ]
 
     table = (
@@ -207,7 +206,7 @@ async def tasks_list_layout(data):
             "sortable": True,
             "align": "left",
         }
-        for key in first_row.keys()
+        for key in first_row
         if key not in ["task_request", "task_response"]  # Hide raw JSON
     ]
 

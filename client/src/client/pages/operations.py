@@ -61,7 +61,7 @@ async def operations():
 
     # Main Layout (Splitter)
     # Using a container that matches the background
-    with ui.element().classes("w-full h-full gap-0"):
+    with ui.element().classes("w-full h-full gap-0"):  # noqa: SIM117
         # Splitter: Left (Implants) vs Right (Terminal)
         with ui.splitter(horizontal=True, value=50).classes("w-full h-full").props(
             "separator-class=bg-white/10 separator-style=width:1px"
@@ -99,15 +99,19 @@ async def implant_view():
             # Toolbar
             with ui.row().classes("items-center gap-1"):
                 # Payloads
-                with ui.button(on_click=lambda: start_payload_dialogue()).classes("tech-btn-action px-2").props(
-                    "dense flat size=sm"
+                with (
+                    ui.button(on_click=lambda: start_payload_dialogue())
+                    .classes("tech-btn-action px-2")
+                    .props("dense flat size=sm")
                 ):
                     ui.icon("add", size="xs").classes("mr-1")
                     ui.label("PAYLOAD").classes("text-[10px] font-bold")
                     ui.tooltip("Build New Payload")
 
-                with ui.button(on_click=lambda: start_listener_dialogue()).classes("tech-btn-action px-2").props(
-                    "dense flat size=sm"
+                with (
+                    ui.button(on_click=lambda: start_listener_dialogue())
+                    .classes("tech-btn-action px-2")
+                    .props("dense flat size=sm")
                 ):
                     ui.icon("add", size="xs").classes("mr-1")
                     ui.label("LISTENER").classes("text-[10px] font-bold")
@@ -316,7 +320,7 @@ async def terminal_add_tab(implant_uuid: str):
         return
 
     # Create Tab with explicit 'name'
-    with tabs:
+    with tabs:  # noqa: SIM117
         # name=tab_id ensures the tab system tracks it by full UUID
         with ui.tab(name=tab_id, label="").classes("h-full px-3 min-h-0 border-r border-white/5") as tab:
             tab.meta = {"implant_uuid": implant_uuid}
@@ -328,9 +332,8 @@ async def terminal_add_tab(implant_uuid: str):
                 )
 
     # Create Panel with matching 'name'
-    with panels:
-        with ui.tab_panel(name=tab_id).classes("p-0 w-full h-full") as panel:
-            await terminal(implant_uuid)
+    with panels, ui.tab_panel(name=tab_id).classes("p-0 w-full h-full") as panel:
+        await terminal(implant_uuid)
 
     open_tabs[implant_uuid] = {"tab_object": tab, "panel_object": panel}
     panels.set_value(tab_id)

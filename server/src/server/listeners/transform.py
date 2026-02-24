@@ -234,10 +234,7 @@ def xor_mask(data: bytes, key: bytes) -> bytes:
 
 def netbios_encode(data: bytes) -> bytes:
     # FIX: Convert memoryview, bytearray, or str to immutable bytes immediately
-    if isinstance(data, str):
-        data = data.encode("utf-8")
-    else:
-        data = bytes(data)
+    data = data.encode("utf-8") if isinstance(data, str) else bytes(data)
 
     check_type(data, bytes, "data")
 
@@ -261,10 +258,7 @@ def netbios_encode(data: bytes) -> bytes:
 
 def netbios_decode(data: bytes) -> bytes:
     # FIX: Convert memoryview or str to bytes
-    if isinstance(data, str):
-        data = data.encode("ascii")
-    else:
-        data = bytes(data)
+    data = data.encode("ascii") if isinstance(data, str) else bytes(data)
 
     check_type(data, bytes, "data")
 
@@ -291,10 +285,7 @@ def netbios_decode(data: bytes) -> bytes:
 
 def netbiosu_encode(data: bytes) -> bytes:
     # FIX: Convert memoryview, bytearray, or str to immutable bytes immediately
-    if isinstance(data, str):
-        data = data.encode("utf-8")
-    else:
-        data = bytes(data)
+    data = data.encode("utf-8") if isinstance(data, str) else bytes(data)
 
     check_type(data, bytes, "data")
 
@@ -318,10 +309,7 @@ def netbiosu_encode(data: bytes) -> bytes:
 
 def netbiosu_decode(data: bytes) -> bytes:
     # FIX: Convert memoryview or str to bytes
-    if isinstance(data, str):
-        data = data.encode("ascii")
-    else:
-        data = bytes(data)
+    data = data.encode("ascii") if isinstance(data, str) else bytes(data)
 
     check_type(data, bytes, "data")
 

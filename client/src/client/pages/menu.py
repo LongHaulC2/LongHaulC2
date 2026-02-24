@@ -52,7 +52,7 @@ def setup_menu(title: str):
         ui.navigate.to(target_url)
 
     # Drawer Content
-    with left_drawer:
+    with left_drawer:  # noqa: SIM117
         with ui.column().classes("h-full w-full p-6 gap-1"):
             # --- BRANDING ---
             with ui.row().classes("w-full items-center gap-3 mb-8 px-2 opacity-90 mt-2"):

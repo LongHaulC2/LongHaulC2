@@ -98,7 +98,7 @@ async def upload_dialog(implant_uuids: list):
             # --- Target List ---
             # We removed the inline bg classes here so your CSS
             # .q-expansion-item rules can apply the blur/zinc-bg automatically
-            with ui.expansion(f"Target List ({len(implant_uuids)})", icon="hub").classes("w-full"):
+            with ui.expansion(f"Target List ({len(implant_uuids)})", icon="hub").classes("w-full"):  # noqa: SIM117
                 with ui.column().classes("py-2 gap-1"):
                     for uid in implant_uuids:
                         ui.label(f"• {uid}").classes("font-mono text-xs text-zinc-400 ml-4")

@@ -9,7 +9,7 @@ def login_page():
     # set bg image
     ui.element("div").classes("fixed inset-0 -z-10 bg-[url('/static/world.png')] bg-cover bg-center")
     # Main Container (Centers the card vertically & horizontally)
-    with ui.column().classes("w-full h-full items-center justify-center"):
+    with ui.column().classes("w-full h-full items-center justify-center"):  # noqa: SIM117
         # The Login Card
         # We reuse 'tech-glass-panel' from your global CSS for the frosted look & border
         with ui.card().classes("w-[400px] max-w-[90vw] p-0 gap-0 tech-glass-panel"):

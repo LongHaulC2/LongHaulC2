@@ -182,10 +182,9 @@ async def graph_view():
                     lambda e: handle_click(e, nodes, inspector_sidebar),
                 )
 
-                with chart:
-                    with ui.menu().props("context-menu"):
-                        ui.menu_item("Copy")
-                        ui.menu_item("Delete")
+                with chart, ui.menu().props("context-menu"):
+                    ui.menu_item("Copy")
+                    ui.menu_item("Delete")
 
 
 def build_header_bar():
@@ -253,12 +252,7 @@ def handle_click(e, nodes, sidebar_container):
                 ui.button("Restart").classes("w-full")
                 ui.button("Stop", color="red").classes("w-full")
 
-        elif node_type == "File":
-            with ui.column().classes("w-full"):
-                ui.button("Download").classes("w-full")
-                ui.button("Delete", color="red").classes("w-full")
-
-        elif node_type == "MemstoreFile":
+        elif node_type == "File" or node_type == "MemstoreFile":
             with ui.column().classes("w-full"):
                 ui.button("Download").classes("w-full")
                 ui.button("Delete", color="red").classes("w-full")

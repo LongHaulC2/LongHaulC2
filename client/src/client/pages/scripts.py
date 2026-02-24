@@ -50,7 +50,7 @@ async def scripts():
 
     # Main Layout (Splitter)
     # Using a container that matches the background
-    with ui.element().classes("w-full h-full gap-0"):
+    with ui.element().classes("w-full h-full gap-0"):  # noqa: SIM117
         # Primary Splitter (Left: Files, Right: IDE/Term)
         # separator-class: Makes the divider a subtle thin line
         with ui.splitter(value=15, limits=(10, 50)).classes("w-full h-full").props(
@@ -59,7 +59,7 @@ async def scripts():
             with splitter.before:
                 await file_picker()
 
-            with splitter.after:
+            with splitter.after:  # noqa: SIM117
                 # Secondary Splitter (Top: IDE, Bottom: Terminal)
                 with ui.splitter(horizontal=True, value=70, limits=(10, 90)).classes("w-full h-full").props(
                     "separator-class=bg-white/10 separator-style=height:1px"
@@ -107,22 +107,20 @@ async def terminal_add_tab(tab_name: str):
         return
 
     # Create Tab Header
-    with terminal_tabs_parent:
-        with ui.tab(tab_name, label="").classes("h-full px-2 min-h-0") as tab:
-            tab.meta = {"tab_name": tab_name}
-            with ui.row().classes("items-center gap-2"):
-                ui.label(tab_name).classes("text-xs font-mono lowercase")
-                ui.button(icon="close", on_click=lambda tn=tab_name: terminal_close_tab(tn)).props(
-                    "flat dense size=xs rounded"
-                ).classes("text-neutral-500 hover:text-white")
+    with terminal_tabs_parent, ui.tab(tab_name, label="").classes("h-full px-2 min-h-0") as tab:
+        tab.meta = {"tab_name": tab_name}
+        with ui.row().classes("items-center gap-2"):
+            ui.label(tab_name).classes("text-xs font-mono lowercase")
+            ui.button(icon="close", on_click=lambda tn=tab_name: terminal_close_tab(tn)).props(
+                "flat dense size=xs rounded"
+            ).classes("text-neutral-500 hover:text-white")
 
     # Create Tab Body
-    with terminal_panels_parent:
-        with ui.tab_panel(tab_name).classes("p-0 h-full w-full") as panel:
-            # Terminal Log Styling
-            terminal_log = ui.log(max_lines=TERMINAL_MAX_LINES).classes(
-                "w-full h-full p-2 font-mono text-xs text-emerald-500/90 bg-transparent overflow-auto"
-            )
+    with terminal_panels_parent, ui.tab_panel(tab_name).classes("p-0 h-full w-full") as panel:
+        # Terminal Log Styling
+        terminal_log = ui.log(max_lines=TERMINAL_MAX_LINES).classes(
+            "w-full h-full p-2 font-mono text-xs text-emerald-500/90 bg-transparent overflow-auto"
+        )
 
     terminal_open_tabs[tab_name] = {
         "tab_object": tab,
@@ -349,7 +347,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
             )
 
         # Toolbar
-        with splitter.after:
+        with splitter.after:  # noqa: SIM117
             with ui.column().classes("h-full w-full bg-black/20 items-center py-2 gap-2 border-l border-white/5"):
                 # Run
                 if executable:
@@ -426,20 +424,18 @@ async def ide_add_tab(tab_name: str, script_path: str, executable=False):
         return
 
     # Create Tab
-    with ide_tabs_parent:
-        with ui.tab(tab_name, label="").classes("h-full px-2 min-h-0") as tab:
-            tab.meta = {"tab_name": tab_name}
-            with ui.row().classes("items-center gap-2"):
-                ui.icon("description", size="xs").classes("opacity-50")
-                ui.label(tab_name).classes("text-xs font-mono")
-                ui.button(icon="close", on_click=lambda tn=tab_name: ide_close_tab(tn)).props(
-                    "flat dense size=xs rounded"
-                ).classes("text-neutral-500 hover:text-white")
+    with ide_tabs_parent, ui.tab(tab_name, label="").classes("h-full px-2 min-h-0") as tab:
+        tab.meta = {"tab_name": tab_name}
+        with ui.row().classes("items-center gap-2"):
+            ui.icon("description", size="xs").classes("opacity-50")
+            ui.label(tab_name).classes("text-xs font-mono")
+            ui.button(icon="close", on_click=lambda tn=tab_name: ide_close_tab(tn)).props(
+                "flat dense size=xs rounded"
+            ).classes("text-neutral-500 hover:text-white")
 
     # Create Panel
-    with ide_panels_parent:
-        with ui.tab_panel(tab_name).classes("p-0 w-full h-full") as panel:
-            await code_editor(script_path, tab_name, executable=executable)
+    with ide_panels_parent, ui.tab_panel(tab_name).classes("p-0 w-full h-full") as panel:
+        await code_editor(script_path, tab_name, executable=executable)
 
     ide_open_tabs[tab_name] = {"tab_object": tab, "panel_object": panel}
     ide_panels_parent.set_value(tab_name)

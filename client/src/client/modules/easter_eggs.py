@@ -5,22 +5,17 @@ from nicegui import ui
 
 
 def run_random_easter_egg():
+    if hasattr(ui.context.client, "easter_timer_started"):
+        return
+    # prevents dup timers
+    ui.context.client.easter_timer_started = True
+
     def roll_dice():
         roll = random.randint(1, 100)
 
-        # Trigger events based on the number
-        if roll <= 10:  # 10% chance
+        if roll <= 10:
             run_yellow_techno_sphere()
 
-        elif roll <= 20:  # Next 10% chance
-            ...
-
-        elif roll <= 40:  # 20% chance
-            ...
-
-    # Roll every 10 min, don't want it to be too often
-    # this basically makes sure the page was left at idle.
-    # This is called from the menu function, and it resets every call
     ui.timer(60 * 10, roll_dice)
 
 

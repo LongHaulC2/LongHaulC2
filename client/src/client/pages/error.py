@@ -10,7 +10,7 @@ def generate_error(exception: Exception) -> None:
     error_trace = traceback.format_exc(chain=False)
 
     # Center the whole layout and give it a max width for readability
-    with ui.column().classes("absolute-center items-center w-full p-4"):
+    with ui.column().classes("absolute-center items-center w-full p-4"):  # noqa: SIM117
         with ui.card().classes("w-full items-center p-8 gap-4 max-w-1/2 shadow-xl rounded-2xl"):
             ui.label("LongHaulC2-Web Encountered An Unhandled Error").classes("text-center text-2xl")
             ui.separator()

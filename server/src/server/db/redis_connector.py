@@ -40,10 +40,9 @@ def get_redis_connection() -> object | None:
 
         # quick connection test
         try:
-            if r.ping():
-                if not _shut_the_f_up_after_first_connect:
-                    logger.info("REDIS connection is alive")
-                    _shut_the_f_up_after_first_connect = True
+            if r.ping() and not _shut_the_f_up_after_first_connect:
+                logger.info("REDIS connection is alive")
+                _shut_the_f_up_after_first_connect = True
         except redis.ConnectionError as e:
             logger.warning("Failed to connect to REDIS", error=e)
 

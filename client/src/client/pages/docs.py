@@ -202,7 +202,7 @@ async def docs_view(tree_data: list):
                 #     )
 
             # --- Markdown Content Area ---
-            with ui.scroll_area().classes("w-full flex-grow p-8"):
+            with ui.scroll_area().classes("w-full flex-grow p-8"):  # noqa: SIM117
                 with ui.column().classes("w-full max-w-4xl mx-auto pb-20"):
                     # Markdown Container
                     markdown_view = ui.markdown("# Welcome\nSelect a document from the navigation tree.").classes(

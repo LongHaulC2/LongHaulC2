@@ -91,7 +91,7 @@ async def status_page():
 
                 ui.switch(value=True, on_change=toggle_refresh).props("dark color=emerald size=sm")
 
-        with ui.scroll_area().classes("w-full flex-grow p-6"):
+        with ui.scroll_area().classes("w-full flex-grow p-6"):  # noqa: SIM117
             with ui.row().classes("w-full items-start gap-8 flex-nowrap"):
                 # Column 1: Core
                 with ui.column().classes("w-1/2 gap-4"):

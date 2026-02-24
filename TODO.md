@@ -108,6 +108,8 @@ t2 = start_thread_once("worker_thread", worker)  # won't start a new one
 ```
 Or, could enforce per function? 
 
+- [ ] Structlog in client? 
+
 - [ ] Docs for deployment, how to run, etc. Just need to install make and run make deploy.
 > tldr: sudo make deploy to deploy, sudo make undeploy to undeploy, sudo make redeploy to redep
 

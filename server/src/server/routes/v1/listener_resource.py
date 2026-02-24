@@ -62,12 +62,9 @@ class Listener(Resource):
             listener_service = ListenerService(session)
             listeners = listener_service.get_by_id(uuid)
 
-            if listeners is None:
-                # The helper 'wrap_response_single' defaults data to {},
-                # but explicit empty dict is fine too.
-                data = {}
-            else:
-                data = listeners.to_dict()
+            # The helper 'wrap_response_single' defaults data to {},
+            # but explicit empty dict is fine too.
+            data = {} if listeners is None else listeners.to_dict()
 
         api_response = APIResponse(
             status="200",
@@ -185,10 +182,7 @@ class Listeners(Resource):
         with get_mysql_session() as session:
             listener_service = ListenerService(session)
             listeners = listener_service.get_all()
-            if listeners is None:
-                data = []
-            else:
-                data = [i.to_dict() for i in listeners]
+            data = [] if listeners is None else [i.to_dict() for i in listeners]
 
         api_response = APIResponse(
             status="200",
