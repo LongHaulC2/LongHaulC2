@@ -2,7 +2,13 @@ import logging
 
 from nicegui import ui
 
-from client.src.client.modules.api_calls import get_health_status
+from client.src.client.modules.api_calls import (
+    get_all_listener_data,
+    get_health_status,
+    restart_listener,
+    start_listener_from_existing,
+    stop_listener,
+)
 
 # Imports
 from client.src.client.pages.menu import setup_menu
@@ -15,7 +21,6 @@ async def fetch_system_status() -> dict:
 
     data = await get_health_status()
     data = data.get("data")  # pull out from api struct
-
     return data
 
 
@@ -87,7 +92,6 @@ async def status_page():
 
                 ui.switch(value=True, on_change=toggle_refresh).props("dark color=emerald size=sm")
 
-        # --- DASHBOARD CONTAINERS ---
         with ui.scroll_area().classes("w-full flex-grow p-6"):
             with ui.row().classes("w-full items-start gap-8 flex-nowrap"):
                 # Column 1: Core
@@ -106,12 +110,45 @@ async def status_page():
                     )
                     listener_container = ui.column().classes("w-full gap-2")
 
-    # --- IN-PLACE UPDATE LOGIC ---
-
     async def handle_action(category: str, svc_name: str, action: str):
-        """Dummy handler for buttons. Hook up your API here."""
-        ui.notify(f"Dispatched: {action.upper()} -> {svc_name}", type="info", color="blue-9")
-        # await httpx.post(f"http://api/service/{svc_name}/{action}")
+        """
+        Dispatches Start/Stop/Restart commands to the backend.
+        svc_name corresponds to the listener_uuid in this context.
+        """
+        if category == "listeners":
+            try:
+                # correlate listener name -> uuid (because the API does not return the UUID... yay)
+                listeners_data = await get_all_listener_data()
+                listeners_data = listeners_data.get("data", {})
+
+                # create a quick mapping of "name":"uuid" to avoid looping
+                name_to_uuid = {
+                    listener.get("listener_name"): listener.get("listener_uuid") for listener in listeners_data
+                }
+                listener_uuid = name_to_uuid.get(svc_name, "")
+
+                if action == "start":
+                    # Assuming svc_name is your listener_uuid
+                    await start_listener_from_existing(listener_uuid)
+                    # ui.notify(f"Started listener: {svc_name}", type="positive")
+
+                elif action == "stop":
+                    await stop_listener(listener_uuid)
+                    # ui.notify(f"Stopped listener: {svc_name}", type="negative")
+
+                elif action == "restart":
+                    await restart_listener(listener_uuid)
+                    # notify  only on restart, as this doesn't trigger the health watchdog
+                    ui.notify(f"Restarted listener: {svc_name}", type="info")
+
+                # Trigger an immediate refresh of the UI data
+                await poll_data()
+
+            except Exception as e:
+                ui.notify(f"Action failed: {str(e)}", type="warning")
+        else:
+            # logic for core services when I want to implement that handling
+            ui.notify(f"Action {action} not implemented for Core services", color="grey")
 
     def build_service_row(container, category: str, svc_name: str, initial_raw_status: str):
         """Draws a service row for the first time and registers its UI components."""
@@ -138,17 +175,17 @@ async def status_page():
                 with ui.row().classes("gap-1"):
                     btn_start = (
                         ui.button(icon="play_arrow", on_click=lambda: handle_action(category, svc_name, "start"))
-                        .props("dense flat size=sm color=emerald-400 disabled")
+                        .props("dense flat size=sm color=emerald-400")
                         .tooltip("Start")
                     )
                     btn_restart = (
                         ui.button(icon="restart_alt", on_click=lambda: handle_action(category, svc_name, "restart"))
-                        .props("dense flat size=sm color=blue-400 disabled")
+                        .props("dense flat size=sm color=blue-400")
                         .tooltip("Restart")
                     )
                     btn_stop = (
                         ui.button(icon="stop", on_click=lambda: handle_action(category, svc_name, "stop"))
-                        .props("dense flat size=sm color=red-400 disabled")
+                        .props("dense flat size=sm color=red-400")
                         .tooltip("Stop")
                     )
 
