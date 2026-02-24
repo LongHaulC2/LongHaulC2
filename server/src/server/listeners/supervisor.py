@@ -5,6 +5,7 @@ import threading
 import structlog
 
 from ..db.mysql_connector import get_mysql_session
+from ..instance import active_processes
 from ..modules.mysql_functions import ListenerService
 from ..schemas.listeners import ListenerCreate
 from ..utils.checks import check_type
@@ -65,6 +66,8 @@ def start_listener(
                     },
                     daemon=True,  # shuts down listeners at program exit.
                 )
+                # toss in global active processes dict
+                active_processes[listener_data.listener_name] = p
                 p.start()
                 # THREAD-SAFE ADDITION
                 with listeners_lock:

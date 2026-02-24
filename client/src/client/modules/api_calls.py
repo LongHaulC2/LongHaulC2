@@ -81,6 +81,37 @@ async def update_implant(implant_uuid: str, data: dict):
         return response
 
 
+async def get_health_status() -> dict:
+    """
+    Gets health status of the server
+
+    Returns:
+        dict: A dictionary containing the implant's metadata and check-in history.
+        Example structure:
+        {
+        "data": {
+            "mysql_status": "running",
+            "neo4j_status": "running",
+            "redis_status": "running",
+            "response_pipeline_status": "running"
+        },
+        "message": "Success",
+        "status": "200"
+        }
+    """
+
+    url = generate_url("/api/v1/health/")
+
+    # structlog.contextvars.clear_contextvars()
+    # structlog.contextvars.bind_contextvars(method="GET", url=url)
+    # api_log.debug("Getting data for implant")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        data = response.json()
+        return data
+
+
 async def get_implant_data(implant_uuid: str) -> dict:
     """
     Retrieve detailed information and current status for a specific implant.

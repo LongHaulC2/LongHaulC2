@@ -2,13 +2,12 @@ from collections.abc import Mapping
 from typing import Any
 
 import structlog
-from nicegui import app, ui
+from nicegui import app
 from yarl import URL
 
 from ..utils.checks import check_type
 
 server_log = structlog.getLogger("server")
-
 
 # todo: find a way to get args/startup things to this later, for more dynamic url generation
 # ex, python3 client --host https://127.0.0.1:1234
@@ -34,7 +33,8 @@ def generate_url(uri: str, params: Mapping[str, Any] | None = None) -> str:
 
     host = app.storage.user.get("api_host", None)
     if host is None:  # noqa: Falsey does not work here  for some reason, so explicitly checking against None
-        ui.navigate.to("/login")
+        return ""
+        # ui.navigate.to("/login")
 
     HOST = f"http://{host}"
 

@@ -42,8 +42,8 @@ def start_task_batch_job():
     # log this explicity with server main logger
     server_logger.info("Starting task watchdog")
     t = threading.Thread(target=_task_batch_job, daemon=True)
-    t.start()
     active_threads["response_pipeline"] = t
+    t.start()
 
 
 def _task_batch_job():

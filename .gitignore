@@ -437,3 +437,4 @@ FodyWeavers.xsd
 *.msp
 server/src/server/logs/server.log.1
 server/src/server/logs/server.log.2
+.nicegui/storage*.json
