@@ -57,7 +57,6 @@ async def status_page():
     ui.context.client.page_container.default_slot.children[0].props(
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
     )
-
     setup_menu("System Status")
 
     # --- INTERNAL DOM REGISTRY ---

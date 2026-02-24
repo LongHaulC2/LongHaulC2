@@ -86,6 +86,9 @@ working on response_pipeline. todo's left:
 
 >here 
 - [ ] Make /status more functional (buttons, or not?)
+- [x] Processes/Listeners
+- [ ] Core
+- [ ] General cleanup of all things processes/threads, etc. 
 
    > Core: Stop, Start, Restart. 
 Use the one/named thread pattern, so we don't have multiple of each thread going, which would be chaos.
@@ -104,11 +107,6 @@ t1 = start_thread_once("worker_thread", worker)
 t2 = start_thread_once("worker_thread", worker)  # won't start a new one
 ```
 Or, could enforce per function? 
-
-   > Listeners: Stop, Start, Restart, use the already built in funcs for this. Also, enable the "stop but don't delete" (pause), where DB doesn't call delete. This would
-   literally stop it, but keep the entry for an easy restart.  
-   Allows listeners to be in an "off" state, without being deleted. Would need to add a method that would stop without delete
-   > see listener_resource PATCH docstring
 
 - [ ] Docs for deployment, how to run, etc. Just need to install make and run make deploy.
 > tldr: sudo make deploy to deploy, sudo make undeploy to undeploy, sudo make redeploy to redep

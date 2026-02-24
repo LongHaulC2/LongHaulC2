@@ -2,6 +2,8 @@ import asyncio
 
 from nicegui import app, ui
 
+from client.src.client.modules.easter_eggs import run_random_easter_egg
+
 # F403, fine, lots of styles that could be imported from here
 # this needs to be cleaned up in due time though, all styes are in the .css now
 from client.src.client.style import *  # noqa: F403
@@ -17,6 +19,9 @@ def setup_menu(title: str):
         ui.navigate.to("/login")
 
     check_type(title, str, "title")
+
+    # setup semi random easter egg
+    run_random_easter_egg()
 
     # Drawer Setup
     # width=280: Standard width for tech consoles
@@ -103,7 +108,7 @@ def setup_menu(title: str):
                 "text-[9px] font-mono text-neutral-500 tracking-[0.2em] font-bold px-4 mb-1 uppercase"
             )
             nav_btn("SCRIPTS", "terminal", "/scripts")
-            nav_btn("DOCS", "docs", "/docs")
+            nav_btn("DOCS", "info", "/docs")
 
             ui.separator().classes("bg-white/5 mt-4 mb-2")
             ui.label("ADMIN").classes(
