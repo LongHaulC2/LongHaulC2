@@ -1,5 +1,4 @@
-import logging
-
+import structlog
 from nicegui import ui
 
 # --- Imports ---
@@ -13,7 +12,7 @@ from client.src.client.modules.api_calls import (
 )
 from client.src.client.pages.menu import setup_menu
 
-server_log = logging.getLogger("server")
+server_log = structlog.getLogger("server")
 
 
 # ==============================================================================
@@ -54,8 +53,10 @@ async def payloads_view():
 
             # Right: Controls
             with ui.row().classes("items-center gap-2"):
-                with ui.button(on_click=start_payload_dialogue).classes("tech-btn-action px-4").props(
-                    "flat no-caps dense"
+                with (
+                    ui.button(on_click=start_payload_dialogue)
+                    .classes("tech-btn-action px-4")
+                    .props("flat no-caps dense")
                 ):
                     ui.icon("add_circle", size="xs").classes("mr-2")
                     ui.label("COMPILE NEW").classes("text-xs font-bold tracking-wide")

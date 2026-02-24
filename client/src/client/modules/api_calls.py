@@ -1,19 +1,93 @@
-import logging
+from typing import Any
 
 import httpx
 import msgpack
+import orjson  # trying for speed
 import structlog
 
 from client.src.client.utils.url import generate_url
 
 from ..utils.checks import check_type
 
-server_log = logging.getLogger("server")
+server_log = structlog.getLogger("server")
+api_log = structlog.getLogger("api")
 
-api_log = logging.getLogger("api")
+# Global persistent client to maintain connection pooling for efficiency.
+_client: httpx.AsyncClient | None = None
 
 
-async def queue_task(implant_uuid: str, task: dict):
+def get_client() -> httpx.AsyncClient:
+    """
+    Lazy-load the httpx.AsyncClient to ensure it is created within the active event loop.
+
+    Returns:
+        httpx.AsyncClient: The global asynchronous HTTP client instance.
+    """
+    global _client
+    if _client is None:
+        _client = httpx.AsyncClient()
+    return _client
+
+
+async def safe_api_request(
+    method: str,
+    endpoint: str,
+    return_type: str = "json",
+    log_context: dict[str, Any] | None = None,
+    **kwargs: Any,
+) -> Any:
+    """
+    Global helper to handle all API requests, standardize logging, and gracefully swallow network errors.
+
+    Args:
+        method (str): The HTTP method (e.g., "GET", "POST", "PATCH").
+        endpoint (str): The API path relative to the base URL (e.g., "/api/v1/health/").
+        return_type (str): The expected return format. Options: "json" (default), "content", "response".
+        log_context (dict | None): Optional dictionary of context variables to bind to structlog.
+        **kwargs: Additional arguments passed directly to httpx.request (e.g., json, content, headers, timeout).
+
+    Returns:
+        Any: Parsed JSON dict, raw bytes (content), httpx.Response, or None if the request fails.
+    """
+    url = generate_url(endpoint)
+
+    structlog.contextvars.clear_contextvars()
+    base_context = {"method": method, "url": url}
+    if log_context:
+        base_context.update(log_context)
+    structlog.contextvars.bind_contextvars(**base_context)
+
+    client = get_client()
+
+    try:
+        response = await client.request(method, url, **kwargs)
+
+        # binary content
+        if return_type == "content":
+            if response.status_code != 200:
+                server_log.error(f"Error downloading: {response.text}")
+                return None
+            # Use .content for binary, not .json()
+            return response.content
+
+        # direct network response object
+        elif return_type == "response":
+            return response
+
+        return orjson.loads(response.content)  # response.json()
+
+    except orjson.JSONDecodeError as e:
+        api_log.error("Failed to decode JSON response", error=str(e))
+        return None
+    except httpx.RequestError as e:
+        api_log.error("Network request failed", error=str(e))
+        return None
+    except Exception as e:
+        api_log.error("An unexpected error occurred", error=str(e))
+        return None
+
+
+async def queue_task(implant_uuid: str, task: dict) -> httpx.Response | None:
     """
     Submit a new task to be executed by a specific implant.
 
@@ -37,21 +111,20 @@ async def queue_task(implant_uuid: str, task: dict):
     # switch task to dataclass
     check_type(task, dict, "task")
 
-    url = generate_url(f"/api/v1/implants/{implant_uuid}/task")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="POST", url=url, implant_uuid=implant_uuid, task=task)
     api_log.debug("Queueing a task for implant")
-
     task_msgpack = msgpack.packb(task)
 
-    async with httpx.AsyncClient() as client:
-        # send as msgpack
-        response = await client.post(url, content=task_msgpack, headers={"Content-Type": "application/msgpack"})
-        return response
+    return await safe_api_request(
+        method="POST",
+        endpoint=f"/api/v1/implants/{implant_uuid}/task",
+        return_type="response",
+        log_context={"implant_uuid": implant_uuid, "task": task},
+        content=task_msgpack,
+        headers={"Content-Type": "application/msgpack"},
+    )
 
 
-async def update_implant(implant_uuid: str, data: dict):
+async def update_implant(implant_uuid: str, data: dict) -> httpx.Response | None:
     """
     Update the metadata or status information for a specific implant.
 
@@ -70,18 +143,18 @@ async def update_implant(implant_uuid: str, data: dict):
     check_type(implant_uuid, str, "implant_uuid")
     check_type(data, dict, "data")
 
-    url = generate_url(f"/api/v1/implants/{implant_uuid}")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="GET", url=url, implant_uuid=implant_uuid)
     api_log.debug("Updating data for implant")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.put(url, json=data)
-        return response
+    return await safe_api_request(
+        method="PUT",
+        endpoint=f"/api/v1/implants/{implant_uuid}",
+        return_type="response",
+        log_context={"implant_uuid": implant_uuid},
+        json=data,
+    )
 
 
-async def get_health_status() -> dict:
+async def get_health_status() -> dict | None:
     """
     Gets health status of the server
 
@@ -99,20 +172,17 @@ async def get_health_status() -> dict:
         "status": "200"
         }
     """
-
-    url = generate_url("/api/v1/health/")
-
     # structlog.contextvars.clear_contextvars()
     # structlog.contextvars.bind_contextvars(method="GET", url=url)
     # api_log.debug("Getting data for implant")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        data = response.json()
-        return data
+    return await safe_api_request(
+        method="GET",
+        endpoint="/api/v1/health/",
+    )
 
 
-async def get_implant_data(implant_uuid: str) -> dict:
+async def get_implant_data(implant_uuid: str) -> dict | None:
     """
     Retrieve detailed information and current status for a specific implant.
 
@@ -131,19 +201,16 @@ async def get_implant_data(implant_uuid: str) -> dict:
     """
     check_type(implant_uuid, str, "implant_uuid")
 
-    url = generate_url(f"/api/v1/implants/{implant_uuid}")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="GET", url=url, implant_uuid=implant_uuid)
     api_log.debug("Getting data for implant")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        data = response.json()
-        return data
+    return await safe_api_request(
+        method="GET",
+        endpoint=f"/api/v1/implants/{implant_uuid}",
+        log_context={"implant_uuid": implant_uuid},
+    )
 
 
-async def get_all_implant_data() -> dict:
+async def get_all_implant_data() -> dict | None:
     """
     Retrieve a list of all implants currently registered in the database.
 
@@ -155,20 +222,16 @@ async def get_all_implant_data() -> dict:
             {"implant_uuid": "uuid-2", "hostname": "PC-B"}
         ]
     """
-    url = generate_url("/api/v1/implants/")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="GET", url=url)
     api_log.debug("Getting all implant data")
 
     # get implants
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        data = response.json()  # .get("data")
-        return data
+    return await safe_api_request(
+        method="GET",
+        endpoint="/api/v1/implants/",
+    )
 
 
-async def get_all_listener_data() -> dict:
+async def get_all_listener_data() -> dict | None:
     """
     Retrieve a list of all active and inactive listeners.
 
@@ -180,20 +243,16 @@ async def get_all_listener_data() -> dict:
             {"listener_uuid": 00000000-0000-0000-0000-000000000000, "listener_name": "HTTPS-443", "status": "stopped"}
         ]
     """
-    url = generate_url("/api/v1/listeners/")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="GET", url=url)
     api_log.debug("Getting all listener data")
 
     # get implants
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        data = response.json()  # .get("data")
-        return data
+    return await safe_api_request(
+        method="GET",
+        endpoint="/api/v1/listeners/",
+    )
 
 
-async def get_listener_data(listener_uuid: str) -> dict:
+async def get_listener_data(listener_uuid: str) -> dict | None:
     """
     Retrieve the configuration and status details for a specific listener.
 
@@ -214,19 +273,16 @@ async def get_listener_data(listener_uuid: str) -> dict:
     """
     check_type(listener_uuid, str, "listener_uuid")
 
-    url = generate_url(f"/api/v1/listeners/{listener_uuid}")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="GET", url=url, listener_uuid=listener_uuid)
     api_log.debug("Getting data for listener")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        data = response.json()
-        return data
+    return await safe_api_request(
+        method="GET",
+        endpoint=f"/api/v1/listeners/{listener_uuid}",
+        log_context={"listener_uuid": listener_uuid},
+    )
 
 
-async def stop_listener(listener_uuid: str) -> dict:
+async def stop_listener(listener_uuid: str) -> dict | None:
     """
     Terminate/Stop a running listener.
 
@@ -243,20 +299,18 @@ async def stop_listener(listener_uuid: str) -> dict:
     """
     check_type(listener_uuid, str, "listener_uuid")
 
-    state = {"active": False}
-    url = generate_url(f"/api/v1/listeners/{listener_uuid}")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="DELETE", url=url, listener_uuid=listener_uuid)
     api_log.debug("Getting data for listener")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.patch(url, json=state)
-        data = response.json()
-        return data
+    state = {"active": False}
+    return await safe_api_request(
+        method="PATCH",
+        endpoint=f"/api/v1/listeners/{listener_uuid}",
+        log_context={"listener_uuid": listener_uuid},
+        json=state,
+    )
 
 
-async def start_listener_from_existing(listener_uuid: str) -> dict:
+async def start_listener_from_existing(listener_uuid: str) -> dict | None:
     """
     Starts a listener, only if it already exists, in a stopped state.
 
@@ -273,20 +327,18 @@ async def start_listener_from_existing(listener_uuid: str) -> dict:
     """
     check_type(listener_uuid, str, "listener_uuid")
 
-    state = {"active": True}
-    url = generate_url(f"/api/v1/listeners/{listener_uuid}")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="DELETE", url=url, listener_uuid=listener_uuid)
     api_log.debug("Getting data for listener")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.patch(url, json=state)
-        data = response.json()
-        return data
+    state = {"active": True}
+    return await safe_api_request(
+        method="PATCH",
+        endpoint=f"/api/v1/listeners/{listener_uuid}",
+        log_context={"listener_uuid": listener_uuid},
+        json=state,
+    )
 
 
-async def delete_listener(listener_uuid: str) -> dict:
+async def delete_listener(listener_uuid: str) -> dict | None:
     """
     Delete a running listener
 
@@ -303,19 +355,16 @@ async def delete_listener(listener_uuid: str) -> dict:
     """
     check_type(listener_uuid, str, "listener_uuid")
 
-    url = generate_url(f"/api/v1/listeners/{listener_uuid}")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="DELETE", url=url, listener_uuid=listener_uuid)
     api_log.debug("Getting data for listener")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.delete(url)
-        data = response.json()
-        return data
+    return await safe_api_request(
+        method="DELETE",
+        endpoint=f"/api/v1/listeners/{listener_uuid}",
+        log_context={"listener_uuid": listener_uuid},
+    )
 
 
-async def restart_listener(listener_uuid: str) -> dict:
+async def restart_listener(listener_uuid: str) -> dict | None:
     """
     Restart a running listener (Stop, then start)
 
@@ -332,30 +381,24 @@ async def restart_listener(listener_uuid: str) -> dict:
     """
     check_type(listener_uuid, str, "listener_uuid")
 
-    stop_data = {"active": False}
-    url = generate_url(f"/api/v1/listeners/{listener_uuid}")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="PATCH", url=url, listener_uuid=listener_uuid)
     # api_log.debug(f"Getting data for listener")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.patch(url, json=stop_data)
-        data = response.json()
-        # return data
+    stop_data = {"active": False}
+    await safe_api_request(
+        method="PATCH",
+        endpoint=f"/api/v1/listeners/{listener_uuid}",
+        log_context={"listener_uuid": listener_uuid},
+        json=stop_data,
+    )
 
     # then call again to restart
     start_data = {"active": True}
-    url = generate_url(f"/api/v1/listeners/{listener_uuid}")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="PATCH", url=url, listener_uuid=listener_uuid)
-    # api_log.debug(f"Getting data for listener")
-
-    async with httpx.AsyncClient() as client:
-        response = await client.patch(url, json=start_data)
-        data = response.json()
-        return data
+    return await safe_api_request(
+        method="PATCH",
+        endpoint=f"/api/v1/listeners/{listener_uuid}",
+        log_context={"listener_uuid": listener_uuid},
+        json=start_data,
+    )
 
 
 async def start_listener(
@@ -366,7 +409,7 @@ async def start_listener(
     listener_notes: str,
     listener_profile_name: str,
     listener_profile_contents: str,
-) -> dict:
+) -> dict | None:
     """
     Start/Spawn a new listener with the specified configuration.
 
@@ -387,7 +430,6 @@ async def start_listener(
             "status": "running"
         }
     """
-
     # --- validate inputs ---
     check_type(listener_host, str, "listener_host")
     check_type(listener_port, int, "listener_port")
@@ -396,6 +438,10 @@ async def start_listener(
     check_type(listener_notes, str, "listener_notes")
     check_type(listener_profile_name, str, "listener_profile_name")
     check_type(listener_profile_contents, str, "listener_profile_contents")
+
+    # --- normalize / preprocess ---
+    listener_host = listener_host.strip()
+    listener_name = listener_name.strip()
 
     listener_request_data = {
         "listener_host": listener_host,
@@ -407,30 +453,23 @@ async def start_listener(
         "listener_profile_contents": listener_profile_contents,
     }
 
-    # --- normalize / preprocess ---
-    listener_host = listener_host.strip()
-    listener_name = listener_name.strip()
-
-    url = generate_url("/api/v1/listeners/")
-
     # --- core logic placeholder ---
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="POST", url=url)
     api_log.debug("Getting data for listener")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url, json=listener_request_data)
-        data = response.json()
-        return data
+    return await safe_api_request(
+        method="POST",
+        endpoint="/api/v1/listeners/",
+        json=listener_request_data,
+    )
 
 
 async def build_implant(
-    implant_name,
+    implant_name: str,
     listener_uuids: list,
-    output_format,
-    initial_get_profile_listener_uuid,
-    initial_post_profile_listener_uuid,
-) -> dict:
+    output_format: str,
+    initial_get_profile_listener_uuid: str,
+    initial_post_profile_listener_uuid: str,
+) -> dict | None:
     # print(initial_get_profile_listener_uuid)
     # print(initial_post_profile_listener_uuid)
     """
@@ -458,7 +497,6 @@ async def build_implant(
             "status": "building"
         }
     """
-
     # --- validate inputs ---
     check_type(implant_name, str, "implant_name")
     # check_type(implant_listener_uuid, str, "implant_listener_uuid")
@@ -478,19 +516,16 @@ async def build_implant(
         "initial_post_profile_listener_uuid": initial_post_profile_listener_uuid,
     }
 
-    url = generate_url("/api/v1/build/")
-
     # --- core logic placeholder ---
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="POST", url=url)
+    return await safe_api_request(
+        method="POST",
+        endpoint="/api/v1/build/",
+        json=build_request_data,
+        timeout=60.0,
+    )
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url, json=build_request_data, timeout=60)
-        data = response.json()
-        return data
 
-
-async def get_build_status(build_uuid: str) -> dict:
+async def get_build_status(build_uuid: str) -> dict | None:
     """
     Get the current status of an ongoing or completed build job.
 
@@ -506,18 +541,13 @@ async def get_build_status(build_uuid: str) -> dict:
             "payload_hash": "abc123def..."
         }
     """
-    url = generate_url(f"/api/v1/build/jobs/{build_uuid}")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="GET", url=url)
-
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        data = response.json()  # .get("data")
-        return data
+    return await safe_api_request(
+        method="GET",
+        endpoint=f"/api/v1/build/jobs/{build_uuid}",
+    )
 
 
-async def get_payload_data() -> dict:
+async def get_payload_data() -> dict | None:
     """
     Retrieve a list of all built payloads available in the database.
 
@@ -529,18 +559,13 @@ async def get_payload_data() -> dict:
             {"payload_hash": "abcdabcdabcd==", "implant_name": "Beta", "build_date": "..."}
         ]
     """
-    url = generate_url("/api/v1/build/")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="GET", url=url)
-
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        data = response.json()  # .get("data")
-        return data
+    return await safe_api_request(
+        method="GET",
+        endpoint="/api/v1/build/",
+    )
 
 
-async def get_payload_bytes(payload_hash: str) -> dict:
+async def get_payload_bytes(payload_hash: str) -> bytes | None:
     """
     Retrieve the actual compiled binary/bytes of a specific payload.
 
@@ -550,23 +575,16 @@ async def get_payload_bytes(payload_hash: str) -> dict:
     Returns:
         bytes: The raw binary content of the payload, or None if download fails.
         Example structure:
-        b'\\x4d\\x5a\\x90...' (The actual executable bytes)
+        b'\x4d\x5a\x90...' (The actual executable bytes)
     """
-    url = generate_url(f"/api/v1/build/{payload_hash}")
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="GET", url=url)
-
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        if response.status_code != 200:
-            server_log.error(f"Error downloading: {response.text}")
-            return None
-
-        # Note: Use .content for binary, not .json()
-        return response.content
+    return await safe_api_request(
+        method="GET",
+        endpoint=f"/api/v1/build/{payload_hash}",
+        return_type="content",
+    )
 
 
-async def get_payload_source_bytes(payload_hash: str) -> dict:
+async def get_payload_source_bytes(payload_hash: str) -> bytes | None:
     """
     Retrieve the source code (typically as a zip) for a specific built payload.
 
@@ -576,23 +594,16 @@ async def get_payload_source_bytes(payload_hash: str) -> dict:
     Returns:
         bytes: The raw bytes of the source code archive, or None if download fails.
         Example structure:
-        b'PK\\x03\\x04...' (The bytes of a ZIP file)
+        b'PK\x03\x04...' (The bytes of a ZIP file)
     """
-    url = generate_url(f"/api/v1/build/{payload_hash}/source")
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="GET", url=url)
-
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        if response.status_code != 200:
-            server_log.error(f"Error downloading: {response.text}")
-            return None
-
-        # Note: Use .content for binary, not .json()
-        return response.content
+    return await safe_api_request(
+        method="GET",
+        endpoint=f"/api/v1/build/{payload_hash}/source",
+        return_type="content",
+    )
 
 
-async def get_implant_task_history_since_uuid(implant_uuid: str, since_task_uuid: str) -> dict:
+async def get_implant_task_history_since_uuid(implant_uuid: str, since_task_uuid: str) -> dict | None:
     """
     Retrieve task history for an implant that occurred after a specific task UUID.
 
@@ -608,18 +619,15 @@ async def get_implant_task_history_since_uuid(implant_uuid: str, since_task_uuid
         ]
     """
     url_params = {"since": since_task_uuid}
-    url = generate_url(f"/api/v1/implants/{implant_uuid}/tasks/history", params=url_params)
 
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="GET", url=url)
-
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        data = response.json()  # .get("data")
-        return data
+    return await safe_api_request(
+        method="GET",
+        endpoint=f"/api/v1/implants/{implant_uuid}/tasks/history",
+        params=url_params,
+    )
 
 
-async def get_implant_task_history(implant_uuid: str) -> dict:
+async def get_implant_task_history(implant_uuid: str) -> dict | None:
     """
     Retrieve the full task and execution history for a specific implant.
 
@@ -634,32 +642,23 @@ async def get_implant_task_history(implant_uuid: str) -> dict:
             {"task_uuid":"", "implant_uuid": 9999, "result":{"data_type":binary|text, "data":"somedata"}}
         ]
     """
-    url = generate_url(f"/api/v1/implants/{implant_uuid}/tasks/history")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="GET", url=url)
-
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        data = response.json()  # .get("data")
-        return data
+    return await safe_api_request(
+        method="GET",
+        endpoint=f"/api/v1/implants/{implant_uuid}/tasks/history",
+    )
 
 
-async def get_all_graph_data() -> dict:
+async def get_all_graph_data() -> dict | None:
     """
     Gets allt eh graph data from the API
 
     Returns:
 
     """
-    url = generate_url("/api/v1/graph/")
-
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method="GET", url=url)
     api_log.debug("Getting all graph data")
 
     # get implants
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        data = response.json()  # .get("data")
-        return data
+    return await safe_api_request(
+        method="GET",
+        endpoint="/api/v1/graph/",
+    )

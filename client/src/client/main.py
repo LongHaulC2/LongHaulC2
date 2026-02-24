@@ -1,7 +1,7 @@
-import logging
 import os
 from pathlib import Path
 
+import structlog
 from dotenv import load_dotenv
 from nicegui import app, ui
 
@@ -25,7 +25,7 @@ import client.src.client.pages.scripts  # noqa: F401
 import client.src.client.pages.search  # noqa: F401
 import client.src.client.pages.status  # noqa: F401
 
-server_log = logging.getLogger("server")
+server_log = structlog.getLogger("server")
 
 # load in CSS for our theme
 BASE_DIR = Path(__file__).resolve().parent

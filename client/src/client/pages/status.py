@@ -1,5 +1,4 @@
-import logging
-
+import structlog
 from nicegui import ui
 
 from client.src.client.modules.api_calls import (
@@ -13,7 +12,7 @@ from client.src.client.modules.api_calls import (
 # Imports
 from client.src.client.pages.menu import setup_menu
 
-server_log = logging.getLogger("server")
+server_log = structlog.getLogger("server")
 
 
 async def fetch_system_status() -> dict:

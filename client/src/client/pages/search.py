@@ -1,8 +1,9 @@
 import asyncio
 import contextlib
-import logging
 
 import httpx
+import orjson
+import structlog
 from nicegui import ui
 
 from client.src.client.pages.menu import setup_menu
@@ -10,7 +11,7 @@ from client.src.client.utils.url import generate_url
 
 from ..utils.checks import check_type
 
-server_log = logging.getLogger("server")
+server_log = structlog.getLogger("server")
 server_log.info("Loading /search page")
 
 
@@ -114,7 +115,7 @@ async def search_view():
             try:
                 resp = await api.post(url, json=request_body)
                 if resp.status_code == 200:
-                    data = resp.json().get("data", [])
+                    data = orjson.loads(resp).get("data", [])
 
                     # Render Results
                     with results_container:

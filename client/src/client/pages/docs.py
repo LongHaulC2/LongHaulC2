@@ -1,11 +1,11 @@
-import logging
 from pathlib import Path
 
+import structlog
 from nicegui import ui
 
 from client.src.client.pages.menu import setup_menu
 
-server_log = logging.getLogger("server")
+server_log = structlog.getLogger("server")
 
 # ==============================================================================
 #   DOCUMENTATION UTILITIES

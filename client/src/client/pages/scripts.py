@@ -1,15 +1,15 @@
 import asyncio
-import logging
 import sys
 from pathlib import Path
 
+import structlog
 from nicegui import ui
 
 from client.src.client.pages.menu import setup_menu
 
 from ..utils.checks import check_type
 
-server_log = logging.getLogger("server")
+server_log = structlog.getLogger("server")
 server_log.info("Loading /scripts page")
 
 TERMINAL_MAX_LINES = 1000

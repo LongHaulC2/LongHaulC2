@@ -1,6 +1,5 @@
-import logging
-
 import httpx
+import structlog
 from nicegui import ui
 
 from client.src.client.modules.api_calls import (
@@ -25,7 +24,7 @@ from client.src.client.utils.url import generate_url
 
 from ..utils.checks import check_type
 
-server_log = logging.getLogger("server")
+server_log = structlog.getLogger("server")
 server_log.info("Loading /operations page")
 
 # -------------------------------

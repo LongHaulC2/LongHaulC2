@@ -20,6 +20,7 @@ shared_processors = [
     structlog.processors.StackInfoRenderer(),
     structlog.processors.format_exc_info,
     structlog.processors.UnicodeDecoder(),
+    structlog.stdlib.ExtraAdder(),  # allows for kwarg args in logs
 ]
 
 # CONFIGURE STRUCTLOG BACKEND
@@ -63,10 +64,10 @@ def setup_logger(name, filename):
     # Create Console Handler
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(console_formatter)
-    console_handler.setLevel(logging.DEBUG)
+    console_handler.setLevel(logging.INFO)
 
     # Configure the Standard Library Logger
-    logger = logging.getLogger(name)
+    logger = structlog.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
     # Avoid duplicate handlers if imported multiple times

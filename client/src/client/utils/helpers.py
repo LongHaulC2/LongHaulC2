@@ -1,8 +1,9 @@
-import logging
 import uuid
 from datetime import datetime
 
-server_log = logging.getLogger("server")
+import structlog
+
+server_log = structlog.getLogger("server")
 
 
 def get_timestamp_from_uuid7(uuid_str: str) -> datetime:
