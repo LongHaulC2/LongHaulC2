@@ -85,6 +85,8 @@ working on response_pipeline. todo's left:
 - [X] Fix things not working, they just kinda hangup, and get a all connection attempts failed. I might have a hardcoded ip in there.
    > yep hardcoed ip. this will get fixed when the login page exists.
 
+- [ ] uptime daemon
+
 known broken on deploy:
  - [X] script editor
       > move scripts to /var/lib/longhaulc2

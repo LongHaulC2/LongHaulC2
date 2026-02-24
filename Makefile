@@ -133,7 +133,7 @@ deploy:
 	@echo "=================================================="
 	@echo "Setting up docker containers" 
 	@echo "=================================================="
-	
+	# doing last, incase this fails, so everything else is setup
 	$(MAKE) pull_docker_images
 	$(MAKE) create_docker_images
 	$(MAKE) start_docker_images
@@ -215,19 +215,6 @@ dev_install:
 	sudo apt-get update
 	sudo apt-get install python3 python3-pip virtualenv docker.io redis-tools postgresql-client -y
 
-	@echo "=================================================="
-	@echo "Setting up docker containers" 
-	@echo "=================================================="
-
-	# create docker group if it doesn't already exist
-	sudo getent group docker || groupadd docker
-	# add user to docker group, no logout needed
-	sudo newgrp docker
-
-
-	$(MAKE) pull_docker_images
-	$(MAKE) create_docker_images
-	$(MAKE) start_docker_images
 
 	@echo "=================================================="
 	@echo "Creating virtualenv @ $(DEV_VENV_PATH)"
@@ -241,6 +228,21 @@ dev_install:
 	@echo "================================================="
 
 	$(MAKE) create_env
+
+	@echo "=================================================="
+	@echo "Setting up docker containers" 
+	@echo "=================================================="
+	# doing this LAST, so everything else gets setup incase these fail
+	# create docker group if it doesn't already exist
+	sudo getent group docker || groupadd docker
+	# add user to docker group, no logout needed
+	#newgrp docker
+
+
+	$(MAKE) pull_docker_images
+	$(MAKE) create_docker_images
+	$(MAKE) start_docker_images
+
 
 	@echo "Activate the venv with 'source $(VENV_PATH)/bin/activate'"
 	@echo "Development env setup & ready to go"
@@ -352,6 +354,16 @@ create_env:
 	echo NEO4J_USER=$(NEO4J_USER) >> .env
 	echo NEO4J_PASSWORD=$(NEO4J_PASSWORD) >> .env
 
+	# nicegui storage secret - used for user sessions
+	# use bash to generate a random string
+	_NICEGUI_STORAGE_SECRET=$$(LC_ALL=C tr -dc 'A-Za-z0-9-_' < /dev/urandom | head -c 43)
+	echo "NICEGUI_STORAGE_SECRET=$(SECRET)" >> .env
+
+	# add in docker container names
+	echo MYSQL_CONTAINER=$(MYSQL_CONTAINER) >> .env
+	echo REDIS_CONTAINER=$(REDIS_CONTAINER) >> .env
+	echo NEO4J_CONTAINER=$(NEO4J_CONTAINER) >> .env
+
 check_root:
 	@if [ "$$(id -u)" -ne 0 ]; then \
 		echo "Error: This target must be run with superuser privileges (e.g., sudo make $@)"; \
@@ -380,3 +392,5 @@ print_all_install_locations:
 	@echo "mysql:latest -> running as $(MYSQL_CONTAINER)" >> install_reference
 	@echo "redis-stack:latest -> running as $(REDIS_CONTAINER)" >> install_reference
 	@echo "neo4j:latest -> running as $(NEO4J_CONTAINER)" >> install_reference
+
+

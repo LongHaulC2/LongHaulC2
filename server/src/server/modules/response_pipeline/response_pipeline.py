@@ -23,6 +23,7 @@ import msgpack
 import structlog
 
 from ...db.mysql_connector import get_mysql_session
+from ...instance import active_threads
 from ...modules.neo4j_functions import (
     Neo4jFileNodeService,
     Neo4jHostNodeService,
@@ -42,6 +43,7 @@ def start_task_batch_job():
     server_logger.info("Starting task watchdog")
     t = threading.Thread(target=_task_batch_job, daemon=True)
     t.start()
+    active_threads["response_pipeline"] = t
 
 
 def _task_batch_job():
