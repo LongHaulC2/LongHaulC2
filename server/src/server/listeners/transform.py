@@ -22,7 +22,7 @@ def transform_prepend(data: bytes, value) -> bytes:
         return b + data
     except Exception as e:
         server_logger.exception("Error in transform_prepend")
-        raise ValueError(f"Error in transform_prepend: {e}")
+        raise ValueError(f"Error in transform_prepend: {e}") from e
 
 
 def undo_transform_prepend(data: bytes, value) -> bytes:
@@ -36,7 +36,7 @@ def undo_transform_prepend(data: bytes, value) -> bytes:
         return data[len(b) :]
     except Exception as e:
         server_logger.exception("Error in undo_transform_prepend")
-        raise ValueError(f"Error in undo_transform_prepend: {e}")
+        raise ValueError(f"Error in undo_transform_prepend: {e}") from e
 
 
 def transform_append(data: bytes, value) -> bytes:
@@ -47,7 +47,7 @@ def transform_append(data: bytes, value) -> bytes:
         return data + b
     except Exception as e:
         server_logger.exception("Error in transform_append")
-        raise ValueError(f"Error in transform_append: {e}")
+        raise ValueError(f"Error in transform_append: {e}") from e
 
 
 def undo_transform_append(data: bytes, value) -> bytes:
@@ -61,7 +61,7 @@ def undo_transform_append(data: bytes, value) -> bytes:
         return data[: -len(b)]
     except Exception as e:
         server_logger.exception("Error in undo_transform_append")
-        raise ValueError(f"Error in undo_transform_append: {e}")
+        raise ValueError(f"Error in undo_transform_append: {e}") from e
 
 
 def base64_encode(data: bytes) -> bytes:
@@ -74,7 +74,7 @@ def base64_encode(data: bytes) -> bytes:
         return out
     except Exception as e:
         server_logger.exception("Error in base64_encode")
-        raise ValueError(f"Error in base64_encode: {e}")
+        raise ValueError(f"Error in base64_encode: {e}") from e
 
 
 def base64_decode(data: bytes) -> bytes:
@@ -87,7 +87,7 @@ def base64_decode(data: bytes) -> bytes:
         return out
     except Exception as e:
         server_logger.exception("Error in base64_decode")
-        raise ValueError(f"Error in base64_decode: {e}")
+        raise ValueError(f"Error in base64_decode: {e}") from e
 
 
 def base64url_encode(data: bytes) -> bytes:
@@ -100,7 +100,7 @@ def base64url_encode(data: bytes) -> bytes:
         return out
     except Exception as e:
         server_logger.exception("Error in base64url_encode")
-        raise ValueError(f"Error in base64url_encode: {e}")
+        raise ValueError(f"Error in base64url_encode: {e}") from e
 
 
 def base64url_decode(data: bytes) -> bytes:
@@ -120,7 +120,7 @@ def base64url_decode(data: bytes) -> bytes:
         return out
     except Exception as e:
         server_logger.exception("Error in base64url_decode")
-        raise ValueError(f"Error in base64url_decode: {e}")
+        raise ValueError(f"Error in base64url_decode: {e}") from e
 
 
 def xor_mask(data: bytes, key: bytes) -> bytes:
@@ -137,7 +137,7 @@ def xor_mask(data: bytes, key: bytes) -> bytes:
         return out
     except Exception as e:
         server_logger.exception("Error in xor_mask")
-        raise ValueError(f"Error in xor_mask: {e}")
+        raise ValueError(f"Error in xor_mask: {e}") from e
 
 
 # def netbios_encode(data: bytes) -> bytes:
@@ -253,7 +253,7 @@ def netbios_encode(data: bytes) -> bytes:
         return out_bytes
     except Exception as e:
         server_logger.exception("Error in netbios_encode")
-        raise ValueError(f"Error in netbios_encode: {e}")
+        raise ValueError(f"Error in netbios_encode: {e}") from e
 
 
 def netbios_decode(data: bytes) -> bytes:
@@ -280,7 +280,7 @@ def netbios_decode(data: bytes) -> bytes:
 
     except Exception as e:
         server_logger.exception("Error in netbios_decode")
-        raise ValueError(f"Error in netbios_decode: {e}")
+        raise ValueError(f"Error in netbios_decode: {e}") from e
 
 
 def netbiosu_encode(data: bytes) -> bytes:
@@ -304,7 +304,7 @@ def netbiosu_encode(data: bytes) -> bytes:
         return out_bytes
     except Exception as e:
         server_logger.exception("Error in netbiosu_encode")
-        raise ValueError(f"Error in netbiosu_encode: {e}")
+        raise ValueError(f"Error in netbiosu_encode: {e}") from e
 
 
 def netbiosu_decode(data: bytes) -> bytes:
@@ -330,7 +330,7 @@ def netbiosu_decode(data: bytes) -> bytes:
         return out_bytes
     except Exception as e:
         server_logger.exception("Error in netbiosu_decode")
-        raise ValueError(f"Error in netbiosu_decode: {e}")
+        raise ValueError(f"Error in netbiosu_decode: {e}") from e
 
 
 # Updated malleable_string_to_bytes with try/except as well
@@ -368,4 +368,4 @@ def malleable_string_to_bytes(value: str) -> bytes:
         return bytes(out)
     except Exception as e:
         server_logger.exception("Error in malleable_string_to_bytes")
-        raise ValueError(f"Error in malleable_string_to_bytes: {e}")
+        raise ValueError(f"Error in malleable_string_to_bytes: {e}") from e

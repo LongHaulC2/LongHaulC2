@@ -98,7 +98,7 @@ def clean_ast_backslash_delimiters(node):
     return  # temp disable
     # Handle Dictionary (recurse into values)
     if isinstance(node, dict):
-        for key, value in node.values():
+        for _key, value in node.values():
             clean_ast_backslash_delimiters(value)
 
     # Handle List (recurse into items)

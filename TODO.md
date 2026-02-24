@@ -85,9 +85,9 @@ working on response_pipeline. todo's left:
 > turned into a status notification system & endpoint
 
 >here 
-- [ ] Make /status more functional (buttons, or not?)
+- [...] Make /status more functional (buttons, or not?)
 - [x] Processes/Listeners
-- [ ] Core
+- [TODO] Core
 - [ ] General cleanup of all things processes/threads, etc. 
 
    > Core: Stop, Start, Restart. 
@@ -107,8 +107,6 @@ t1 = start_thread_once("worker_thread", worker)
 t2 = start_thread_once("worker_thread", worker)  # won't start a new one
 ```
 Or, could enforce per function? 
-
-- [ ] Structlog in client? 
 
 - [ ] Docs for deployment, how to run, etc. Just need to install make and run make deploy.
 > tldr: sudo make deploy to deploy, sudo make undeploy to undeploy, sudo make redeploy to redep

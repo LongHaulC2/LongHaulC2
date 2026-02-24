@@ -170,7 +170,7 @@ def check_user_agent(user_agent: str) -> bool:
     check_type(user_agent, str, "user_agent")
 
     try:
-        mp.http_config
+        mp.http_config  # noqa B018 - intensionally checks if http_config is there or not
         # listener_logger.debug("http-config block not found")
         # return False
     except Exception as e:
@@ -344,7 +344,7 @@ class HeadersMiddleware(BaseHTTPMiddleware):
 
         # err checkincase mp.http_config doesn't exist.
         try:
-            mp.http_config
+            mp.http_config  # noqa B018 - intentionally checks if http_config is there or not
         except Exception as e:
             listener_logger.debug("http_config_not_found", error=str(e))
             # pass all processing, just return response
@@ -508,7 +508,7 @@ async def http_get(request: Request) -> Response:
         listener_logger.debug("payload_extracted", len=len(data_from_implant))
     except Exception as e:
         listener_logger.error("get_processing_error", error=str(e))
-        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
+        raise HTTPException(status_code=400, detail="Invalid or malformed client data") from e
 
     # add implant to sql
 
@@ -535,7 +535,7 @@ def http_response(data_from_implant: bytes, request: Request):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Malformed data",
-        )
+        ) from e
 
     implant_uuid = unpacked_metadata.get("implant_uuid", "")
     check_if_data(implant_uuid)
@@ -641,7 +641,7 @@ async def http_post(request: Request) -> Response:
         listener_logger.debug("post_output_extracted", len=len(data_from_implant))
     except Exception as e:
         listener_logger.error("post_output_error", error=str(e))
-        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
+        raise HTTPException(status_code=400, detail="Invalid or malformed client data") from e
 
     try:
         # note, id is always in a header or param
@@ -681,7 +681,7 @@ async def http_post(request: Request) -> Response:
 
     except Exception as e:
         listener_logger.error("post_id_error", error=str(e))
-        raise HTTPException(status_code=400, detail="Invalid or malformed client data")
+        raise HTTPException(status_code=400, detail="Invalid or malformed client data") from e
 
     response = http_post_response(data_from_implant=data_from_implant, implant_uuid=implant_uuid_str)
     return response

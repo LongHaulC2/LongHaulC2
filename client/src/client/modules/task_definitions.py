@@ -626,9 +626,9 @@ class FileUpload:
             task_detail = TaskDetail(task_name=self.command_name, args=task_args)
             final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
             return final_task
-        except Exception:
+        except Exception as e:
             # likely base64 err. could  handle this better.
-            raise ParseError
+            raise ParseError from e
 
 
 @dataclass(frozen=True)
@@ -844,9 +844,9 @@ class BofRunner:
             task_detail = TaskDetail(task_name=self.command_name, args=task_args)
             final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
             return final_task
-        except Exception:
+        except Exception as e:
             # likely base64 err. could  handle this better.
-            raise ParseError
+            raise ParseError from e
 
 
 @dataclass(frozen=True)
@@ -866,8 +866,8 @@ class DiscoverNeighbors:
             task_detail = TaskDetail(task_name=self.command_name, args={})
             final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
             return final_task
-        except Exception:
-            raise ParseError
+        except Exception as e:
+            raise ParseError from e
 
 
 @dataclass(frozen=True)
