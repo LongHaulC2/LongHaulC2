@@ -3,3 +3,4 @@ pywebview
 structlog
 msgpack
 httpx
+brotli

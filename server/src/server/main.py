@@ -1,7 +1,11 @@
 import argparse
+import sys
 
 import structlog
+from waitress import serve
 
+# extensions, noqa403 as this sets up a handler on import
+from .api_extensions.orjson_override import *  # noqa F403
 from .db.mysql_connector import mysql_setup
 from .db.neo4j_connector import init_neo4j
 from .db.redis_connector import get_redis_connection
@@ -109,23 +113,14 @@ def main():
     # restart listeners
     restart_active_listeners()
 
-    # temp mess with db
-    # from .db.neo4j_models import Neo4jImplantNode
-
-    # i1 = Neo4jImplantNode(implant_uuid="1234")
-    # i1.save()
-
-    # i2 = Neo4jImplantNode(implant_uuid="1235")
-    # i2.save()
-
-    # i3 = Neo4jImplantNode(implant_uuid="1236")
-    # i3.save()
-
-    # i4 = Neo4jImplantNode(implant_uuid="1237", random="")
-    # i4.save()
-
-    app.run(host="0.0.0.0", port=45045, debug=False)
+    # app.run(host="0.0.0.0", port=45045, debug=False)
+    # switch to waitress, setting threads to 1 until I can guarantee thread saftey, etc
+    serve(app, host="0.0.0.0", port=45045, threads=1)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        server_logger.info("Server shutdown requested via KeyboardInterrupt")
+        sys.exit(0)
