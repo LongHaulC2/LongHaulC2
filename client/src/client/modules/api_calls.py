@@ -243,6 +243,36 @@ async def stop_listener(listener_uuid: str) -> dict:
     """
     check_type(listener_uuid, str, "listener_uuid")
 
+    state = {"active": False}
+    url = generate_url(f"/api/v1/listeners/{listener_uuid}")
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(method="DELETE", url=url, listener_uuid=listener_uuid)
+    api_log.debug("Getting data for listener")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.patch(url, json=state)
+        data = response.json()
+        return data
+
+
+async def delete_listener(listener_uuid: str) -> dict:
+    """
+    Delete a running listener
+
+    Args:
+        listener_uuid (str): The unique identifier (UUID) of the listener to stop.
+
+    Returns:
+        dict: A status message indicating if the listener was successfully stopped.
+        Example structure:
+        {
+            "status": "success",
+            "message": "Listener stopped"
+        }
+    """
+    check_type(listener_uuid, str, "listener_uuid")
+
     url = generate_url(f"/api/v1/listeners/{listener_uuid}")
 
     structlog.contextvars.clear_contextvars()
@@ -272,6 +302,7 @@ async def restart_listener(listener_uuid: str) -> dict:
     """
     check_type(listener_uuid, str, "listener_uuid")
 
+    stop_data = {"active": False}
     url = generate_url(f"/api/v1/listeners/{listener_uuid}")
 
     structlog.contextvars.clear_contextvars()
@@ -279,7 +310,20 @@ async def restart_listener(listener_uuid: str) -> dict:
     # api_log.debug(f"Getting data for listener")
 
     async with httpx.AsyncClient() as client:
-        response = await client.patch(url)
+        response = await client.patch(url, json=stop_data)
+        data = response.json()
+        # return data
+
+    # then call again to restart
+    start_data = {"active": True}
+    url = generate_url(f"/api/v1/listeners/{listener_uuid}")
+
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(method="PATCH", url=url, listener_uuid=listener_uuid)
+    # api_log.debug(f"Getting data for listener")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.patch(url, json=start_data)
         data = response.json()
         return data
 

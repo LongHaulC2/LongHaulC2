@@ -75,7 +75,6 @@ working on response_pipeline. todo's left:
        - host: Host breakdown, implants on it, other info, etc. 
 
 ### Deployment:
->here 
 - [X] GUI: Script location. Save in /var/lib/longhaulc2, as /opt won't work
 - [X] server: Set logs to /var/log/longhaulc2
 
@@ -85,8 +84,33 @@ working on response_pipeline. todo's left:
 - [x] uptime daemon
 > turned into a status notification system & endpoint
 
-- [ ] Make /status more functional (buttons)
-- [ ] Docs for deployment, how to run, etc. Just need to install make
+>here 
+- [ ] Make /status more functional (buttons, or not?)
+
+   > Core: Stop, Start, Restart. 
+Use the one/named thread pattern, so we don't have multiple of each thread going, which would be chaos.
+```
+def start_thread_once(name, target):
+    for t in threading.enumerate():  # returns all alive threads
+        if t.name == name and t.is_alive():
+            print(f"Thread {name} is already running")
+            return t
+    t = threading.Thread(target=target, name=name)
+    t.start()
+    return t
+
+Ex: 
+t1 = start_thread_once("worker_thread", worker)
+t2 = start_thread_once("worker_thread", worker)  # won't start a new one
+```
+Or, could enforce per function? 
+
+   > Listeners: Stop, Start, Restart, use the already built in funcs for this. Also, enable the "stop but don't delete" (pause), where DB doesn't call delete. This would
+   literally stop it, but keep the entry for an easy restart.  
+   Allows listeners to be in an "off" state, without being deleted. Would need to add a method that would stop without delete
+   > see listener_resource PATCH docstring
+
+- [ ] Docs for deployment, how to run, etc. Just need to install make and run make deploy.
 > tldr: sudo make deploy to deploy, sudo make undeploy to undeploy, sudo make redeploy to redep
 
 known broken on deploy:

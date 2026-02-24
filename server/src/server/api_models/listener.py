@@ -69,6 +69,16 @@ LISTENER_GET_MODEL = api.model(
 )
 LISTENER_GET_RESPONSE = wrap_response_single(api, LISTENER_GET_MODEL)
 
+LISTENER_PATCH_INPUT = api.model(
+    "LISTENER_PATCH_INPUT",
+    {
+        "active": fields.Boolean(
+            required=True,
+            description="Set the listener to active (True), or inactive (False)",
+        ),
+    },
+)
+
 
 # --- DELETE /<uuid> ---
 LISTENER_DELETE_RESPONSE = wrap_response_empty(api, "LISTENER_DELETE_RESPONSE")

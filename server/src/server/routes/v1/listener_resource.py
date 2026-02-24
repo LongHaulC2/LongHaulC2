@@ -9,6 +9,7 @@ from ...api_models.error import COMMON_ERRORS
 from ...api_models.listener import (
     LISTENER_DELETE_RESPONSE,
     LISTENER_GET_RESPONSE,
+    LISTENER_PATCH_INPUT,
     LISTENER_PATCH_RESPONSE,
     LISTENERS_GET_RESPONSE,
     LISTENERS_POST_INPUT,
@@ -113,55 +114,56 @@ class Listener(Resource):
         responses=COMMON_ERRORS,
         params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
     )
+    @listener_ns.expect(LISTENER_PATCH_INPUT)
     @listener_ns.response(200, "The listener was restarted successfully", LISTENER_PATCH_RESPONSE)
     @listener_ns.marshal_with(LISTENER_PATCH_RESPONSE)
     def patch(self, uuid):
         """
-        Restart a listener. Using PATCH as the resource is being updated, not replaced, as PUT dictates
+        Update a listener's active state. Using PATCH as the resource is being updated.
 
+        Payload: { "active": true } or { "active": false }
         """
+        # extract the target state from the payload
+        payload = api.payload or {}
+        if "active" not in payload:
+            return APIResponse(status=400, message="Missing 'active' field in payload")
 
-        # get listener uuid
+        user_wants_active = bool(payload.get("active"))
 
-        # get data of that listener
+        # Open one database session for the entire operation
         with get_mysql_session() as session:
             listener_service = ListenerService(session)
-            listeners = listener_service.get_by_id(uuid)
+            listener = listener_service.get_by_id(uuid)
 
-            if listeners is None:
-                # can raise, and flask will handle the err for us
-                raise ValueError
+            if listener is None:
+                # api_logger.warning(f"Listener does not exist: {uuid}")
+                raise ValueError(f"Listener {uuid} does not exist")
 
-            listener_data = listeners.to_dict()
+            is_currently_active = listener.listener_active
 
-        # stop it
-        stop_listener(listener_uuid=uuid)
+            # Check if the listener is ALREADY in the desired state
+            if user_wants_active and is_currently_active:
+                return APIResponse(status=200, message="Listener already online")
+            if not user_wants_active and not is_currently_active:
+                return APIResponse(status=200, message="Listener already offline")
 
-        # put together data again
-        listener_dataclass = ListenerCreate(**listener_data)
+            # Perform the state change
+            if user_wants_active:
+                # Start listener workflow
+                listener_data = listener.to_dict()
+                listener_dataclass = ListenerCreate(**listener_data)
 
-        # set as inactive, just in case it bugs out and doesn't restart
-        with get_mysql_session() as session:
-            listener_service = ListenerService(session)
-            # update listener to be active in the DB
-            listener_service.set_active(uuid, active=False)
+                start_listener(listener_dataclass)
+                listener_service.set_active(uuid, active=True)
+                message = "Listener started successfully"
 
-        # try to start listener, if successful, put into db
-        start_listener(listener_dataclass)
+            else:
+                # Stop listener workflow
+                stop_listener(listener_uuid=uuid)
+                listener_service.set_active(uuid, active=False)
+                message = "Listener stopped successfully"
 
-        # get a session
-        with get_mysql_session() as session:
-            listener_service = ListenerService(session)
-            # update listener to be active in the DB
-            listener_service.set_active(uuid, active=True)
-            # and in the dataclass for the response
-            listener_dataclass.listener_active = True
-
-        api_response = APIResponse(
-            status=200,
-            message="Listener restarted successfully",
-        )
-        return api_response
+        return APIResponse(status=200, message=message)
 
 
 class Listeners(Resource):
