@@ -6,6 +6,7 @@ from nicegui import ui
 
 # Imports
 from client.src.client.modules.api_calls import get_all_graph_data
+from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
 
 server_log = structlog.getLogger("server")
@@ -44,6 +45,7 @@ async def graph():
     )
 
     setup_menu("Network")
+    await build_footer()
     await graph_view()
 
 

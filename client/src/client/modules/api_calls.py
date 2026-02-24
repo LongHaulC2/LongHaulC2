@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 import httpx
@@ -5,6 +6,7 @@ import msgpack
 import orjson  # trying for speed
 import structlog
 
+from client.src.client.modules.latency_tracker import update_latency_metrics
 from client.src.client.utils.url import generate_url
 
 from ..utils.checks import check_type
@@ -59,8 +61,14 @@ async def safe_api_request(
 
     client = get_client()
 
+    # start latency timer
+    start_time = time.perf_counter()
     try:
         response = await client.request(method, url, **kwargs)
+
+        # stop latency timer
+        end_time = time.perf_counter()
+        update_latency_metrics((end_time - start_time) * 1000)
 
         # binary content
         if return_type == "content":

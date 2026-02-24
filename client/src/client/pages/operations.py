@@ -16,6 +16,7 @@ from client.src.client.modules.task_definitions import (
     task_tree,
 )
 from client.src.client.pages.dialogues import upload_dialog
+from client.src.client.pages.footer import build_footer
 from client.src.client.pages.listeners import start_listener_dialogue
 from client.src.client.pages.menu import setup_menu
 from client.src.client.pages.notes import open_notes_dialog
@@ -70,6 +71,8 @@ async def operations():
 
             with splitter.after:
                 await terminal_view()
+
+    await build_footer()
 
 
 async def delete_implant(implant_uuid=str) -> None:
