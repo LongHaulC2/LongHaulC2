@@ -83,14 +83,33 @@ def setup_menu(title: str):
                 ).classes(style_classes)
 
             # Render Buttons
+            ui.separator().classes("bg-white/5 mt-2 mb-2")
+            ui.label("OPERATIONS").classes(
+                "text-[9px] font-mono text-neutral-500 tracking-[0.2em] font-bold px-4 mb-1 uppercase"
+            )
             nav_btn("OPERATIONS", "precision_manufacturing", "/operations")
             nav_btn("ENGAGEMENT_MAP", "hub", "/graph")
             nav_btn("PAYLOADS", "layers", "/payloads")
             nav_btn("LISTENERS", "rss_feed", "/listeners")
+
+            ui.separator().classes("bg-white/5 mt-4 mb-2")
+            ui.label("SEARCHING").classes(
+                "text-[9px] font-mono text-neutral-500 tracking-[0.2em] font-bold px-4 mb-1 uppercase"
+            )
             nav_btn("SEARCH", "manage_search", "/search")
+
+            ui.separator().classes("bg-white/5 mt-4 mb-2")
+            ui.label("AUTOMATION").classes(
+                "text-[9px] font-mono text-neutral-500 tracking-[0.2em] font-bold px-4 mb-1 uppercase"
+            )
             nav_btn("SCRIPTS", "terminal", "/scripts")
-            # ui.separator()
             nav_btn("DOCS", "docs", "/docs")
+
+            ui.separator().classes("bg-white/5 mt-4 mb-2")
+            ui.label("ADMIN").classes(
+                "text-[9px] font-mono text-neutral-500 tracking-[0.2em] font-bold px-4 mb-1 uppercase"
+            )
+            nav_btn("STATUS", "arrow_circle_up", "/status")
 
             # --- FOOTER ---
             ui.space()

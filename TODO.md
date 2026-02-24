@@ -79,14 +79,15 @@ working on response_pipeline. todo's left:
 - [X] GUI: Script location. Save in /var/lib/longhaulc2, as /opt won't work
 - [X] server: Set logs to /var/log/longhaulc2
 
-- [ ] Docs for deployment, how to run, etc. Just need to install make
-> tldr: sudo make deploy to deploy, sudo make undeploy to undeploy, sudo make redeploy to redep
-
 - [X] Fix things not working, they just kinda hangup, and get a all connection attempts failed. I might have a hardcoded ip in there.
    > yep hardcoed ip. this will get fixed when the login page exists.
 
 - [x] uptime daemon
 > turned into a status notification system & endpoint
+
+- [ ] Make /status more functional (buttons)
+- [ ] Docs for deployment, how to run, etc. Just need to install make
+> tldr: sudo make deploy to deploy, sudo make undeploy to undeploy, sudo make redeploy to redep
 
 known broken on deploy:
  - [X] script editor
