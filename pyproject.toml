@@ -25,6 +25,7 @@ exclude = [
 [tool.ruff.lint]
 # G = Logging, E/F = Syntax/Logic, I = Import Sorting, UP moves old py semantics to new ones
 #T201: print statements
+# Eventually, do ERA, which finds dead code in comments
 select = ["G", "E", "F", "I", "UP", "PERF", "FURB", "T201", "SIM", "ARG","B"]
 # Tell Ruff which variable names are actually loggers
 logger-objects = [

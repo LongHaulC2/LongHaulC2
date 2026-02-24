@@ -9,22 +9,19 @@ def login_page():
     # set bg image
     ui.element("div").classes("fixed inset-0 -z-10 bg-[url('/static/world.png')] bg-cover bg-center")
     # Main Container (Centers the card vertically & horizontally)
-    with ui.column().classes("w-full h-full items-center justify-center"):  # noqa: SIM117
+    with ui.column().classes("w-full h-screen items-center justify-center"):  # noqa: SIM117
         # The Login Card
-        # We reuse 'tech-glass-panel' from your global CSS for the frosted look & border
         with ui.card().classes("w-[400px] max-w-[90vw] p-0 gap-0 tech-glass-panel"):
-            # --- HEADER ---
             # Slightly lighter background to differentiate header
             with ui.column().classes("w-full items-center p-8 pb-6 border-b border-white/5 bg-white/5"):
-                # Biometric Icon with subtle ring
-                with ui.element("div").classes("p-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-3"):
-                    ui.icon("fingerprint", size="2em", color="emerald-500")
-
+                # world icon
+                ui.image("/static/world_outline.png").classes(
+                    "p-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-3 size-20"
+                )
                 # Title
-                ui.label("SYSTEM_ACCESS").classes("text-lg font-bold tracking-widest text-emerald-500 font-mono")
-                ui.label("RESTRICTED AREA // AUTH REQ").classes("text-[10px] text-neutral-500 font-mono mt-1")
+                ui.label("LONGHAULC2").classes("text-lg font-bold tracking-widest text-emerald-500 font-mono")
 
-            # --- INPUT AREA ---
+            # inputs
             with ui.column().classes("w-full p-8 gap-5"):
                 host = (  # noqa: F841, not used yet, but will when login is fully implemented
                     ui.input("SERVER_ADDRESS")
@@ -36,7 +33,7 @@ def login_page():
                     ui.tooltip("Server address and port of LongHaulC2 Server. Ex: `10.0.0.50:45045`")
                 # Username
                 username = (  # noqa: F841, not used yet, but will when login is fully implemented
-                    ui.input("OPERATOR_ID")
+                    ui.input("USERNAME")
                     .props("outlined dense dark color=emerald autofocus")
                     .classes("w-full font-mono")
                     .on("keydown.enter", lambda: password.run_method("focus"))
@@ -44,7 +41,7 @@ def login_page():
 
                 # Password
                 password = (
-                    ui.input("ACCESS_KEY", password=True, password_toggle_button=True)
+                    ui.input("PASSWORD", password=True, password_toggle_button=True)
                     .props("outlined dense dark color=emerald")
                     .classes("w-full font-mono")
                     .on(
@@ -60,22 +57,18 @@ def login_page():
                 # Reuse 'tech-btn-action' for the hover glow effect
                 with (
                     ui.button(
-                        on_click=lambda: handle_login(host=host.value, user=username.value, password=password.value)
+                        on_click=lambda: handle_login(host=host.value, user=username.value, password=password.value),
+                        color="emerald-9",
                     )
                     .classes("w-full tech-btn-action py-2")
                     .props("unelevated dense")
                 ):
-                    ui.label("INITIATE SESSION").classes("font-bold tracking-widest text-xs")
+                    ui.label("LOGIN").classes("font-bold tracking-widest text-xs")
                     ui.icon("arrow_forward", size="xs").classes("ml-2")
 
-            # --- STATUS FOOTER ---
+            # Footer
             with ui.row().classes("w-full p-3 bg-black/20 border-t border-white/5 justify-between items-center px-6"):
-                # Blinking Status Light
-                with ui.row().classes("items-center gap-2"):
-                    ui.element("div").classes("w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse")
-                    ui.label("GATEWAY_ONLINE").classes("text-[10px] font-mono text-emerald-500/50")
-
-                ui.label("SECURE_CONNECTION").classes("text-[10px] font-mono text-neutral-600")
+                ...
 
     def handle_login(host, user, password):  # noqa: ARG001 - going to be filled in when login logic is done
         if host:
@@ -84,4 +77,4 @@ def login_page():
             ui.notify(f"Connected to {host}", type="positive")
             ui.navigate.to("/operations")
         else:
-            ui.notify("Please enter a valid IP", type="warning")
+            ui.notify("Please enter a valid server address", type="warning")
