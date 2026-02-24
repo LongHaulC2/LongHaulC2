@@ -8,6 +8,7 @@ from client.src.client.modules.api_calls import (
     start_listener_from_existing,
     stop_listener,
 )
+from client.src.client.pages.footer import build_footer
 
 # Imports
 from client.src.client.pages.menu import setup_menu
@@ -57,7 +58,7 @@ async def status_page():
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
     )
     setup_menu("System Status")
-
+    await build_footer()
     # --- INTERNAL DOM REGISTRY ---
     # We store references to the UI elements here so we can update them in-place
     ui_registry = {"core": {}, "listeners": {}}

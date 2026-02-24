@@ -6,6 +6,7 @@ import orjson
 import structlog
 from nicegui import ui
 
+from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
 from client.src.client.utils.url import generate_url
 
@@ -25,6 +26,7 @@ async def search():
 
     setup_menu("Event Search")
     await search_view()
+    await build_footer()
 
 
 async def search_view():

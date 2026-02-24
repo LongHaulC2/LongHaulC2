@@ -11,6 +11,7 @@ from client.src.client.modules.api_calls import (
     start_listener_from_existing,
     stop_listener,
 )
+from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
 
 server_log = structlog.getLogger("server")
@@ -39,6 +40,7 @@ async def listeners():
 
     setup_menu("Listeners")
     await listener_view()
+    await build_footer()
 
 
 async def listener_view():

@@ -3,6 +3,7 @@ from pathlib import Path
 import structlog
 from nicegui import ui
 
+from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
 
 server_log = structlog.getLogger("server")
@@ -137,6 +138,7 @@ async def docs_page():
     docs_tree_data = load_docs_tree()
 
     await docs_view(docs_tree_data)
+    await build_footer()
 
 
 async def docs_view(tree_data: list):

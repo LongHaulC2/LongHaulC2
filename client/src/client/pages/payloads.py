@@ -10,6 +10,7 @@ from client.src.client.modules.api_calls import (
     get_payload_data,
     get_payload_source_bytes,
 )
+from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
 
 server_log = structlog.getLogger("server")
@@ -39,6 +40,7 @@ async def payloads():
     setup_menu("Payloads")
 
     await payloads_view()
+    await build_footer()
 
 
 async def payloads_view():

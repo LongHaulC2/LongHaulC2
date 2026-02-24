@@ -6,6 +6,7 @@ from client.src.client.modules.api_calls import (
     get_implant_data,
     get_implant_task_history,
 )
+from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
 
 server_log = structlog.getLogger("server")
@@ -71,6 +72,7 @@ async def implant_details(implant_uuid: str):
 
     # Render Dashboard
     await render_dashboard(data, implant_uuid)
+    await build_footer()
 
 
 async def render_dashboard(data: dict, implant_uuid: str):

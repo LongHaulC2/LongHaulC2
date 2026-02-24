@@ -5,6 +5,7 @@ from pathlib import Path
 import structlog
 from nicegui import ui
 
+from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
 
 from ..utils.checks import check_type
@@ -47,7 +48,7 @@ async def scripts():
 
     clear_state()
     setup_menu("Scripts")
-
+    await build_footer()
     # Main Layout (Splitter)
     # Using a container that matches the background
     with ui.element().classes("w-full h-full gap-0"):  # noqa: SIM117
