@@ -1,0 +1,1 @@
+VERSION_NUMBER = "BETA v1.0.0"

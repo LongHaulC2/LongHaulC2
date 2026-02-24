@@ -23,74 +23,69 @@ def run_random_easter_egg():
 # "Yellow Techno Sphere" EASTER EGG COMPONENT
 # ==============================================================================
 def run_yellow_techno_sphere():
-    # 1. CSS for the "Chomp" and the "Movement"
     ui.add_css(
         """
-        /* The container for the whole sequence */
-        .pacman-sequence {
-            position: fixed;
-            bottom: 20px;
-            left: -200px;
-            display: flex;
-            align-items: center;
-            z-index: 9999;
-            animation: move-across 12s linear forwards;
-            pointer-events: none;
-        }
+            .pacman-sequence {
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                left: -100px;
+                display: flex;
+                align-items: center;
+                /* Changed to -1 to place it BEHIND footer text/icons */
+                z-index: -1;
+                animation: move-across-footer 10s linear forwards;
+                pointer-events: none;
+            }
 
-        /* The Yellow Techno Sphere Body */
-        .pacman {
-            width: 40px;
-            height: 40px;
-            background: #FFFF00;
-            border-radius: 50%;
-            position: relative;
-        }
+            .pacman {
+                width: 18px;
+                height: 18px;
+                background: #FFFF00;
+                border-radius: 50%;
+                position: relative;
+            }
 
-        /* The Mouth (using clip-path to animate the "pie slice") */
-        .pacman::after {
-            content: "";
-            display: block;
-            width: 40px;
-            height: 40px;
-            background: #0a0a0a; /* Match your dashboard background */
-            clip-path: polygon(100% 50%, 50% 50%, 100% 0, 100% 100%);
-            animation: chomp 0.3s ease-in-out infinite;
-        }
+            .pacman::after {
+                content: "";
+                display: block;
+                width: 18px;
+                height: 18px;
+                /* Use 'inherit' or a specific dark color to match your footer */
+                background: #0a0a0a;
+                clip-path: polygon(100% 50%, 50% 50%, 100% 0, 100% 100%);
+                animation: chomp 0.2s ease-in-out infinite;
+            }
 
-        /* The Dots */
-        .dot {
-            width: 8px;
-            height: 8px;
-            background: #FFB8AE;
-            border-radius: 50%;
-            margin-left: 40px;
-        }
+            .dot {
+                width: 3px;
+                height: 3px;
+                background: rgba(255, 184, 174, 0.4); /* Lowered opacity to make dots subtle */
+                border-radius: 50%;
+                margin-left: 12px;
+            }
 
-        @keyframes chomp {
-            0%, 100% { clip-path: polygon(100% 50%, 50% 50%, 100% 0, 100% 100%); }
-            50% { clip-path: polygon(100% 50%, 50% 50%, 100% 50%, 100% 50%); }
-        }
+            @keyframes chomp {
+                0%, 100% { clip-path: polygon(100% 50%, 50% 50%, 100% 0, 100% 100%); }
+                50% { clip-path: polygon(100% 50%, 50% 50%, 100% 50%, 100% 50%); }
+            }
 
-        @keyframes move-across {
-            0% { left: -200px; }
-            100% { left: 120%; }
-        }
-    """
+            @keyframes move-across-footer {
+                0% { left: -50px; }
+                100% { left: 105%; }
+            }
+        """
     )
 
     async def run_sequence():
-        # Create the Yellow Techno Sphere and dots
+        # Because this is called while the footer context is active,
+        # it will append itself to the footer automatically.
         with ui.element("div").classes("pacman-sequence") as container:
             ui.element("div").classes("pacman")
-            ui.element("div").classes("dot")
-            ui.element("div").classes("dot")
-            ui.element("div").classes("dot")
-            ui.element("div").classes("dot")
+            for _ in range(5):
+                ui.element("div").classes("dot")
 
-        # Clean up after the 12s animation finishes
-        await asyncio.sleep(13)
+        await asyncio.sleep(11)
         container.delete()
 
-    # Start the timer when the function is called
     ui.timer(0, run_sequence, once=True)

@@ -2,7 +2,7 @@ import asyncio
 
 from nicegui import app, ui
 
-from client.src.client.modules.easter_eggs import run_random_easter_egg
+from client.src.client.info import VERSION_NUMBER
 
 # F403, fine, lots of styles that could be imported from here
 # this needs to be cleaned up in due time though, all styes are in the .css now
@@ -19,9 +19,6 @@ def setup_menu(title: str):
         ui.navigate.to("/login")
 
     check_type(title, str, "title")
-
-    # setup semi random easter egg
-    run_random_easter_egg()
 
     # Drawer Setup
     # width=280: Standard width for tech consoles
@@ -129,4 +126,6 @@ def setup_menu(title: str):
                 #     ui.label("ONLINE").classes(
                 #         "text-[9px] font-bold font-mono text-emerald-500"
                 #     )
-                ui.label("VER: BETA 0.0.1").classes("text-[12px] font-mono text-neutral-600 w-full text-center mt-1")
+                ui.label(f"LONGHAULC2 // {VERSION_NUMBER}").classes(
+                    "text-[12px] font-mono text-neutral-600 w-full text-center mt-1"
+                )
