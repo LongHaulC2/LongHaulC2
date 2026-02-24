@@ -431,8 +431,8 @@ async def build_implant(
     initial_get_profile_listener_uuid,
     initial_post_profile_listener_uuid,
 ) -> dict:
-    print(initial_get_profile_listener_uuid)
-    print(initial_post_profile_listener_uuid)
+    # print(initial_get_profile_listener_uuid)
+    # print(initial_post_profile_listener_uuid)
     """
     Submit a task to build a new implant payload tailored to a specific listener.
 
@@ -559,7 +559,7 @@ async def get_payload_bytes(payload_hash: str) -> dict:
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
         if response.status_code != 200:
-            print(f"Error downloading: {response.text}")
+            server_log.error(f"Error downloading: {response.text}")
             return None
 
         # Note: Use .content for binary, not .json()
@@ -585,7 +585,7 @@ async def get_payload_source_bytes(payload_hash: str) -> dict:
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
         if response.status_code != 200:
-            print(f"Error downloading: {response.text}")
+            server_log.error(f"Error downloading: {response.text}")
             return None
 
         # Note: Use .content for binary, not .json()

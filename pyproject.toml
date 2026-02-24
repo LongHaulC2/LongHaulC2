@@ -17,12 +17,15 @@ exclude = [
     "*.c",    # exclude implant source
     "*.cpp",  # exclude implant source
     "*.md",    # exclude docs
-    "*test*"  # exclude any tests
+    "*test*",  # exclude any tests
+    "*user/*", # exlcude anything in client user folder, which is for python scripts & malleablec2 files
+
 ]
 
 [tool.ruff.lint]
 # G = Logging, E/F = Syntax/Logic, I = Import Sorting, UP moves old py semantics to new ones
-select = ["G", "E", "F", "I", "UP", "PERF", "FURB"]
+#T201: print statements
+select = ["G", "E", "F", "I", "UP", "PERF", "FURB", "T201"]
 # Tell Ruff which variable names are actually loggers
 logger-objects = [
     "api_logger",

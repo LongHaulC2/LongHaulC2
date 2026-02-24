@@ -320,7 +320,6 @@ async def task_tree(command, args, implant_uuid):
 
                 # no args, args are just bof content, either in base64 or a memstore location
                 task = BofRunner(implant_uuid=implant_uuid, bof_contents=bof_bytes, bof_args=bof_args).to_task()
-                print(task)
                 return (ResultType.TASK, task)
 
             except ParseError as e:
@@ -610,7 +609,7 @@ class FileUpload:
             # if file contents are not raw, aka, some form of text.
             else:
                 # if user is trying to deref...
-                print(self.file_contents)
+                # print(self.file_contents)
                 if self.file_contents[0] == "*":
                     task_args = {
                         "file_path": self.file_path,
@@ -828,7 +827,7 @@ class BofRunner:
             # if file contents are not raw, aka, some form of text.
             else:
                 # if user is trying to deref...
-                print(self.bof_contents)
+                # print(self.bof_contents)
                 if self.bof_contents[0] == "*":
                     task_args = {
                         "bof_contents": self.bof_contents,

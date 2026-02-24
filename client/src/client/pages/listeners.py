@@ -200,7 +200,7 @@ async def render_listeners_table():  # 'data' arg is kept for compatibility, but
             table.update()
 
         except Exception as e:
-            print(f"Error updating listener table: {e}")
+            server_log.error(f"Error updating listener table: {e}")
 
     # --- START TIMER ---
     ui.timer(2.0, update_table_data)

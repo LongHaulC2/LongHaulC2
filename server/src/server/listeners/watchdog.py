@@ -33,7 +33,6 @@ def _watchdog():
                 continue
 
             if not proc.is_alive():
-                print(f"{listener_uuid}: offline")
                 server_logger.warning("Listener went offline", listener_uuid=listener_uuid, pid=proc.pid)
 
                 # cleanup dead listener
