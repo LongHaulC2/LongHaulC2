@@ -39,7 +39,7 @@ body::before {
   .tech-dialog {
     background-color: #18181b !important;
     border: 1px solid rgba(52, 211, 153, 0.2);
-    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    box-shadow: none !important;
     border-radius: 4px !important;
   }
 
@@ -72,7 +72,7 @@ body::before {
   .q-expansion-item.q-expansion-item--expanded {
     border-color: rgba(52, 211, 153, 0.4);
     background-color: rgba(23, 23, 23, 0.95);
-    box-shadow: 0 4px 20px -10px rgba(16, 185, 129, 0.3);
+    box-shadow: none !important;
   }
   .q-expansion-item.q-expansion-item--expanded > .q-expansion-item__container > .q-item { color: #34d399; }
   .q-expansion-item__content { background-color: rgba(0, 0, 0, 0.2); border-top: 1px solid rgba(255, 255, 255, 0.05); padding: 0 !important; }
@@ -202,7 +202,7 @@ body::before {
     background: rgba(255, 255, 255, 0.02);
 }
 
-/* --- TECH INPUT --- */
+/* --- TECH ui.input --- */
 .tech-input {
     background: rgba(23, 23, 23, 0.4) !important;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -213,7 +213,7 @@ body::before {
 /* Subtle glow on focus */
 .tech-input.q-field--focused {
     border-color: rgba(16, 185, 129, 0.4) !important;
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+    box-shadow: none !important;
 }
 
 /* Label and Text styling */
@@ -227,4 +227,33 @@ body::before {
 
 .tech-input .q-field__native {
     color: #ffffff !important;
+}
+
+/* --- TECH ui.select --- */
+.tech-select {
+    background: rgba(23, 23, 23, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 2px !important;
+}
+
+/* The Popup Menu (Dropdown list) */
+.q-menu.tech-select-menu {
+    background-color: #121212 !important;
+    border: 1px solid rgba(52, 211, 153, 0.2);
+    box-shadow: none !important;
+}
+
+/* Individual Options in the list */
+.tech-select-menu .q-item {
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    font-size: 11px;
+    color: #a1a1aa;
+    transition: all 0.2s ease;
+
+}
+
+.tech-select-menu .q-item--active,
+.tech-select-menu .q-item:hover {
+    background: rgba(16, 185, 129, 0.1) !important;
+    color: #34d399 !important;
 }

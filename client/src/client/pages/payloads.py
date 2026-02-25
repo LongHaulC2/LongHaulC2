@@ -338,7 +338,7 @@ async def start_payload_dialogue():
                         label="FORMAT",
                     )
                     .props("outlined dense dark color=emerald options-dense")
-                    .classes("w-1/3")
+                    .classes("w-1/3 tech-select")
                 )
 
             # LISTENER SELECTION
@@ -350,7 +350,7 @@ async def start_payload_dialogue():
                     on_change=_on_listener_change,
                 )
                 .props("outlined dense dark color=emerald options-dense use-chips stack-label")
-                .classes("w-full")
+                .classes("w-full tech-select")
             )
             with listener_select:
                 ui.tooltip("The profiles to include in the payload").classes("bg-green-700")
@@ -360,14 +360,14 @@ async def start_payload_dialogue():
                 profile_get_select = (
                     ui.select(label="Initial Get Profile", options=[])
                     .props("outlined dense dark color=emerald options-dense")
-                    .classes("flex-1")
+                    .classes("flex-1 tech-select")
                 )
                 profile_get_select.disable()
 
                 profile_post_select = (
                     ui.select(label="Initial Post Profile", options=[])
                     .props("outlined dense dark color=emerald options-dense")
-                    .classes("flex-1")
+                    .classes("flex-1 tech-select")
                 )
                 profile_post_select.disable()
 

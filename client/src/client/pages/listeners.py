@@ -250,7 +250,7 @@ async def start_listener_dialogue():
                 listener_type_field = (
                     ui.select(["http", "ntp"], label="PROTOCOL", value="http")
                     .props("outlined dense dark color=emerald options-dense")
-                    .classes("w-1/3")
+                    .classes("w-1/3 tech-select")
                 )
 
             with ui.row().classes("w-full gap-4"):
@@ -277,7 +277,7 @@ async def start_listener_dialogue():
                     with_input=True,
                 )
                 .props("outlined dense dark color=emerald options-dense")
-                .classes("w-full")
+                .classes("w-full tech-select")
             )
 
             listener_notes_field = (

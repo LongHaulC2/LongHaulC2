@@ -116,7 +116,7 @@ async def upload_dialog(implant_uuids: list):
                 value="disk",  # disk by default
                 label="METHOD",
                 on_change=_update_mode,
-            ).props("outlined dense dark color=emerald options-dense").classes("w-full")
+            ).props("outlined dense dark color=emerald options-dense").classes("w-full tech-select")
 
             # Destination Input
             dest_input = (

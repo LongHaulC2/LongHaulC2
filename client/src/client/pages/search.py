@@ -49,7 +49,7 @@ async def search_view():
                     label="MODE",
                 )
                 .props("outlined dense dark color=emerald options-dense")
-                .classes("w-48")
+                .classes("w-48 tech-select")
             )
 
             # Search Input
