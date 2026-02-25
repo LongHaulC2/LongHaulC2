@@ -14,6 +14,8 @@ from client.src.client.modules.api_calls import (
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
 
+stats = {"total": 0, "online": 0, "http": 0}
+
 server_log = structlog.getLogger("server")
 server_log.info("Loading /listeners page")
 
@@ -21,339 +23,169 @@ server_log.info("Loading /listeners page")
 # ==============================================================================
 #   UI HELPERS
 # ==============================================================================
-def stat_widget(label: str, value: str, icon: str, color: str = "emerald"):
-    """Creates a small tech-styled stat card"""
-    with ui.card().classes("flex-1 min-w-[150px] p-3 gap-1 bg-white/5 border border-white/10 rounded-sm no-shadow"):
-        with ui.row().classes("w-full items-center justify-between"):
-            ui.label(label).classes("text-[10px] font-mono tracking-widest text-neutral-500 uppercase")
-            ui.icon(icon, size="xs", color=f"{color}-500").classes("opacity-80")
-        ui.label(str(value)).classes("text-xl font-bold font-mono tracking-wide text-neutral-200 truncate")
+
+
+def stat_widget(label: str, icon: str, color: str, key: str):
+    with ui.element("div").classes("flex-1 h-full px-4 gap-2 flex items-center border-r border-white/5 bg-white/2"):
+        ui.icon(icon, size="14px", color=f"{color}-500").classes("opacity-70")
+        ui.label(label).classes("text-[10px] font-mono tracking-tighter text-neutral-500 uppercase")
+        ui.label().bind_text_from(stats, key).classes("text-xs font-bold font-mono text-neutral-200")
 
 
 @ui.page("/listeners")
 async def listeners():
-    # Full Screen Layout Setup
     ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
     )
-
     setup_menu("Listeners")
     await listener_view()
     await build_footer()
 
 
 async def listener_view():
-    """
-    Listener View Dashboard
-    """
-
-    # --- MAIN GLASS PANEL ---
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
-        # --- HEADER BAR ---
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
-            # Left: Title
             with ui.row().classes("items-center gap-3"):
                 ui.icon("rss_feed", color="emerald-500").classes("text-xl")
                 ui.label("INFRASTRUCTURE // LISTENERS").classes("tech-label-title")
 
-            # Right: Controls
             with ui.row().classes("items-center gap-2"):
-                # ADD BUTTON
                 with (
                     ui.button(on_click=start_listener_dialogue)
-                    .classes("tech-btn-action px-3")
-                    .props("flat no-caps dense")
+                    .classes("tech-btn-action px-2")
+                    .props("dense flat size=sm")
                 ):
-                    ui.icon("add", size="xs").classes("mr-2")
-                    ui.label("LISTENER").classes("text-xs font-bold tracking-wide")
-
-                # REFRESH
+                    ui.icon("add", size="xs").classes("mr-1")
+                    ui.label("LISTENER").classes("text-[10px] font-bold")
+                    ui.tooltip("Build New Payload")
                 ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/listeners")).props(
                     "dense flat size=sm"
                 ).classes("tech-btn-ghost")
 
-        # --- CONTENT AREA ---
-        with ui.column().classes("w-full flex-grow p-6 gap-6 overflow-hidden"):
-            # Fetch Data
-            data_resp = await get_all_listener_data()
-            listener_data = data_resp.get("data", [])
+        with ui.row().classes("w-full h-8 gap-0 bg-[#0c0c0c] border-b border-white/5 items-center"):
+            stat_widget("Total", "router", "emerald", "total")
+            stat_widget("Online", "wifi", "green", "online")
+            stat_widget("HTTP", "public", "blue", "http")
 
-            # --- 1. TELEMETRY CARDS ---
-            total_count = len(listener_data)
-            http_count = len([listener for listener in listener_data if listener.get("listener_type") == "http"])
-            active_count = len(
-                [listener for listener in listener_data if listener.get("active", True)]
-            )  # Default true for now
-
-            with ui.row().classes("w-full gap-4"):
-                stat_widget("TOTAL listenerS", str(total_count), "router", "emerald")
-                stat_widget("ONLINE", str(active_count), "wifi", "green")
-                stat_widget("HTTP AGENTS", str(http_count), "public", "blue")
-
-            # --- 2. MAIN TABLE AREA ---
-            with ui.card().classes(
-                "w-full flex-grow bg-white/5 border border-white/5 p-0 rounded overflow-hidden flex flex-col"
-            ):
-                if not listener_data:
-                    with ui.column().classes("w-full h-full items-center justify-center opacity-30"):
-                        ui.icon("router", size="4em")
-                        ui.label("NO ACTIVE LISTENERS").classes("font-mono text-sm mt-2")
-                else:
-                    await render_listeners_table()
+        with ui.column().classes("w-full p-0 flex-grow overflow-hidden"):
+            await render_listeners_table()
 
 
-# only this updates, the parent dosen't yet with stats. not sure if I'll keep those stats.
-async def render_listeners_table():  # 'data' arg is kept for compatibility, but we fetch fresh data inside
-    """Renders the list of listeners in a dashboard table with auto-updates"""
+async def render_listeners_table():
+    with ui.row().classes("w-full items-center px-2 py-1 bg-white/2"):
+        filter_text = (
+            ui.input(placeholder="FILTER...")
+            .props("outlined dense dark color=emerald input-class=text-[10px]")
+            .classes("w-64")
+        )
 
-    # --- SEARCH BAR ---
-    filter_text = (
-        ui.input(placeholder="SEARCH LISTENERS...")
-        .props("outlined dense dark color=emerald input-class=text-xs")
-        .classes("m-3 w-96")
-    )
-
-    # --- DEFINE COLUMNS ---
     columns = [
-        {
-            "name": "name",
-            "label": "LISTENER NAME",
-            "field": "name",
-            "align": "left",
-            "sortable": True,
-        },
-        {
-            "name": "type",
-            "label": "PROTOCOL",
-            "field": "type",
-            "align": "left",
-            "sortable": True,
-        },
-        {
-            "name": "bind",
-            "label": "BIND ADDRESS",
-            "field": "bind",
-            "align": "left",
-            "sortable": True,
-        },
-        {
-            "name": "profile",
-            "label": "C2 PROFILE",
-            "field": "profile",
-            "align": "left",
-            "sortable": True,
-        },
+        {"name": "status", "label": "STATUS", "field": "status", "align": "left", "sortable": True},
+        {"name": "name", "label": "NAME", "field": "name", "align": "left", "sortable": True},
+        {"name": "type", "label": "PROTOCOL", "field": "type", "align": "left", "sortable": True},
+        {"name": "bind", "label": "BIND ADDRESS", "field": "bind", "align": "left", "sortable": True},
+        {"name": "profile", "label": "PROFILE", "field": "profile", "align": "left", "sortable": True},
         {"name": "notes", "label": "NOTES", "field": "notes", "align": "left"},
-        {
-            "name": "status",
-            "label": "STATUS",
-            "field": "status",
-            "align": "left",
-            "sortable": True,
-        },
     ]
 
-    # --- INITIALIZE TABLE ---
-    # We start with empty rows; the timer will populate them immediately.
     table = (
-        ui.table(
-            columns=columns,
-            rows=[],
-            row_key="id",
-            selection="multiple",
-            pagination=15,
-        )
-        .classes("w-full bg-transparent no-shadow text-neutral-300 flex-grow")
+        ui.table(columns=columns, rows=[], row_key="id", selection="multiple", pagination=15)
+        .classes("w-full bg-transparent no-shadow text-neutral-300 flex-grow sticky-header")
         .bind_filter_from(filter_text, "value")
     )
 
-    # --- AUTO-UPDATE LOGIC ---
     async def update_table_data():
         try:
-            # Fetch fresh data
-            response = await get_all_listener_data()
-            # Handle if response is list or dict
-            fresh_data = response if isinstance(response, list) else response.get("data", [])
+            resp = await get_all_listener_data()
+            fresh_data = resp if isinstance(resp, list) else resp.get("data", [])
 
             new_rows = []
-            for listener in fresh_data:
-                bind_addr = f"{listener.get('listener_host', '0.0.0.0')}:{listener.get('listener_port', '0')}"
+            o_count = 0
+            h_count = 0
 
-                # STATUS FIX: Use the specific DB key 'listener_active'
-                raw_active = listener.get("listener_active", 0)
-                is_active = bool(raw_active)
+            for listener in fresh_data:
+                active = bool(listener.get("listener_active", 0))
+                l_type = listener.get("listener_type", "http")
+                if active:
+                    o_count += 1
+                if l_type == "http":
+                    h_count += 1
 
                 new_rows.append(
                     {
                         "id": listener.get("listener_uuid"),
-                        "status": is_active,
+                        "status": active,
                         "name": listener.get("listener_name", "Unknown"),
-                        "type": listener.get("listener_type", "http"),
-                        "bind": bind_addr,
+                        "type": l_type,
+                        "bind": f"{listener.get('listener_host', '0.0.0.0')}:{listener.get('listener_port', '0')}",
                         "profile": listener.get("listener_profile_name", "Default"),
                         "notes": listener.get("listener_notes", ""),
                         "listener_uuid": listener.get("listener_uuid"),
                     }
                 )
 
-            # Update the table rows
+            stats.update({"total": len(new_rows), "online": o_count, "http": h_count})
             table.rows = new_rows
-            table.update()
-
         except Exception as e:
-            server_log.error(f"Error updating listener table: {e}")
+            server_log.error(f"Table Update Failed: {e}")
 
-    # --- START TIMER ---
     ui.timer(2.0, update_table_data)
-
-    # Run once immediately so the user doesn't wait
     await update_table_data()
 
-    # --- CUSTOM SLOTS ---
-
-    # Header Styling
     table.add_slot(
         "header",
         r"""
-<q-tr
-    :props="props"
-    class="bg-black/20 text-neutral-500 uppercase text-[10px]
-           font-bold tracking-widest border-b border-white/10"
->
-    <q-th v-for="col in props.cols" :key="col.name" :props="props">
-        {{ col.label }}
-    </q-th>
-</q-tr>
-        """,
+        <q-tr :props="props" class="bg-black/40 text-neutral-500 uppercase text-[10px] font-bold tracking-widest">
+            <q-th v-for="col in props.cols" :key="col.name" :props="props">{{ col.label }}</q-th>
+        </q-tr>
+    """,
     )
 
-    # STATUS SLOT (Uses props.row.status for safety)
     table.add_slot(
         "body-cell-status",
         r"""
         <q-td :props="props">
-            <div v-if="props.row.status" class="row items-center gap-2">
-                <div class="relative flex items-center justify-center">
-                    <div class="w-2 h-2 rounded-full bg-emerald-400 absolute animate-pulse"></div>
-                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
-                </div>
-                <span class="text-[10px] font-bold text-emerald-400 tracking-wider">ONLINE</span>
-            </div>
-
-            <div v-else class="row items-center gap-2 opacity-50">
-                <div class="w-1.5 h-1.5 rounded-full bg-red-500"></div>
-                <span class="text-[10px] font-bold text-red-500 tracking-wider">OFFLINE</span>
+            <div class="row items-center gap-2">
+                <div :class="props.row.status ? 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse' : 'w-1.5 h-1.5 rounded-full bg-red-900 opacity-50'"></div>
+                <span :class="props.row.status ? 'text-[9px] font-bold text-emerald-500' : 'text-[9px] font-bold text-red-900 opacity-50'">
+                    {{ props.row.status ? 'ONLINE' : 'OFFLINE' }}
+                </span>
             </div>
         </q-td>
-    """,
+    """,  # noqa
     )
 
-    # Protocol Badge Slot
     table.add_slot(
         "body-cell-type",
         r"""
         <q-td :props="props">
-            <q-badge :color="props.value === 'http' ? 'blue-9' : props.value === 'ntp' ? 'purple-9' : 'grey-8'"
-                     text-color="white" :label="props.value.toUpperCase()"
-                     class="font-mono text-[10px] px-2 py-0.5 rounded-sm shadow-sm" />
+            <q-badge :color="props.value === 'http' ? 'blue-10' : 'purple-10'" class="font-mono text-[9px] px-1 rounded-sm">{{ props.value.toUpperCase() }}</q-badge>
         </q-td>
-    """,
+    """,  # noqa
     )
 
-    # Bind Address Slot
-    table.add_slot(
-        "body-cell-bind",
-        r"""
-        <q-td :props="props">
-            <div class="row items-center gap-2 font-mono text-xs text-emerald-400">
-                <q-icon name="lan" size="xs" class="opacity-70" />
-                {{ props.value }}
-            </div>
-        </q-td>
-    """,
-    )
+    with ui.row().classes("w-full p-1 px-2 justify-end gap-2 border-t border-white/5 bg-white/2"):
 
-    # Notes Slot
-    table.add_slot(
-        "body-cell-notes",
-        r"""
-        <q-td :props="props">
-            <div style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
-                 class="opacity-60 text-xs italic">
-                {{ props.value }}
-            </div>
-        </q-td>
-    """,
-    )
-
-    # --- FOOTER CONTROLS ---
-    with ui.row().classes("w-full p-2 justify-end border-t border-white/5 bg-red-900/5"):
-
-        async def stop_selected():
-            selected_rows = table.selected
-            if not selected_rows:
-                ui.notify("No listeners selected", type="warning", color="orange-9")
-                return
-
-            count = len(selected_rows)
-            for row in selected_rows:
-                await stop_listener(row["listener_uuid"])
-
-            ui.notify(f"Terminated {count} listeners", type="negative")
-            # Force an immediate update instead of navigating away
+        async def batch_action(action_func, msg, color):
+            if not table.selected:
+                return ui.notify("No Selection", type="warning")
+            for row in table.selected:
+                await action_func(row["listener_uuid"])
+            ui.notify(f"{msg} {len(table.selected)} listeners", type=color)
             await update_table_data()
 
-        async def restart_selected():
-            selected_rows = table.selected
-            if not selected_rows:
-                ui.notify("No listeners selected", type="warning", color="orange-9")
-                return
-
-            count = len(selected_rows)
-            for row in selected_rows:
-                await restart_listener(row["listener_uuid"])
-
-            ui.notify(f"Restarted {count} listeners", type="positive")
-            await update_table_data()
-
-        async def start_selected():
-            selected_rows = table.selected
-            if not selected_rows:
-                ui.notify("No listeners selected", type="warning", color="orange-9")
-                return
-
-            count = len(selected_rows)
-            for row in selected_rows:
-                await start_listener_from_existing(row["listener_uuid"])
-
-            ui.notify(f"Started {count} listeners", type="positive")
-            await update_table_data()
-
-        start = (
-            ui.button("START SELECTED", icon="play_arrow", on_click=start_selected)
-            .props("flat dense color=green no-caps size=sm")
-            .classes("font-bold tracking-wide hover:bg-emerald-500/20")
+        ui.button(
+            "START",
+            icon="play_arrow",
+            on_click=lambda: batch_action(start_listener_from_existing, "Started", "positive"),
+        ).props("flat dense color=green no-caps size=sm")
+        ui.button(
+            "RESTART", icon="restart_alt", on_click=lambda: batch_action(restart_listener, "Restarted", "positive")
+        ).props("flat dense color=orange no-caps size=sm")
+        ui.button("STOP", icon="stop", on_click=lambda: batch_action(stop_listener, "Stopped", "negative")).props(
+            "flat dense color=red no-caps size=sm"
         )
-        with start:
-            ui.tooltip("Start the selected listeners.")
-
-        restart = (
-            ui.button("RESTART SELECTED", icon="restart_alt", on_click=restart_selected)
-            .props("flat dense color=orange no-caps size=sm")
-            .classes("font-bold tracking-wide hover:bg-red-900/20")
-        )
-        with restart:
-            ui.tooltip("Restart the selected listeners.")
-
-        stop = (
-            ui.button("STOP SELECTED", icon="stop", on_click=stop_selected)
-            .props("flat dense color=red no-caps size=sm")
-            .classes("font-bold tracking-wide hover:bg-red-900/20")
-        )
-
-        with stop:
-            ui.tooltip("Stop the selected listeners.")
 
 
 # ==============================================================================

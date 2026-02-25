@@ -1,7 +1,7 @@
 import structlog
 from nicegui import ui
 
-# --- Imports ---
+# Imports
 from client.src.client.modules.api_calls import (
     build_implant,
     get_all_listener_data,
@@ -14,251 +14,173 @@ from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
 
 server_log = structlog.getLogger("server")
+payload_stats = {"total": "0", "active_listeners": "0", "latest": "N/A"}
 
 
-# ==============================================================================
-#   UI HELPERS
-# ==============================================================================
-def stat_widget(label: str, value: str, icon: str, color: str = "emerald"):
-    """Creates a small tech-styled stat card"""
-    with ui.card().classes("flex-1 min-w-[150px] p-3 gap-1 bg-white/5 border border-white/10 rounded-sm no-shadow"):
-        with ui.row().classes("w-full items-center justify-between"):
-            ui.label(label).classes("text-[10px] font-mono tracking-widest text-neutral-500 uppercase")
-            ui.icon(icon, size="xs", color=f"{color}-500").classes("opacity-80")
-        ui.label(str(value)).classes("text-xl font-bold font-mono tracking-wide text-neutral-200 truncate")
+def stat_widget(label: str, icon: str, color: str, key: str):
+    """Compact telemetry widget for the sub-header bar"""
+    with ui.element("div").classes("flex-1 h-full px-4 gap-2 flex items-center border-r border-white/5 bg-white/2"):
+        ui.icon(icon, size="14px", color=f"{color}-500").classes("opacity-70")
+        ui.label(label).classes("text-[10px] font-mono tracking-tighter text-neutral-500 uppercase")
+        ui.label().bind_text_from(payload_stats, key).classes(
+            "text-xs font-bold font-mono text-neutral-200 truncate max-w-[150px]"
+        )
 
 
 @ui.page("/payloads")
 async def payloads():
-    # Full Screen Layout Setup
     ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
     )
-
-    # Inject CSS & Menu
     setup_menu("Payloads")
-
     await payloads_view()
     await build_footer()
 
 
 async def payloads_view():
-    # --- MAIN GLASS PANEL ---
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
-        # --- HEADER BAR ---
+        # HEADER
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
-            # Left: Identity
             with ui.row().classes("items-center gap-3"):
                 ui.icon("layers", color="emerald-500").classes("text-xl")
                 ui.label("PAYLOAD_LIBRARY //").classes("tech-label-title")
 
-            # Right: Controls
             with ui.row().classes("items-center gap-2"):
                 with (
                     ui.button(on_click=start_payload_dialogue)
-                    .classes("tech-btn-action px-4")
-                    .props("flat no-caps dense")
+                    .classes("tech-btn-action px-2")
+                    .props("dense flat size=sm")
                 ):
-                    ui.icon("add_circle", size="xs").classes("mr-2")
-                    ui.label("COMPILE NEW").classes("text-xs font-bold tracking-wide")
-
+                    ui.icon("add", size="xs").classes("mr-1")
+                    ui.label("PAYLOAD").classes("text-[10px] font-bold")
+                    ui.tooltip("Build New Payload")
                 ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/payloads")).props(
                     "dense flat size=sm"
                 ).classes("tech-btn-ghost")
 
-        # --- CONTENT AREA ---
-        with ui.column().classes("w-full flex-grow p-6 gap-6 overflow-hidden"):
-            # Fetch Data
-            payload_data_response = await get_payload_data()
-            payload_data = payload_data_response.get("data", [])
+        # SUB-HEADER TELEMETRY (High & Tight)
+        with ui.row().classes("w-full h-8 gap-0 bg-[#0c0c0c] border-b border-white/5 items-center"):
+            stat_widget("Total Artifacts", "storage", "emerald", "total")
+            stat_widget("Active Listeners", "hub", "blue", "active_listeners")
+            stat_widget("Latest Build", "history", "purple", "latest")
 
-            # --- 1. ARSENAL STATS ROW ---
-            # Calculate metrics client-side
-            total_count = len(payload_data)
-            listeners = set(p.get("payload_listener_uuid") for p in payload_data)
-            last_built = payload_data[-1].get("payload_name") if payload_data else "N/A"
-
-            with ui.row().classes("w-full gap-4"):
-                stat_widget("TOTAL ARTIFACTS", str(total_count), "storage", "emerald")
-                stat_widget("ACTIVE LISTENERS", str(len(listeners)), "hub", "blue")
-                stat_widget("LATEST BUILD", last_built, "history", "purple")
-
-            # --- 2. MAIN TABLE AREA ---
-            with ui.card().classes(
-                "w-full flex-grow bg-white/5 border border-white/5 p-0 rounded overflow-hidden flex flex-col"
-            ):
-                if not payload_data:
-                    with ui.column().classes("w-full h-full items-center justify-center opacity-30"):
-                        ui.icon("inbox", size="4em")
-                        ui.label("NO ARTIFACTS FOUND").classes("font-mono text-sm mt-2")
-                else:
-                    await render_payloads(payload_data=payload_data)
+        # CONTENT
+        with ui.column().classes("w-full p-0 flex-grow overflow-hidden"):
+            await render_payloads_table()
 
 
-async def render_payloads(payload_data: dict):
-    """Renders the list of payloads in a dashboard table"""
-
-    # Fetch Listener Data for Lookup
-    all_listeners_resp = await get_all_listener_data()
-    all_listeners = all_listeners_resp.get("data", [])
-    listener_map = {
-        listener.get("listener_uuid"): listener.get("listener_name", "Unknown") for listener in all_listeners
-    }
-
-    # Helper to guess format for badge styling
-    def get_fmt(name):
-        if name.endswith(".exe"):
-            return "EXE"
-        if name.endswith(".dll"):
-            return "DLL"
-        if name.endswith(".bin"):
-            return "BIN"
-        if name.endswith(".ps1"):
-            return "PS1"
-        return "RAW"
-
-    # Prepare Rows
-    table_rows = []
-    for p in payload_data:
-        l_uuid = p.get("payload_listener_uuid", "Unknown")
-        p_name = p.get("payload_name", "Unnamed")
-
-        table_rows.append(
-            {
-                "id": p.get("id"),
-                "name": p_name,
-                "fmt": get_fmt(p_name),
-                "hash": p.get("payload_hash", ""),
-                "listener": listener_map.get(l_uuid, "Unknown"),
-                "uuid": l_uuid,
-            }
+async def render_payloads_table():
+    # Header Search Strip
+    with ui.row().classes("w-full items-center px-2 py-1 bg-white/2"):
+        filter_text = (
+            ui.input(placeholder="FILTER ARTIFACTS...")
+            .props("outlined dense dark color=emerald input-class=text-[10px]")
+            .classes("w-64")
         )
 
-    # Action Handlers
-    async def handle_download(e):
-        row = e.args
-        ui.notify(f"Retrieving {row['name']}...", type="info", color="grey-9")
-        await download_payload(hash=row["hash"], name=row["name"])
-
-    async def handle_source_download(e):
-        row = e.args
-        ui.notify(f"Retrieving {row['name']}...", type="info", color="grey-9")
-        await download_payload_source(hash=row["hash"], name=row["name"])
-
-    # Search Bar Logic
-    filter_text = (
-        ui.input(placeholder="SEARCH ARTIFACTS...")
-        .props("outlined dense dark color=emerald input-class=text-xs")
-        .classes("m-3 w-96")
-    )
-
-    # Define Columns
+    # Column Mapping
     columns = [
-        {
-            "name": "name",
-            "label": "IDENTITY",
-            "field": "name",
-            "align": "left",
-            "sortable": True,
-        },
-        {
-            "name": "fmt",
-            "label": "FORMAT",
-            "field": "fmt",
-            "align": "left",
-            "sortable": True,
-        },
-        {
-            "name": "listener",
-            "label": "LINKED LISTENER",
-            "field": "listener",
-            "align": "left",
-            "sortable": True,
-        },
-        {
-            "name": "hash",
-            "label": "HASH (MD5)",
-            "field": "hash",
-            "align": "left",
-            "classes": "font-mono text-[10px] opacity-50 tracking-tighter",
-        },
-        {"name": "actions", "label": "Downloads", "field": "actions", "align": "right"},
+        {"name": "name", "label": "IDENTITY", "field": "name", "align": "left", "sortable": True},
+        {"name": "fmt", "label": "FORMAT", "field": "fmt", "align": "left", "sortable": True},
+        {"name": "listener", "label": "LINKED LISTENER", "field": "listener", "align": "left", "sortable": True},
+        {"name": "hash", "label": "HASH (MD5)", "field": "hash", "align": "left"},
+        {"name": "actions", "label": "RESOURCES", "field": "actions", "align": "right"},
     ]
 
-    # Render Table
     table = (
-        ui.table(columns=columns, rows=table_rows, row_key="id", pagination=10)
-        .classes("w-full bg-transparent no-shadow text-neutral-300 flex-grow")
+        ui.table(columns=columns, rows=[], row_key="id", pagination=15)
+        .classes("w-full bg-transparent no-shadow text-neutral-300 flex-grow sticky-header")
         .bind_filter_from(filter_text, "value")
     )
 
-    # --- CUSTOM SLOTS ---
+    def get_fmt(name):
+        ext = name.split(".")[-1].upper() if "." in name else "RAW"
+        return ext[:3]
 
-    # Header Styling
+    async def refresh_data():
+        p_resp = await get_payload_data()
+        payloads = (p_resp or {}).get("data", [])
+
+        l_resp = await get_all_listener_data()
+        l_map = {
+            _listener.get("listener_uuid"): _listener.get("listener_name", "Unknown")
+            for _listener in (l_resp or {}).get("data", [])
+        }
+
+        rows = []
+        listeners_seen = set()
+        for p in payloads:
+            l_uuid = p.get("payload_listener_uuid")
+            listeners_seen.add(l_uuid)
+            rows.append(
+                {
+                    "id": p.get("id"),
+                    "name": p.get("payload_name", "Unnamed"),
+                    "fmt": get_fmt(p.get("payload_name", "")),
+                    "hash": p.get("payload_hash", ""),
+                    "listener": l_map.get(l_uuid, "Unknown"),
+                }
+            )
+
+        table.rows = rows
+        payload_stats.update(
+            {
+                "total": str(len(rows)),
+                "active_listeners": str(len(listeners_seen)),
+                "latest": rows[-1]["name"] if rows else "N/A",
+            }
+        )
+
+    await refresh_data()
+
+    # Table Slots
     table.add_slot(
         "header",
         r"""
-        <q-tr
-            :props="props"
-            class="bg-black/20 text-neutral-500 uppercase text-[10px]
-                font-bold tracking-widest border-b border-white/10"
-        >
-            <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
-            </q-th>
+        <q-tr :props="props" class="bg-black/40 text-neutral-500 uppercase text-[10px] font-bold tracking-widest">
+            <q-th v-for="col in props.cols" :key="col.name" :props="props">{{ col.label }}</q-th>
         </q-tr>
-        """,
+    """,
     )
 
-    # Format Badge Slot
     table.add_slot(
         "body-cell-fmt",
         r"""
         <q-td :props="props">
-            <q-badge :color="props.value === 'EXE' ? 'blue-9' : props.value === 'DLL' ? 'purple-9' : 'grey-8'"
-                     text-color="white" :label="props.value" class="font-mono text-[10px] px-2 py-0.5 rounded-sm" />
+            <q-badge :color="props.value === 'EXE' ? 'blue-10' : props.value === 'DLL' ? 'purple-10' : 'grey-9'"
+                     class="font-mono text-[9px] px-1.5 rounded-sm">{{ props.value }}</q-badge>
         </q-td>
     """,
     )
 
-    # Listener Slot
     table.add_slot(
-        "body-cell-listener",
+        "body-cell-hash",
         r"""
         <q-td :props="props">
-            <div class="row items-center gap-2">
-                <q-icon name="hub" size="xs" class="text-emerald-600" />
-                <span class="text-xs font-mono">{{ props.value }}</span>
-            </div>
+            <span class="font-mono text-[10px] opacity-40 hover:opacity-100 cursor-pointer">{{ props.value }}</span>
         </q-td>
     """,
     )
 
-    # Action Buttons Slot
     table.add_slot(
         "body-cell-actions",
         r"""
         <q-td :props="props">
-            <div class="row items-center justify-end no-wrap gap-1">
-                <q-btn icon="download" flat dense size="sm" color="grey-5"
-                    class="hover:text-emerald-400 transition-colors"
-                    @click="$parent.$emit('download', props.row)">
-                    <q-tooltip class="bg-neutral-900 text-xs">BINARY</q-tooltip>
+            <div class="row items-center justify-end gap-1 no-wrap">
+                <q-btn icon="download" flat dense size="sm" color="grey-6" @click="$parent.$emit('bin', props.row)">
+                    <q-tooltip class="bg-black">BINARY</q-tooltip>
                 </q-btn>
-                <q-btn icon="code" flat dense size="sm" color="grey-5"
-                    class="hover:text-emerald-400 transition-colors"
-                    @click="$parent.$emit('source_download', props.row)">
-                    <q-tooltip class="bg-neutral-900 text-xs">SOURCE</q-tooltip>
+                <q-btn icon="code" flat dense size="sm" color="grey-6" @click="$parent.$emit('src', props.row)">
+                    <q-tooltip class="bg-black">SOURCE</q-tooltip>
                 </q-btn>
             </div>
         </q-td>
-        """,
+    """,
     )
 
-    # Register Listeners
-    table.on("download", handle_download)
-    table.on("source_download", handle_source_download)
+    table.on("bin", lambda e: download_payload(hash=e.args["hash"], name=e.args["name"]))
+    table.on("src", lambda e: download_payload_source(hash=e.args["hash"], name=e.args["name"]))
 
 
 # ==============================================================================
@@ -267,14 +189,14 @@ async def render_payloads(payload_data: dict):
 async def start_payload_dialogue():
     """Opens the Build Dialog"""
 
-    # --- 1. Fetch Data ---
+    # 1. Fetch Data
     response = await get_all_listener_data()
     listeners_list = response.get("data", [])
 
     # Map Name -> UUID
     listener_uuid_map = {listener["listener_name"]: listener["listener_uuid"] for listener in listeners_list}
 
-    # --- 2. Event Handlers ---
+    # 2. Event Handlers
 
     def _on_listener_change(e):
         """
@@ -282,7 +204,7 @@ async def start_payload_dialogue():
         """
         selected_names = e.value or []
 
-        # --- Update GET Dropdown ---
+        # Update GET Dropdown
         profile_get_select.options = selected_names
 
         if selected_names:
@@ -293,7 +215,7 @@ async def start_payload_dialogue():
             profile_get_select.value = None
             profile_get_select.disable()
 
-        # --- Update POST Dropdown ---
+        # Update POST Dropdown
         profile_post_select.options = selected_names
 
         if selected_names:
@@ -391,7 +313,7 @@ async def start_payload_dialogue():
 
         status_timer = ui.timer(1.0, poll_build_status, active=True)
 
-    # --- 3. UI Layout ---
+    # 3. UI Layout
     with ui.dialog() as dialog, ui.card().classes("tech-dialog w-[600px] p-0 rounded overflow-hidden"):
         # Header
         with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
