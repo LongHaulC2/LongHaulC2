@@ -157,7 +157,7 @@ async def render_payloads_table():
         "body-cell-hash",
         r"""
         <q-td :props="props">
-            <span class="font-mono text-[10px] opacity-40 hover:opacity-100 cursor-pointer">{{ props.value }}</span>
+            <span class="font-mono text-[12px] opacity-40 hover:opacity-100 cursor-pointer">{{ props.value }}</span>
         </q-td>
     """,
     )
