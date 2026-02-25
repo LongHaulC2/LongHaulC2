@@ -100,9 +100,20 @@ BUILD_POST_INPUT = api.model(
         ),
     },
 )
+BUILD_POST_STATS = api.model(
+    "BUILD_POST_STATS",
+    {
+        "build_time": fields.Float(
+            required=True, description="The build time for the payload, in seconds", example=6.7
+        ),
+    },
+)
 BUILD_POST_MODEL = api.model(
     "BUILD_POST_MODEL",
-    {"build_uuid": fields.String(description="The UUID of the initiated build job", example="019c...")},
+    {
+        "build_uuid": fields.String(description="The UUID of the initiated build job", example="019c..."),
+        "build_stats": fields.Nested(model=BUILD_POST_STATS, description="Stats related to the build job"),
+    },
 )
 BUILD_POST_RESPONSE = wrap_response_single(api, BUILD_POST_MODEL)
 

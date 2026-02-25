@@ -277,6 +277,14 @@ async def start_payload_dialogue():
         if build_uuid:
             progress_bar.set_value(0.75)
 
+        # ! build_time is a float
+        build_time = result.get("data", {}).get("build_stats", {}).get("build_time", 0.0)
+        if build_time:
+            # ui.label(f"Build Time: {build_time}")
+            build_time = round(build_time, 2)
+            # ! Again, because build_time is a float, cast to a STR
+            build_time_value.set_text(str(build_time))
+
         build_btn.props("loading=false")
 
         async def poll_build_status():
@@ -391,27 +399,36 @@ async def start_payload_dialogue():
                 .classes("absolute top-0 left-0 w-full h-[2px] opacity-0 transition-opacity")
             )
 
-            # Buttons
-            download_payload_button = (
-                ui.button("BINARY", icon="download")
-                .props("unelevated dense color=emerald text-color=white no-caps")
-                .classes("font-bold tracking-wide disabled:opacity-50")
-            )
-            download_payload_button.disable()
+            # split these into a row, so they have their own sides & don't clash
+            with ui.row().classes("w-full items-center"):
+                # Left side: build time
+                ui.label("Build Time [seconds]: ").classes("text-gray-600 tech-label-sub")
+                build_time_value = ui.label().classes("text-gray-600 tech-label-sub")
 
-            download_payload_source_button = (
-                ui.button("SOURCE", icon="code")
-                .props("unelevated dense color=emerald text-color=white no-caps")
-                .classes("font-bold tracking-wide disabled:opacity-50")
-            )
-            download_payload_source_button.disable()
+                # Spacer pushes everything after it to the right
+                ui.space()
+
+                # Right side: buttons
+                download_payload_button = (
+                    ui.button("BINARY", icon="download")
+                    .props("dense flat size=sm")
+                    .classes("font-bold tracking-wide disabled:opacity-50 tech-btn-action-2")
+                )
+                download_payload_button.disable()
+
+                download_payload_source_button = (
+                    ui.button("SOURCE", icon="code")
+                    .props("dense flat size=sm")
+                    .classes("font-bold tracking-wide disabled:opacity-50 tech-btn-action-2")
+                )
+                download_payload_source_button.disable()
 
             ui.separator().classes("vertical mx-2 bg-white/10")
 
             build_btn = (
-                ui.button("COMPILE", on_click=_build_implant)
-                .props("unelevated dense color=emerald text-color=white no-caps")
-                .classes("font-bold tracking-wide")
+                ui.button("BUILD", on_click=_build_implant, icon="add")
+                .props("dense flat size=sm")
+                .classes("font-bold tracking-wide tech-btn-action")
             )
 
     dialog.open()

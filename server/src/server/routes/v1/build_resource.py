@@ -84,7 +84,7 @@ class Build(Resource):
         # Trigger Build
         build_uuid = str(uuid7())
 
-        build_implant(
+        build_stats = build_implant(
             implant_name,
             listener_uuids,
             # output_format,
@@ -93,7 +93,7 @@ class Build(Resource):
             initial_post_profile_listener_uuid,
         )
 
-        response = {"build_uuid": build_uuid}
+        response = {"build_uuid": build_uuid, "build_stats": build_stats}
         # Return immediately
         return APIResponse(status="200", message="Build process initiated successfully", data=response)
 

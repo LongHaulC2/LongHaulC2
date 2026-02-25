@@ -182,7 +182,8 @@ body::before {
 }
 
 .tech-input .q-field__native {
-    color: #ffffff !important;
+    /*color: #ffffff !important; */
+    color: #71717a !important;
 }
 
 /* --- TECH ui.select --- */

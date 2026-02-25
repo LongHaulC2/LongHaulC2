@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+import time
 import zipfile
 from pathlib import Path
 
@@ -25,13 +26,36 @@ def build_implant(
     build_uuid: str,
     init_get_profile_listener_uuid: str,
     init_post_profile_listener_uuid: str,
-) -> None:
+) -> dict:
+    """Builds an implant  based on the provided parameters
+
+    Args:
+        implant_name (str): _description_
+        listener_uuids (list): _description_
+        build_uuid (str): _description_
+        init_get_profile_listener_uuid (str): _description_
+        init_post_profile_listener_uuid (str): _description_
+
+    Raises:
+        ValueError: _description_
+        RuntimeError: _description_
+
+    Returns:
+        dict[str, str]: A dictionary containing the build results
+    """
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(build_uuid=build_uuid, implant_name=implant_name)
     server_logger.info("Starting implant build process")
 
+    # Note, not including build status, that is set in the DB
+    # initializing build_time to 0, so it always exists
+    build_stats = {"build_time": 0.0}
+
     # Get full listener data from DB
     full_listeners_data: dict[str, ListenerProfile] = {}
+
+    # start build timer:
+    start_time = time.perf_counter()
 
     with get_mysql_session() as session:
         listener_service = ListenerService(session)
@@ -89,6 +113,7 @@ def build_implant(
             # Compile
             if _run_docker_build(build_dir):
                 _store_artifacts(build_dir, implant_name, build_uuid)
+
             else:
                 raise RuntimeError("Compilation failed")
 
@@ -99,6 +124,10 @@ def build_implant(
 
         finally:
             shutil.rmtree(build_dir, ignore_errors=True)
+            build_time = time.perf_counter() - start_time
+            build_stats["build_time"] = build_time
+
+    return build_stats
 
 
 def _prepare_listener_data(
