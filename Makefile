@@ -229,6 +229,15 @@ dev_install:
 
 	$(MAKE) create_env
 
+	# create workspace dir here as well, for workspace items for dev. 
+	# /var/lib/longhaulc2 for workspace items
+	mkdir -p $(WORKSPACE_DIR)
+	# log dir
+	mkdir -p /var/log/longhaulc2
+
+	# copy over user contents into new workspace
+	cp -r ./client/src/client/user/. $(WORKSPACE_DIR)
+
 	@echo "=================================================="
 	@echo "Setting up docker containers" 
 	@echo "=================================================="
@@ -273,6 +282,10 @@ dev_uninstall:
 
 	@echo "Removing .env"
 	-rm .env
+
+	# nuke workspace and log dirs as well
+	rm -rf /var/lib/longhaulc2
+	rm -rf /var/log/longhaulc2
 
 .PHONY: dev_reset
 dev_reset: dev_uninstall dev_install
@@ -366,7 +379,9 @@ create_env:
 
 check_root:
 	@if [ "$$(id -u)" -ne 0 ]; then \
+		echo "==============================================================================="; \
 		echo "Error: This target must be run with superuser privileges (e.g., sudo make $@)"; \
+		echo "===============================================================================" \
 		exit 1; \
 	fi
 

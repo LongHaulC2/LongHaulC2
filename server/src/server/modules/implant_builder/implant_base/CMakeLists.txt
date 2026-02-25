@@ -1,5 +1,7 @@
 ﻿# CMakeList.txt : CMake project for Implant_v01
-cmake_minimum_required (VERSION 3.10)
+# cmake_minimum_required(VERSION 3.16) - trying for native PCH, aka pre compiled headers, for a speedup
+cmake_minimum_required (VERSION 3.16)
+
 
 project ("Implant_v01")
 
@@ -47,6 +49,15 @@ set(SOURCES
     "libs/bof_launcher_api.h"
 )
 add_executable(Implant_v01 ${SOURCES} "modules/discover.cpp" "modules/discover.h")
+
+target_precompile_headers(Implant_v01 PRIVATE
+    <string>
+    <vector>
+    <map>
+    <windows.h>
+    "protocols/json/json.h"
+    "data/msgpack/msgpack.h"
+)
 # ==========================================
 # External Libraries (BofRunner)
 # ==========================================

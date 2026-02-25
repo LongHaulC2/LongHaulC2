@@ -33,7 +33,8 @@ logger-objects = [
     "server_logger",
     "listener_logger",
     "neo4j_logger",
-    "response_pipeline_logger"
+    "response_pipeline_logger",
+    "docker_logger"
 ]
 
 [tool.ruff.format]

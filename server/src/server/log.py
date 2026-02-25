@@ -88,3 +88,4 @@ listener_logger = setup_logger("listener", "listener.log")
 # needed to change name from neo4j -> internal_neo4j, otherwise it picks up neo4j logs from neomodel
 neo4j_logger = setup_logger("internal_neo4j", "neo4j.log")
 response_pipeline_logger = setup_logger("response_pipeline", "response_pipeline.log")
+docker_logger = setup_logger("docker_logger", "docker.log")

@@ -21,3 +21,4 @@ ruff
 fastapi
 waitress
 brotli
+orjson

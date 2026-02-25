@@ -15,6 +15,7 @@ from .types import ListenerProfile
 
 IMPLANT_BASE = Path(__file__).parent / "implant_base"
 server_logger = structlog.getLogger("server")
+docker_logger = structlog.getLogger("docker_logger")
 
 
 def build_implant(
@@ -133,7 +134,7 @@ def _run_docker_build(build_dir: Path) -> bool:
     # -j$(nproc) uses all cores
     cmd = "bash -c 'cmake -S /source -B /build -DCMAKE_BUILD_TYPE=Release && cmake --build /build -- -j$(nproc)'"
 
-    server_logger.info("Spinning up builder container (win_x64)")
+    docker_logger.info("Spinning up builder container (win_x64)")
 
     try:
         container: Container = client.containers.run(
@@ -155,14 +156,14 @@ def _run_docker_build(build_dir: Path) -> bool:
         container.remove()
 
         if exit_code == 0:
-            server_logger.debug("Docker Build Success", logs=logs)
+            docker_logger.debug("Docker Build Success", logs=logs)
             return True
         else:
-            server_logger.error("Docker Build Failed", exit_code=exit_code, logs=logs)
+            docker_logger.error("Docker Build Failed", exit_code=exit_code, logs=logs)
             return False
 
     except Exception as e:
-        server_logger.error("Docker infrastructure error", error=e)
+        docker_logger.error("Docker infrastructure error", error=e)
         return False
 
 
