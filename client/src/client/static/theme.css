@@ -263,3 +263,37 @@ body::before {
     /* You can override Quasar defaults here if needed, 
        but usually just applying props in Python is safer for Inputs */
 }
+
+/* --- Add these to your CSS file --- */
+
+.tech-label-sub {
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: #71717a; /* Zinc-400 */
+    text-transform: uppercase;
+}
+
+.tech-data-mono {
+    /*font-family: ui-monospace, 'Cascadia Code', monospace;*/
+    font-size: 12px;
+    color: #e4e4e7; /* Zinc-200 */
+}
+
+.tech-data-bold {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+}
+
+/* Slim Stat Container */
+.tech-stat-pill {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding: 0 16px;
+    gap: 8px;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.02);
+}

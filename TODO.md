@@ -119,6 +119,9 @@ known broken on deploy:
    > working on - was a docker permission
 
 
+- [ ] GUI css cleanup:
+rule:use css as base, override as needed 
+
 ### Server: Listeners & Core
 
 * [ ] Fix active flag in the database (Idea: Start listener on startup if marked active)

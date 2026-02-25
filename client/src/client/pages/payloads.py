@@ -21,10 +21,9 @@ def stat_widget(label: str, icon: str, color: str, key: str):
     """Compact telemetry widget for the sub-header bar"""
     with ui.element("div").classes("flex-1 h-full px-4 gap-2 flex items-center border-r border-white/5 bg-white/2"):
         ui.icon(icon, size="14px", color=f"{color}-500").classes("opacity-70")
-        ui.label(label).classes("text-[10px] font-mono tracking-tighter text-neutral-500 uppercase")
-        ui.label().bind_text_from(payload_stats, key).classes(
-            "text-xs font-bold font-mono text-neutral-200 truncate max-w-[150px]"
-        )
+        ui.label(label).classes("tech-data-mono")
+        # .classes("text-[10px] font-mono tracking-tighter text-neutral-500 uppercase")
+        ui.label().bind_text_from(payload_stats, key).classes("tech-data-mono truncate max-w-[150px]")
 
 
 @ui.page("/payloads")
@@ -53,7 +52,7 @@ async def payloads_view():
                     .props("dense flat size=sm")
                 ):
                     ui.icon("add", size="xs").classes("mr-1")
-                    ui.label("PAYLOAD").classes("text-[10px] font-bold")
+                    ui.label("PAYLOAD").classes("tech-label-sub")
                     ui.tooltip("Build New Payload")
                 ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/payloads")).props(
                     "dense flat size=sm"
