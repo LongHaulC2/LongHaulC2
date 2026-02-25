@@ -121,6 +121,42 @@ known broken on deploy:
 - [X] GUI css cleanup:
 rule:use css as base, override as needed. not for sizing
 
+> just finished gui, not sure what next.
+
+- [] Chaining:
+
+Plan/flow:
+
+1. Parent beacon exists. Wants to chain another to it.
+2. Parent spawns Child (for now, basic upload & run), with listener set to smb
+3. Child setups up inbox and outbox smb pipes on run. Generates metadata (register), pushes to outbox
+4. Parent reads outbox, includes in response queue.
+5. Parent, if task, writes to inbox for that beacon.
+6. parent POST
+
+Parent:
+```
+checkin()
+
+actions()
+
+check_chained() -> for each chained in chain list, read outbox, then write inbox if new task
+
+post()
+
+```
+
+server side:
+ -  [ ] GET Multiple Response Parsing:
+   - Normal GET. Server returns *list* (new) of tasks, for all parent and child beacons. Server is authority of chain. 
+ - [ ] POST multipe processsing:
+   - Loop of inbound list of tasks, write to db's, based on implant UUID
+
+Implant:
+ - [ ] Loop over tasks from GET, do actions for each
+ - [ ] Add response queue for POST (thread safe probably...), and send that list on POST
+
+
 ### Server: Listeners & Core
 
 * [ ] Fix active flag in the database (Idea: Start listener on startup if marked active)
