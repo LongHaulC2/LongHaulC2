@@ -32,7 +32,7 @@ def setup_menu(title: str):
     # Header (Glassmorphism)
     with ui.header().classes("bg-black/40 backdrop-blur-md border-b border-white/5 h-16 row items-center px-4"):
         # Toggle Button
-        ui.button(on_click=lambda: left_drawer.toggle(), icon="menu").props("flat dense round color=white").classes(
+        ui.button(on_click=lambda: left_drawer.toggle(), icon="menu").props("flat dense square color=white").classes(
             "opacity-70 hover:opacity-100 transition-opacity"
         )
 

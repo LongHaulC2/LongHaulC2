@@ -199,9 +199,9 @@ def build_header_bar():
             ui.label(
                 # just hour minute sec is way easier to read than hour:min:sec:subsec
                 f"Last Refresh [UTC]: {datetime.now(UTC).strftime('%H:%M:%S')}"
-            ).classes("tech-label-title")
+            ).classes("tech-label-sub")
             ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/graph")).props("dense flat size=sm").classes(
-                "tech-btn-ghost"
+                "tech-btn-action-2"
             ).tooltip("Refresh Topology")
 
 

@@ -363,7 +363,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
                             )
                         )
                         .classes("tech-btn-action")
-                        .props("flat round dense size=sm")
+                        .props("flat square dense size=sm")
                     ):
                         ui.icon("play_arrow", size="xs")
                         ui.tooltip("Execute")
@@ -376,7 +376,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
                         f.write(editor.value)
                     ui.notify("Saved", type="positive", color="emerald-9")
 
-                with ui.button(on_click=save_logic).classes("tech-btn-ghost").props("flat round dense size=sm"):
+                with ui.button(on_click=save_logic).classes("tech-btn-action-2").props("flat square dense size=sm"):
                     ui.icon("save", size="xs")
                     ui.tooltip("Quick Save")
 
@@ -406,7 +406,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
 
                     d.open()
 
-                with ui.button(on_click=open_save_as).classes("tech-btn-ghost").props("flat round dense size=sm"):
+                with ui.button(on_click=open_save_as).classes("tech-btn-action-2").props("flat square dense size=sm"):
                     ui.icon("save_as", size="xs")
                     ui.tooltip("Save As...")
 
@@ -415,7 +415,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
                     editor.value = await load_file()
                     ui.notify("Reloaded from disk")
 
-                with ui.button(on_click=reload_logic).classes("tech-btn-ghost").props("flat round dense size=sm"):
+                with ui.button(on_click=reload_logic).classes("tech-btn-action-2").props("flat square dense size=sm"):
                     ui.icon("refresh", size="xs")
                     ui.tooltip("Reload from Disk")
 

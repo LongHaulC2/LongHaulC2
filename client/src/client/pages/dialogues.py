@@ -84,7 +84,7 @@ async def upload_dialog(implant_uuids: list):
                 ui.label(f"TASK_UPLOAD :: {len(implant_uuids)} TARGETS").classes("tech-label-sub")
 
             # Close button styled as a ghost icon
-            ui.button(icon="close", on_click=dialog.close).props("round flat dense text-color=grey").classes(
+            ui.button(icon="close", on_click=dialog.close).props("square flat dense text-color=grey").classes(
                 "opacity-70 hover:opacity-100 transition-opacity"
             )
 
@@ -143,7 +143,7 @@ async def upload_dialog(implant_uuids: list):
         # Footer
         with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"):
             ui.button("CANCEL", on_click=dialog.close).props("flat dense no-caps").classes(
-                "tech-btn-ghost font-bold tracking-wide"
+                "tech-btn-action-2 font-bold tracking-wide"
             )
 
             submit_btn = (

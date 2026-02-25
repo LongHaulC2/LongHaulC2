@@ -56,7 +56,7 @@ async def payloads_view():
                     ui.tooltip("Build New Payload")
                 ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/payloads")).props(
                     "dense flat size=sm"
-                ).classes("tech-btn-ghost")
+                ).classes("tech-btn-action-2")
 
         # SUB-HEADER TELEMETRY (High & Tight)
         with ui.row().classes("w-full h-8 gap-0 bg-[#0c0c0c] border-b border-white/5 items-center"):

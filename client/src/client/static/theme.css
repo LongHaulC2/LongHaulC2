@@ -116,6 +116,14 @@ body::before {
 }
 .tech-btn-action:hover { background-color: rgba(16, 185, 129, 0.2); }
 
+.tech-btn-action-2 {
+    border: 1px solid rgba(48, 63, 59, 0.3);
+    border-radius: 4px;
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    transition: all 0.2s ease;
+}
+
 /* Dimmed secondary buttons */
 .tech-btn-ghost {
     color: #737373;

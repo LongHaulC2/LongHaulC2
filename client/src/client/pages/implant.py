@@ -88,7 +88,7 @@ async def render_dashboard(data: dict, implant_uuid: str):
         with ui.row().classes("w-full p-4 border-b border-white/10 bg-black/20 items-center justify-between shrink-0"):
             with ui.row().classes("items-center gap-4"):
                 ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to("/operations")).props(
-                    "flat dense round size=sm color=grey"
+                    "flat dense square size=sm color=grey"
                 )
                 ui.icon("computer", size="md", color="emerald-500").classes(
                     "p-2 bg-emerald-500/10 rounded border border-emerald-500/20"
@@ -173,7 +173,7 @@ async def render_dashboard(data: dict, implant_uuid: str):
                                     "w-full p-2 justify-end border-b border-white/5 shrink-0 bg-black/10"
                                 ):
                                     ui.button(icon="refresh", on_click=lambda: load_history()).props(
-                                        "flat dense round size=xs color=grey"
+                                        "flat dense square size=xs color=grey"
                                     )
 
                                 # Scrollable History
@@ -230,7 +230,7 @@ async def render_dashboard(data: dict, implant_uuid: str):
                                     "outlined dense dark color=emerald"
                                 ).classes("flex-1 tech-input")
                             ui.button("APPLY CONFIG", icon="save").classes(
-                                "w-full tech-btn-ghost border border-white/10"
+                                "w-full tech-btn-action-2 border border-white/10"
                             ).props("flat dense")
 
                             ui.separator().classes("bg-white/5")
