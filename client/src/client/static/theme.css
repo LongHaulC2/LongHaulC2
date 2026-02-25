@@ -201,3 +201,30 @@ body::before {
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     background: rgba(255, 255, 255, 0.02);
 }
+
+/* --- TECH INPUT --- */
+.tech-input {
+    background: rgba(23, 23, 23, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 2px !important;
+    transition: all 0.2s ease;
+}
+
+/* Subtle glow on focus */
+.tech-input.q-field--focused {
+    border-color: rgba(16, 185, 129, 0.4) !important;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+}
+
+/* Label and Text styling */
+.tech-input .q-field__label, 
+.tech-input .q-field__native {
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    color: #a1a1aa !important; /* Zinc-400 */
+}
+
+.tech-input .q-field__native {
+    color: #ffffff !important;
+}

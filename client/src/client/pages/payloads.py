@@ -75,7 +75,7 @@ async def render_payloads_table():
         filter_text = (
             ui.input(placeholder="FILTER ARTIFACTS...")
             .props("outlined dense dark color=emerald input-class=text-[10px]")
-            .classes("w-64")
+            .classes("w-64 tech-input")
         )
 
     # Column Mapping
@@ -328,7 +328,7 @@ async def start_payload_dialogue():
                 name_input = (
                     ui.input("IDENTITY", placeholder="filename (no ext)")
                     .props("outlined dense dark color=emerald")
-                    .classes("flex-grow")
+                    .classes("flex-grow tech-input")
                 )
 
                 format_select = (

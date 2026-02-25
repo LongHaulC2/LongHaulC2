@@ -79,7 +79,7 @@ async def render_listeners_table():
         filter_text = (
             ui.input(placeholder="FILTER...")
             .props("outlined dense dark color=emerald input-class=text-[10px]")
-            .classes("w-64")
+            .classes("w-64 tech-input")
         )
 
     columns = [
@@ -244,7 +244,7 @@ async def start_listener_dialogue():
         with ui.column().classes("p-6 gap-6 w-full"):
             with ui.row().classes("w-full gap-4"):
                 listener_name_field = (
-                    ui.input("LISTENER NAME").props("outlined dense dark color=emerald").classes("flex-1")
+                    ui.input("LISTENER NAME").props("outlined dense dark color=emerald").classes("flex-1 tech-input")
                 )
 
                 listener_type_field = (
@@ -254,7 +254,9 @@ async def start_listener_dialogue():
                 )
 
             with ui.row().classes("w-full gap-4"):
-                listener_host_field = ui.input("BIND HOST").props("outlined dense dark color=emerald").classes("flex-1")
+                listener_host_field = (
+                    ui.input("BIND HOST").props("outlined dense dark color=emerald").classes("flex-1 tech-input")
+                )
                 with listener_host_field:
                     ui.tooltip("External IP/Hostname (No 0.0.0.0)")
 

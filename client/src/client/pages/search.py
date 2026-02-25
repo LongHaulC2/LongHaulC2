@@ -58,7 +58,7 @@ async def search_view():
                     placeholder="Enter query...",
                 )
                 .props("outlined dense dark color=emerald input-class=text-emerald-400 autofocus")
-                .classes("flex-grow")
+                .classes("flex-grow tech-input")
             )
 
             with search_field.add_slot("prepend"):

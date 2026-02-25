@@ -388,7 +388,7 @@ async def terminal(implant_uuid: str):
 
             ui_user_input = (
                 ui.input(autocomplete=list_of_commands_for_autocomplete)
-                .classes("flex-grow")
+                .classes("flex-grow tech-input")
                 .props("dense borderless dark input-class=text-emerald-400 input-style=font-family:monospace")
                 .on("keydown.enter", lambda: handle_command())
                 .on("keydown.up", lambda: navigate_history("up"))  # <--- Add this

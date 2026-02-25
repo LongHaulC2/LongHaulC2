@@ -155,7 +155,7 @@ async def docs_view(tree_data: list):
             with ui.row().classes("w-full px-4 py-2"):
                 ui.input(placeholder="SEARCH TOPICS...").props(
                     "outlined dense dark color=emerald input-class=text-xs"
-                ).classes("w-full")
+                ).classes("w-full tech-input")
 
             # Tree Navigation
             with ui.scroll_area().classes("w-full flex-grow p-2"):

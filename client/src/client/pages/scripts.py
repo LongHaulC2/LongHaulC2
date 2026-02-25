@@ -259,7 +259,9 @@ async def create_new_file_dialog(scripts_path):
             ui.button(icon="close", on_click=dialog.close).props("dense flat size=sm color=grey")
 
         with ui.column().classes("p-4 gap-4 w-full"):
-            input_file_name = ui.input("FILENAME").props("outlined dense dark color=emerald").classes("w-full")
+            input_file_name = (
+                ui.input("FILENAME").props("outlined dense dark color=emerald").classes("w-full tech-input")
+            )
 
         with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"):
             ui.button("CANCEL", on_click=dialog.close).props("flat dense color=grey no-caps")
@@ -388,7 +390,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
                             new_name = (
                                 ui.input("FILENAME", value=Path(file_path).name)
                                 .props("outlined dense dark color=emerald")
-                                .classes("w-full")
+                                .classes("w-full tech-input")
                             )
 
                         with ui.row().classes("bg-black/20 p-4 border-t border-white/5 justify-end"):

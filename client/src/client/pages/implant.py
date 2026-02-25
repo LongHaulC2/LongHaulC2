@@ -225,10 +225,10 @@ async def render_dashboard(data: dict, implant_uuid: str):
                             with ui.row().classes("w-full gap-2"):
                                 ui.input("SLEEP (s)", value=str(data.get("sleep"))).props(
                                     "outlined dense dark color=emerald"
-                                ).classes("flex-1")
+                                ).classes("flex-1 tech-input")
                                 ui.input("JITTER (%)", value=str(data.get("jitter"))).props(
                                     "outlined dense dark color=emerald"
-                                ).classes("flex-1")
+                                ).classes("flex-1 tech-input")
                             ui.button("APPLY CONFIG", icon="save").classes(
                                 "w-full tech-btn-ghost border border-white/10"
                             ).props("flat dense")

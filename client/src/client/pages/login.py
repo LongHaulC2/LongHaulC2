@@ -26,7 +26,7 @@ def login_page():
                 host = (  # noqa: F841, not used yet, but will when login is fully implemented
                     ui.input("SERVER_ADDRESS")
                     .props("outlined dense dark color=emerald autofocus")
-                    .classes("w-full font-mono")
+                    .classes("w-full tech-input")
                     .on("keydown.enter", lambda: password.run_method("focus"))
                 )
                 with host:
@@ -35,7 +35,7 @@ def login_page():
                 username = (  # noqa: F841, not used yet, but will when login is fully implemented
                     ui.input("USERNAME")
                     .props("outlined dense dark color=emerald autofocus")
-                    .classes("w-full font-mono")
+                    .classes("w-full tech-input")
                     .on("keydown.enter", lambda: password.run_method("focus"))
                 )
 
@@ -43,7 +43,7 @@ def login_page():
                 password = (
                     ui.input("PASSWORD", password=True, password_toggle_button=True)
                     .props("outlined dense dark color=emerald")
-                    .classes("w-full font-mono")
+                    .classes("w-full tech-input")
                     .on(
                         "keydown.enter",
                         lambda: ui.notify("AUTHENTICATING...", type="ongoing", color="emerald-9"),

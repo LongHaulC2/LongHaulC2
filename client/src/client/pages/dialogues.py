@@ -129,7 +129,7 @@ async def upload_dialog(implant_uuids: list):
                     ),
                 )
                 .props("outlined dense dark color=emerald")
-                .classes("w-full")
+                .classes("w-full tech-input")
             )
 
             # File Upload
