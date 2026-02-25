@@ -1,3 +1,4 @@
+import os
 import shutil
 import tempfile
 import zipfile
@@ -7,7 +8,6 @@ import docker
 import structlog
 from docker.models.containers import Container
 
-# Import your DB modules here...
 from ...db.mysql_connector import get_mysql_session
 from ...modules.mysql_functions import ListenerService, MySQLImplantPayloadService
 from .render import render_implant, sanitize_cpp_name
@@ -65,8 +65,16 @@ def build_implant(
             payload_service.update_build_status(build_uuid=build_uuid, build_status="failed")
             return
 
-    # Build Environment & Logic (Now using full_listeners_data)
-    with tempfile.TemporaryDirectory(delete=False) as tmp_dir_str:
+    # check if /dev/shm (ramdisk) is available, for faster access overall
+    # I've found /dev/shm to give 1-2 second decrease in build times overall.
+    shm = Path("/dev/shm")
+    # ! Check for write perms, as well as existence of /dev/shm.
+    base_tmp = str(shm) if shm.exists() and os.access(shm, os.W_OK) else "/tmp"
+
+    # Build Environment & Logic
+    # ! delete=False is intentional. tempfile nukes the directory before it's done being used, resulting in a
+    # ! "failed" build, as the binary & source are never written back to the DB, because they don't exist.
+    with tempfile.TemporaryDirectory(delete=False, dir=base_tmp) as tmp_dir_str:
         build_dir = Path(tmp_dir_str).resolve()
 
         try:
@@ -88,6 +96,9 @@ def build_implant(
             server_logger.exception("Build failed")
             with get_mysql_session() as session:
                 MySQLImplantPayloadService(session).update_build_status(build_uuid=build_uuid, build_status="failed")
+
+        finally:
+            shutil.rmtree(build_dir, ignore_errors=True)
 
 
 def _prepare_listener_data(
