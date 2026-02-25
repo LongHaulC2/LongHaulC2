@@ -172,7 +172,7 @@ async def implant_view():
                     selection="multiple",
                     pagination=100,
                 )
-                .classes("w-full h-full no-shadow bg-transparent text-neutral-300")
+                .classes("w-full h-full tech-table-base tech-table-head tech-table-body tech-table-row-hover")
                 .props("dense flat virtual-scroll square")
             )
 

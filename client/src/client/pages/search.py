@@ -158,7 +158,7 @@ async def implants_list_layout(data: list[dict]):
 
     table = (
         ui.table(columns=cols, rows=data, row_key="implant_uuid", pagination=50)
-        .classes("w-full h-full")
+        .classes("w-full h-full tech-table-base tech-table-head tech-table-body tech-table-row-hover")
         .props("dense flat virtual-scroll square")
     )
 
@@ -209,7 +209,7 @@ async def tasks_list_layout(data):
 
     table = (
         ui.table(columns=cols, rows=data, row_key="task_uuid", pagination=50)
-        .classes("w-full h-full")
+        .classes("w-full h-full tech-table-base tech-table-head tech-table-body tech-table-row-hover")
         .props("dense flat virtual-scroll square")
     )
 

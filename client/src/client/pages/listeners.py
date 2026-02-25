@@ -94,7 +94,7 @@ async def render_listeners_table():
     table = (
         ui.table(columns=columns, rows=[], row_key="id", selection="multiple", pagination=15)
         # .classes("w-full bg-transparent no-shadow text-neutral-300 flex-grow sticky-header")
-        .classes("w-full flex-grow")
+        .classes("w-full flex-grow tech-table-base tech-table-head tech-table-body tech-table-row-hover")
         .bind_filter_from(filter_text, "value")
     )
 

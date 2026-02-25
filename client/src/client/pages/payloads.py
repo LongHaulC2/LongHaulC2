@@ -89,7 +89,7 @@ async def render_payloads_table():
 
     table = (
         ui.table(columns=columns, rows=[], row_key="id", pagination=15)
-        .classes("w-full flex-grow")
+        .classes("w-full flex-grow tech-table-base tech-table-head tech-table-body tech-table-row-hover")
         .bind_filter_from(filter_text, "value")
     )
 

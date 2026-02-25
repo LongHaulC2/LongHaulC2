@@ -257,3 +257,38 @@ body::before {
     background: rgba(16, 185, 129, 0.1) !important;
     color: #34d399 !important;
 }
+
+/* ui.table */
+
+/* The main container: Kill background, shadow, and add the industrial border */
+.tech-table-base {
+    background: rgba(23, 23, 23, 0.7) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: none !important;
+}
+
+/* The Header: Darken and force the high-density mono text */
+.tech-table-head th {
+    background-color: rgba(15, 15, 15, 0.95) !important;
+    color: #71717a !important; /* Zinc-400 */
+    font-family: ui-monospace, monospace !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* The Body: Ensure data text is crisp Zinc-200 */
+.tech-table-body td {
+    color: #e4e4e7 !important; /* Zinc-200 */
+    font-size: 12px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Row Hover: Subtle Emerald glow */
+.tech-table-row-hover tr:hover {
+    background: rgba(16, 185, 129, 0.04) !important;
+    transition: background 0.2s ease;
+}
