@@ -63,6 +63,7 @@ async def listener_view():
                     "dense flat size=sm"
                 ).classes("tech-btn-ghost")
 
+        # Stats row
         with ui.row().classes("w-full h-8 gap-0 bg-[#0c0c0c] border-b border-white/5 items-center"):
             stat_widget("Total", "router", "emerald", "total")
             stat_widget("Online", "wifi", "green", "online")
@@ -73,6 +74,7 @@ async def listener_view():
 
 
 async def render_listeners_table():
+    # searchbar
     with ui.row().classes("w-full items-center px-2 py-1 bg-white/2"):
         filter_text = (
             ui.input(placeholder="FILTER...")
@@ -91,7 +93,8 @@ async def render_listeners_table():
 
     table = (
         ui.table(columns=columns, rows=[], row_key="id", selection="multiple", pagination=15)
-        .classes("w-full bg-transparent no-shadow text-neutral-300 flex-grow sticky-header")
+        # .classes("w-full bg-transparent no-shadow text-neutral-300 flex-grow sticky-header")
+        .classes("w-full flex-grow")
         .bind_filter_from(filter_text, "value")
     )
 

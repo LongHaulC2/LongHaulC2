@@ -120,7 +120,7 @@ known broken on deploy:
 
 
 - [ ] GUI css cleanup:
-rule:use css as base, override as needed 
+rule:use css as base, override as needed. not for sizing
 
 ### Server: Listeners & Core
 

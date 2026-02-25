@@ -48,6 +48,10 @@ body::before {
     background-color: rgba(23, 23, 23, 0.7) !important;
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    
+    /* tells the shadow for the table to fuck off, forcefully */
+    box-shadow: none !important;
+    
   }
 
   .q-table thead tr, .q-table th { background-color: rgba(23, 23, 23, 0.95) !important; }
