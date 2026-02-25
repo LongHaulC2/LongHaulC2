@@ -24,9 +24,9 @@ async def fetch_system_status() -> dict:
     return data
 
 
-# ==============================================================================
+# ====================
 # UTILITIES
-# ==============================================================================
+# ====================
 def parse_status(raw_status: str):
     """Parses backend status strings into UI context (text, color, icon)."""
     raw_status = str(raw_status).lower().strip()
@@ -46,9 +46,9 @@ def parse_status(raw_status: str):
         return raw_status.upper(), "grey", "help"
 
 
-# ==============================================================================
+# ====================
 # PAGE LOGIC
-# ==============================================================================
+# ====================
 
 
 @ui.page("/status")
@@ -59,14 +59,14 @@ async def status_page():
     )
     setup_menu("System Status")
     await build_footer()
-    # --- INTERNAL DOM REGISTRY ---
+    # INTERNAL DOM REGISTRY
     # We store references to the UI elements here so we can update them in-place
     ui_registry = {"core": {}, "listeners": {}}
 
     app_state = {"auto_refresh": True}
 
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel bg-[#0a0a0a]"):
-        # --- HEADER BAR ---
+        # HEADER BAR
         with ui.row().classes(
             "w-full items-center justify-between tech-header-bar p-4 border-b border-white/5 bg-[#0f0f0f]"
         ):

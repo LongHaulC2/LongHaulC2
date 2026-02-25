@@ -518,7 +518,7 @@ class MySQLImplantPayloadService:
         # We need the HEX STRING for the return value/logs
         hash_str = md5_obj.hexdigest()
 
-        # --- ASYNC UPDATE PATH ---
+        # ASYNC UPDATE PATH
         # If this is the result of an async build job, update the placeholder row.
         if build_uuid:
             server_logger.info("Finalizing build job with artifacts", build_uuid=build_uuid)
@@ -544,7 +544,7 @@ class MySQLImplantPayloadService:
                     build_uuid=build_uuid,
                 )
 
-        # --- STANDARD INSERT PATH ---
+        # STANDARD INSERT PATH
         # Deduplication check: See if this file hash already exists
         existing = self.session.query(ImplantPayload).filter_by(payload_hash=hash_bytes).first()
 

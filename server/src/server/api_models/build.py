@@ -46,7 +46,7 @@ def wrap_response_empty(api, model_name):
 # Routes: GET /, POST /
 ######################################################################
 
-# --- GET / ---
+# GET /
 BUILD_GET_MODEL = api.model(
     "BUILD_GET_MODEL",
     {
@@ -73,7 +73,7 @@ BUILD_GET_MODEL = api.model(
 BUILD_GET_RESPONSE = wrap_response_list(api, BUILD_GET_MODEL)
 
 
-# --- POST / ---
+# POST /
 BUILD_POST_INPUT = api.model(
     "BUILD_POST_INPUT",
     {
@@ -112,7 +112,7 @@ BUILD_POST_RESPONSE = wrap_response_single(api, BUILD_POST_MODEL)
 # Routes: GET /jobs/<uuid>
 ######################################################################
 
-# --- GET /jobs/<uuid> ---
+# GET /jobs/<uuid>
 BUILDJOBS_GET_MODEL = api.model(
     "BUILDJOBS_GET_MODEL",
     {
@@ -143,7 +143,7 @@ BUILDJOBS_GET_RESPONSE = wrap_response_single(api, BUILDJOBS_GET_MODEL)
 # Routes: DELETE /<hash> (GET is binary stream)
 ######################################################################
 
-# --- DELETE /<hash> ---
+# DELETE /<hash>
 BINARYACTIONS_DELETE_RESPONSE = wrap_response_empty(api, "BINARYACTIONS_DELETE_RESPONSE")
 
 

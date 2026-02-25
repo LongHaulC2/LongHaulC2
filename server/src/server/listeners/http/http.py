@@ -540,7 +540,7 @@ def http_response(data_from_implant: bytes, request: Request):
     implant_uuid = unpacked_metadata.get("implant_uuid", "")
     check_if_data(implant_uuid)
 
-    # --- Step 3: Routing Logic ---
+    # Step 3: Routing Logic
     # 00000000-0000-0000-0000-000000000000
     if implant_uuid == NULL_UUID:
         # Handle First-Time Registration

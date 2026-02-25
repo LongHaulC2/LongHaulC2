@@ -438,7 +438,7 @@ async def start_listener(
             "status": "running"
         }
     """
-    # --- validate inputs ---
+    # validate inputs
     check_type(listener_host, str, "listener_host")
     check_type(listener_port, int, "listener_port")
     check_type(listener_type, str, "listener_type")
@@ -447,7 +447,7 @@ async def start_listener(
     check_type(listener_profile_name, str, "listener_profile_name")
     check_type(listener_profile_contents, str, "listener_profile_contents")
 
-    # --- normalize / preprocess ---
+    # normalize / preprocess
     listener_host = listener_host.strip()
     listener_name = listener_name.strip()
 
@@ -461,7 +461,7 @@ async def start_listener(
         "listener_profile_contents": listener_profile_contents,
     }
 
-    # --- core logic placeholder ---
+    # core logic placeholder
     api_log.debug("Getting data for listener")
 
     return await safe_api_request(
@@ -505,7 +505,7 @@ async def build_implant(
             "status": "building"
         }
     """
-    # --- validate inputs ---
+    # validate inputs
     check_type(implant_name, str, "implant_name")
     # check_type(implant_listener_uuid, str, "implant_listener_uuid")
     # check_type(implant_variant, str, "implant_variant")
@@ -524,7 +524,7 @@ async def build_implant(
         "initial_post_profile_listener_uuid": initial_post_profile_listener_uuid,
     }
 
-    # --- core logic placeholder ---
+    # core logic placeholder
     return await safe_api_request(
         method="POST",
         endpoint="/api/v1/build/",

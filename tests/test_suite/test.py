@@ -6,7 +6,7 @@ import uuid
 
 import requests
 
-# --- Configuration ---
+# Configuration
 API_HOST = "http://10.0.0.30:45045"
 API_BASE = f"{API_HOST}/api/v1"
 PROFILES_DIR = "./profiles"
@@ -187,7 +187,7 @@ def step_5_execute_payload(filepath):
         return None
 
 
-# --- NEW HELPER: Get Snapshot ---
+# NEW HELPER: Get Snapshot
 def get_existing_implant_uuids():
     """Fetches a set of all currently registered implant UUIDs."""
     try:
@@ -203,7 +203,7 @@ def get_existing_implant_uuids():
     return set()
 
 
-# --- MODIFIED: Wait with ignore list ---
+# MODIFIED: Wait with ignore list
 def wait_for_implant_checkin(ignored_uuids):
     """Polls until a NEW implant (one not in ignored_uuids) appears."""
     log("Waiting for NEW implant check-in...", "INFO")
@@ -304,7 +304,7 @@ def step_7_check_output(implant_uuid, task_uuid):
 
 
 def main():
-    log("--- Starting Test Suite ---")
+    log("--- Starting Test Suite")
 
     test_report = {}
 
@@ -330,7 +330,7 @@ def main():
             with open(profile_path, "r") as f:
                 profile_content = f.read()
 
-            log(f"\n--- Testing Profile: {profile_name} ---")
+            log(f"\n--- Testing Profile: {profile_name}")
 
             # Create Listener
             listener_id = step_2_create_listener(profile_name, profile_content)
@@ -358,14 +358,14 @@ def main():
                 test_report[profile_name] = "FAILURE: Step 4 (Download Payload)"
                 continue
 
-            # --- SNAPSHOT START ---
+            # SNAPSHOT START
             # Capture the state of the server BEFORE we run the new malware
             existing_uuids = get_existing_implant_uuids()
             log(
                 f"Snapshot taken. {len(existing_uuids)} implants currently exist.",
                 "INFO",
             )
-            # --- SNAPSHOT END ---
+            # SNAPSHOT END
 
             # Execute Payload
             process = step_5_execute_payload(exe_path)
@@ -405,13 +405,13 @@ def main():
                     "FAILURE: Step 7 (Output Verification Failed)"
                 )
 
-            log(f"--- Completed Profile: {profile_name} ---")
+            log(f"--- Completed Profile: {profile_name}")
 
         except Exception as e:
             print(f"An error occured: {e}")
             continue
 
-    # --- FINAL REPORT ---
+    # FINAL REPORT
     print("\n" + "=" * 40)
     print("      FINAL EXECUTION REPORT")
     print("=" * 40)

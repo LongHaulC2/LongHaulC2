@@ -47,7 +47,7 @@ def wrap_response_empty(api, model_name):
 # Routes: GET /, POST /
 ######################################################################
 
-# --- GET / (List) ---
+# GET / (List)
 IMPLANTS_GET_MODEL = api.model(
     "IMPLANTS_GET_MODEL",
     {
@@ -75,7 +75,7 @@ IMPLANTS_GET_MODEL = api.model(
 IMPLANTS_GET_RESPONSE = wrap_response_list(api, IMPLANTS_GET_MODEL)
 
 
-# --- POST / (Create) ---
+# POST / (Create)
 IMPLANTS_POST_MODEL = api.model(
     "IMPLANTS_POST_MODEL",
     {
@@ -93,7 +93,7 @@ IMPLANTS_POST_RESPONSE = wrap_response_single(api, IMPLANTS_POST_MODEL)
 # Routes: GET /<uuid>, PUT /<uuid>, DELETE /<uuid>
 ######################################################################
 
-# --- GET /<uuid> ---
+# GET /<uuid>
 IMPLANT_GET_MODEL = api.model(
     "IMPLANT_GET_MODEL",
     {
@@ -121,7 +121,7 @@ IMPLANT_GET_MODEL = api.model(
 IMPLANT_GET_RESPONSE = wrap_response_single(api, IMPLANT_GET_MODEL)
 
 
-# --- PUT /<uuid> ---
+# PUT /<uuid>
 IMPLANT_PUT_INPUT = api.model(
     "IMPLANT_PUT_INPUT",
     {
@@ -141,7 +141,7 @@ IMPLANT_PUT_INPUT = api.model(
 IMPLANT_PUT_RESPONSE = wrap_response_empty(api, "IMPLANT_PUT_RESPONSE")
 
 
-# --- DELETE /<uuid> ---
+# DELETE /<uuid>
 IMPLANT_DELETE_RESPONSE = wrap_response_empty(api, "IMPLANT_DELETE_RESPONSE")
 
 
@@ -150,7 +150,7 @@ IMPLANT_DELETE_RESPONSE = wrap_response_empty(api, "IMPLANT_DELETE_RESPONSE")
 # Routes: POST /<uuid>/task
 ######################################################################
 
-# --- POST /<uuid>/task ---
+# POST /<uuid>/task
 # Internal model for the nested task dictionary
 IMPLANT_TASK_POST_INTERNAL_MODEL = api.model(
     "IMPLANT_TASK_POST_INTERNAL_MODEL",
@@ -187,7 +187,7 @@ IMPLANT_TASK_POST_RESPONSE = wrap_response_single(api, IMPLANT_TASK_POST_MODEL)
 # Routes: GET /<uuid>/tasks, DELETE /<uuid>/tasks
 ######################################################################
 
-# --- GET /<uuid>/tasks (Peek) ---
+# GET /<uuid>/tasks (Peek)
 IMPLANT_TASKS_GET_MODEL = api.model(
     "IMPLANT_TASKS_GET_MODEL",
     {
@@ -197,7 +197,7 @@ IMPLANT_TASKS_GET_MODEL = api.model(
 IMPLANT_TASKS_GET_RESPONSE = wrap_response_list(api, IMPLANT_TASKS_GET_MODEL)
 
 
-# --- DELETE /<uuid>/tasks (Clear) ---
+# DELETE /<uuid>/tasks (Clear)
 IMPLANT_TASKS_DELETE_RESPONSE = wrap_response_empty(api, "IMPLANT_TASKS_DELETE_RESPONSE")
 
 
@@ -206,7 +206,7 @@ IMPLANT_TASKS_DELETE_RESPONSE = wrap_response_empty(api, "IMPLANT_TASKS_DELETE_R
 # Routes: GET /<uuid>/tasks/history
 ######################################################################
 
-# --- GET /<uuid>/tasks/history ---
+# GET /<uuid>/tasks/history
 # Defining a generic task structure for history.
 # You can expand this based on what MySQLImplantTaskService actually returns.
 IMPLANT_HISTORY_GET_MODEL = api.model(
@@ -228,7 +228,7 @@ IMPLANT_HISTORY_GET_RESPONSE = wrap_response_list(
 # Routes: POST /search
 ######################################################################
 
-# --- POST /search ---
+# POST /search
 IMPLANT_SEARCH_POST_INPUT = api.model(
     "IMPLANT_SEARCH_POST_INPUT",
     {
@@ -262,7 +262,7 @@ IMPLANT_SEARCH_POST_RESPONSE = wrap_response_list(api, IMPLANT_SEARCH_POST_MODEL
 # Routes: POST /history/search
 ######################################################################
 
-# --- POST /history/search ---
+# POST /history/search
 TASK_SEARCH_POST_INPUT = api.model(
     "TASK_SEARCH_POST_INPUT",
     {

@@ -176,7 +176,7 @@ async def implant_view():
                 .props("dense flat virtual-scroll square")
             )
 
-    # --- LOGIC ---
+    # LOGIC
     async def refresh():
         nonlocal previous_ids, table_initialized
 
@@ -399,7 +399,7 @@ async def terminal(implant_uuid: str):
                 "dense flat size=sm"
             )
 
-    # --- LOGIC ---
+    # LOGIC
     async def push_text_to_terminal(data):
         ui_log.push(f"{terminal_prepend}{data}")
 
@@ -533,7 +533,7 @@ async def terminal(implant_uuid: str):
         else:
             ui_user_input.value = ""  # Clear if we go past the end
 
-    # --- INIT ---
+    # INIT
     async def setup_terminal():
         task_history = await get_implant_task_history(implant_uuid)
         if task_history:
@@ -541,7 +541,7 @@ async def terminal(implant_uuid: str):
             if isinstance(tasks, list):
                 await add_tasks_to_terminal(tasks)
 
-        await push_output_to_terminal("--- SESSION ESTABLISHED ---")
+        await push_output_to_terminal("--- SESSION ESTABLISHED")
 
         # Scroll to bottom
         ui.run_javascript(

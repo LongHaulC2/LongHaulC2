@@ -34,7 +34,7 @@ async def search_view():
     api = httpx.AsyncClient()
     running_query: asyncio.Task | None = None
 
-    # --- UI LAYOUT ---
+    # UI LAYOUT
 
     # Main Glass Panel
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
@@ -80,7 +80,7 @@ async def search_view():
                 ui.icon("radar", size="6em")
                 ui.label("AWAITING INPUT").classes("tech-label-sub")
 
-    # --- LOGIC ---
+    # LOGIC
 
     async def run_search() -> None:
         nonlocal running_query
@@ -139,7 +139,7 @@ async def search_view():
     search_field.on_value_change(run_search)
 
 
-# --- LAYOUT RENDERERS ---
+# LAYOUT RENDERERS
 
 
 async def implants_list_layout(data: list[dict]):

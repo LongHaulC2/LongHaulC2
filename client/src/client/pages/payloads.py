@@ -182,9 +182,9 @@ async def render_payloads_table():
     table.on("src", lambda e: download_payload_source(hash=e.args["hash"], name=e.args["name"]))
 
 
-# ==============================================================================
+# ====================
 #   DIALOG & BUILD LOGIC
-# ==============================================================================
+# ====================
 async def start_payload_dialogue():
     """Opens the Build Dialog"""
 

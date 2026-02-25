@@ -80,7 +80,7 @@ target_link_libraries(Implant_v01 PRIVATE
         ntdll
     )
 
-    # --- MSVC Specific (Native Windows Build) ---
+    # MSVC Specific (Native Windows Build)
     if(MSVC)
         # Enable Hot Reload
         if (POLICY CMP0141)
@@ -95,7 +95,7 @@ target_link_libraries(Implant_v01 PRIVATE
             string(REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
         endforeach()
         
-    # --- MinGW Specific (Cross-Compile on Linux) ---
+    # MinGW Specific (Cross-Compile on Linux)
     elseif(MINGW)
         # 1. Static Linking
         # Ensures libgcc/libstdc++ are built in, so you don't need DLLs on the target

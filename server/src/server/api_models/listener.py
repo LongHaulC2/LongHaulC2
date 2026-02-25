@@ -46,7 +46,7 @@ def wrap_response_empty(api, model_name):
 # Routes: GET /<uuid>, DELETE /<uuid>, PATCH /<uuid>
 ######################################################################
 
-# --- GET /<uuid> ---
+# GET /<uuid>
 LISTENER_GET_MODEL = api.model(
     "LISTENER_GET_MODEL",
     {
@@ -80,11 +80,11 @@ LISTENER_PATCH_INPUT = api.model(
 )
 
 
-# --- DELETE /<uuid> ---
+# DELETE /<uuid>
 LISTENER_DELETE_RESPONSE = wrap_response_empty(api, "LISTENER_DELETE_RESPONSE")
 
 
-# --- PATCH /<uuid> ---
+# PATCH /<uuid>
 LISTENER_PATCH_RESPONSE = wrap_response_empty(api, "LISTENER_PATCH_RESPONSE")
 
 ######################################################################
@@ -92,7 +92,7 @@ LISTENER_PATCH_RESPONSE = wrap_response_empty(api, "LISTENER_PATCH_RESPONSE")
 # Routes: GET /, POST /
 ######################################################################
 
-# --- GET / ---
+# GET /
 LISTENERS_GET_MODEL = api.model(
     "LISTENERS_GET_MODEL",
     {
@@ -110,7 +110,7 @@ LISTENERS_GET_MODEL = api.model(
 LISTENERS_GET_RESPONSE = wrap_response_list(api, LISTENERS_GET_MODEL)
 
 
-# --- POST / ---
+# POST /
 LISTENERS_POST_INPUT = api.model(
     "LISTENERS_POST_INPUT",
     {

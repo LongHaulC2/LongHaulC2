@@ -8,9 +8,9 @@ from client.src.client.pages.menu import setup_menu
 
 server_log = structlog.getLogger("server")
 
-# ==============================================================================
+# ====================
 #   DOCUMENTATION UTILITIES
-# ==============================================================================
+# ====================
 
 # Path Logic: Assumes this file is in client/src/client/pages/
 # So .parent.parent is client/src/client/
@@ -81,9 +81,9 @@ def load_doc_content(relative_path: str) -> str:
         return f"# Error\nCould not load document: {e}"
 
 
-# ==============================================================================
+# ====================
 #   PAGE LOGIC
-# ==============================================================================
+# ====================
 
 
 @ui.page("/docs")
@@ -142,11 +142,11 @@ async def docs_page():
 
 
 async def docs_view(tree_data: list):
-    # --- LAYOUT CONTAINER ---
+    # LAYOUT CONTAINER
     with ui.row().classes("w-full h-full gap-0 tech-glass-panel"):
-        # ======================================================================
+        # ====================
         #   LEFT SIDEBAR: NAVIGATION TREE
-        # ======================================================================
+        # ====================
         with ui.column().classes("w-72 h-full border-r border-white/5 bg-black/20 flex-shrink-0"):
             # Header
             with ui.row().classes("w-full p-4 items-center gap-2 border-b border-white/5"):
@@ -182,11 +182,11 @@ async def docs_view(tree_data: list):
             with ui.row().classes("w-full p-3 border-t border-white/5 bg-white/5"):
                 ui.label("LOCAL_FS_MODE").classes("tech-label-sub")
 
-        # ======================================================================
+        # ====================
         #   RIGHT SIDEBAR: CONTENT READER
-        # ======================================================================
+        # ====================
         with ui.column().classes("flex-grow h-full relative"):
-            # --- Breadcrumbs Bar ---
+            # Breadcrumbs Bar
             with ui.row().classes("w-full p-4 border-b border-white/5 bg-black/10 items-center justify-between"):
                 # Dynamic Breadcrumbs Container
                 breadcrumbs_container = ui.element("q-breadcrumbs").classes("text-xs font-mono text-neutral-500")
@@ -203,7 +203,7 @@ async def docs_view(tree_data: list):
                 #         "flat dense color=grey size=sm"
                 #     )
 
-            # --- Markdown Content Area ---
+            # Markdown Content Area
             with ui.scroll_area().classes("w-full flex-grow p-8"):  # noqa: SIM117
                 with ui.column().classes("w-full max-w-4xl mx-auto pb-20"):
                     # Markdown Container
@@ -213,7 +213,7 @@ async def docs_view(tree_data: list):
 
                     ui.separator().classes("bg-white/10 my-8")
 
-    # --- EVENT HANDLER ---
+    # EVENT HANDLER
     def update_content(node_id):
         if not node_id:
             return

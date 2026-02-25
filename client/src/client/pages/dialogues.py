@@ -17,7 +17,7 @@ async def upload_dialog(implant_uuids: list):
         "filename": "",  # Original filename
     }
 
-    # --- Logic ---
+    # Logic
     def check_ready():
         """Enables the submit button only when we have destination + file."""
         if state["dest"] and state["file_bytes"]:
@@ -74,7 +74,7 @@ async def upload_dialog(implant_uuids: list):
             ui.notify(f"Task Error: {str(err)}", type="negative")
             submit_btn.props(remove="loading")
 
-    # --- UI Layout ---
+    # UI Layout
     with ui.dialog() as dialog, ui.card().classes("tech-dialog w-[500px] p-0 overflow-hidden"):
         # Header
         with ui.row().classes("tech-header-bar w-full items-center justify-between"):
@@ -95,7 +95,7 @@ async def upload_dialog(implant_uuids: list):
                 ui.notify("Please select at least one implant to upload to", type="warning")
                 return
 
-            # --- Target List ---
+            # Target List
             # We removed the inline bg classes here so your CSS
             # .q-expansion-item rules can apply the blur/zinc-bg automatically
             with ui.expansion(f"Target List ({len(implant_uuids)})", icon="hub").classes("w-full"):  # noqa: SIM117
@@ -103,7 +103,7 @@ async def upload_dialog(implant_uuids: list):
                     for uid in implant_uuids:
                         ui.label(f"• {uid}").classes("tech-label-sub")
 
-            # --- Controls ---
+            # Controls
             def _update_mode(e):
                 state["mode"] = e.value
                 dest_input.label = "REMOTE FILE PATH" if e.value == "disk" else "MEMSTORE KEY"

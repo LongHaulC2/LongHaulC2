@@ -3,7 +3,7 @@ from pathlib import Path
 import structlog
 from nicegui import ui
 
-# --- Imports ---
+# Imports
 from client.src.client.modules.api_calls import (
     get_all_listener_data,
     restart_listener,
@@ -20,9 +20,9 @@ server_log = structlog.getLogger("server")
 server_log.info("Loading /listeners page")
 
 
-# ==============================================================================
+# ====================
 #   UI HELPERS
-# ==============================================================================
+# ====================
 
 
 def stat_widget(label: str, icon: str, color: str, key: str):
@@ -188,9 +188,9 @@ async def render_listeners_table():
         )
 
 
-# ==============================================================================
+# ====================
 #   DIALOG LOGIC
-# ==============================================================================
+# ====================
 async def start_listener_dialogue():
     async def _start_listener():
         if not all(
@@ -230,7 +230,7 @@ async def start_listener_dialogue():
         else:
             ui.notify("Failed to start listener", type="negative")
 
-    # --- TECH DIALOG ---
+    # TECH DIALOG
     with ui.dialog() as dialog, ui.card().classes("tech-dialog w-[600px] p-0 rounded overflow-hidden"):
         with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
             with ui.row().classes("gap-2 items-center"):

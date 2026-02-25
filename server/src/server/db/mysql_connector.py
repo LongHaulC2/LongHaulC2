@@ -17,7 +17,7 @@ from ..instance import env_config
 logger = structlog.getLogger("server")
 
 
-# = Serializer for bytes ======================================
+# ====================
 # Add a serializer for bytes, so they are stored as base64 in db. this is needed for storing task responses,
 # which can commonly have binary data (ex: file download response).
 
@@ -37,7 +37,7 @@ def json_serializer(obj):
     return json.dumps(obj, cls=BytesEncoder)
 
 
-# ============================================================
+# ====================
 
 engine = None
 SessionLocal = None

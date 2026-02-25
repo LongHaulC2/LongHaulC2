@@ -1,23 +1,12 @@
-/* ==============================================================================
-   GLOBAL VISUALS & ATMOSPHERE
-   Theme: Refined Industrial (Zinc/Emerald)
-   ============================================================================== */
-
-/* 1. The Background: A dark base with a subtle technical dot grid */
+/* GLOBAL VISUALS */
 body {
-  /* Tailwind Zinc-950 Base */
-  background-color: #09090b; 
-  
-  /* Dots are Zinc-800 (#27272a) */
+  background-color: #09090b;
   background-image: radial-gradient(#27272a 1px, transparent 1px);
   background-size: 24px 24px;
-  
-  /* Text is Zinc-200 */
   color: #e4e4e7;
   min-height: 100vh;
 }
 
-/* 2. The Atmosphere: A fixed ambient glow at the top center */
 body::before {
   content: '';
   position: fixed;
@@ -25,39 +14,18 @@ body::before {
   left: 0;
   width: 100%;
   height: 100%;
-  /* A very subtle emerald glow fading into darkness */
-  background: radial-gradient(
-    circle at 50% -20%, 
-    rgba(16, 185, 129, 0.15) 0%, 
-    transparent 50%
-  );
+  background: radial-gradient(circle at 50% -20%, rgba(16, 185, 129, 0.15) 0%, transparent 50%);
   pointer-events: none;
   z-index: -1;
 }
 
-/* 3. Global Scrollbars (Refined Technical Style) */
-::-webkit-scrollbar {
-  width: 6px; /* Sleek width */
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background-color: #3f3f46;
-  border-radius: 3px; /* Subtle curve */
-}
-::-webkit-scrollbar-thumb:hover {
-  background-color: #52525b;
-}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background-color: #3f3f46; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background-color: #52525b; }
+::selection { background: rgba(16, 185, 129, 0.3); color: white; }
 
-/* 4. Selection Color */
-::selection {
-  background: rgba(16, 185, 129, 0.3);
-  color: white;
-}
-
-/* 5. Glass Utility (Optional usage) */
+/* General utility for blurred containers */
 .glass {
   background: rgba(23, 23, 23, 0.6);
   backdrop-filter: blur(12px);
@@ -65,91 +33,47 @@ body::before {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-
-/* ==============================================================================
-   COMPONENT OVERRIDES
-   ============================================================================== */
+/* COMPONENT OVERRIDES */
 @layer components {
-
-  /* --- DIALOGS (New Tech Style) --- */
-  /* Use class="tech-dialog" on your cards inside ui.dialog() */
+  /* Used for ui.card() inside ui.dialog() */
   .tech-dialog {
-    background-color: #18181b !important; /* Zinc-950 */
+    background-color: #18181b !important;
     border: 1px solid rgba(52, 211, 153, 0.2);
     box-shadow: 0 0 40px rgba(0,0,0,0.5);
-    border-radius: 4px !important; /* Refined Radius */
+    border-radius: 4px !important;
   }
 
-
-  /* --- STANDALONE TABLES --- */
-  /* These rules apply to tables NOT inside an expansion item */
-  
+  /* Global Quasar table styling */
   .q-table__card, .q-table__container {
-    /* Neutral-900 with opacity & blur */
-    background-color: rgba(23, 23, 23, 0.7) !important; 
+    background-color: rgba(23, 23, 23, 0.7) !important;
     backdrop-filter: blur(8px);
-    
-    /* 1px sleek border */
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  /* Header Background */
-  .q-table thead tr, .q-table th {
-    background-color: rgba(23, 23, 23, 0.95) !important;
-  }
-  
-  /* Reset Row Backgrounds */
-  .q-table tbody td {
-     background-color: transparent !important;
-  }
+  .q-table thead tr, .q-table th { background-color: rgba(23, 23, 23, 0.95) !important; }
+  .q-table tbody td { background-color: transparent !important; }
 
-
-  /* --- EXPANSION ITEMS --- */
-  
-  /* 1. The Container */
+  /* Used for collapsible UI sections */
   .q-expansion-item {
-    /* Updated: 'rounded' (4px) instead of 'rounded-lg' for tech look */
     @apply rounded mb-3 overflow-hidden transition-all duration-300;
-    
-    background-color: rgba(23, 23, 23, 0.9); 
+    background-color: rgba(23, 23, 23, 0.9);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  /* 2. Header (Clickable) */
-  .q-expansion-item .q-item {
-    @apply py-3 px-4;
-    transition: background-color 0.2s ease;
-  }
-  .q-expansion-item .q-item:hover {
-    background-color: rgba(255, 255, 255, 0.03);
-  }
+  .q-expansion-item .q-item { @apply py-3 px-4; transition: background-color 0.2s ease; }
+  .q-expansion-item .q-item:hover { background-color: rgba(255, 255, 255, 0.03); }
   .q-expansion-item .q-focus-helper { display: none; }
 
-  /* 3. Active/Open State */
   .q-expansion-item.q-expansion-item--expanded {
-    border-color: rgba(52, 211, 153, 0.4); /* Emerald Border */
+    border-color: rgba(52, 211, 153, 0.4);
     background-color: rgba(23, 23, 23, 0.95);
     box-shadow: 0 4px 20px -10px rgba(16, 185, 129, 0.3);
   }
-  .q-expansion-item.q-expansion-item--expanded > .q-expansion-item__container > .q-item {
-    color: #34d399; /* Text turns Emerald */
-  }
+  .q-expansion-item.q-expansion-item--expanded > .q-expansion-item__container > .q-item { color: #34d399; }
+  .q-expansion-item__content { background-color: rgba(0, 0, 0, 0.2); border-top: 1px solid rgba(255, 255, 255, 0.05); padding: 0 !important; }
 
-  /* 4. Content Body */
-  .q-expansion-item__content {
-    background-color: rgba(0, 0, 0, 0.2);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    
-    /* FORCE ZERO PADDING: Essential for flush tables */
-    padding: 0 !important;
-  }
-
-
-  /* --- NESTED / EMBEDDED TABLES --- */
-  /* Applies automatically to any table inside an expansion item */
-
-  /* 1. Reset Container (Flush Layout) */
+  /* Styles tables nested inside expansion items to be flush */
   .q-expansion-item__content .q-table__card,
   .q-expansion-item__content .q-table__container {
     background: transparent !important;
@@ -157,129 +81,89 @@ body::before {
     border: none !important;
     box-shadow: none !important;
     border-radius: 0 !important;
-    
-    /* Force Full Width & No Margins */
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
   }
   
-  /* Remove margins from scroll area */
-  .q-expansion-item__content .q-table__middle {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
+  .q-expansion-item__content .q-table__middle { margin: 0 !important; padding: 0 !important; }
 
-  /* 2. Embedded Header Style */
   .q-expansion-item__content .q-table thead tr, 
   .q-expansion-item__content .q-table th {
     background-color: rgba(0, 0, 0, 0.3) !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    
-    /* Typography */
     font-size: 0.75rem;
     color: #a1a1aa;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    
-    /* Padding restoration (since container is flush) */
     @apply px-4; 
   }
 
-  /* 3. Embedded Row Style */
-  .q-expansion-item__content .q-table tbody td {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
-    height: 48px;
-    @apply px-4;
-  }
-
-  /* 4. Cleanup Last Row */
-  .q-expansion-item__content .q-table tbody tr:last-child td {
-    border-bottom: none !important;
-  }
+  .q-expansion-item__content .q-table tbody td { border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important; height: 48px; @apply px-4; }
+  .q-expansion-item__content .q-table tbody tr:last-child td { border-bottom: none !important; }
 }
 
-/* ==============================================================================
-   SEMANTIC COMPONENT CLASSES
-   (Keeps Python code clean)
-   ============================================================================== */
+/* SEMANTIC HANDLES */
 
-/* 1. The Full Screen Glass Panel */
+/* Main container for full-page dashboard modules */
 .tech-glass-panel {
-    /* Visuals */
     background-color: rgba(23, 23, 23, 0.6);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    
-    /* Shape */
-    border-radius: 4px; /* Refined Industrial */
+    border-radius: 4px;
     overflow: hidden;
 }
 
-/* 2. The Header Bar */
+/* Primary navigation or section header bars */
 .tech-header-bar {
     background-color: rgba(255, 255, 255, 0.05);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 16px 24px; /* py-4 px-6 */
+    padding: 16px 24px;
 }
 
-/* 3. Text Styles */
-.tech-label-title {
-    font-family: monospace;
-    font-size: 0.875rem; /* text-sm */
-    font-weight: 700;
-    letter-spacing: 0.1em; /* tracking-widest */
-    color: #a3a3a3; /* text-neutral-400 */
-}
-
-.tech-label-subtitle {
-    font-size: 0.75rem; /* text-xs */
-    font-family: monospace;
-    color: #52525b; /* text-neutral-600 */
-}
-
-/* 4. Special Buttons */
-.tech-btn-action {
-    border: 1px solid rgba(16, 185, 129, 0.3); /* Emerald-500/30 */
-    background-color: rgba(16, 185, 129, 0.1); /* Emerald-500/10 */
-    color: #34d399; /* Emerald-400 */
-    transition: all 0.2s ease;
-}
-.tech-btn-action:hover {
-    background-color: rgba(16, 185, 129, 0.2);
-}
-
-.tech-btn-ghost {
-    color: #737373; /* text-neutral-500 */
-    transition: color 0.2s ease;
-}
-.tech-btn-ghost:hover {
-    color: #ffffff;
-}
-
-/* 5. Form Inputs (Dialogs) */
-.tech-input {
-    /* You can override Quasar defaults here if needed, 
-       but usually just applying props in Python is safer for Inputs */
-}
-
-/* --- Add these to your CSS file --- */
-
+/* Small mono labels for metadata and headers */
 .tech-label-sub {
     font-family: ui-monospace, 'Cascadia Code', monospace;
     font-size: 10px;
     letter-spacing: 0.1em;
-    color: #71717a; /* Zinc-400 */
+    color: #71717a;
     text-transform: uppercase;
 }
 
-.tech-data-mono {
-    /*font-family: ui-monospace, 'Cascadia Code', monospace;*/
-    font-size: 12px;
-    color: #e4e4e7; /* Zinc-200 */
+/* High-visibility headers for page titles */
+.tech-label-header {
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #71717a;
+    text-transform: uppercase;
 }
 
+/* Call-to-action buttons with emerald accent */
+.tech-btn-action {
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    transition: all 0.2s ease;
+}
+.tech-btn-action:hover { background-color: rgba(16, 185, 129, 0.2); }
+
+/* Dimmed secondary buttons */
+.tech-btn-ghost {
+    color: #737373;
+    transition: color 0.2s ease;
+}
+.tech-btn-ghost:hover { color: #ffffff; }
+
+/* Standard data display text */
+.tech-data-mono {
+    font-size: 12px;
+    color: #e4e4e7;
+}
+
+/* Bold emphasized data values */
 .tech-data-bold {
     font-size: 14px;
     font-weight: 700;
@@ -287,7 +171,7 @@ body::before {
     letter-spacing: -0.01em;
 }
 
-/* Slim Stat Container */
+/* Container for slim telemetry status items */
 .tech-stat-pill {
     display: flex;
     align-items: center;

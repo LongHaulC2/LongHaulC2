@@ -1,7 +1,6 @@
 import structlog
 from nicegui import ui
 
-# Imports
 from client.src.client.modules.api_calls import (
     get_implant_data,
     get_implant_task_history,
@@ -11,11 +10,10 @@ from client.src.client.pages.menu import setup_menu
 
 server_log = structlog.getLogger("server")
 
-# ==============================================================================
+
+# ========================================
 #   DASHBOARD WIDGETS
-# ==============================================================================
-
-
+# ========================================
 def stat_card(label: str, value: str, icon: str, color: str = "emerald"):
     """Small dense stat widget"""
     with ui.card().classes("p-3 gap-1 bg-white/5 border border-white/10 rounded-sm no-shadow min-w-[140px] flex-grow"):
@@ -34,9 +32,9 @@ def info_row(key: str, value: str):
         ui.label(str(value)).classes("tech-label-sub")
 
 
-# ==============================================================================
+# ========================================
 #   PAGE LOGIC
-# ==============================================================================
+# ========================================
 
 
 @ui.page("/implant/{implant_uuid}")
@@ -75,15 +73,18 @@ async def implant_details(implant_uuid: str):
     await build_footer()
 
 
+# ========================================
+# dashboard
+# ========================================
 async def render_dashboard(data: dict, implant_uuid: str):
     hostname = data.get("computer_name", "DESKTOP-UNKNOWN")
     user = data.get("user_name", "SYSTEM")
 
-    # --- MAIN CONTAINER ---
+    # MAIN CONTAINER
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
-        # ==========================================================================
+        # ====================
         #   1. HEADER (Fixed Height)
-        # ==========================================================================
+        # ====================
         with ui.row().classes("w-full p-4 border-b border-white/10 bg-black/20 items-center justify-between shrink-0"):
             with ui.row().classes("items-center gap-4"):
                 ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to("/operations")).props(
@@ -109,11 +110,11 @@ async def render_dashboard(data: dict, implant_uuid: str):
                     on_click=lambda: ui.navigate.to("/operations"),
                 ).classes("tech-btn-action px-4").props("unelevated dense")
 
-        # ==========================================================================
+        # ====================
         #   2. BODY (Fills remaining height)
-        # ==========================================================================
+        # ====================
         with ui.column().classes("w-full flex-grow p-6 gap-6 overflow-hidden"):
-            # --- ROW 1: VITALS (Fixed Height) ---
+            # ROW 1: VITALS (Fixed Height)
             with ui.row().classes("w-full gap-4 flex-nowrap overflow-x-auto pb-1 shrink-0"):
                 stat_card("PRIMARY USER", user, "person")
                 stat_card("NETWORK ADDR", data.get("ip_address"), "lan")
@@ -125,10 +126,10 @@ async def render_dashboard(data: dict, implant_uuid: str):
                 stat_card("LAST SEEN", data.get("last_seen"), "schedule", color="orange")
                 stat_card("ARCHITECTURE", data.get("arch"), "dns")
 
-            # --- ROW 2: WORKSPACE & SIDEBAR (Fills remaining height) ---
+            # ROW 2: WORKSPACE & SIDEBAR (Fills remaining height)
             # KEY FIX: 'no-wrap' forces side-by-side.
             with ui.row().classes("w-full gap-6 items-stretch flex-grow h-full overflow-hidden no-wrap"):
-                # === LEFT: WORKSPACE (TABS) ===
+                # ====================
                 # KEY FIX: 'min-w-0' allows this panel to shrink if the screen gets too small, preventing overlap.
                 with ui.card().classes(
                     "flex-grow w-full min-w-0 bg-white/5 border border-white/5 p-0 rounded flex flex-col"
@@ -152,7 +153,7 @@ async def render_dashboard(data: dict, implant_uuid: str):
                     with ui.tab_panels(tabs, value="dna").classes(
                         "w-full flex-grow bg-transparent p-0 overflow-hidden"
                     ):
-                        # --- PANEL 1: SYSTEM DNA ---
+                        # PANEL 1: SYSTEM DNA
                         with ui.tab_panel("dna").classes("w-full h-full p-0"):  # noqa: SIM117
                             with ui.scroll_area().classes("w-full h-full p-4"):
                                 info_row("Operating System", data.get("os_details", "N/A"))
@@ -164,7 +165,7 @@ async def render_dashboard(data: dict, implant_uuid: str):
                                 info_row("Uptime", "14d 2h 12m")
                                 info_row("Integrity Level", "Medium")
 
-                        # --- PANEL 2: MISSION HISTORY ---
+                        # PANEL 2: MISSION HISTORY
                         with ui.tab_panel("history").classes("w-full h-full p-0"):
                             with ui.column().classes("w-full h-full gap-0"):
                                 # Toolbar
@@ -201,14 +202,14 @@ async def render_dashboard(data: dict, implant_uuid: str):
 
                             ui.timer(0.1, load_history, once=True)
 
-                        # --- PANEL 3: FILES ---
+                        # PANEL 3: FILES
                         with ui.tab_panel("files").classes(
                             "w-full h-full items-center justify-center text-neutral-600"
                         ):
                             ui.icon("folder_off", size="xl").classes("mb-2 opacity-50")
                             ui.label("FILE BROWSER MODULE NOT LOADED").classes("tech-label-sub")
 
-                # === RIGHT: SIDEBAR (CONFIG) ===
+                # ====================
                 # KEY FIX: Strictly fixed width (w-[320px]), removed 'w-full', added 'shrink-0'
                 with ui.card().classes(
                     "w-[320px] shrink-0 bg-white/5 border border-white/5 p-0 rounded shrink-0 flex flex-col"
