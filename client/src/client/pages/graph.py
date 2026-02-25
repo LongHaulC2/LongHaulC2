@@ -57,83 +57,36 @@ async def graph_view():
     links = graph_data.get("links", [])
     categories = graph_data.get("categories", [])
 
-    # 1. Define your visual styles per node type
     category_styles = {
-        "Neo4jImplantNode": {
-            "symbol": wrap_svg(PATH_IMPLANT, "#CF2525"),
-            "symbolSize": 45,
-            # "itemStyle": {"color": "#ff4d4d"},
-        },
-        "Neo4jListenerNode": {
-            "symbol": wrap_svg(PATH_LISTENER, "#ffcc00"),
-            "symbolSize": 40,
-            # "itemStyle": {"color": "#ffcc00"},
-        },
-        "Neo4jHostNode": {
-            # Standard SVG path for a server/desktop
-            "symbol": wrap_svg(PATH_HOST, "#024FF5"),
-            "symbolSize": 35,
-            # "itemStyle": {"color": "#4d79ff"},
-        },
-        "Neo4jNetworkNode": {
-            "symbol": wrap_svg(PATH_NETWORK, "#5BE2A3"),
-            "symbolSize": 45,  # Width, Height
-            # "itemStyle": {"color": "#33cc33"},
-        },
-        "Neo4jNicNode": {
-            "symbol": wrap_svg(PATH_NETWORK, "#22573E"),
-            "symbolSize": 45,  # Width, Height
-            # "itemStyle": {"color": "#33cc33"},
-        },
-        "Neo4jC2ChannelNode": {
-            "symbol": wrap_svg(PATH_C2_CHANNEL, "#A01DA5"),
-            "symbolSize": 45,  # Width, Height
-            # "itemStyle": {"color": "#33cc33"},
-        },
-        "Neo4jFileNode": {
-            # You can also use direct web or local image URLs
-            "symbol": wrap_svg(PATH_FILE, "#969696"),
-            "symbolSize": 30,
-        },
-        "Neo4jMemstoreFileNode": {
-            # You can also use direct web or local image URLs
-            "symbol": wrap_svg(PATH_FILE, "#10BB00"),
-            "symbolSize": 30,
-        },
+        "Implant": {"symbol": wrap_svg(PATH_IMPLANT, "#CF2525"), "symbolSize": 45},
+        "Listener": {"symbol": wrap_svg(PATH_LISTENER, "#ffcc00"), "symbolSize": 40},
+        "Host": {"symbol": wrap_svg(PATH_HOST, "#024FF5"), "symbolSize": 35},
+        "Network": {"symbol": wrap_svg(PATH_NETWORK, "#5BE2A3"), "symbolSize": 45},
+        "Nic": {"symbol": wrap_svg(PATH_NETWORK, "#22573E"), "symbolSize": 45},
+        "C2Channel": {"symbol": wrap_svg(PATH_C2_CHANNEL, "#A01DA5"), "symbolSize": 45},
+        "File": {"symbol": wrap_svg(PATH_FILE, "#969696"), "symbolSize": 30},
+        "MemstoreFile": {"symbol": wrap_svg(PATH_FILE, "#10BB00"), "symbolSize": 30},
     }
 
-    # Inject styles into the categories array
+    # Clean categories and inject symbols
     for cat in categories:
-        # Default to a gray circle if the label isn't in our map
-        style = category_styles.get(cat["name"], {"symbol": "circle", "itemStyle": {"color": "#888888"}})
-        cat.update(style)
+        cat["name"] = cat["name"].replace("Neo4j", "").replace("Node", "")
+        cat.update(category_styles.get(cat["name"], {}))
 
-    for cat in categories:
-        old_name = cat["name"]
-        new_name = old_name.replace("Neo4j", "").replace("Node", "")
-        cat["name"] = new_name  # Updates the legend
+    # Name mapping stays in Python, but we use a more efficient lookup
+    # Only perform node processing that ECharts can't do natively
+    for node in nodes:
+        node.setdefault("value", 1)  # Prevents ECharts re-calc errors
+        node["category"] = node["category"].replace("Neo4j", "").replace("Node", "")
 
-    #  Explicitly map categories to specific naming functions
-    def get_implant_name(p):
-        process = p.get("process", "")
-        if process:
-            # Slices off the filepath so "C:\...\safe.exe" becomes "safe.exe"
-            return process.split("\\")[-1].split("/")[-1]
-        # incase there's no process, just return uuid
-        return p.get("implant_uuid", "Unknown Implant")[:20]
-
-    def get_file_name(p):
-        name = p.get("file_name", "")
-        if name:
-            return name
-        return f"{p.get('file_name', 'Unknown')[:50]}"
-
-    def get_file_path(p):
-        name = p.get("file_path", "")
-        if name:
-            return name
-        return f"{p.get('file_name', 'Unknown')[:50]}"
-
+        # Identity Mapping
+        props = node.get("props", {})
+        if node["category"] == "Implant":
+            node["name"] = (props.get("process") or "Unknown").split("\\")[-1].split("/")[-1]
+        elif node["category"] == "Host":
+            node["name"] = props.get("hostname") or props.get("address", "Unknown")
+        else:
+            node["name"] = props.get("file_name") or props.get("ip_address") or node.get("name")
     name_mappers = {
         "Implant": get_implant_name,
         "Listener": lambda p: p.get("name") or p.get("listener_uuid", "Unknown Listener"),
@@ -141,8 +94,8 @@ async def graph_view():
         "Network": lambda p: p.get("cidr", "Unknown Network"),
         "Nic": lambda p: p.get("ip_address") or p.get("mac_address", "Unknown NIC"),
         "C2Channel": lambda p: f"{p.get('protocol', 'C2').upper()} Channel",
-        "File": get_file_path,
-        "MemstoreFile": get_file_name,
+        "File": get_file_path_name,
+        "MemstoreFile": get_file_path_name,
     }
 
     # correlate nodes and dynamically assign their mapped names
@@ -161,32 +114,16 @@ async def graph_view():
 
     options = build_chart_options(nodes, links, categories)
 
-    with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
-        # parent bar
+    with ui.column().classes("tech-glass-panel w-full h-full"):
         build_header_bar()
+        with ui.row().classes("w-full flex-grow overflow-hidden flex-nowrap p-2"):
+            # Use fixed width for sidebar to prevent layout thrashing
+            inspector_sidebar = ui.column().classes("w-80 h-full bg-[#0a0a0a] border-r border-white/5 p-4")
 
-        # graph layout
-        with ui.row().classes("w-full flex-grow overflow-hidden flex-nowrap"):
-            # setup sidebar
-            inspector_sidebar = ui.column().classes(
-                "w-80 h-full p-4 bg-[#111] border-l border-white/10 overflow-y-auto"
-            )
-            with inspector_sidebar:
-                ui.label("Select a node to view details").classes("tech-label-sub")
-
-            # setup graph area
-            with ui.column().classes("flex-grow h-full relative p-2"):
-                chart = ui.echart(
-                    options,
-                ).classes("w-full h-full bg-[#0a0a0a] rounded border border-white/5")
-                chart.on(
-                    "chart:selectchanged",
-                    lambda e: handle_click(e, nodes, inspector_sidebar),
-                )
-
-                with chart, ui.menu().props("context-menu"):
-                    ui.menu_item("Copy")
-                    ui.menu_item("Delete")
+            with ui.column().classes("flex-grow h-full relative"):
+                # Use canvas renderer for better perf with many nodes
+                chart = ui.echart(options).classes("w-full h-full")
+                chart.on("chart:selectchanged", lambda e: handle_click(e, nodes, inspector_sidebar))
 
 
 def build_header_bar():
@@ -262,34 +199,91 @@ def handle_click(e, nodes, sidebar_container):
             ui.label("No actions for this type of node").classes("tech-label-sub")
 
 
+# old less performant version
+# def build_chart_options(nodes, links, categories):
+#     return {
+#         "backgroundColor": "transparent",
+#         "tooltip": {
+#             "trigger": "item",
+#             "backgroundColor": "#171717",
+#             "borderColor": "#333333",
+#             "borderWidth": 1,
+#             "textStyle": {
+#                 "color": "#e5e5e5",
+#                 "fontFamily": "monospace",
+#                 "fontSize": 12,
+#             },
+#             # Shows Node Name and any props to highlihgt
+#             "formatter": "{b}",
+#         },
+#         "legend": [
+#             {
+#                 "data": [c["name"] for c in categories],
+#                 "textStyle": {
+#                     "color": "#a3a3a3",
+#                     "fontFamily": "monospace",
+#                     "fontSize": 11,
+#                 },
+#                 "bottom": 10,
+#                 "icon": "circle",
+#             }
+#         ],
+#         "series": [
+#             {
+#                 "type": "graph",
+#                 "layout": "force",
+#                 "data": nodes,
+#                 "links": links,
+#                 "categories": categories,
+#                 "roam": True,
+#                 "draggable": True,
+#                 "edgeSymbol": ["none", "arrow"],
+#                 "edgeSymbolSize": [0, 8],
+#                 "edgeLabel": {
+#                     "show": True,
+#                     "formatter": "{c}",  # '{c}' tells ECharts to use the 'value' of the link
+#                     "fontSize": 10,
+#                     "color": "#71717a",  # Subtle gray so it's not distracting
+#                     "fontFamily": "monospace",
+#                 },
+#                 "label": {
+#                     "show": True,
+#                     "position": "right",
+#                     "color": "#a3a3a3",
+#                     "fontFamily": "monospace",
+#                     "fontSize": 10,
+#                 },
+#                 "lineStyle": {
+#                     "color": "#52525b",
+#                     "curveness": 0.05,  # Curves help see bi-directional links
+#                     "width": 1.5,
+#                     "type": "dashed",
+#                 },
+#                 "force": {
+#                     # low grav + lowish repulsion allows them to spread, but not too far
+#                     "repulsion": 500,  # Lower = nodes gather closer
+#                     "gravity": 0.01,  # Higher = pulls clusters to center
+#                     "edgeLength": 80,  # Constant length helps stability
+#                     "friction": 0.3,
+#                     # "initLayout": "circular", # sets init layout to be circular. can be that or null/none
+#                 },
+#                 "emphasis": {
+#                     "focus": "adjacency",
+#                     "lineStyle": {"width": 3, "color": "#10b981"},
+#                 },
+#             }
+#         ],
+#         "animationDuration": 1500,  # Longer intro animation looks smoother
+#         "animationEasingUpdate": "quinticInOut",
+#     }
+
+
 def build_chart_options(nodes, links, categories):
     return {
-        "backgroundColor": "transparent",
-        "tooltip": {
-            "trigger": "item",
-            "backgroundColor": "#171717",
-            "borderColor": "#333333",
-            "borderWidth": 1,
-            "textStyle": {
-                "color": "#e5e5e5",
-                "fontFamily": "monospace",
-                "fontSize": 12,
-            },
-            # Shows Node Name and any props to highlihgt
-            "formatter": "{b}",
-        },
-        "legend": [
-            {
-                "data": [c["name"] for c in categories],
-                "textStyle": {
-                    "color": "#a3a3a3",
-                    "fontFamily": "monospace",
-                    "fontSize": 11,
-                },
-                "bottom": 10,
-                "icon": "circle",
-            }
-        ],
+        "backgroundColor": "#0a0a0a",
+        "progressive": 500,  # Render in chunks if nodes > 500
+        "hoverLayerThreshold": 1000,
+        "tooltip": {"show": False},  # Tooltips during force simulation are laggy
         "series": [
             {
                 "type": "graph",
@@ -299,44 +293,27 @@ def build_chart_options(nodes, links, categories):
                 "categories": categories,
                 "roam": True,
                 "draggable": True,
-                "edgeSymbol": ["none", "arrow"],
-                "edgeSymbolSize": [0, 8],
-                "edgeLabel": {
-                    "show": True,
-                    "formatter": "{c}",  # '{c}' tells ECharts to use the 'value' of the link
-                    "fontSize": 10,
-                    "color": "#71717a",  # Subtle gray so it's not distracting
-                    "fontFamily": "monospace",
+                "useWorker": True,  # Offloads physics to a web worker if supported
+                "force": {
+                    "initLayout": None,  # circular for circle
+                    "repulsion": 400,
+                    "gravity": 0.05,
+                    "edgeLength": 100,
+                    "layoutAnimation": True,  # Set to False for instant layout (faster but jumpy)
                 },
-                "label": {
-                    "show": True,
-                    "position": "right",
-                    "color": "#a3a3a3",
-                    "fontFamily": "monospace",
-                    "fontSize": 10,
-                },
+                "label": {"show": True, "position": "bottom", "formatter": "{b}", "fontSize": 9, "color": "#71717a"},
                 "lineStyle": {
                     "color": "#52525b",
                     "curveness": 0.05,  # Curves help see bi-directional links
                     "width": 1.5,
                     "type": "dashed",
                 },
-                "force": {
-                    # low grav + lowish repulsion allows them to spread, but not too far
-                    "repulsion": 500,  # Lower = nodes gather closer
-                    "gravity": 0.01,  # Higher = pulls clusters to center
-                    "edgeLength": 80,  # Constant length helps stability
-                    "friction": 0.3,
-                    # "initLayout": "circular", # sets init layout to be circular. can be that or null/none
-                },
                 "emphasis": {
-                    "focus": "adjacency",
-                    "lineStyle": {"width": 3, "color": "#10b981"},
+                    "scale": 1.2,  # Simple scale is cheaper than adjacency focus
+                    "focus": "none",
                 },
             }
         ],
-        "animationDuration": 1500,  # Longer intro animation looks smoother
-        "animationEasingUpdate": "quinticInOut",
     }
 
 
@@ -352,6 +329,18 @@ def wrap_svg(path_d, color):
         <path d="{path_d}" fill="{color}" />
     </svg>"""
     return "image://data:image/svg+xml;charset=UTF-8," + urllib.parse.quote(svg_string)
+
+
+def get_implant_name(props: dict) -> str:
+    """Extracts a clean process name from a full path"""
+    path = props.get("process") or props.get("implant_uuid", "Unknown")
+    # Splits on both Windows and Linux separators
+    return path.split("\\")[-1].split("/")[-1][:20]
+
+
+def get_file_path_name(props: dict) -> str:
+    """Returns the path if available, otherwise falls back to name"""
+    return props.get("file_path") or props.get("file_name") or "Unknown File"
 
 
 # def set_node_icons(nodes, categories):

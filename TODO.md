@@ -118,8 +118,7 @@ known broken on deploy:
  - [X] compilation of bins
    > working on - was a docker permission
 
-
-- [ ] GUI css cleanup:
+- [X] GUI css cleanup:
 rule:use css as base, override as needed. not for sizing
 
 ### Server: Listeners & Core
