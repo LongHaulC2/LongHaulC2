@@ -72,7 +72,7 @@ async def status_page():
         ):
             with ui.row().classes("items-center gap-3"):
                 ui.icon("monitor_heart", color="emerald-500").classes("text-xl animate-pulse")
-                ui.label("SYSTEM_TELEMETRY //").classes("tech-label-sub")
+                ui.label("SYSTEM STATUS //").classes("tech-label-header-section")
 
             with ui.row().classes("items-center gap-4"):
                 # Auto-refresh toggle
@@ -95,18 +95,14 @@ async def status_page():
             with ui.row().classes("w-full items-start gap-8 flex-nowrap"):
                 # Column 1: Core
                 with ui.column().classes("w-1/2 gap-4"):
-                    ui.label("CORE_SERVICES").classes(
-                        "text-xs font-mono text-neutral-500 tracking-widest font-bold border-b border-white/10 w-full "
-                        "pb-2"
-                    )
+                    ui.label("CORE_SERVICES").classes("tech-label-header-section")
+                    ui.separator()
                     core_container = ui.column().classes("w-full gap-2")
 
                 # Column 2: Listeners
                 with ui.column().classes("w-1/2 gap-4"):
-                    ui.label("LISTENER_PROCESSES").classes(
-                        "text-xs font-mono text-neutral-500 tracking-widest font-bold border-b border-white/10 w-full "
-                        "pb-2"
-                    )
+                    ui.label("LISTENER_PROCESSES").classes("tech-label-header-section")
+                    ui.separator()
                     listener_container = ui.column().classes("w-full gap-2")
 
     async def handle_action(category: str, svc_name: str, action: str):

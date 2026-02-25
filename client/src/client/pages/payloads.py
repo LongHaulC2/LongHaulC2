@@ -43,7 +43,7 @@ async def payloads_view():
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
             with ui.row().classes("items-center gap-3"):
                 ui.icon("layers", color="emerald-500").classes("text-xl")
-                ui.label("PAYLOAD_LIBRARY //").classes("tech-label-sub")
+                ui.label("PAYLOAD_LIBRARY //").classes("tech-label-header-section")
 
             with ui.row().classes("items-center gap-2"):
                 with (

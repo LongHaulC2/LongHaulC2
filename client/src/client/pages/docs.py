@@ -3,6 +3,7 @@ from pathlib import Path
 import structlog
 from nicegui import ui
 
+from client.src.client.info import EXTERNAL_DOC_ENDPOINT
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
 
@@ -142,16 +143,13 @@ async def docs_page():
 
 
 async def docs_view(tree_data: list):
-    # LAYOUT CONTAINER
     with ui.row().classes("w-full h-full gap-0 tech-glass-panel"):
-        # ====================
-        #   LEFT SIDEBAR: NAVIGATION TREE
-        # ====================
+        # navtree
         with ui.column().classes("w-72 h-full border-r border-white/5 bg-black/20 flex-shrink-0"):
             # Header
             with ui.row().classes("w-full p-4 items-center gap-2 border-b border-white/5"):
                 ui.icon("library_books", color="emerald-500")
-                ui.label("KNOWLEDGE_BASE").classes("tech-label-sub")
+                ui.label("KNOWLEDGE_BASE").classes("tech-label-header-section")
 
             # Search
             with ui.row().classes("w-full px-4 py-2"):
@@ -162,7 +160,7 @@ async def docs_view(tree_data: list):
             # Tree Navigation
             with ui.scroll_area().classes("w-full flex-grow p-2"):
                 if not tree_data:
-                    ui.label("No docs found in client/src/client/docs").classes("tech-label-sub")
+                    ui.label("No docs found").classes("tech-label-sub")
                 else:
                     # Tree Component
                     docs_tree = (
@@ -180,7 +178,9 @@ async def docs_view(tree_data: list):
 
             # Footer
             with ui.row().classes("w-full p-3 border-t border-white/5 bg-white/5"):
-                ui.label("LOCAL_FS_MODE").classes("tech-label-sub")
+                ui.button(
+                    "External docs", icon="open_in_new", on_click=lambda: ui.navigate.to(EXTERNAL_DOC_ENDPOINT)
+                ).classes("w-full tech-btn-action").props("dense flat size=sm")
 
         # ====================
         #   RIGHT SIDEBAR: CONTENT READER

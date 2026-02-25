@@ -191,9 +191,7 @@ async def render_dashboard(data: dict, implant_uuid: str):
 
                                 if not tasks:
                                     with history_container:
-                                        ui.label("NO MISSION HISTORY").classes(
-                                            "w-full text-center py-8 text-neutral-600 font-mono text-xs"
-                                        )
+                                        ui.label("NO IMPLANT HISTORY").classes("w-full text-center tech-label-sub")
                                     return
 
                                 with history_container:

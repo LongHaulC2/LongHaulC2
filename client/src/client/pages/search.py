@@ -38,12 +38,6 @@ async def search_view():
 
     # Main Glass Panel
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
-        # Header Bar
-        with ui.row().classes("w-full items-center justify-between tech-header-bar"):  # noqa: SIM117
-            with ui.row().classes("items-center gap-3"):
-                ui.icon("manage_search", color="emerald-500").classes("text-xl")
-                ui.label("GLOBAL_SEARCH //").classes("tech-label-sub")
-
         # Command Bar (Search Inputs)
         with ui.row().classes("w-full p-4 border-b border-white/5 bg-black/20 gap-4 items-center"):
             # Search Type Dropdown

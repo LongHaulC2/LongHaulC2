@@ -193,7 +193,7 @@ def build_header_bar():
     with ui.row().classes("w-full items-center justify-between tech-header-bar"):
         with ui.row().classes("items-center gap-3"):
             ui.icon("device_hub", color="emerald-500").classes("text-xl")
-            ui.label("NETWORK_TOPOLOGY //").classes("tech-label-sub")
+            ui.label("NETWORK_TOPOLOGY //").classes("tech-label-header-section")
 
         with ui.row().classes("items-center gap-2"):
             ui.label(
@@ -259,7 +259,7 @@ def handle_click(e, nodes, sidebar_container):
                 ui.button("Download").classes("w-full")
                 ui.button("Delete", color="red").classes("w-full")
         else:
-            ui.label("No actions for this type of node")
+            ui.label("No actions for this type of node").classes("tech-label-sub")
 
 
 def build_chart_options(nodes, links, categories):

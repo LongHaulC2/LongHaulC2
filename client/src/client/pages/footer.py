@@ -34,7 +34,7 @@ async def build_footer():
                     ui.element("div").classes("w-1.5 h-1.5 rounded-full animate-pulse")
 
                     ui.label().bind_text_from(latency_status, "value", backward=lambda v: f"RTT: {v}ms").classes(
-                        "text-[10px] font-mono text-neutral-500"
+                        "tech-label-sub"
                     )
 
                 ui.label("|").classes("tech-label-sub")
@@ -45,7 +45,7 @@ async def build_footer():
                     with ui.row().classes("items-center gap-1"):
                         # ui.icon("sensors", size="12px").classes("text-neutral-600")
                         ui.label().bind_text_from(shitty_stats, "implant_count").classes(
-                            "text-[10px] font-mono text-emerald-500/80"
+                            "!text-emerald-500/80 tech-label-sub"
                         )
                         ui.label("IMPLANTS").classes("tech-label-sub")
 
@@ -53,7 +53,7 @@ async def build_footer():
                     with ui.row().classes("items-center gap-1"):
                         # ui.icon("settings_input_antenna", size="12px").classes("text-neutral-600")
                         ui.label().bind_text_from(shitty_stats, "listener_count").classes(
-                            "text-[10px] font-mono text-amber-500/80"
+                            "!text-amber-500/80 tech-label-sub"
                         )
                         ui.label("LISTENERS").classes("tech-label-sub")
 
@@ -62,9 +62,7 @@ async def build_footer():
                     # setup semi random easter egg
                     run_random_easter_egg()
 
-            ui.label(f"LONGHAULC2 // {VERSION_NUMBER}").classes(
-                "text-[10px] font-mono text-neutral-700 tracking-tighter"
-            )
+            ui.label(f"LONGHAULC2 // {VERSION_NUMBER}").classes("tech-label-sub tracking-tighter")
 
 
 async def update_dashboard_stats():

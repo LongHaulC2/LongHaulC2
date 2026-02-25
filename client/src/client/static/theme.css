@@ -136,10 +136,26 @@ body::before {
 }
 
 /* High-visibility headers for page titles */
-.tech-label-header {
+.tech-label-header-bold {
     font-family: ui-monospace, 'Cascadia Code', monospace;
     font-size: 16px;
     font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #71717a;
+    text-transform: uppercase;
+}
+.tech-label-header-section {
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    color: #71717a;
+    text-transform: uppercase;
+}
+
+/* header but for each section on a page, see active sessions in operations */
+.tech-label-header-section {
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    font-size: 14px;
     letter-spacing: 0.1em;
     color: #71717a;
     text-transform: uppercase;

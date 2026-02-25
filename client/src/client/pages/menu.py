@@ -39,7 +39,7 @@ def setup_menu(title: str):
         # Page Title
         with ui.row().classes("items-center gap-2 ml-4"):
             ui.element("div").classes("w-1 h-4 bg-emerald-500 rounded-full")
-            ui.label(title).classes("tech-label-header")
+            ui.label(title).classes("tech-label-header-bold")
 
     # Smooth Navigation Helper
     # This is the magic sauce. It plays the close animation BEFORE killing the page.
@@ -86,31 +86,23 @@ def setup_menu(title: str):
 
             # Render Buttons
             ui.separator().classes("bg-white/5 mt-2 mb-2")
-            ui.label("OPERATIONS").classes(
-                "text-[9px] font-mono text-neutral-500 tracking-[0.2em] font-bold px-4 mb-1 uppercase"
-            )
+            ui.label("OPERATIONS").classes("tech-label-sub")
             nav_btn("OPERATIONS", "precision_manufacturing", "/operations")
             nav_btn("ENGAGEMENT_MAP", "hub", "/graph")
             nav_btn("PAYLOADS", "layers", "/payloads")
             nav_btn("LISTENERS", "rss_feed", "/listeners")
 
             ui.separator().classes("bg-white/5 mt-4 mb-2")
-            ui.label("SEARCHING").classes(
-                "text-[9px] font-mono text-neutral-500 tracking-[0.2em] font-bold px-4 mb-1 uppercase"
-            )
+            ui.label("SEARCHING").classes("tech-label-sub")
             nav_btn("SEARCH", "manage_search", "/search")
 
             ui.separator().classes("bg-white/5 mt-4 mb-2")
-            ui.label("AUTOMATION").classes(
-                "text-[9px] font-mono text-neutral-500 tracking-[0.2em] font-bold px-4 mb-1 uppercase"
-            )
+            ui.label("AUTOMATION").classes("tech-label-sub")
             nav_btn("SCRIPTS", "terminal", "/scripts")
             nav_btn("DOCS", "info", "/docs")
 
             ui.separator().classes("bg-white/5 mt-4 mb-2")
-            ui.label("ADMIN").classes(
-                "text-[9px] font-mono text-neutral-500 tracking-[0.2em] font-bold px-4 mb-1 uppercase"
-            )
+            ui.label("ADMIN").classes("tech-label-sub")
             nav_btn("STATUS", "arrow_circle_up", "/status")
 
             # FOOTER

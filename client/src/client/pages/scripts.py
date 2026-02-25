@@ -204,16 +204,16 @@ async def file_picker():
         with ui.row().classes("w-full items-center justify-between tech-header-bar h-12"):
             with ui.row().classes("gap-2 items-center"):
                 ui.icon("folder_open", color="emerald-500")
-                ui.label("SCRIPTS //").classes("tech-label-sub")
+                ui.label("SCRIPTS //").classes("tech-label-header-section")
 
             with ui.row().classes("justify-end gap-1"):
                 ui.button(
                     icon="add",
                     on_click=lambda: create_new_file_dialog(str(script_path)),
-                ).classes("tech-btn-action px-2").props("dense flat size=xs round").tooltip("New Script")
+                ).classes("tech-btn-action px-2").props("dense flat size=xs").tooltip("New Script")
 
-                ui.button(icon="refresh", on_click=lambda: file_picker.refresh()).classes("tech-btn-ghost").props(
-                    "dense flat size=xs round"
+                ui.button(icon="refresh", on_click=lambda: file_picker.refresh()).classes("tech-btn-action px-2").props(
+                    "dense flat size=xs"
                 ).tooltip("Reload Tree")
 
         # Tree Content
@@ -286,7 +286,9 @@ async def create_new_file(file_path: str, file_name: str) -> bool:
 
     if not full_path.resolve().is_relative_to(base_path):
         ui.notify("Directory traversal detected", type="negative")
-        ui.label("The image of shame will be displayed until you put in a valid file path/name")
+        ui.label("The image of shame will be displayed until you put in a valid file path/name").classes(
+            "tech-label-sub"
+        )
         ui.image("/static/master_hacker.png")
         return False
 
