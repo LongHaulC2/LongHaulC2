@@ -1,4 +1,4 @@
-/* GLOBAL VISUALS */
+/* Global set */
 body {
   background-color: #09090b;
   background-image: radial-gradient(#27272a 1px, transparent 1px);
@@ -53,61 +53,7 @@ body::before {
     box-shadow: none !important;
     
   }
-
-  .q-table thead tr, .q-table th { background-color: rgba(23, 23, 23, 0.95) !important; }
-  .q-table tbody td { background-color: transparent !important; }
-
-  /* Used for collapsible UI sections */
-  .q-expansion-item {
-    @apply rounded mb-3 overflow-hidden transition-all duration-300;
-    background-color: rgba(23, 23, 23, 0.9);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .q-expansion-item .q-item { @apply py-3 px-4; transition: background-color 0.2s ease; }
-  .q-expansion-item .q-item:hover { background-color: rgba(255, 255, 255, 0.03); }
-  .q-expansion-item .q-focus-helper { display: none; }
-
-  .q-expansion-item.q-expansion-item--expanded {
-    border-color: rgba(52, 211, 153, 0.4);
-    background-color: rgba(23, 23, 23, 0.95);
-    box-shadow: none !important;
-  }
-  .q-expansion-item.q-expansion-item--expanded > .q-expansion-item__container > .q-item { color: #34d399; }
-  .q-expansion-item__content { background-color: rgba(0, 0, 0, 0.2); border-top: 1px solid rgba(255, 255, 255, 0.05); padding: 0 !important; }
-
-  /* Styles tables nested inside expansion items to be flush */
-  .q-expansion-item__content .q-table__card,
-  .q-expansion-item__content .q-table__container {
-    background: transparent !important;
-    backdrop-filter: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-  }
-  
-  .q-expansion-item__content .q-table__middle { margin: 0 !important; padding: 0 !important; }
-
-  .q-expansion-item__content .q-table thead tr, 
-  .q-expansion-item__content .q-table th {
-    background-color: rgba(0, 0, 0, 0.3) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 0.75rem;
-    color: #a1a1aa;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    @apply px-4; 
-  }
-
-  .q-expansion-item__content .q-table tbody td { border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important; height: 48px; @apply px-4; }
-  .q-expansion-item__content .q-table tbody tr:last-child td { border-bottom: none !important; }
 }
-
-/* SEMANTIC HANDLES */
 
 /* Main container for full-page dashboard modules */
 .tech-glass-panel {
