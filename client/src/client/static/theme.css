@@ -112,6 +112,8 @@ body::before {
     border: 1px solid rgba(16, 185, 129, 0.3);
     background-color: rgba(16, 185, 129, 0.1);
     color: #34d399;
+    font-weight: 500;
+
     transition: all 0.2s ease;
 }
 .tech-btn-action:hover { background-color: rgba(16, 185, 129, 0.2); }

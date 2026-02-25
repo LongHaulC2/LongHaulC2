@@ -65,9 +65,9 @@ async def listener_view():
 
         # Stats row
         with ui.row().classes("w-full h-8 gap-0 bg-[#0c0c0c] border-b border-white/5 items-center"):
-            stat_widget("Total", "router", "emerald", "total")
-            stat_widget("Online", "wifi", "green", "online")
-            stat_widget("HTTP", "public", "blue", "http")
+            stat_widget("Total:", "router", "emerald", "total")
+            stat_widget("Online:", "wifi", "green", "online")
+            # stat_widget("HTTP", "public", "blue", "http")
 
         with ui.column().classes("w-full p-0 flex-grow overflow-hidden"):
             await render_listeners_table()

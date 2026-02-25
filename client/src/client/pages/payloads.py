@@ -60,9 +60,9 @@ async def payloads_view():
 
         # SUB-HEADER TELEMETRY (High & Tight)
         with ui.row().classes("w-full h-8 gap-0 bg-[#0c0c0c] border-b border-white/5 items-center"):
-            stat_widget("Total Artifacts", "storage", "emerald", "total")
-            stat_widget("Active Listeners", "hub", "blue", "active_listeners")
-            stat_widget("Latest Build", "history", "purple", "latest")
+            stat_widget("Total Artifacts:", "storage", "emerald", "total")
+            stat_widget("Active Listeners:", "hub", "blue", "active_listeners")
+            stat_widget("Latest Build:", "history", "purple", "latest")
 
         # CONTENT
         with ui.column().classes("w-full p-0 flex-grow overflow-hidden"):
@@ -80,11 +80,11 @@ async def render_payloads_table():
 
     # Column Mapping
     columns = [
-        {"name": "name", "label": "IDENTITY", "field": "name", "align": "left", "sortable": True},
+        {"name": "name", "label": "Payload Name", "field": "name", "align": "left", "sortable": True},
         {"name": "fmt", "label": "FORMAT", "field": "fmt", "align": "left", "sortable": True},
-        {"name": "listener", "label": "LINKED LISTENER", "field": "listener", "align": "left", "sortable": True},
+        {"name": "listener", "label": "LINKED LISTENER(s)", "field": "listener", "align": "left", "sortable": True},
         {"name": "hash", "label": "HASH (MD5)", "field": "hash", "align": "left"},
-        {"name": "actions", "label": "RESOURCES", "field": "actions", "align": "right"},
+        {"name": "actions", "label": "DOWNLOAD", "field": "actions", "align": "right"},
     ]
 
     table = (
@@ -326,7 +326,7 @@ async def start_payload_dialogue():
             # IDENTITY & FORMAT
             with ui.row().classes("w-full gap-4"):
                 name_input = (
-                    ui.input("IDENTITY", placeholder="filename (no ext)")
+                    ui.input("Payload Name", placeholder="filename (no ext)")
                     .props("outlined dense dark color=emerald")
                     .classes("flex-grow tech-input")
                 )
