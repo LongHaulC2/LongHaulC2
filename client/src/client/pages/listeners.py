@@ -28,8 +28,8 @@ server_log.info("Loading /listeners page")
 def stat_widget(label: str, icon: str, color: str, key: str):
     with ui.element("div").classes("flex-1 h-full px-4 gap-2 flex items-center border-r border-white/5 bg-white/2"):
         ui.icon(icon, size="14px", color=f"{color}-500").classes("opacity-70")
-        ui.label(label).classes("text-[10px] font-mono tracking-tighter text-neutral-500 uppercase")
-        ui.label().bind_text_from(stats, key).classes("text-xs font-bold font-mono text-neutral-200")
+        ui.label(label).classes("tech-label-sub")
+        ui.label().bind_text_from(stats, key).classes("tech-label-sub")
 
 
 @ui.page("/listeners")
@@ -48,7 +48,7 @@ async def listener_view():
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
             with ui.row().classes("items-center gap-3"):
                 ui.icon("rss_feed", color="emerald-500").classes("text-xl")
-                ui.label("INFRASTRUCTURE // LISTENERS").classes("tech-label-title")
+                ui.label("INFRASTRUCTURE // LISTENERS").classes("tech-label-sub")
 
             with ui.row().classes("items-center gap-2"):
                 with (
@@ -57,7 +57,7 @@ async def listener_view():
                     .props("dense flat size=sm")
                 ):
                     ui.icon("add", size="xs").classes("mr-1")
-                    ui.label("LISTENER").classes("text-[10px] font-bold")
+                    ui.label("LISTENER").classes("tech-label-sub")
                     ui.tooltip("Build New Payload")
                 ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/listeners")).props(
                     "dense flat size=sm"
@@ -235,7 +235,7 @@ async def start_listener_dialogue():
         with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
             with ui.row().classes("gap-2 items-center"):
                 ui.icon("rocket_launch", color="emerald-500")
-                ui.label("INITIALIZE_listener").classes("text-sm font-bold tracking-widest text-emerald-500 font-mono")
+                ui.label("INITIALIZE_listener").classes("tech-label-sub")
             ui.button(icon="close", on_click=dialog.close).props("dense flat size=sm color=grey")
 
         with ui.column().classes("p-6 gap-6 w-full"):

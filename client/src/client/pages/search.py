@@ -42,7 +42,7 @@ async def search_view():
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):  # noqa: SIM117
             with ui.row().classes("items-center gap-3"):
                 ui.icon("manage_search", color="emerald-500").classes("text-xl")
-                ui.label("GLOBAL_SEARCH //").classes("tech-label-title")
+                ui.label("GLOBAL_SEARCH //").classes("tech-label-sub")
 
         # Command Bar (Search Inputs)
         with ui.row().classes("w-full p-4 border-b border-white/5 bg-black/20 gap-4 items-center"):
@@ -78,7 +78,7 @@ async def search_view():
             # Initial Empty State
             with ui.column().classes("w-full h-full items-center justify-center opacity-30"):
                 ui.icon("radar", size="6em")
-                ui.label("AWAITING INPUT").classes("font-mono text-sm mt-4 tracking-widest")
+                ui.label("AWAITING INPUT").classes("tech-label-sub")
 
     # --- LOGIC ---
 
@@ -108,7 +108,7 @@ async def search_view():
             with results_container:  # noqa: SIM117
                 with ui.column().classes("w-full h-full items-center justify-center opacity-30"):
                     ui.icon("radar", size="6em")
-                    ui.label("AWAITING INPUT").classes("font-mono text-sm mt-4 tracking-widest")
+                    ui.label("AWAITING INPUT").classes("tech-label-sub")
             return
 
         request_body = {"search_term": search_field.value}
@@ -123,7 +123,7 @@ async def search_view():
                     with results_container:
                         if not data:
                             with ui.column().classes("w-full h-1/2 items-center justify-center opacity-50"):
-                                ui.label("NO MATCHES FOUND").classes("font-mono text-sm text-red-400")
+                                ui.label("NO MATCHES FOUND").classes("tech-label-sub")
                         else:
                             await display_func(data=data)
             except Exception as err:

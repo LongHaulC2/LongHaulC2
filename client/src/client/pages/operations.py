@@ -96,7 +96,7 @@ async def implant_view():
             # Title
             with ui.row().classes("items-center gap-2"):
                 ui.icon("hub", color="emerald-500").classes("text-xl")
-                ui.label("ACTIVE_SESSIONS //").classes("tech-label-title")
+                ui.label("ACTIVE_SESSIONS //").classes("tech-label-sub")
 
             # Toolbar
             with ui.row().classes("items-center gap-1"):
@@ -107,7 +107,7 @@ async def implant_view():
                     .props("dense flat size=sm")
                 ):
                     ui.icon("add", size="xs").classes("mr-1")
-                    ui.label("PAYLOAD").classes("text-[10px] font-bold")
+                    ui.label("PAYLOAD").classes("tech-label-sub")
                     ui.tooltip("Build New Payload")
 
                 with (
@@ -116,7 +116,7 @@ async def implant_view():
                     .props("dense flat size=sm")
                 ):
                     ui.icon("add", size="xs").classes("mr-1")
-                    ui.label("LISTENER").classes("text-[10px] font-bold")
+                    ui.label("LISTENER").classes("tech-label-sub")
                     ui.tooltip("Start a Listener")
 
                 ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
@@ -269,7 +269,7 @@ async def terminal_view():
         # Header / Tabs
         with ui.row().classes("w-full items-center bg-black/20 border-b border-white/5 px-2 h-10 gap-2"):
             ui.icon("terminal", size="xs", color="emerald-500")
-            ui.label("TERMINAL //").classes("tech-label-subtitle mr-4")
+            ui.label("TERMINAL //").classes("tech-label-sub")
 
             # The Tabs Control
             tabs = ui.tabs().props(
@@ -285,7 +285,7 @@ async def terminal_view():
         # The Panel Container
         panels = ui.tab_panels(tabs).classes("w-full h-full bg-neutral-900/40").props("dense transition-duration=0")
     # Inside your terminal_view header or tab label
-    # label_checkin = ui.label("..").classes("font-mono text-xs text-neutral-500")
+    # label_checkin = ui.label("..").classes("tech-label-sub")
 
     # async def update_timer():
     #     # Fetch latest data for this implant
@@ -328,7 +328,7 @@ async def terminal_add_tab(implant_uuid: str):
             tab.meta = {"implant_uuid": implant_uuid}
             with ui.row().classes("items-center gap-2"):
                 # Display the short label visually
-                ui.label(tab_label).classes("text-xs font-mono text-emerald-500")
+                ui.label(tab_label).classes("tech-label-sub")
                 ui.button("✕", on_click=lambda: terminal_close_tab(implant_uuid)).props("flat dense size=xs").classes(
                     "text-neutral-600 hover:text-white px-0"
                 )
@@ -384,7 +384,7 @@ async def terminal(implant_uuid: str):
 
         # INPUT BAR (Fixed Bottom)
         with ui.row().classes("w-full bg-black/40 border-t border-white/10 p-2 gap-2 items-center"):
-            ui.label(terminal_prepend).classes("font-mono text-xs text-neutral-500 shrink-0")
+            ui.label(terminal_prepend).classes("tech-label-sub")
 
             ui_user_input = (
                 ui.input(autocomplete=list_of_commands_for_autocomplete)

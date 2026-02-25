@@ -83,7 +83,7 @@ async def terminal_setup():
         # Header / Tabs container
         with ui.row().classes("w-full items-center bg-black/20 border-b border-white/5 px-2 h-10 gap-2"):
             ui.icon("terminal", size="xs", color="emerald-500")
-            ui.label("TERMINAL_OUTPUT //").classes("tech-label-subtitle mr-4")
+            ui.label("TERMINAL_OUTPUT //").classes("tech-label-sub")
 
             # The Tabs Control
             terminal_tabs_parent = ui.tabs().props(
@@ -111,7 +111,7 @@ async def terminal_add_tab(tab_name: str):
     with terminal_tabs_parent, ui.tab(tab_name, label="").classes("h-full px-2 min-h-0") as tab:
         tab.meta = {"tab_name": tab_name}
         with ui.row().classes("items-center gap-2"):
-            ui.label(tab_name).classes("text-xs font-mono lowercase")
+            ui.label(tab_name).classes("tech-label-sub")
             ui.button(icon="close", on_click=lambda tn=tab_name: terminal_close_tab(tn)).props(
                 "flat dense size=xs rounded"
             ).classes("text-neutral-500 hover:text-white")
@@ -204,7 +204,7 @@ async def file_picker():
         with ui.row().classes("w-full items-center justify-between tech-header-bar h-12"):
             with ui.row().classes("gap-2 items-center"):
                 ui.icon("folder_open", color="emerald-500")
-                ui.label("SCRIPTS //").classes("tech-label-title")
+                ui.label("SCRIPTS //").classes("tech-label-sub")
 
             with ui.row().classes("justify-end gap-1"):
                 ui.button(
@@ -255,7 +255,7 @@ async def create_new_file_dialog(scripts_path):
     # Tech Dialog
     with ui.dialog() as dialog, ui.card().classes("tech-dialog w-96 p-0 rounded overflow-hidden"):
         with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
-            ui.label("NEW_SCRIPT").classes("text-sm font-bold tracking-widest text-emerald-500 font-mono")
+            ui.label("NEW_SCRIPT").classes("tech-label-sub")
             ui.button(icon="close", on_click=dialog.close).props("dense flat size=sm color=grey")
 
         with ui.column().classes("p-4 gap-4 w-full"):
@@ -312,7 +312,7 @@ async def ide_setup():
         # Header
         with ui.row().classes("w-full items-center bg-black/20 border-b border-white/5 px-2 h-10 gap-2"):
             ui.icon("code", size="xs", color="emerald-500")
-            ui.label("EDITOR //").classes("tech-label-subtitle mr-4")
+            ui.label("EDITOR //").classes("tech-label-sub")
 
             # Tabs
             ide_tabs_parent = ui.tabs().props(
@@ -380,7 +380,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
                 async def open_save_as():
                     with ui.dialog() as d, ui.card().classes("tech-dialog w-96 p-0"):
                         with ui.row().classes("bg-neutral-900/50 p-4 border-b border-white/5"):
-                            ui.label("SAVE_AS").classes("text-sm font-bold text-emerald-500 font-mono")
+                            ui.label("SAVE_AS").classes("tech-label-sub")
 
                         with ui.column().classes("p-4 gap-4"):
                             new_name = (
@@ -429,7 +429,7 @@ async def ide_add_tab(tab_name: str, script_path: str, executable=False):
         tab.meta = {"tab_name": tab_name}
         with ui.row().classes("items-center gap-2"):
             ui.icon("description", size="xs").classes("opacity-50")
-            ui.label(tab_name).classes("text-xs font-mono")
+            ui.label(tab_name).classes("tech-label-sub")
             ui.button(icon="close", on_click=lambda tn=tab_name: ide_close_tab(tn)).props(
                 "flat dense size=xs rounded"
             ).classes("text-neutral-500 hover:text-white")

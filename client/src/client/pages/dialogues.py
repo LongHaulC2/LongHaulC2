@@ -81,7 +81,7 @@ async def upload_dialog(implant_uuids: list):
             with ui.row().classes("gap-3 items-center"):
                 ui.icon("upload_file", color="emerald-500").classes("text-xl")
                 # Uses .tech-label-title for the monospace/tracking look
-                ui.label(f"TASK_UPLOAD :: {len(implant_uuids)} TARGETS").classes("tech-label-title text-emerald-500")
+                ui.label(f"TASK_UPLOAD :: {len(implant_uuids)} TARGETS").classes("tech-label-sub")
 
             # Close button styled as a ghost icon
             ui.button(icon="close", on_click=dialog.close).props("round flat dense text-color=grey").classes(
@@ -101,7 +101,7 @@ async def upload_dialog(implant_uuids: list):
             with ui.expansion(f"Target List ({len(implant_uuids)})", icon="hub").classes("w-full"):  # noqa: SIM117
                 with ui.column().classes("py-2 gap-1"):
                     for uid in implant_uuids:
-                        ui.label(f"• {uid}").classes("font-mono text-xs text-zinc-400 ml-4")
+                        ui.label(f"• {uid}").classes("tech-label-sub")
 
             # --- Controls ---
             def _update_mode(e):

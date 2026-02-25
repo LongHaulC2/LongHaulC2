@@ -20,9 +20,9 @@ def stat_card(label: str, value: str, icon: str, color: str = "emerald"):
     """Small dense stat widget"""
     with ui.card().classes("p-3 gap-1 bg-white/5 border border-white/10 rounded-sm no-shadow min-w-[140px] flex-grow"):
         with ui.row().classes("w-full items-center justify-between"):
-            ui.label(label).classes("text-[10px] font-mono tracking-widest text-neutral-500 uppercase")
+            ui.label(label).classes("tech-label-sub")
             ui.icon(icon, size="xs", color=f"{color}-500").classes("opacity-80")
-        ui.label(value).classes("text-sm font-bold font-mono tracking-wide text-neutral-200 truncate")
+        ui.label(value).classes("tech-label-sub")
 
 
 def info_row(key: str, value: str):
@@ -30,8 +30,8 @@ def info_row(key: str, value: str):
     with ui.row().classes(
         "w-full justify-between items-center py-1 border-b border-white/5 hover:bg-white/5 transition-colors"
     ):
-        ui.label(key).classes("text-xs font-mono text-neutral-500")
-        ui.label(str(value)).classes("text-xs font-mono text-emerald-400 text-right truncate max-w-[200px]")
+        ui.label(key).classes("tech-label-sub")
+        ui.label(str(value)).classes("tech-label-sub")
 
 
 # ==============================================================================
@@ -94,13 +94,13 @@ async def render_dashboard(data: dict, implant_uuid: str):
                 )
                 with ui.column().classes("gap-0"):
                     with ui.row().classes("items-center gap-2"):
-                        ui.label(hostname).classes("text-xl font-bold font-mono tracking-wide text-white")
+                        ui.label(hostname).classes("tech-label-sub")
                         with ui.row().classes(
                             "items-center gap-1 bg-emerald-900/30 px-2 rounded-full border border-emerald-500/30"
                         ):
                             ui.element("div").classes("w-2 h-2 rounded-full bg-emerald-400 animate-pulse")
-                            ui.label("ONLINE").classes("text-[9px] font-bold text-emerald-400")
-                    ui.label(f"UUID: {implant_uuid}").classes("text-xs font-mono text-neutral-500")
+                            ui.label("ONLINE").classes("tech-label-sub")
+                    ui.label(f"UUID: {implant_uuid}").classes("tech-label-sub")
 
             with ui.row().classes("items-center gap-2"):
                 ui.button(
@@ -206,7 +206,7 @@ async def render_dashboard(data: dict, implant_uuid: str):
                             "w-full h-full items-center justify-center text-neutral-600"
                         ):
                             ui.icon("folder_off", size="xl").classes("mb-2 opacity-50")
-                            ui.label("FILE BROWSER MODULE NOT LOADED").classes("font-mono text-xs")
+                            ui.label("FILE BROWSER MODULE NOT LOADED").classes("tech-label-sub")
 
                 # === RIGHT: SIDEBAR (CONFIG) ===
                 # KEY FIX: Strictly fixed width (w-[320px]), removed 'w-full', added 'shrink-0'
@@ -216,13 +216,13 @@ async def render_dashboard(data: dict, implant_uuid: str):
                     # Header
                     with ui.row().classes("w-full p-3 border-b border-white/5 bg-black/20 items-center gap-2 shrink-0"):
                         ui.icon("settings", size="xs", color="emerald-500")
-                        ui.label("CONTROLS //").classes("tech-label-subtitle")
+                        ui.label("CONTROLS //").classes("tech-label-sub")
 
                     # Scrollable Config
                     with ui.scroll_area().classes("w-full flex-grow"):  # noqa: SIM117
                         with ui.column().classes("p-4 w-full gap-4"):
                             # Config
-                            ui.label("BEACON SETTINGS").classes("text-[10px] font-bold text-neutral-500")
+                            ui.label("BEACON SETTINGS").classes("tech-label-sub")
                             with ui.row().classes("w-full gap-2"):
                                 ui.input("SLEEP (s)", value=str(data.get("sleep"))).props(
                                     "outlined dense dark color=emerald"
@@ -237,7 +237,7 @@ async def render_dashboard(data: dict, implant_uuid: str):
                             ui.separator().classes("bg-white/5")
 
                             # Scripts
-                            ui.label("AUTORUN SCRIPTS").classes("text-[10px] font-bold text-neutral-500")
+                            ui.label("AUTORUN SCRIPTS").classes("tech-label-sub")
                             # options for buttons in config
                             with ui.column().classes("w-full gap-2"):
                                 ui.button("SOME_BUTTON", icon="lan").classes(
@@ -249,7 +249,7 @@ async def render_dashboard(data: dict, implant_uuid: str):
 
                     # Footer Actions
                     with ui.column().classes("w-full p-4 gap-2 bg-red-900/5 border-t border-white/5 shrink-0"):
-                        ui.label("CRITICAL ACTIONS").classes("text-[10px] font-bold text-red-400 opacity-70")
+                        ui.label("CRITICAL ACTIONS").classes("tech-label-sub")
                         with ui.row().classes("w-full gap-2"):
                             ui.button("KILL", icon="bolt").classes(
                                 "flex-1 bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20"
@@ -278,16 +278,16 @@ def render_history_row(task: dict):
             ui.icon(status_icon, color=status_color).classes("text-lg opacity-80")
             with ui.column().classes("gap-0 flex-grow"):
                 with ui.row().classes("items-center gap-2"):
-                    ui.label(task_name.upper()).classes("text-sm font-bold text-neutral-200 font-mono")
+                    ui.label(task_name.upper()).classes("tech-label-sub")
                     if args_str:
-                        ui.label(args_str).classes("text-xs text-neutral-500 font-mono truncate max-w-[200px]")
-                ui.label(f"ID: {task.get('task_uuid', '')}").classes("text-[10px] text-neutral-600 font-mono")
+                        ui.label(args_str).classes("tech-label-sub")
+                ui.label(f"ID: {task.get('task_uuid', '')}").classes("tech-label-sub")
 
         with ui.column().classes("w-full bg-black/40 p-4 border-t border-white/5 shadow-inner"):
-            ui.label("OUTPUT STREAM //").classes("text-[10px] font-bold text-neutral-600 font-mono mb-2")
+            ui.label("OUTPUT STREAM //").classes("tech-label-sub")
             if task_out:
                 ui.code(task_out).classes(
                     "w-full bg-transparent text-emerald-400 font-mono text-xs overflow-x-auto p-0"
                 )
             else:
-                ui.label("Awaiting agent response...").classes("text-xs text-orange-400 font-mono italic")
+                ui.label("Awaiting agent response...").classes("tech-label-sub")

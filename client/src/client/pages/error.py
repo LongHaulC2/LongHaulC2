@@ -12,7 +12,7 @@ def generate_error(exception: Exception) -> None:
     # Center the whole layout and give it a max width for readability
     with ui.column().classes("absolute-center items-center w-full p-4"):  # noqa: SIM117
         with ui.card().classes("w-full items-center p-8 gap-4 max-w-1/2 shadow-xl rounded-2xl"):
-            ui.label("LongHaulC2-Web Encountered An Unhandled Error").classes("text-center text-2xl")
+            ui.label("LongHaulC2-Web Encountered An Unhandled Error").classes("tech-label-sub")
             ui.separator()
 
             if isinstance(exception, TimeoutError):
@@ -20,12 +20,12 @@ def generate_error(exception: Exception) -> None:
             else:
                 ui.icon("error_outline", size="4rem", color="negative")
 
-            ui.label(f"{exception.__class__.__name__}: {exception}").classes("text-2xl font-bold text-center")
+            ui.label(f"{exception.__class__.__name__}: {exception}").classes("tech-label-sub")
 
             ui.code(error_trace).classes("w-full text-sm max-h-64 overflow-auto rounded-lg")
 
             api_host = app.storage.user.get("api_host", "Not Set")
-            ui.label(f"API_HOST: {api_host}").classes("text-gray-500 font-mono text-sm")
+            ui.label(f"API_HOST: {api_host}").classes("tech-label-sub")
 
             # Handler for the GitHub button
             def on_github_click():

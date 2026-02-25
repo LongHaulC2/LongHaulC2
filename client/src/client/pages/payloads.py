@@ -21,9 +21,9 @@ def stat_widget(label: str, icon: str, color: str, key: str):
     """Compact telemetry widget for the sub-header bar"""
     with ui.element("div").classes("flex-1 h-full px-4 gap-2 flex items-center border-r border-white/5 bg-white/2"):
         ui.icon(icon, size="14px", color=f"{color}-500").classes("opacity-70")
-        ui.label(label).classes("tech-data-mono")
+        ui.label(label).classes("tech-label-sub")
         # .classes("text-[10px] font-mono tracking-tighter text-neutral-500 uppercase")
-        ui.label().bind_text_from(payload_stats, key).classes("tech-data-mono truncate max-w-[150px]")
+        ui.label().bind_text_from(payload_stats, key).classes("tech-label-sub")
 
 
 @ui.page("/payloads")
@@ -43,7 +43,7 @@ async def payloads_view():
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
             with ui.row().classes("items-center gap-3"):
                 ui.icon("layers", color="emerald-500").classes("text-xl")
-                ui.label("PAYLOAD_LIBRARY //").classes("tech-label-title")
+                ui.label("PAYLOAD_LIBRARY //").classes("tech-label-sub")
 
             with ui.row().classes("items-center gap-2"):
                 with (
@@ -318,7 +318,7 @@ async def start_payload_dialogue():
         with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
             with ui.row().classes("gap-2 items-center"):
                 ui.icon("terminal", color="emerald-500")
-                ui.label("COMPILE_ARTIFACT").classes("text-sm font-bold tracking-widest text-emerald-500 font-mono")
+                ui.label("COMPILE_ARTIFACT").classes("tech-label-sub")
             ui.button(icon="close", on_click=dialog.close).props("dense flat size=sm color=grey")
 
         # Body

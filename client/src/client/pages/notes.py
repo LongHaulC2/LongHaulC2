@@ -9,7 +9,7 @@ async def open_notes_dialog(implant_uuid: str | str, populate_editor_with: str =
 
     with ui.dialog(), ui.card().classes("w-1/2 h-1/2 p-4"):
         # Title or header for the editor
-        ui.label(f"Notes: {implant_uuid}").classes("text-lg font-semibold text-center mb-4")
+        ui.label(f"Notes: {implant_uuid}").classes("tech-label-sub")
 
         # Textarea for taking notes
         # ui.textarea("somedata").classes(

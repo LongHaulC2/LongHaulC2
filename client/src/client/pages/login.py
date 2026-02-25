@@ -19,7 +19,7 @@ def login_page():
                     "p-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-3 size-20"
                 )
                 # Title
-                ui.label("LONGHAULC2").classes("text-lg font-bold tracking-widest text-emerald-500 font-mono")
+                ui.label("LONGHAULC2").classes("tech-label-sub")
 
             # inputs
             with ui.column().classes("w-full p-8 gap-5"):
@@ -63,7 +63,7 @@ def login_page():
                     .classes("w-full tech-btn-action py-2")
                     .props("unelevated dense")
                 ):
-                    ui.label("LOGIN").classes("font-bold tracking-widest text-xs")
+                    ui.label("LOGIN").classes("tech-label-sub")
                     ui.icon("arrow_forward", size="xs").classes("ml-2")
 
             # Footer

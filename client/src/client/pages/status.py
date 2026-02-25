@@ -72,7 +72,7 @@ async def status_page():
         ):
             with ui.row().classes("items-center gap-3"):
                 ui.icon("monitor_heart", color="emerald-500").classes("text-xl animate-pulse")
-                ui.label("SYSTEM_TELEMETRY //").classes("text-sm font-bold tracking-[0.2em] text-white font-mono")
+                ui.label("SYSTEM_TELEMETRY //").classes("tech-label-sub")
 
             with ui.row().classes("items-center gap-4"):
                 # Auto-refresh toggle
@@ -164,7 +164,7 @@ async def status_page():
                 with ui.row().classes("items-center gap-3"):
                     status_icon = ui.icon(icon_name, color=f"{color}-500").classes("transition-colors duration-300")
                     with ui.column().classes("gap-0"):
-                        ui.label(svc_name.upper()).classes("text-xs font-bold font-mono text-white")
+                        ui.label(svc_name.upper()).classes("tech-label-sub")
                         status_text = ui.label(text).classes(
                             f"text-[10px] font-mono text-{color}-400 font-bold tracking-widest transition-colors "
                             "duration-300"

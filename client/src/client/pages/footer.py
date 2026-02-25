@@ -37,7 +37,7 @@ async def build_footer():
                         "text-[10px] font-mono text-neutral-500"
                     )
 
-                ui.label("|").classes("text-neutral-800")
+                ui.label("|").classes("tech-label-sub")
 
                 # Stats Group
                 with ui.row().classes("items-center gap-3"):
@@ -47,7 +47,7 @@ async def build_footer():
                         ui.label().bind_text_from(shitty_stats, "implant_count").classes(
                             "text-[10px] font-mono text-emerald-500/80"
                         )
-                        ui.label("IMPLANTS").classes("text-[10px] font-mono text-neutral-600")
+                        ui.label("IMPLANTS").classes("tech-label-sub")
 
                     # Listener Count
                     with ui.row().classes("items-center gap-1"):
@@ -55,7 +55,7 @@ async def build_footer():
                         ui.label().bind_text_from(shitty_stats, "listener_count").classes(
                             "text-[10px] font-mono text-amber-500/80"
                         )
-                        ui.label("LISTENERS").classes("text-[10px] font-mono text-neutral-600")
+                        ui.label("LISTENERS").classes("tech-label-sub")
 
                     # toss in easter egg out of the way
 

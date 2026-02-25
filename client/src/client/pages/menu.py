@@ -39,7 +39,7 @@ def setup_menu(title: str):
         # Page Title
         with ui.row().classes("items-center gap-2 ml-4"):
             ui.element("div").classes("w-1 h-4 bg-emerald-500 rounded-full")
-            ui.label(title).classes("text-sm font-bold font-mono tracking-[0.2em] text-white uppercase opacity-90")
+            ui.label(title).classes("tech-label-sub")
 
     # Smooth Navigation Helper
     # This is the magic sauce. It plays the close animation BEFORE killing the page.
@@ -55,7 +55,7 @@ def setup_menu(title: str):
             with ui.row().classes("w-full items-center gap-3 mb-8 px-2 opacity-90 mt-2"):
                 ui.icon("hub", size="md", color="emerald-500").classes("animate-pulse")
                 with ui.column().classes("gap-0"):
-                    ui.label("LONGHAUL").classes("text-xl font-black tracking-tighter text-white leading-none")
+                    ui.label("LONGHAUL").classes("tech-label-sub")
                     ui.label("C2 FRAMEWORK").classes(
                         "text-[9px] font-mono text-emerald-500 tracking-[0.2em] leading-none"
                     )

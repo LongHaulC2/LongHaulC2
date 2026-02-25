@@ -172,7 +172,7 @@ async def graph_view():
                 "w-80 h-full p-4 bg-[#111] border-l border-white/10 overflow-y-auto"
             )
             with inspector_sidebar:
-                ui.label("Select a node to view details").classes("text-gray-500 italic")
+                ui.label("Select a node to view details").classes("tech-label-sub")
 
             # setup graph area
             with ui.column().classes("flex-grow h-full relative p-2"):
@@ -193,7 +193,7 @@ def build_header_bar():
     with ui.row().classes("w-full items-center justify-between tech-header-bar"):
         with ui.row().classes("items-center gap-3"):
             ui.icon("device_hub", color="emerald-500").classes("text-xl")
-            ui.label("NETWORK_TOPOLOGY //").classes("tech-label-title")
+            ui.label("NETWORK_TOPOLOGY //").classes("tech-label-sub")
 
         with ui.row().classes("items-center gap-2"):
             ui.label(
@@ -222,15 +222,15 @@ def handle_click(e, nodes, sidebar_container):
     # Clear and Redraw the sidebar
     sidebar_container.clear()
     with sidebar_container:
-        ui.label(f"DETAILS: {node_name}").classes("text-emerald-500 font-bold mb-2")
+        ui.label(f"DETAILS: {node_name}").classes("tech-label-sub")
         ui.separator().classes("bg-white/10 mb-4")
 
         # Loop through props and make a clean key-value list
         with ui.column().classes("gap-1"):
             for key, val in props.items():
                 with ui.row().classes("w-full justify-between border-b border-white/5 pb-1"):
-                    ui.label(key).classes("text-gray-500 text-xs uppercase")
-                    ui.label(str(val)).classes("text-gray-200 text-xs text-right break-all")
+                    ui.label(key).classes("tech-label-sub")
+                    ui.label(str(val)).classes("tech-label-sub")
 
         # note, need to pull notes as well for implants/listeners
         ui.separator()
