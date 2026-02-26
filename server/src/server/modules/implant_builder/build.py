@@ -123,7 +123,9 @@ def build_implant(
                 MySQLImplantPayloadService(session).update_build_status(build_uuid=build_uuid, build_status="failed")
 
         finally:
-            shutil.rmtree(build_dir, ignore_errors=True)
+            if build_dir.exists():
+                shutil.rmtree(build_dir, ignore_errors=True)
+            # _nuke_old_builds(str(build_dir))
             build_time = time.perf_counter() - start_time
             build_stats["build_time"] = build_time
 
@@ -153,7 +155,7 @@ def _generate_source_code(
     # Copy base
     if not IMPLANT_BASE.exists():
         raise FileNotFoundError(f"Implant base not found at {IMPLANT_BASE}")
-    shutil.copytree(IMPLANT_BASE, build_dir, dirs_exist_ok=True)
+    shutil.copytree(IMPLANT_BASE, build_dir, dirs_exist_ok=True, copy_function=shutil.copy2)
 
     # Render Jinja
     render_implant(
@@ -167,23 +169,49 @@ def _generate_source_code(
 def _run_docker_build(build_dir: Path) -> bool:
     """Runs the compilation container."""
     client = docker.from_env()
-    source_vol = str(build_dir)
-    output_vol = str(build_dir / "output")
+    # source_vol = str(build_dir)
+    # output_vol = str(build_dir / "output")
 
-    # Command: CMake configure -> CMake build
-    # -j$(nproc) uses all cores
-    cmd = "bash -c 'cmake -S /source -B /build -DCMAKE_BUILD_TYPE=Release && cmake --build /build -- -j$(nproc)'"
+    docker_logger.info("Build Dir:", build_dir=build_dir)
+
+    # ! Up one directory, to the base path of the build dir.
+    # ! Ex: /build_dir/build, /build_dir/build_cache
+    # ! Otherwise, the build, and build_ccache are re-created each build,
+    # ! Ex, /build_dir/tmp1234/build, /build_dir/tmp1234/build_cache
+    # ! This greatly speeds up total compile time, I've seen about 50% on average
+    persistent_build_dir = Path(build_dir) / ".." / "build"
+    persistent_build_dir.mkdir(parents=True, exist_ok=True)
+
+    ccache_dir = Path(build_dir) / ".." / "build_cache"
+    ccache_dir.mkdir(parents=True, exist_ok=True)
+
+    cmd = (
+        "bash -c 'if [ ! -f /build/build.ninja ]; then "
+        "cmake -G Ninja -S /source -B /build -DCMAKE_BUILD_TYPE=Release; "
+        # ! set source and build to 777, so this script can delete them. Otherwise we get a perms denied,
+        # ! as the docker container runs as root in the container, and breaks if you change to a different user.
+        # ! I don't like it, but it works for now.
+        "fi && ninja -C /build && chmod -R 777 /source /output'"
+    )
 
     docker_logger.info("Spinning up builder container (win_x64)")
+
+    volumes = {
+        str(build_dir): {"bind": "/source", "mode": "rw"},
+        str(build_dir / "output"): {"bind": "/output", "mode": "rw"},
+        str(persistent_build_dir): {"bind": "/build", "mode": "rw"},
+        str(ccache_dir): {"bind": str(ccache_dir), "mode": "rw"},
+    }
 
     try:
         container: Container = client.containers.run(
             "win_x64",
             command=cmd,
-            volumes={
-                source_vol: {"bind": "/source", "mode": "rw"},
-                output_vol: {"bind": "/output", "mode": "rw"},
-            },
+            volumes=volumes,
+            # {
+            #     source_vol: {"bind": "/source", "mode": "rw"},
+            #     output_vol: {"bind": "/output", "mode": "rw"},
+            # },
             detach=True,
         )
 

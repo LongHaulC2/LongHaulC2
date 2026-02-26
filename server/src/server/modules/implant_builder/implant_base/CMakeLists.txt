@@ -66,6 +66,9 @@ set_target_properties(BofRunner PROPERTIES
     IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/libs/bof_launcher_win_x64.lib"
     # This tells CMake where the .h file is located
     INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/libs"
+    # trying out unity builds, tldr, puts everything into one file, then compiles, so the compiler doesn't have to 
+    # constantly read files. May cause name collisions with global vars.
+    UNITY_BUILD ON
 )
 # ==========================================
 # 3. Target Platform Logic (Windows)
@@ -114,6 +117,8 @@ target_link_libraries(Implant_v01 PRIVATE
             -static 
             -static-libgcc 
             -static-libstdc++
+            # trying out LLD(LLVM linker)
+            -fuse-ld=lld
         )
         
         # 2. Link System Libraries
