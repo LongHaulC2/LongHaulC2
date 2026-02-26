@@ -2,7 +2,7 @@ import urllib.parse
 from datetime import UTC, datetime
 
 import structlog
-from nicegui import ui
+from nicegui import app, ui
 
 # Imports
 from client.src.client.modules.api_calls import get_all_graph_data
@@ -37,12 +37,55 @@ CHART_COLORS = [
 ]
 
 
+@ui.refreshable
+def render_chart(nodes, links, categories, sidebar_container):
+    # check cookie value of wiggle
+    nodes_frozen = app.storage.user.get("nodes_frozen", True)
+
+    if nodes_frozen:
+        # add positioning to nodes
+        for i, node in enumerate(nodes):
+            # If you don't have real coordinates, even a simple grid or circle
+            # math is better than nothing to prevent the 0,0 stack.
+            import math
+
+            # only calculate x/y if it hasn't been set yet to prevent teleporting
+            if "x" not in node:
+                angle = i * (2 * math.pi / len(nodes))
+                node["x"] = 500 + 300 * math.cos(angle)
+                node["y"] = 500 + 300 * math.sin(angle)
+            node["fixed"] = True  # This ensures they stay put during drags
+
+    else:
+        # render dom with force physics
+        for node in nodes:
+            node["fixed"] = False
+
+    options = build_chart_options(nodes, links, categories, not nodes_frozen)
+
+    # Use canvas renderer for better perf with many nodes
+    chart = ui.echart(options).classes("w-full h-full")
+    chart.on("chart:selectchanged", lambda e: handle_click(e, nodes, sidebar_container))
+
+    # ensure we can still lock them in place manually even if wiggle mode is active
+    chart.on("dragend", "(params) => { if (params.dataType === 'node') params.data.fixed = true; }")
+
+
 @ui.page("/graph")
 async def graph():
     ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
     )
+
+    # graph prefs
+    # if this cookie doesn't exist, create it for this user
+    nodes_frozen = app.storage.user.get("nodes_frozen", None)
+    # explicit check of none, isntead of bool, as it's stored as a bool, and will
+    # default to whatever value that bool is set to
+    if nodes_frozen is None:
+        # set nodes to be wiggly by default, cuz it looks cooler
+        app.storage.user["nodes_frozen"] = True
 
     setup_menu("Network")
     await build_footer()
@@ -87,6 +130,7 @@ async def graph_view():
             node["name"] = props.get("hostname") or props.get("address", "Unknown")
         else:
             node["name"] = props.get("file_name") or props.get("ip_address") or node.get("name")
+
     name_mappers = {
         "Implant": get_implant_name,
         "Listener": lambda p: p.get("name") or p.get("listener_uuid", "Unknown Listener"),
@@ -112,8 +156,6 @@ async def graph_view():
         # Apply the explicit naming logic to the node
         node["name"] = naming_func(props)
 
-    options = build_chart_options(nodes, links, categories)
-
     with ui.column().classes("tech-glass-panel w-full h-full"):
         build_header_bar()
         with ui.row().classes("w-full flex-grow overflow-hidden flex-nowrap p-2"):
@@ -121,25 +163,38 @@ async def graph_view():
             inspector_sidebar = ui.column().classes("w-80 h-full bg-[#0a0a0a] border-r border-white/5 p-4")
 
             with ui.column().classes("flex-grow h-full relative"):
-                # Use canvas renderer for better perf with many nodes
-                chart = ui.echart(options).classes("w-full h-full")
-                chart.on("chart:selectchanged", lambda e: handle_click(e, nodes, inspector_sidebar))
+                # Call the refreshable function to draw the chart initially
+                render_chart(nodes, links, categories, inspector_sidebar)
 
 
 def build_header_bar():
+    def toggle_wiggle(e):
+        # e.value will be True or False based on the switch position
+        app.storage.user["nodes_frozen"] = e.value
+        # Refresh to apply the new build_chart_options logic (only rebuilds chart element)
+        render_chart.refresh()
+
     with ui.row().classes("w-full items-center justify-between tech-header-bar"):
         with ui.row().classes("items-center gap-3"):
             ui.icon("device_hub", color="emerald-500").classes("text-xl")
             ui.label("NETWORK_TOPOLOGY //").classes("tech-label-header-section")
 
-        with ui.row().classes("items-center gap-2"):
-            ui.label(
-                # just hour minute sec is way easier to read than hour:min:sec:subsec
-                f"Last Refresh [UTC]: {datetime.now(UTC).strftime('%H:%M:%S')}"
-            ).classes("tech-label-sub")
+        with ui.row().classes("items-center gap-4"):
+            # Timestamp
+            ui.label(f"UTC: {datetime.now(UTC).strftime('%H:%M:%S')}").classes("tech-label-sub whitespace-nowrap")
+
+            # The Slide Toggle Container
+            with ui.row().classes("items-center gap-2 px-3 py-1 border-l border-white/10"):
+                ui.label("Freeze Nodes").classes("text-[10px] text-zinc-500 font-mono")
+
+                # The Slide Toggle (Switch)
+                nodes_frozen = app.storage.user.get("nodes_frozen", False)
+                ui.switch(value=nodes_frozen, on_change=toggle_wiggle).props("dark dense size=sm")
+
+            # Standard Refresh
             ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/graph")).props("dense flat size=sm").classes(
                 "tech-btn-action-2"
-            ).tooltip("Refresh Topology")
+            )
 
 
 def handle_click(e, nodes, sidebar_container):
@@ -199,117 +254,51 @@ def handle_click(e, nodes, sidebar_container):
             ui.label("No actions for this type of node").classes("tech-label-sub")
 
 
-# old less performant version
-# def build_chart_options(nodes, links, categories):
-#     return {
-#         "backgroundColor": "transparent",
-#         "tooltip": {
-#             "trigger": "item",
-#             "backgroundColor": "#171717",
-#             "borderColor": "#333333",
-#             "borderWidth": 1,
-#             "textStyle": {
-#                 "color": "#e5e5e5",
-#                 "fontFamily": "monospace",
-#                 "fontSize": 12,
-#             },
-#             # Shows Node Name and any props to highlihgt
-#             "formatter": "{b}",
-#         },
-#         "legend": [
-#             {
-#                 "data": [c["name"] for c in categories],
-#                 "textStyle": {
-#                     "color": "#a3a3a3",
-#                     "fontFamily": "monospace",
-#                     "fontSize": 11,
-#                 },
-#                 "bottom": 10,
-#                 "icon": "circle",
-#             }
-#         ],
-#         "series": [
-#             {
-#                 "type": "graph",
-#                 "layout": "force",
-#                 "data": nodes,
-#                 "links": links,
-#                 "categories": categories,
-#                 "roam": True,
-#                 "draggable": True,
-#                 "edgeSymbol": ["none", "arrow"],
-#                 "edgeSymbolSize": [0, 8],
-#                 "edgeLabel": {
-#                     "show": True,
-#                     "formatter": "{c}",  # '{c}' tells ECharts to use the 'value' of the link
-#                     "fontSize": 10,
-#                     "color": "#71717a",  # Subtle gray so it's not distracting
-#                     "fontFamily": "monospace",
-#                 },
-#                 "label": {
-#                     "show": True,
-#                     "position": "right",
-#                     "color": "#a3a3a3",
-#                     "fontFamily": "monospace",
-#                     "fontSize": 10,
-#                 },
-#                 "lineStyle": {
-#                     "color": "#52525b",
-#                     "curveness": 0.05,  # Curves help see bi-directional links
-#                     "width": 1.5,
-#                     "type": "dashed",
-#                 },
-#                 "force": {
-#                     # low grav + lowish repulsion allows them to spread, but not too far
-#                     "repulsion": 500,  # Lower = nodes gather closer
-#                     "gravity": 0.01,  # Higher = pulls clusters to center
-#                     "edgeLength": 80,  # Constant length helps stability
-#                     "friction": 0.3,
-#                     # "initLayout": "circular", # sets init layout to be circular. can be that or null/none
-#                 },
-#                 "emphasis": {
-#                     "focus": "adjacency",
-#                     "lineStyle": {"width": 3, "color": "#10b981"},
-#                 },
-#             }
-#         ],
-#         "animationDuration": 1500,  # Longer intro animation looks smoother
-#         "animationEasingUpdate": "quinticInOut",
-#     }
-
-
-def build_chart_options(nodes, links, categories):
+def build_chart_options(nodes, links, categories, node_wiggle_wiggle: bool):
     return {
         "backgroundColor": "#0a0a0a",
-        "progressive": 500,  # Render in chunks if nodes > 500
+        "progressive": 500,
         "hoverLayerThreshold": 1000,
-        "tooltip": {"show": False},  # Tooltips during force simulation are laggy
+        "tooltip": {"show": False},
+        "legend": [
+            {
+                "data": [c["name"] for c in categories],
+                "textStyle": {
+                    "color": "#a3a3a3",
+                    "fontFamily": "monospace",
+                    "fontSize": 11,
+                },
+                "bottom": 10,
+            }
+        ],
         "series": [
             {
                 "type": "graph",
-                "layout": "force",
+                # If True, use 'force' physics. If False, use None (static).
+                "layout": "force" if node_wiggle_wiggle else None,
                 "data": nodes,
                 "links": links,
                 "categories": categories,
                 "roam": True,
                 "draggable": True,
-                "useWorker": True,  # Offloads physics to a web worker if supported
+                "useWorker": True,  # use webworker if available
                 "force": {
-                    "initLayout": None,  # circular for circle
+                    "initLayout": None,
                     "repulsion": 400,
                     "gravity": 0.05,
                     "edgeLength": 100,
-                    "layoutAnimation": True,  # Set to False for instant layout (faster but jumpy)
+                    # Disable animation if we don't want the wiggle
+                    "layoutAnimation": node_wiggle_wiggle,
                 },
                 "label": {"show": True, "position": "bottom", "formatter": "{b}", "fontSize": 9, "color": "#71717a"},
                 "lineStyle": {
                     "color": "#52525b",
-                    "curveness": 0.05,  # Curves help see bi-directional links
+                    "curveness": 0.05,
                     "width": 1.5,
-                    "type": "dashed",
+                    "type": "dashed",  # <------> style
                 },
                 "emphasis": {
-                    "scale": 1.2,  # Simple scale is cheaper than adjacency focus
+                    "scale": 1.2,
                     "focus": "none",
                 },
             }

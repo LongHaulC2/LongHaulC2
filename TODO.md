@@ -157,6 +157,14 @@ Implant:
  - [ ] Add response queue for POST (thread safe probably...), and send that list on POST
 
 
+Implant:
+ - Get that global task mutex setup, and switch over to it.
+      For each loop, pull out all tasks, yeet back to next hop/pass to the egress func. 
+      This should allow chaining as deep as needed. 
+
+note - current bind pipe allows for parent beacon to "link" and "unlink" at will, soa beacon can sit there,
+unlinked, until it's linked  to.
+
 ### Server: Listeners & Core
 
 * [ ] Fix active flag in the database (Idea: Start listener on startup if marked active)
