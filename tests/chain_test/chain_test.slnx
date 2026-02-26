@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="chain_test.vcxproj" Id="97d525be-d222-4521-bba9-f462c3b2bf59" />
+</Solution>
