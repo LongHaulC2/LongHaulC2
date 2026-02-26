@@ -172,9 +172,16 @@ and need to do templating *in* jinja before moving on with further SMB beacon im
    > accept multiple tasks back (loop over msgpack)
 
    > implant:
-      1. pass list of tasks INTO post function. 
+      <!-- 1. pass list of tasks INTO post function. 
       2.  let that create the array of objects (custom helper instead of craet task response?)
-      3. send that as outbound. 
+      3. send that as outbound.  -->
+
+   Task response:
+      DONE.
+
+   Task request: 
+      > 1. get list working, on implant, and server first, with one task.
+      > add a lookup for implants chained to this parent, via neo4j. Return all tasks, in a list for them
 
 2.  put into template
 
