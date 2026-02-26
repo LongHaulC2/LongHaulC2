@@ -700,6 +700,7 @@ async def http_post(request: Request) -> Response:
     # ! de-serialize, for iteration purposes. Re-serialize, as that's what redis wants/the whole response cache
     # ! system is built on
     task_response_list: list[dict] = msgpack.unpackb(data_from_implant)
+    listener_logger.debug("Received tasks from implant", tasks=len(task_response_list))
     for unpacked_task_response in task_response_list:
         # _ to differentiate from previous implant_uuid variable.
         _implant_uuid = unpacked_task_response.get("implant_uuid", "")
