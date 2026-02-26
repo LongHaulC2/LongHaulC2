@@ -169,8 +169,6 @@ def _generate_source_code(
 def _run_docker_build(build_dir: Path) -> bool:
     """Runs the compilation container."""
     client = docker.from_env()
-    # source_vol = str(build_dir)
-    # output_vol = str(build_dir / "output")
 
     docker_logger.info("Build Dir:", build_dir=build_dir)
 
@@ -208,10 +206,6 @@ def _run_docker_build(build_dir: Path) -> bool:
             "win_x64",
             command=cmd,
             volumes=volumes,
-            # {
-            #     source_vol: {"bind": "/source", "mode": "rw"},
-            #     output_vol: {"bind": "/output", "mode": "rw"},
-            # },
             detach=True,
         )
 
