@@ -237,8 +237,8 @@ async def start_listener_dialogue():
     with ui.dialog() as dialog, ui.card().classes("tech-dialog w-[600px] p-0 rounded overflow-hidden"):
         with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
             with ui.row().classes("gap-2 items-center"):
-                ui.icon("rocket_launch", color="emerald-500")
-                ui.label("INITIALIZE_listener").classes("tech-label-sub")
+                ui.icon("rss_feed", color="emerald-500")
+                ui.label("NEW LISTENER").classes("tech-label-sub")
             ui.button(icon="close", on_click=dialog.close).props("dense flat size=sm color=grey")
 
         with ui.column().classes("p-6 gap-6 w-full"):

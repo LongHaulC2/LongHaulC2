@@ -325,8 +325,8 @@ async def start_payload_dialogue():
         # Header
         with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
             with ui.row().classes("gap-2 items-center"):
-                ui.icon("terminal", color="emerald-500")
-                ui.label("COMPILE_ARTIFACT").classes("tech-label-sub")
+                ui.icon("layers", color="emerald-500")
+                ui.label("NEW PAYLOAD").classes("tech-label-sub")
             ui.button(icon="close", on_click=dialog.close).props("dense flat size=sm color=grey")
 
         # Body
