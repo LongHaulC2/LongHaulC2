@@ -5,6 +5,7 @@ from nicegui import ui
 
 # Imports
 from client.src.client.modules.api_calls import (
+    delete_listener,
     get_all_listener_data,
     restart_listener,
     start_listener,
@@ -12,6 +13,7 @@ from client.src.client.modules.api_calls import (
     stop_listener,
 )
 from client.src.client.pages.footer import build_footer
+from client.src.client.pages.formatted_tooltip import formatted_tooltip
 from client.src.client.pages.menu import setup_menu
 
 stats = {"total": 0, "online": 0, "http": 0}
@@ -178,17 +180,51 @@ async def render_listeners_table():
             ui.notify(f"{msg} {len(table.selected)} listeners", type=color)
             await update_table_data()
 
-        ui.button(
+        with ui.button(
             "START",
             icon="play_arrow",
             on_click=lambda: batch_action(start_listener_from_existing, "Started", "positive"),
-        ).props("flat dense color=green no-caps size=sm")
-        ui.button(
+        ).props("flat dense color=green no-caps size=sm"):
+            formatted_tooltip(
+                title="Start a stopped listener",
+                body=("The listener must already exist to be restarted."),
+                footer="To spawn a new listener, click the '+ listener' button",
+            )
+
+        with ui.button(
             "RESTART", icon="restart_alt", on_click=lambda: batch_action(restart_listener, "Restarted", "positive")
-        ).props("flat dense color=orange no-caps size=sm")
-        ui.button("STOP", icon="stop", on_click=lambda: batch_action(stop_listener, "Stopped", "negative")).props(
+        ).props("flat dense color=orange no-caps size=sm"):
+            formatted_tooltip(
+                title="Kill the current listener process, and re-spawn a new one with the same config",
+                body=("This is handy for if a listener crashes, or encounters a bug."),
+            )
+
+        with ui.button("STOP", icon="stop", on_click=lambda: batch_action(stop_listener, "Stopped", "negative")).props(  # noqa
             "flat dense color=red no-caps size=sm"
-        )
+        ):
+            formatted_tooltip(
+                title="Stop Listener",
+                body=(
+                    "Stops the listener process without deleting it.\n"
+                    "The listener remains in the database,\n"
+                    "is still a valid compile target,\n"
+                    "and can be restarted at any time."
+                ),
+                footer="(Acts like a pause button)",
+            )
+
+        with ui.button(
+            "DELETE", icon="delete", on_click=lambda: batch_action(delete_listener, "Delete listener", "positive")
+        ).props("flat dense color=purple no-caps size=sm"):
+            # ui.tooltip("Stop, and DELETE a listener from the database. This listener will cease to exist.")
+            formatted_tooltip(
+                title="Delete Listener",
+                body=(
+                    "Stops, and deletes the listener from the Database.\n"
+                    "The listener will be nuked from existence via this action"
+                ),
+                footer="\n",  # add a \n so there's space at the bottom, and the whole message shows.
+            )
 
 
 # ====================

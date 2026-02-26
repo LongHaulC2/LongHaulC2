@@ -165,6 +165,23 @@ Implant:
 note - current bind pipe allows for parent beacon to "link" and "unlink" at will, soa beacon can sit there,
 unlinked, until it's linked  to.
 
+Left off working on some gui (it's done) - and understanding the beacon better. It works,
+and need to do templating *in* jinja before moving on with further SMB beacon imlementation
+
+1. Update implant & server to do multi task, one task per implant per checkin
+   > accept multiple tasks back (loop over msgpack)
+
+   > implant:
+      1. pass list of tasks INTO post function. 
+      2.  let that create the array of objects (custom helper instead of craet task response?)
+      3. send that as outbound. 
+
+2.  put into template
+
+3.  Get that working, THEN do smb
+
+HEY - add delete listener in gui so it actually deletes it from the db
+
 ### Server: Listeners & Core
 
 * [ ] Fix active flag in the database (Idea: Start listener on startup if marked active)

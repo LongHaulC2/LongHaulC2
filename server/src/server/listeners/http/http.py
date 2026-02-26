@@ -683,11 +683,46 @@ async def http_post(request: Request) -> Response:
         listener_logger.error("post_id_error", error=str(e))
         raise HTTPException(status_code=400, detail="Invalid or malformed client data") from e
 
-    response = http_post_response(data_from_implant=data_from_implant, implant_uuid=implant_uuid_str)
+    # here, crappy inline, but decode messagepack task.
+    # for each task in the response list, we need to store in redis
+
+    """
+    task_response_dict = data_from_implant.msgpack decode
+
+    for task in task_response_dict:
+        # shitty, inneficient, re-encode to msgpack for redis
+        #
+        rits = RedisImplantTaskService(implant_uuid)
+        rits.enqueue_response(data_from_implant)
+
+    """
+    # ! Hacky modification to allow a msgpack array of tasks coming back from the implant.
+    # ! de-serialize, for iteration purposes. Re-serialize, as that's what redis wants/the whole response cache
+    # ! system is built on
+    task_response_list: list[dict] = msgpack.unpackb(data_from_implant)
+    for unpacked_task_response in task_response_list:
+        # _ to differentiate from previous implant_uuid variable.
+        _implant_uuid = unpacked_task_response.get("implant_uuid", "")
+        _task_uuid = unpacked_task_response.get("task_uuid", "")
+
+        if not _implant_uuid:
+            listener_logger.warning(
+                "Task came back without an implant_uuid", implant_uuid=_implant_uuid, task=unpacked_task_response
+            )
+            continue
+
+        packed_response = msgpack.packb(unpacked_task_response)
+
+        rits = RedisImplantTaskService(_implant_uuid)
+        rits.enqueue_response(packed_response)
+        listener_logger.info("task response stored in redis", implant_uuid=_implant_uuid, task_uuid=_task_uuid)
+
+    # Generate a response for the implant according to Malleable c2 & send back
+    response = http_post_response()
     return response
 
 
-def http_post_response(data_from_implant: bytes, implant_uuid):
+def http_post_response():
     """
     Setup a response for the implant
 
@@ -700,10 +735,8 @@ def http_post_response(data_from_implant: bytes, implant_uuid):
 
     # spin up redis class, write deobsfucated data to redis.
     # this will get picked up by the redis batch watchdog and write to mysql
-    rits = RedisImplantTaskService(implant_uuid)
-    rits.enqueue_response(data_from_implant)
-
-    listener_logger.info("task_response_enqueued")
+    # rits = RedisImplantTaskService(implant_uuid)
+    # rits.enqueue_response(data_from_implant)
 
     terminator_type, target = emitter.get_output_terminator()
 
