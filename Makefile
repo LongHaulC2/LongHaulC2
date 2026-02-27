@@ -120,11 +120,15 @@ deploy: check_root
 	# updated to use pip pyproject.toml and freeze
 	# Standard install (non-editable) for production stability/isolation
 	virtualenv $(DEPLOY_DIR)/server/venv/
-	$(DEPLOY_DIR)/server/venv/bin/pip install "$(DIR_OF_THIS_SCRIPT)[server]" -c $(LOCK_FILE)
+	#$(DEPLOY_DIR)/server/venv/bin/pip install "$(DIR_OF_THIS_SCRIPT)[server]" -c $(LOCK_FILE)
 	
+	-$(DEPLOY_DIR)/server/venv/bin/pip install -r $(LOCK_FILE) --no-deps
+
 	virtualenv $(DEPLOY_DIR)/client/venv/
-	$(DEPLOY_DIR)/client/venv/bin/pip install "$(DIR_OF_THIS_SCRIPT)[web]" -c $(LOCK_FILE)
-	
+	#$(DEPLOY_DIR)/client/venv/bin/pip install "$(DIR_OF_THIS_SCRIPT)[web]" -c $(LOCK_FILE)
+	-$(DEPLOY_DIR)/server/venv/bin/pip install -r $(LOCK_FILE) --no-deps
+
+
 	@echo "=================================================="
 	@echo "Setting permissions"
 	@echo "=================================================="
