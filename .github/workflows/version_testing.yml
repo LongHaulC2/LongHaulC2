@@ -1,4 +1,4 @@
-name: Python Multi-Environment Tests
+name: Deployment Test - Ubuntu: 22.04, 24.04, Python: 3.10, 3.11, 3.12
 
 on:
   push:
@@ -12,6 +12,7 @@ jobs:
     
     strategy:
       matrix:
+        #https://github.com/actions/runner-images - for ref
         os: [ubuntu-22.04, ubuntu-24.04]         # Testing different Linux versions
         python-version: ['3.10', '3.11', '3.12'] # Testing different Python versions
 
