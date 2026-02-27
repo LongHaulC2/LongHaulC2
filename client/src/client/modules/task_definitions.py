@@ -151,7 +151,9 @@ async def task_tree(command, args, implant_uuid):
                 task = Cd(implant_uuid=implant_uuid, directory=args).to_task()
                 return (ResultType.TASK, task)
             # if not all args are present, or there's a bug, this will bubble up and be put on screen
-            except ParseError as e:
+            except ParseError as pe:
+                return (ResultType.ERROR, str(pe))
+            except Exception as e:
                 return (ResultType.ERROR, str(e))
 
         case "ls":
@@ -159,7 +161,9 @@ async def task_tree(command, args, implant_uuid):
                 task = Ls(implant_uuid=implant_uuid, directory=args).to_task()
                 return (ResultType.TASK, task)
             # if not all args are present, or there's a bug, this will bubble up and be put on screen
-            except ParseError as e:
+            except ParseError as pe:
+                return (ResultType.ERROR, str(pe))
+            except Exception as e:
                 return (ResultType.ERROR, str(e))
 
         case "sleep":
@@ -167,16 +171,19 @@ async def task_tree(command, args, implant_uuid):
                 task = Sleep(implant_uuid=implant_uuid, sleep_time=args).to_task()
                 return (ResultType.TASK, task)
             # if not all args are present, or there's a bug, this will bubble up and be put on screen
-            except ParseError as e:
+            except ParseError as pe:
+                return (ResultType.ERROR, str(pe))
+            except Exception as e:
                 return (ResultType.ERROR, str(e))
-
         case "strat":
             if args.startswith("post"):
                 strategy_name = args[5:]  # Extract strategy name after "post "
                 try:
                     task = StratPost(implant_uuid=implant_uuid, strategy_name=strategy_name).to_task()
                     return (ResultType.TASK, task)
-                except ParseError as e:
+                except ParseError as pe:
+                    return (ResultType.ERROR, str(pe))
+                except Exception as e:
                     return (ResultType.ERROR, str(e))
 
             elif args.startswith("get"):
@@ -184,21 +191,27 @@ async def task_tree(command, args, implant_uuid):
                 try:
                     task = StratGet(implant_uuid=implant_uuid, strategy_name=strategy_name).to_task()
                     return (ResultType.TASK, task)
-                except ParseError as e:
+                except ParseError as pe:
+                    return (ResultType.ERROR, str(pe))
+                except Exception as e:
                     return (ResultType.ERROR, str(e))
 
             elif args.startswith("list"):
                 try:
                     task = StratList(implant_uuid=implant_uuid).to_task()
                     return (ResultType.TASK, task)
-                except ParseError as e:
+                except ParseError as pe:
+                    return (ResultType.ERROR, str(pe))
+                except Exception as e:
                     return (ResultType.ERROR, str(e))
 
             elif args.startswith("active"):
                 try:
                     task = StratActive(implant_uuid=implant_uuid).to_task()
                     return (ResultType.TASK, task)
-                except ParseError as e:
+                except ParseError as pe:
+                    return (ResultType.ERROR, str(pe))
+                except Exception as e:
                     return (ResultType.ERROR, str(e))
 
             else:
@@ -218,7 +231,9 @@ async def task_tree(command, args, implant_uuid):
                 try:
                     task = FileDownload(implant_uuid=implant_uuid, file_path=file_path).to_task()
                     return (ResultType.TASK, task)
-                except ParseError as e:
+                except ParseError as pe:
+                    return (ResultType.ERROR, str(pe))
+                except Exception as e:
                     return (ResultType.ERROR, str(e))
 
             if args.startswith("upload"):
@@ -238,7 +253,9 @@ async def task_tree(command, args, implant_uuid):
                         file_contents=file_contents,
                     ).to_task()
                     return (ResultType.TASK, task)
-                except ParseError as e:
+                except ParseError as pe:
+                    return (ResultType.ERROR, str(pe))
+                except Exception as e:
                     return (ResultType.ERROR, str(e))
             else:
                 return (
@@ -264,7 +281,9 @@ async def task_tree(command, args, implant_uuid):
                         file_contents=file_contents.strip(),
                     ).to_task()
                     return (ResultType.TASK, task)
-                except ParseError as e:
+                except ParseError as pe:
+                    return (ResultType.ERROR, str(pe))
+                except Exception as e:
                     return (ResultType.ERROR, str(e))
             elif args.startswith("download"):
                 raw_args = args[9:]  # Extract file name after "download"
@@ -275,7 +294,9 @@ async def task_tree(command, args, implant_uuid):
                 try:
                     task = MemStoreDownload(implant_uuid=implant_uuid, file_name=file_name).to_task()
                     return (ResultType.TASK, task)
-                except ParseError as e:
+                except ParseError as pe:
+                    return (ResultType.ERROR, str(pe))
+                except Exception as e:
                     return (ResultType.ERROR, str(e))
 
             elif args.startswith("delete"):
@@ -287,20 +308,26 @@ async def task_tree(command, args, implant_uuid):
                 try:
                     task = MemStoreDelete(implant_uuid=implant_uuid, file_name=file_name).to_task()
                     return (ResultType.TASK, task)
-                except ParseError as e:
+                except ParseError as pe:
+                    return (ResultType.ERROR, str(pe))
+                except Exception as e:
                     return (ResultType.ERROR, str(e))
 
             elif args.startswith("clear"):
                 try:
                     task = MemStoreClear(implant_uuid=implant_uuid).to_task()
                     return (ResultType.TASK, task)
-                except ParseError as e:
+                except ParseError as pe:
+                    return (ResultType.ERROR, str(pe))
+                except Exception as e:
                     return (ResultType.ERROR, str(e))
             elif args.startswith("list"):
                 try:
                     task = MemStoreList(implant_uuid=implant_uuid).to_task()
                     return (ResultType.TASK, task)
-                except ParseError as e:
+                except ParseError as pe:
+                    return (ResultType.ERROR, str(pe))
+                except Exception as e:
                     return (ResultType.ERROR, str(e))
 
             else:
@@ -322,7 +349,9 @@ async def task_tree(command, args, implant_uuid):
                 task = BofRunner(implant_uuid=implant_uuid, bof_contents=bof_bytes, bof_args=bof_args).to_task()
                 return (ResultType.TASK, task)
 
-            except ParseError as e:
+            except ParseError as pe:
+                return (ResultType.ERROR, str(pe))
+            except Exception as e:
                 return (ResultType.ERROR, str(e))
 
         case "discover":
@@ -340,7 +369,9 @@ async def task_tree(command, args, implant_uuid):
             try:
                 task = Exit(implant_uuid=implant_uuid).to_task()
                 return (ResultType.TASK, task)
-            except ParseError as e:
+            except ParseError as pe:
+                return (ResultType.ERROR, str(pe))
+            except Exception as e:
                 return (ResultType.ERROR, str(e))
 
         case _:
