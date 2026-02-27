@@ -9,13 +9,13 @@ User=longhaul
 Group=longhaul
 
 # Set working directory to the dynamically injected install path
-WorkingDirectory=@INSTALL_DIR@
+WorkingDirectory=@DEPLOY_DIR@
 
 # Force Python to unbuffer stdout so logs stream to journalctl instantly
 Environment=PYTHONUNBUFFERED=1
 # load .env so we can access various .env values if needed. Can just use load_dotenv and os.genenv()
-EnvironmentFile=@INSTALL_DIR@/.env
-ExecStart=@INSTALL_DIR@/server/venv/bin/python -m server.src.server.main
+EnvironmentFile=@DEPLOY_DIR@/.env
+ExecStart=@DEPLOY_DIR@/server/venv/bin/python -m server.src.server.main
 
 Restart=always
 RestartSec=5

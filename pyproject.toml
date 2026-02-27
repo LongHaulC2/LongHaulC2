@@ -1,5 +1,58 @@
 # hi! This configures the python global settings for the project.
 
+[project]
+name = "LongHaulC2"
+version = "1.0.0"
+# Needed by both
+dependencies = [
+    "structlog",
+    "msgpack",
+    "brotli",
+    "requests",
+    "dotenv",
+    "pip-audit"
+]
+
+[tool.setuptools]
+# This explicitly tells pip which directories are packages, otherwise it freaks out
+packages = ["server", "client"]
+
+[project.optional-dependencies]
+# server reqs
+server = [
+    "flask-restx",
+    "sqlalchemy",
+    "redis",
+    "pymysql",
+    "cryptography",
+    "flask-compress",
+    "flask-limiter",
+    "edwh-uuid7",
+    "pyMalleableProfileParser",
+    "uvicorn",
+    "concurrent-log-handler",
+    "neomodel",
+    "pandas",
+    "fastapi",
+    "waitress",
+    "orjson",
+    "docker",
+]
+# GUI reqs
+web = [
+    "nicegui",
+    "pywebview",
+    "httpx",
+]
+# Development reqs
+dev = [
+    "pre-commit",
+    "ruff",
+    "schemathesis",
+    "pytest",
+]
+
+
 [tool.ruff]
 target-version = "py312"
 line-length = 120
