@@ -230,8 +230,20 @@ async def implant_view():
 
     async def action_delete_rows():
         ids = [row["implant_uuid"] for row in table.selected]
+
+        # Remove rows locally
+        table.rows = [row for row in table.rows if row["implant_uuid"] not in ids]
+
+        # Clear selected, this fixes a "selected but not in table" bug when opening a terminal
+        table.selected = []
+
+        table.update()
+
+        # Then delete from backend
         for implant_uuid in ids:
             await delete_implant(implant_uuid=implant_uuid)
+
+        await refresh()
 
     async def action_open_terminal():
         ids = [row["implant_uuid"] for row in table.selected]
