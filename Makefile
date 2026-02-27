@@ -42,7 +42,18 @@ deploy:
 	$(MAKE) check_root
 	
 	sudo apt-get update -y
-	sudo apt-get install $(APT_PACKAGES) -y
+	# sudo apt-get install $(APT_PACKAGES) -y
+
+	# ! Docker fails on GH actions becuase it's already installed. Ignore if we're a GH runner
+	# ! Additionally, python is already installed, so we can skip that too
+	ifeq ($(GITHUB_ACTIONS),true)
+		@echo "GitHub Actions detected! Skipping docker.io installation to avoid conflicts..."
+		sudo apt-get install virtualenv redis-tools postgresql-client -y
+	else
+		@echo "Local environment detected! Installing full dependencies..."
+		sudo apt-get install $(APT_PACKAGES) -y
+	endif
+		@echo "Dependencies installed, continuing with deployment..."
 
 	@echo "=================================================="
 	@echo "Creating longhaul user"
