@@ -62,7 +62,7 @@ jobs:
         # use latest pip, then install our reqs
         run: |
           python -m pip install --upgrade pip
-          pip install -r ./server/src/server/requirements.txt
+          pip install -e ".[server,web,dev]"
 
       - name: Dependency audit
         # || true means notify, as it ret's true & GH thinks it succeeded then
