@@ -145,18 +145,6 @@ check_chained() -> for each chained in chain list, read outbox, then write inbox
 post()
 
 ```
-
-server side:
- -  [ ] GET Multiple Response Parsing:
-   - Normal GET. Server returns *list* (new) of tasks, for all parent and child beacons. Server is authority of chain. 
- - [ ] POST multipe processsing:
-   - Loop of inbound list of tasks, write to db's, based on implant UUID
-
-Implant:
- - [ ] Loop over tasks from GET, do actions for each
- - [ ] Add response queue for POST (thread safe probably...), and send that list on POST
-
-
 Implant:
  - Get that global task mutex setup, and switch over to it.
       For each loop, pull out all tasks, yeet back to next hop/pass to the egress func. 
@@ -197,6 +185,14 @@ HEY - add delete listener in gui so it actually deletes it from the db
 * [X] Auto-restarting listeners and quick restart endpoint
 * [X] Add `check_type` on modules and server code
 * [X] API documentation
+
+### CICD/Testing:
+
+> Here
+* [ ] Clean up api to pass schemathesis
+   > big issue: data being NULL
+   > Use werkzeug errors where needed
+* [ ] write some GUI tests too once API done
 
 
 ### Implant: Command Tree & Capabilities

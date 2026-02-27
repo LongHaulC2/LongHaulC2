@@ -432,10 +432,32 @@ freeze: clean_python
 	pip freeze --exclude-editable > requirements.lock
 
 
+.PHONY: no_fail_test
+no_fail_test: 
+	# just calling each test individually due to pathing problems, it's fine. 
+
+	# "-" allows for it to fail, yet continue on. Probably shouldn't use this for the final testing to make sure things work
+	# in the GH actions.
+
+	-PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
+			--ignore=$(DIR_OF_THIS_SCRIPT)/dev_testing \
+			$(DIR_OF_THIS_SCRIPT)/tests/server/api_schematesis.py
+
+
+	-PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
+		--ignore=$(DIR_OF_THIS_SCRIPT)/dev_testing \
+		$(DIR_OF_THIS_SCRIPT)/tests/web/web_tests.py
+
 .PHONY: test
 test: 
-	# just calling each test individually due to pathing problems, it's fine. 
+	# *the* testing call to use on push
+	# fails on failed test
 
 	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
 			--ignore=$(DIR_OF_THIS_SCRIPT)/dev_testing \
 			$(DIR_OF_THIS_SCRIPT)/tests/server/api_schematesis.py
+
+
+	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
+		--ignore=$(DIR_OF_THIS_SCRIPT)/dev_testing \
+		$(DIR_OF_THIS_SCRIPT)/tests/web/web_tests.py
