@@ -126,7 +126,7 @@ deploy: check_root
 
 	virtualenv $(DEPLOY_DIR)/client/venv/
 	#$(DEPLOY_DIR)/client/venv/bin/pip install "$(DIR_OF_THIS_SCRIPT)[web]" -c $(LOCK_FILE)
-	-$(DEPLOY_DIR)/server/venv/bin/pip install -r $(LOCK_FILE) --no-deps
+	-$(DEPLOY_DIR)/client/venv/bin/pip install -r $(LOCK_FILE) --no-deps
 
 
 	@echo "=================================================="
