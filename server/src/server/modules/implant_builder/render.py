@@ -83,6 +83,20 @@ def render_implant(
         mode="w",  # overwrite if there was a file in the template dir
     )
 
+    # ! For now, rendering transport as well in here, they have the same req's.
+    # move to its own function when needed
+    _render_file(
+        output_dir / "lifecycle/transport.h",
+        "transport.h.j2",
+        {
+            "get_function_mappings": get_func_mappings,
+            "post_function_mappings": post_func_mappings,
+            # "init_get_function": init_get_func, # init get and init post not used in this template
+            # "init_post_function": init_post_func,
+        },
+        mode="w",  # overwrite if there was a file in the template dir
+    )
+
 
 def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dict[str, FunctionMapping]:
     """

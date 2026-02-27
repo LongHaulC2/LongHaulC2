@@ -48,7 +48,7 @@ set(SOURCES
     "modules/bof.h"
     "libs/bof_launcher_api.h"
 )
-add_executable(Implant_v01 ${SOURCES} "modules/discover.cpp" "modules/discover.h")
+add_executable(Implant_v01 ${SOURCES} "modules/discover.cpp" "modules/discover.h" "lifecycle/transport.h" )
 
 target_precompile_headers(Implant_v01 PRIVATE
     <string>

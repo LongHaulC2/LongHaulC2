@@ -460,6 +460,7 @@ class StratPost:
         return final_task
 
 
+@dataclass(frozen=True)
 class StratGet:
     R"""
     Set the get strategy for the implant.

@@ -5,10 +5,11 @@
 #include <vector>
 #include <iostream>
 #include "c2.h" //ingress,egress definitions
-
+#include <windows.h>
+#include <mutex>
 // 1. Define allowed types
 //std::map<std::string, EgressFunc> and std::map<std::string, IngressFunc> are included as allowed types, so that we can store the strategy maps in the settings manager to get later. Kinda hacky
-using SettingValue = std::variant<bool, int, double, std::string, IngressFunc, EgressFunc, std::map<std::string, EgressFunc>, std::map<std::string, IngressFunc>>;
+using SettingValue = std::variant<bool, int, double, HANDLE, std::string, std::vector<std::string>>;
 
 class SettingsManager {
 public:
@@ -30,6 +31,7 @@ public:
 
     template <typename T>
     void set(const std::string& key, T value) {
+        std::lock_guard<std::mutex> lock(settingsMutex_); // Lock before writing
         settingsMap_[key] = value;
     }
 
@@ -40,6 +42,7 @@ public:
 
     template <typename T>
     T get(const std::string& key, const T& defaultValue) const {
+        std::lock_guard<std::mutex> lock(settingsMutex_); // Lock before reading
         auto it = settingsMap_.find(key);
         //if not found
         if (it == settingsMap_.end()) {
@@ -60,6 +63,7 @@ private:
     }
 
     std::map<std::string, SettingValue> settingsMap_;
+    mutable std::mutex settingsMutex_;
 };
 
 /*
