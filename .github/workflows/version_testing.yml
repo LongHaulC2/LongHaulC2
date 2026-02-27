@@ -32,11 +32,11 @@ jobs:
     - name: Deploy
       run: |
         # Testing out deployment
-        sudo make deploy
+        sudo -E make deploy
         echo "Successfully deployed LongHaulC2"
 
     - name: Run tests
       run: |
         # Testing out deployment
-        sudo make deploy
+        # sudo make deploy
         echo "Successfully running tests on ${{ matrix.os }} with Python ${{ matrix.python-version }}"
