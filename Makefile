@@ -7,8 +7,8 @@ WORKSPACE_DIR = /var/lib/longhaulc2
 
 # dev vars
 DIR_OF_THIS_SCRIPT := $(shell pwd)
-DEV_VENV := $(DIR_OF_THIS_SCRIPT)/.venv
-DEV_VENV_PATH ?= ./venv
+DEV_VENV := $(DIR_OF_THIS_SCRIPT)/venv
+DEV_VENV_PATH ?= /venv
 
 # Dependencies
 APT_PACKAGES = python3 python3-pip virtualenv docker.io redis-tools postgresql-client
