@@ -22,3 +22,5 @@ fastapi
 waitress
 brotli
 orjson
+schemathesis
+pytest

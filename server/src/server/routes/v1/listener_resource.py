@@ -4,6 +4,7 @@ import structlog
 from edwh_uuid7 import uuid7
 from flask import request
 from flask_restx import Namespace, Resource
+from werkzeug.exceptions import MethodNotAllowed, NotFound
 
 from ...api_models.error import COMMON_ERRORS
 from ...api_models.listener import (
@@ -33,13 +34,20 @@ server_logger = structlog.getLogger("server")
 @listener_ns.errorhandler(ValueError)
 def handle_value_error(e):
     server_logger.error("An error occured", error=e)
-    return {"status": "400", "message": str(e), "data": None}, 400
+    return {"status": "400", "message": str(e)}, 400
+
+
+@listener_ns.errorhandler(MethodNotAllowed)
+def handle_method_not_allowed_error(e):
+    server_logger.error("An error occured", error=e)
+    # ! e.get_response().headers, allows the ALLOW header through, otherwise, schemathesis will fail
+    return {"status": "405", "message": "Method not allowed"}, 405, e.get_response().headers
 
 
 @listener_ns.errorhandler(Exception)
 def handle_general_error(e):
-    server_logger.error("An error occured", error=e)
-    return {"status": "500", "message": "An internal error occurred", "data": None}, 500
+    server_logger.exception("An error occured", error=e)
+    return {"status": "500", "message": "An internal error occurred"}, 500
 
 
 class Listener(Resource):
@@ -67,6 +75,10 @@ class Listener(Resource):
             # The helper 'wrap_response_single' defaults data to {},
             # but explicit empty dict is fine too.
             data = {} if listeners is None else listeners.to_dict()
+
+        # in the event we don't have any data here for this specific listener, just 404
+        if not data:
+            raise NotFound()
 
         api_response = APIResponse(
             status="200",
@@ -125,9 +137,15 @@ class Listener(Resource):
         # extract the target state from the payload
         payload = api.payload or {}
         if "active" not in payload:
-            return APIResponse(status=400, message="Missing 'active' field in payload")
+            raise ValueError
+            # return APIResponse(status=400, message="Missing 'active' field in payload"), 400
 
-        user_wants_active = bool(payload.get("active"))
+        # check to make sure this a bool first. If not, throw err.
+        active_val = payload.get("active")
+        if not isinstance(active_val, bool):
+            raise ValueError("Field 'active' must be a boolean")
+
+        user_wants_active = active_val
 
         # Open one database session for the entire operation
         with get_mysql_session() as session:
@@ -136,7 +154,9 @@ class Listener(Resource):
 
             if listener is None:
                 # api_logger.warning(f"Listener does not exist: {uuid}")
-                raise ValueError(f"Listener {uuid} does not exist")
+                # raise ValueError(f"Listener {uuid} does not exist")
+                # 404 on no listener
+                raise NotFound()
 
             is_currently_active = listener.listener_active
 
@@ -162,7 +182,7 @@ class Listener(Resource):
                 listener_service.set_active(uuid, active=False)
                 message = "Listener stopped successfully"
 
-        return APIResponse(status=200, message=message)
+        return APIResponse(status=200, message=message), 200
 
 
 class Listeners(Resource):

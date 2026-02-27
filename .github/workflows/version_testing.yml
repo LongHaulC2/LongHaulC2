@@ -40,3 +40,9 @@ jobs:
         # Testing out deployment
         # sudo make deploy
         echo "Successfully running tests on ${{ matrix.os }} with Python ${{ matrix.python-version }}"
+
+    # not yet - need to clean up some API stuff first
+    # - name: SchemaThesis
+    #   run: |
+    #     echo "Starting Schemathesis: ${{ matrix.os }} with Python ${{ matrix.python-version }}"
+    #     pytest -s -v tests/server/api_schematesis.py
