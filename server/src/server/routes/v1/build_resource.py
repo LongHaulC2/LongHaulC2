@@ -4,7 +4,7 @@ import structlog
 from edwh_uuid7 import uuid7
 from flask import request, send_file
 from flask_restx import Namespace, Resource
-from werkzeug.exceptions import MethodNotAllowed, NotFound
+from werkzeug.exceptions import BadRequest, MethodNotAllowed, NotFound
 
 from ...api_models.build import (
     BINARYACTIONS_DELETE_RESPONSE,
@@ -33,6 +33,30 @@ server_logger = structlog.getLogger("server")
 def handle_value_error(e):
     server_logger.error("An error occured", error=e)
     return {"status": "400", "message": str(e), "data": None}, 400
+
+
+@build_ns.errorhandler(TypeError)
+@build_ns.marshal_with(ERROR_MODEL)
+def handle_type_error(e):
+    server_logger.error("An error occured", error=e)
+    return {"status": "400", "message": "Bad type", "data": ""}, 400
+
+
+@build_ns.errorhandler(BadRequest)
+@build_ns.marshal_with(ERROR_MODEL)
+def handle_bad_request_and_abort(e):
+    """
+    Catches all Werkzeug/RESTX aborts and ensures they
+    match our {status, message, data} format. This will not catch
+    things like "raise valueerror", hence why there are other error handlers  too
+    """
+    server_logger.error("An error occured", error=e, message=str(e))
+
+    return {
+        "status": str(e.code),
+        "message": getattr(e, "message", str(e)),
+        "data": getattr(e, "data", {}),  # if abort is called, this will include it
+    }, e.code
 
 
 @build_ns.errorhandler(NotFound)

@@ -12,17 +12,12 @@ class APIResponse:
     status: str
     message: str
     data: Any | None = None
-    # errors: Optional[Any] = None
-    # code: Optional[str] = None
 
     def to_dict(self) -> dict:
-        """Return dict without None values, like your previous cleanup."""
-        # return {k: v for k, v in asdict(self).items() if v is not None}
-        # not removing null/none values, as null is a valid response for some API responses
-        return {k: v for k, v in asdict(self).items()}
+        """Return dict, excluding fields that are None."""
+        # This keeps the key if v is 0, "", or {}, but removes it if v is None
+        return {k: v for k, v in asdict(self).items() if v is not None}
 
     def jsonify(self):
         """Return a Flask JSON response."""
-        response_dict = self.to_dict()
-        # api_logger.debug(f"Generating Response: {response_dict}")
-        return jsonify(response_dict)
+        return jsonify(self.to_dict())

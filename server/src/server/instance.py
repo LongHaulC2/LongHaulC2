@@ -12,7 +12,8 @@ env_config = dotenv_values(".env")  # returns a dict
 
 
 app = Flask(__name__)
-api = Api(app, prefix="/api/v1", title="API V1", doc="/doc", RESTX_MASK_HEADER=None)
+app.config["RESTX_MASK_SWAGGER"] = False
+api = Api(app, prefix="/api/v1", title="API V1", doc="/doc")
 
 # track active threads in the server
 # key: item name, value=thread object

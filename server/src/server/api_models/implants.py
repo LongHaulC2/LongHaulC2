@@ -35,7 +35,6 @@ def wrap_response_empty(api, model_name):
     return api.model(
         model_name,
         {
-            "data": fields.String(example="", description="No data returned", default=""),
             "message": fields.String(example="Success"),
             "status": fields.String(example="200"),
         },

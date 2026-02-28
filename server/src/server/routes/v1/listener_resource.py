@@ -4,7 +4,7 @@ import structlog
 from edwh_uuid7 import uuid7
 from flask import request
 from flask_restx import Namespace, Resource
-from werkzeug.exceptions import MethodNotAllowed, NotFound
+from werkzeug.exceptions import BadRequest, abort
 
 from ...api_models.error import COMMON_ERRORS, ERROR_MODEL
 from ...api_models.listener import (
@@ -30,27 +30,20 @@ api_logger = structlog.getLogger("api")
 server_logger = structlog.getLogger("server")
 
 
-# Default Error handlers
-@listener_ns.errorhandler(ValueError)
+@listener_ns.errorhandler(BadRequest)
 @listener_ns.marshal_with(ERROR_MODEL)
-def handle_value_error(e):
-    server_logger.error("An error occured", error=e)
-    return {"status": "400", "message": str(e), "data": ""}, 400
+def handle_bad_request_and_abort(e):
+    """
+    Catches all Werkzeug/RESTX aborts and ensures they
+    match our {status, message, data} format. This will not catch
+    things like "raise valueerror", hence why there are other error handlers  too
+    """
+    server_logger.error("An error occured", error=e, message=str(e))
 
-
-@listener_ns.errorhandler(NotFound)
-@listener_ns.marshal_with(ERROR_MODEL)
-def handle_not_found(e):
-    server_logger.error("An error occured", error=e)
-    return {"status": "404", "message": "Not Found", "data": ""}, 404
-
-
-@listener_ns.errorhandler(MethodNotAllowed)
-@listener_ns.marshal_with(ERROR_MODEL)
-def handle_method_not_allowed_error(e):
-    server_logger.error("An error occured", error=e)
-    # ! e.get_response().headers, allows the ALLOW header through, otherwise, schemathesis will fail
-    return {"status": "405", "message": "Method not allowed", "data": ""}, 405, e.get_response().headers
+    return {
+        "status": str(e.code),
+        "message": getattr(e, "message", str(e)),
+    }, e.code
 
 
 @listener_ns.errorhandler(Exception)
@@ -88,8 +81,7 @@ class Listener(Resource):
 
         # in the event we don't have any data here for this specific listener, just 404
         if not data:
-            # raise a 404, and give it a default dict for  data
-            raise NotFound()
+            abort(404, message="Not Found", data={})
 
         api_response = APIResponse(
             status="200",
@@ -145,13 +137,13 @@ class Listener(Resource):
         # extract the target state from the payload
         payload = api.payload or {}
         if "active" not in payload:
-            raise ValueError
+            abort(400, message="Missing field in payload")
             # return APIResponse(status=400, message="Missing 'active' field in payload"), 400
 
         # check to make sure this a bool first. If not, throw err.
         active_val = payload.get("active")
         if not isinstance(active_val, bool):
-            raise ValueError("Field 'active' must be a boolean")
+            abort(400, message="Incorrect Type")
 
         user_wants_active = active_val
 
@@ -162,7 +154,7 @@ class Listener(Resource):
 
             if listener is None:
                 # api_logger.warning(f"Listener does not exist: {uuid}")
-                raise NotFound(f"Listener {uuid} does not exist")
+                abort(404, message="Listener does not exist")
                 # 404 on no listener
 
             is_currently_active = listener.listener_active

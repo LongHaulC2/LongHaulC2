@@ -9,7 +9,7 @@ ERROR_MODEL = api.model(
         "message": fields.String(
             description="The error message", example="Resource not found", default="An error occured"
         ),
-        "data": fields.String(description="Extra error details", example="", default=""),
+        # no more data field in errors, it doesn't belong here
     },
 )
 
