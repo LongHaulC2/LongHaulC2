@@ -1,7 +1,7 @@
 import structlog
 from flask import request
 from flask_restx import Namespace, Resource
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, MethodNotAllowed, NotFound
 
 from ...api_models.error import COMMON_ERRORS, ERROR_MODEL
 from ...api_models.listener import LISTENER_GET_RESPONSE
@@ -14,34 +14,19 @@ api_logger = structlog.getLogger("api")
 server_logger = structlog.getLogger("server")
 
 
-# Error handlers
-# @health_ns.errorhandler(ValueError)
-# @health_ns.marshal_with(ERROR_MODEL)
-# def handle_value_error(e):
-#     server_logger.error("An error occured", error=e)
-#     return {"status": "400", "message": str(e), "data": None}, 400
+@health_ns.errorhandler(NotFound)
+@health_ns.marshal_with(ERROR_MODEL)
+def handle_not_found(e):
+    server_logger.error("An error occured", error=e)
+    return {"status": "404", "message": "Not Found", "data": ""}, 404
 
 
-# @health_ns.errorhandler(TypeError)
-# @health_ns.marshal_with(ERROR_MODEL)
-# def handle_type_error(e):
-#     server_logger.error("An error occured", error=e)
-#     return {"status": "400", "message": "Bad type", "data": ""}, 400
-
-
-# @health_ns.errorhandler(NotFound)
-# @health_ns.marshal_with(ERROR_MODEL)
-# def handle_not_found(e):
-#     server_logger.error("An error occured", error=e)
-#     return {"status": "404", "message": "Not Found", "data": ""}, 404
-
-
-# @health_ns.errorhandler(MethodNotAllowed)
-# @health_ns.marshal_with(ERROR_MODEL)
-# def handle_method_not_allowed_error(e):
-#     server_logger.error("An error occured", error=e)
-#     # ! e.get_response().headers, allows the ALLOW header through, otherwise, schemathesis will fail
-#     return {"status": "405", "message": "Method not allowed", "data": None}, 405, e.get_response().headers
+@health_ns.errorhandler(MethodNotAllowed)
+@health_ns.marshal_with(ERROR_MODEL)
+def handle_method_not_allowed_error(e):
+    server_logger.error("An error occured", error=e)
+    # ! e.get_response().headers, allows the ALLOW header through, otherwise, schemathesis will fail
+    return {"status": "405", "message": "Method not allowed", "data": None}, 405, e.get_response().headers
 
 
 @health_ns.errorhandler(BadRequest)

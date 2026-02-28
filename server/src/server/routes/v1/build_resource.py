@@ -28,18 +28,6 @@ server_logger = structlog.getLogger("server")
 
 # Error handlers
 # for ref: https://werkzeug.palletsprojects.com/en/stable/exceptions/
-@build_ns.errorhandler(ValueError)
-@build_ns.marshal_with(ERROR_MODEL)
-def handle_value_error(e):
-    server_logger.error("An error occured", error=e)
-    return {"status": "400", "message": str(e), "data": None}, 400
-
-
-@build_ns.errorhandler(TypeError)
-@build_ns.marshal_with(ERROR_MODEL)
-def handle_type_error(e):
-    server_logger.error("An error occured", error=e)
-    return {"status": "400", "message": "Bad type", "data": ""}, 400
 
 
 @build_ns.errorhandler(BadRequest)
