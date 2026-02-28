@@ -38,6 +38,13 @@ def handle_value_error(e):
     return {"status": "400", "message": str(e), "data": ""}, 400
 
 
+@listener_ns.errorhandler(NotFound)
+@listener_ns.marshal_with(ERROR_MODEL)
+def handle_not_found(e):
+    server_logger.error("An error occured", error=e)
+    return {"status": "404", "message": "Not Found", "data": ""}, 404
+
+
 @listener_ns.errorhandler(MethodNotAllowed)
 @listener_ns.marshal_with(ERROR_MODEL)
 def handle_method_not_allowed_error(e):
