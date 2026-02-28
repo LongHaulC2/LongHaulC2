@@ -8,7 +8,7 @@ from flask import request
 from flask_restx import Namespace, Resource, reqparse
 from werkzeug.exceptions import MethodNotAllowed
 
-from ...api_models.error import COMMON_ERRORS
+from ...api_models.error import COMMON_ERRORS, ERROR_MODEL
 from ...api_models.implants import (
     IMPLANT_DELETE_RESPONSE,
     IMPLANT_GET_RESPONSE,
@@ -43,12 +43,14 @@ server_logger = structlog.getLogger("server")
 
 # Error handlers
 @implants_ns.errorhandler(ValueError)
+@implants_ns.marshal_with(ERROR_MODEL)
 def handle_value_error(e):
     server_logger.error("An error occured", error=e)
     return {"status": "400", "message": str(e), "data": None}, 400
 
 
 @implants_ns.errorhandler(MethodNotAllowed)
+@implants_ns.marshal_with(ERROR_MODEL)
 def handle_method_not_allowed_error(e):
     server_logger.error("An error occured", error=e)
     # ! e.get_response().headers, allows the ALLOW header through, otherwise, schemathesis will fail
@@ -56,6 +58,7 @@ def handle_method_not_allowed_error(e):
 
 
 @implants_ns.errorhandler(Exception)
+@implants_ns.marshal_with(ERROR_MODEL)
 def handle_general_error(e):
     server_logger.error("An error occured", error=e)
     return {"status": "500", "message": "An internal error occurred", "data": None}, 500
@@ -126,7 +129,7 @@ class Implant(Resource):
     @implants_ns.doc(
         summary="Get implant",
         description="Retrieve a single implant by its unique ID.",
-        params={"uuid": {"description": "Agent ID", "in": "path"}},
+        params={"uuid": {"description": "Implant ID", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
     )
     @implants_ns.response(200, "The implant was retrieved", IMPLANT_GET_RESPONSE)
@@ -152,7 +155,7 @@ class Implant(Resource):
     @implants_ns.doc(
         summary="Update implant",
         description="Update a single implant by its unique ID.",
-        params={"uuid": {"description": "Agent ID", "in": "path"}},
+        params={"uuid": {"description": "Implant ID", "in": "path", "format": "uuid"}},
         consumes=["application/json"],
         responses=COMMON_ERRORS,
     )
@@ -181,7 +184,7 @@ class Implant(Resource):
     @implants_ns.doc(
         summary="Delete implant",
         description="Delete a single implant by its unique ID.",
-        params={"uuid": {"description": "Agent ID", "in": "path"}},
+        params={"uuid": {"description": "Implant ID", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
     )
     @implants_ns.response(200, "Success", IMPLANT_DELETE_RESPONSE)
@@ -208,7 +211,7 @@ class ImplantTask(Resource):
     @implants_ns.doc(
         summary="Add a task",
         description="Add a task to a single implant by its unique ID.",
-        params={"uuid": {"description": "Agent ID", "in": "path"}},
+        params={"uuid": {"description": "Implant ID", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
         consumes=["application/json", "application/msgpack"],
     )
@@ -246,7 +249,7 @@ class ImplantTasks(Resource):
     @implants_ns.doc(
         summary="Peeks all currently queued tasks of implant",
         description="Peeks all currently queued tasks of implant",
-        params={"uuid": {"description": "Agent ID", "in": "path"}},
+        params={"uuid": {"description": "Implant ID", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
     )
     @implants_ns.response(200, "A list of tasks for the current implant", IMPLANT_TASKS_GET_RESPONSE)
@@ -276,7 +279,7 @@ class ImplantTasks(Resource):
     @implants_ns.doc(
         summary="Delete all the currently queued tasks of an implant",
         description="Delete all the tasks of an implant",
-        params={"uuid": {"description": "Agent ID", "in": "path"}},
+        params={"uuid": {"description": "Implant ID", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
     )
     @implants_ns.response(200, "The tasks for the implant were cleared", IMPLANT_TASKS_DELETE_RESPONSE)
@@ -309,7 +312,7 @@ class ImplantHistory(Resource):
     @implants_ns.doc(
         summary="Gets task history of implant from the DB.",
         description="Gets task history.",
-        params={"uuid": {"description": "Agent ID", "in": "path"}},
+        params={"uuid": {"description": "Implant ID", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
     )
     @implants_ns.expect(history_parser)

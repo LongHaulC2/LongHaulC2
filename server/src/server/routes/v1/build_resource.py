@@ -13,7 +13,7 @@ from ...api_models.build import (
     BUILD_POST_RESPONSE,
     BUILDJOBS_GET_RESPONSE,
 )
-from ...api_models.error import COMMON_ERRORS
+from ...api_models.error import COMMON_ERRORS, ERROR_MODEL
 from ...db.mysql_connector import get_mysql_session
 from ...instance import api
 from ...modules.implant_builder.build import build_implant
@@ -29,12 +29,14 @@ server_logger = structlog.getLogger("server")
 # Error handlers
 # for ref: https://werkzeug.palletsprojects.com/en/stable/exceptions/
 @build_ns.errorhandler(ValueError)
+@build_ns.marshal_with(ERROR_MODEL)
 def handle_value_error(e):
     server_logger.error("An error occured", error=e)
     return {"status": "400", "message": str(e), "data": None}, 400
 
 
 @build_ns.errorhandler(MethodNotAllowed)
+@build_ns.marshal_with(ERROR_MODEL)
 def handle_method_not_allowed_error(e):
     server_logger.error("An error occured", error=e)
     # ! e.get_response().headers, allows the ALLOW header through, otherwise, schemathesis will fail
@@ -42,6 +44,7 @@ def handle_method_not_allowed_error(e):
 
 
 @build_ns.errorhandler(Exception)
+@build_ns.marshal_with(ERROR_MODEL)
 def handle_general_error(e):
     server_logger.error("An error occured", error=e)
     return {"status": "500", "message": "An internal error occurred", "data": None}, 500
@@ -136,6 +139,7 @@ class BuildJobs(Resource):
         summary="Get build job status",
         description="Get the status of a specific build job.",
         responses=COMMON_ERRORS,
+        params={"build_uuid": {"description": "The UUID of the build", "in": "path", "format": "uuid"}},
     )
     @build_ns.response(200, "Build job status", BUILDJOBS_GET_RESPONSE)
     @build_ns.marshal_with(BUILDJOBS_GET_RESPONSE)

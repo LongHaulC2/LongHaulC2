@@ -14,7 +14,7 @@ All responses should follow this format:
 {
   "status": 200,
   "message": "Success",
-  "data": {} or NULL # prefferably {}
+  "data": Data, or the empty form of that data (ex, a list, empty would be [])
 }
 ````
 
@@ -22,7 +22,7 @@ All responses should follow this format:
 
 * **status** *(integer)*: HTTP status code (`200`, `400`, `500`, etc.)
 * **message** *(string)*: A short description of the result (`"Success"`, `"Error"`).
-* **data** *(object | array | null)*: The actual response content (could be an object, an array, or `null`).
+* **data** *(object | array)*: The actual response content . If no data, it should be the empty form of that content.
 
 ---
 

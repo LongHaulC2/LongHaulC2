@@ -11,7 +11,7 @@ def wrap_response_list(api, inner_model):
     return api.model(
         name,
         {
-            "data": fields.List(fields.Nested(inner_model)),
+            "data": fields.List(fields.Nested(inner_model), default=[]),
             "message": fields.String(example="Success"),
             "status": fields.String(example="200"),
         },
@@ -35,7 +35,7 @@ def wrap_response_empty(api, model_name):
     return api.model(
         model_name,
         {
-            "data": fields.String(example="", description="No data returned"),
+            "data": fields.String(example="", description="No data returned", default=""),
             "message": fields.String(example="Success"),
             "status": fields.String(example="200"),
         },

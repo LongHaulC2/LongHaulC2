@@ -192,8 +192,10 @@ HEY - add delete listener in gui so it actually deletes it from the db
 * [ ] Clean up api to pass schemathesis
    > big issue: data being NULL
    > Use werkzeug errors where needed
-* [ ] write some GUI tests too once API done
 
+
+* [X] write some GUI tests too once API done
+   > kind of smoke tests cuz it was being dumb
 
 ### Implant: Command Tree & Capabilities
 

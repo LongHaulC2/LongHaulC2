@@ -6,8 +6,10 @@ ERROR_MODEL = api.model(
     "ErrorResponse",
     {
         "status": fields.String(example="400", description="The HTTP error code"),
-        "message": fields.String(description="The error message", example="Resource not found"),
-        "data": fields.Raw(description="Extra error details", example=""),
+        "message": fields.String(
+            description="The error message", example="Resource not found", default="An error occured"
+        ),
+        "data": fields.String(description="Extra error details", example="", default=""),
     },
 )
 

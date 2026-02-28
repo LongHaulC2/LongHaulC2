@@ -6,7 +6,7 @@ from flask import request
 from flask_restx import Namespace, Resource
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 
-from ...api_models.error import COMMON_ERRORS
+from ...api_models.error import COMMON_ERRORS, ERROR_MODEL
 from ...api_models.listener import (
     LISTENER_DELETE_RESPONSE,
     LISTENER_GET_RESPONSE,
@@ -30,21 +30,24 @@ api_logger = structlog.getLogger("api")
 server_logger = structlog.getLogger("server")
 
 
-# Error handlers
+# Default Error handlers
 @listener_ns.errorhandler(ValueError)
+@listener_ns.marshal_with(ERROR_MODEL)
 def handle_value_error(e):
     server_logger.error("An error occured", error=e)
-    return {"status": "400", "message": str(e)}, 400
+    return {"status": "400", "message": str(e), "data": ""}, 400
 
 
 @listener_ns.errorhandler(MethodNotAllowed)
+@listener_ns.marshal_with(ERROR_MODEL)
 def handle_method_not_allowed_error(e):
     server_logger.error("An error occured", error=e)
     # ! e.get_response().headers, allows the ALLOW header through, otherwise, schemathesis will fail
-    return {"status": "405", "message": "Method not allowed"}, 405, e.get_response().headers
+    return {"status": "405", "message": "Method not allowed", "data": ""}, 405, e.get_response().headers
 
 
 @listener_ns.errorhandler(Exception)
+@listener_ns.marshal_with(ERROR_MODEL)
 def handle_general_error(e):
     server_logger.exception("An error occured", error=e)
     return {"status": "500", "message": "An internal error occurred"}, 500
@@ -54,7 +57,7 @@ class Listener(Resource):
     @listener_ns.doc(
         summary="Get listener",
         description="Retrieve a single listener by its unique ID.",
-        params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
+        params={"uuid": {"description": "Listener ID (uuid)", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
     )
     @listener_ns.response(200, "Retrieved listener data successfully", LISTENER_GET_RESPONSE)
@@ -78,6 +81,7 @@ class Listener(Resource):
 
         # in the event we don't have any data here for this specific listener, just 404
         if not data:
+            # raise a 404, and give it a default dict for  data
             raise NotFound()
 
         api_response = APIResponse(
@@ -90,7 +94,7 @@ class Listener(Resource):
     @listener_ns.doc(
         summary="Stop a listener",
         description="Stops one listener based on user supplied ID",
-        params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
+        params={"uuid": {"description": "Listener ID (uuid)", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
     )
     @listener_ns.response(200, "The listener was deleted successfully", LISTENER_DELETE_RESPONSE)
@@ -113,17 +117,14 @@ class Listener(Resource):
 
         api_logger.info("Listener deleted successfully", listener_uuid=uuid, caller_ip=ip)
 
-        api_response = APIResponse(
-            status=200,
-            message="Listener deleted successfully",
-        )
+        api_response = APIResponse(status=200, message="Listener deleted successfully", data="")
         return api_response
 
     @listener_ns.doc(
         summary="Restart a listener",
         description="Restart a listener",
         responses=COMMON_ERRORS,
-        params={"uuid": {"description": "Listener ID (uuid)", "in": "path"}},
+        params={"uuid": {"description": "Listener ID (uuid)", "in": "path", "format": "uuid"}},
     )
     @listener_ns.expect(LISTENER_PATCH_INPUT)
     @listener_ns.response(200, "The listener was restarted successfully", LISTENER_PATCH_RESPONSE)
@@ -154,9 +155,8 @@ class Listener(Resource):
 
             if listener is None:
                 # api_logger.warning(f"Listener does not exist: {uuid}")
-                # raise ValueError(f"Listener {uuid} does not exist")
+                raise NotFound(f"Listener {uuid} does not exist")
                 # 404 on no listener
-                raise NotFound()
 
             is_currently_active = listener.listener_active
 
