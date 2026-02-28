@@ -1,5 +1,7 @@
 name: Code test - Pytest
 
+# for testing code directly
+
 on:
   push:
     #branches: [ "main" ] 
