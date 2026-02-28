@@ -19,12 +19,6 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Dev Install
-      run: |
-        # Testing out deployment
-        sudo -E make dev_install
-        echo "Successfully dev installed LongHaulC2"
-
     - name: Run tests
       run: |
         # Testing out deployment

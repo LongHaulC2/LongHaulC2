@@ -450,6 +450,19 @@ no_fail_test:
 
 .PHONY: test
 test: 
+	# make sure dev venv exsists first
+	@if [ ! -d "$(DEV_VENV)" ]; then \
+		echo "Environment not found. Creating venv at $(DEV_VENV)..."; \
+		python3 -m venv $(DEV_VENV); \
+		$(DEV_VENV)/bin/pip install --upgrade pip; \
+		if [ -f "$(LOCK_FILE)" ]; then \
+			echo "Installing dependencies from $(LOCK_FILE)..."; \
+			$(DEV_VENV)/bin/pip install -r $(LOCK_FILE); \
+		else \
+			echo "Warning: $(LOCK_FILE) not found. Skipping dependency install."; \
+		fi \
+	fi
+
 	# *the* testing call to use on push
 	# fails on failed test
 
