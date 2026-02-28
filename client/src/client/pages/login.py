@@ -34,7 +34,7 @@ def login_page():
                 # Username
                 username = (  # noqa: F841, not used yet, but will when login is fully implemented
                     ui.input("USERNAME")
-                    .props("outlined dense dark color=emerald autofocus")
+                    .props("outlined dense dark color=emerald")
                     .classes("w-full tech-input")
                     .on("keydown.enter", lambda: password.run_method("focus"))
                 )
@@ -72,6 +72,7 @@ def login_page():
 
     def handle_login(host, user, password):  # noqa: ARG001 - going to be filled in when login logic is done
         if host:
+            # generate url
             # Save the host directly to the user's session
             app.storage.user["api_host"] = host
             ui.notify(f"Connected to {host}", type="positive")

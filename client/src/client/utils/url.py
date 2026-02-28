@@ -39,7 +39,6 @@ def generate_url(uri: str, params: Mapping[str, Any] | None = None) -> str:
     HOST = f"http://{host}"
 
     url = URL(HOST) / uri
-
     # Attach query parameters correctly
     if params:
         url = url.with_query(params)
