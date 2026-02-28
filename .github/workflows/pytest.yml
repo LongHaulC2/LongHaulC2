@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  deployment:
+  pytest:
     runs-on: ubuntu-24.04
     
     steps:
