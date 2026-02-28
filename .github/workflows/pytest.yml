@@ -19,6 +19,12 @@ jobs:
       with:
         python-version: '3.12'
 
+    - name: Deploy
+      run: |
+        # Testing out deployment
+        sudo -E make deploy
+        echo "Successfully deployed LongHaulC2"
+
     - name: Run tests
       run: |
         # Testing out deployment
