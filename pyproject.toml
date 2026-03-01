@@ -79,7 +79,20 @@ exclude = [
 # G = Logging, E/F = Syntax/Logic, I = Import Sorting, UP moves old py semantics to new ones
 #T201: print statements
 # Eventually, do ERA, which finds dead code in comments
-select = ["G", "E", "F", "I", "UP", "PERF", "FURB", "T201", "SIM", "ARG","B"]
+select = [
+    "G",        # flake8-logging-format
+    "E",        # Pycodestyle errors
+    "F",        # Pyflakes
+    "I",        # Isort (Import sorting)
+    "UP",       # Pyupgrade (Syntax modernization)
+    "PERF",     # Perflint (Performance anti-patterns)
+    "FURB",     # Refurb (Modernizing usage)
+    "T201",     # flake8-print (Identify print statements)
+    "SIM",      # flake8-simplify
+    "ARG",      # flake8-unused-arguments
+    "B",        # flake8-bugbear
+    "RET"       # Return best practices
+]
 # Tell Ruff which variable names are actually loggers
 logger-objects = [
     "api_logger",

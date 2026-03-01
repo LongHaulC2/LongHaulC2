@@ -93,7 +93,7 @@ async def upload_dialog(implant_uuids: list):
             # Validation
             if len(implant_uuids) == 0:
                 ui.notify("Please select at least one implant to upload to", type="warning")
-                return
+                return None
 
             # Target List
             # We removed the inline bg classes here so your CSS

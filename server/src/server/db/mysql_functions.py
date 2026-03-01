@@ -215,7 +215,7 @@ class MySQLImplantTaskService:
 
         tasks = self.session.query(ImplantTask).filter_by(implant_uuid=self.implant_uuid).all()
 
-        task_list = [
+        return [
             {
                 "task_uuid": task.task_uuid,
                 "implant_uuid": task.implant_uuid,
@@ -224,8 +224,6 @@ class MySQLImplantTaskService:
             }
             for task in tasks
         ]
-
-        return task_list
 
     def bulk_update_responses(self, responses: list[dict]):
         """
@@ -370,11 +368,10 @@ class MySQLImplantPayloadService:
                 self.session.commit()
                 server_logger.info("Successfully updated build job", build_uuid=build_uuid, hash=hash_str)
                 return hash_str
-            else:
-                server_logger.error(
-                    "Build UUID was provided, but no matching row was found. Falling back to new insert.",
-                    build_uuid=build_uuid,
-                )
+            server_logger.error(
+                "Build UUID was provided, but no matching row was found. Falling back to new insert.",
+                build_uuid=build_uuid,
+            )
 
         # STANDARD INSERT PATH
         # Deduplication check: See if this file hash already exists
@@ -478,9 +475,8 @@ class MySQLImplantPayloadService:
 
         if payload:
             return payload
-        else:
-            server_logger.warning("No payload found for hash", payload_hash=payload_hash)
-            return None
+        server_logger.warning("No payload found for hash", payload_hash=payload_hash)
+        return None
 
     def get_build_job_by_uuid(self, build_uuid: str) -> dict:
         """
@@ -494,9 +490,8 @@ class MySQLImplantPayloadService:
 
         if payload:
             return payload.to_dict()
-        else:
-            server_logger.warning("No build job found", build_uuid=build_uuid)
-            return None
+        server_logger.warning("No build job found", build_uuid=build_uuid)
+        return None
 
     def get_payloads_by_listener(self, listener_uuid: str) -> list:
         """

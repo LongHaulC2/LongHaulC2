@@ -83,8 +83,7 @@ class TaskService:
 
         if convert_to_msgpack:
             task_dict = asdict(task)
-            msgpack_task = msgpack.packb(task_dict)
-            return msgpack_task
+            return msgpack.packb(task_dict)
 
         return task
 

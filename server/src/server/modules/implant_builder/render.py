@@ -132,8 +132,7 @@ def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dic
             "post": {"key": post_func, "value": post_func},
         }
 
-    else:
-        raise ValueError(f"Unsupported listener type: {listener_type}")
+    raise ValueError(f"Unsupported listener type: {listener_type}")
 
 
 def _get_listener_context(listener: ListenerProfile) -> dict:

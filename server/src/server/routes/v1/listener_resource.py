@@ -80,12 +80,11 @@ class Listener(Resource):
         if not data:
             abort(404, message="Not Found", data={})
 
-        api_response = APIResponse(
+        return APIResponse(
             status="200",
             message="Success",
             data=data,
         )
-        return api_response
 
     @listener_ns.doc(
         summary="Stop a listener",
@@ -112,8 +111,7 @@ class Listener(Resource):
 
         api_logger.info("Listener deleted successfully", listener_uuid=uuid, caller_ip=ip)
 
-        api_response = APIResponse(status=200, message="Listener deleted successfully", data="")
-        return api_response
+        return APIResponse(status=200, message="Listener deleted successfully", data="")
 
     @listener_ns.doc(
         summary="Restart a listener",
@@ -199,12 +197,11 @@ class Listeners(Resource):
         listeners = listener_service.get_all()
         data = [] if listeners is None else [i.to_dict() for i in listeners]
 
-        api_response = APIResponse(
+        return APIResponse(
             status="200",
             message="Success",
             data=data,
         )
-        return api_response
 
     @listener_ns.doc(
         summary="Spawn a new listener",

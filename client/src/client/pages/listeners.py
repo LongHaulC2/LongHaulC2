@@ -180,6 +180,7 @@ async def render_listeners_table():
                 await action_func(row["listener_uuid"])
             ui.notify(f"{msg} {len(table.selected)} listeners", type=color)
             await update_table_data()
+            return None
 
         with ui.button(
             "START",

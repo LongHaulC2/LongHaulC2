@@ -79,7 +79,7 @@ async def safe_api_request(
             return response.content
 
         # direct network response object
-        elif return_type == "response":
+        if return_type == "response":
             return response
 
         return orjson.loads(response.content)  # response.json()

@@ -20,8 +20,7 @@ async def fetch_system_status() -> dict:
     """Get data from API"""
 
     data = await get_health_status()
-    data = data.get("data")  # pull out from api struct
-    return data
+    return data.get("data")  # pull out from api struct
 
 
 # ====================
@@ -34,7 +33,7 @@ def parse_status(raw_status: str):
     if raw_status.startswith("running"):
         return "RUNNING", "emerald", "check_circle"
 
-    elif raw_status.startswith("stopped"):
+    if raw_status.startswith("stopped"):
         # Extract exit code if present, e.g., "stopped(-15)" -> "-15"
         details = raw_status.replace("stopped", "").strip("()")
         label = f"STOPPED [{details}]" if details else "STOPPED"
@@ -42,8 +41,7 @@ def parse_status(raw_status: str):
         color = "red" if details and details != "0" else "amber"
         return label, color, "cancel"
 
-    else:
-        return raw_status.upper(), "grey", "help"
+    return raw_status.upper(), "grey", "help"
 
 
 # ====================

@@ -149,8 +149,7 @@ class Build(Resource):
 
             data = ips.get_all_payloads()
 
-        api_response = APIResponse(status="200", message="Success", data=data)
-        return api_response
+        return APIResponse(status="200", message="Success", data=data)
 
 
 class BuildJobs(Resource):
@@ -197,8 +196,7 @@ class BuildJobs(Resource):
             if "payload_source_code_bytes" in data:
                 del data["payload_source_code_bytes"]
 
-        api_response = APIResponse(status="200", message="Success", data=data)
-        return api_response
+        return APIResponse(status="200", message="Success", data=data)
 
 
 # GET /build/hash: Get singular binary
@@ -284,11 +282,10 @@ class BinaryActions(Resource):
 
         # sql call to get implant data, return it as a dict (including bin data)
 
-        api_response = APIResponse(
+        return APIResponse(
             status="200",
             message="Success",
         )
-        return api_response
 
 
 class SourceActions(Resource):

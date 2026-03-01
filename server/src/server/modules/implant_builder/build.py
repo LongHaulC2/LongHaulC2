@@ -88,7 +88,7 @@ def build_implant(
         except Exception as e:
             server_logger.error("Failed to prepare listener data", error=e)
             payload_service.update_build_status(build_uuid=build_uuid, build_status="failed")
-            return
+            return None
 
     # check if /dev/shm (ramdisk) is available, for faster access overall
     # I've found /dev/shm to give 1-2 second decrease in build times overall.
@@ -221,9 +221,8 @@ def _run_docker_build(build_dir: Path) -> bool:
         if exit_code == 0:
             docker_logger.debug("Docker Build Success", logs=logs)
             return True
-        else:
-            docker_logger.error("Docker Build Failed", exit_code=exit_code, logs=logs)
-            return False
+        docker_logger.error("Docker Build Failed", exit_code=exit_code, logs=logs)
+        return False
 
     except Exception as e:
         docker_logger.error("Docker infrastructure error", error=e)

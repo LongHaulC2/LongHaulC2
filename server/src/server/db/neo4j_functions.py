@@ -231,8 +231,7 @@ class Neo4jImplantNodeService:
 
         # saftey check so we don't get an index err
         if host_nodes:
-            host_node = hosts[0]
-            return host_node
+            return hosts[0]
 
         return None
 
@@ -307,8 +306,7 @@ class Neo4jListenerNodeService:
                 host=props.get("listener_host"), port=props.get("listener_port"), active=props.get("listener_active")
             )
 
-            listener = Neo4jListenerNode(**props).save()
-            return listener
+            return Neo4jListenerNode(**props).save()
 
         except Exception as e:
             server_logger.error("Error", class_name=self.__class__.__name__, error=e)
@@ -375,7 +373,7 @@ class Neo4jListenerNodeService:
 
         listener = self.get_by_id(listener_id)
         if not listener:
-            return None
+            return
 
         listener.listener_active = active
 
@@ -522,8 +520,7 @@ class Neo4jC2ChannelNodeService:
         listener_class = Neo4jListenerNodeService()
         listener_object = listener_class.get_by_id(listener_uuid)
 
-        channel_id = f"{listener_object.listener_uuid}_{listener_object.listener_type}_{listener_object.listener_host}_{listener_object.listener_port}"  # noqa - unique channel id
-        return channel_id
+        return f"{listener_object.listener_uuid}_{listener_object.listener_type}_{listener_object.listener_host}_{listener_object.listener_port}"  # noqa - unique channel id
 
 
 class Neo4jMemstoreFileNodeService:

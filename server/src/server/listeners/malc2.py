@@ -187,16 +187,14 @@ class HttpConfigBlockServerParser:
         for stmt in self.http_config.data:
             # Check if the object has an 'option' attribute and matches 'block_useragents'
             if hasattr(stmt, "option") and stmt.option == "allow_useragents":
-                allow_useragents = stmt.value.strip().split(",")
-                return allow_useragents
+                return stmt.value.strip().split(",")
         return []
 
     def get_blocked_user_agents(self) -> list:
         for stmt in self.http_config.data:
             # Check if the object has an 'option' attribute and matches 'block_useragents'
             if hasattr(stmt, "option") and stmt.option == "block_useragents":
-                block_useragents = stmt.value.strip().split(",")
-                return block_useragents
+                return stmt.value.strip().split(",")
         return []
 
     def get_headers_to_add_to_request(self) -> dict:
@@ -247,9 +245,8 @@ class HttpConfigBlockServerParser:
             # print(ordered_headers)
 
         # Reorder the headers according to the desired_order
-        ordered_headers = {header: headers[header] for header in ordered_headers if header in headers}
+        return {header: headers[header] for header in ordered_headers if header in headers}
         # print(ordered_headers)
-        return ordered_headers
         # You can now return the ordered headers in the response
         # return Response(content="Headers have been reordered.", headers=ordered_headers)
 
@@ -300,8 +297,7 @@ class HttpGetBlockServerParser:
         """
         check_type(data, bytes, "data")
         block_field = self.server.output
-        obsfucated_data = self.apply_transforms(data, block_field=block_field)
-        return obsfucated_data
+        return self.apply_transforms(data, block_field=block_field)
 
     def get_output_terminator(self):
         """
@@ -321,9 +317,9 @@ class HttpGetBlockServerParser:
 
             if name == "uri-append":
                 return name, value
-            elif name in ("parameter", "header"):
+            if name in ("parameter", "header"):
                 return name, stmt.key
-            elif name == "print":
+            if name == "print":
                 return "print", None
 
         # fallback if no terminator found
@@ -377,8 +373,7 @@ class HttpGetBlockServerParser:
 
         """
         output = self.server.output
-        output_list = output.data[:-1] if output and output.data else []
-        return output_list
+        return output.data[:-1] if output and output.data else []
 
     def get_headers_and_parameters_list(self) -> list:
         """
@@ -474,9 +469,9 @@ class HttpGetBlockClientParser:
 
             if name == "uri-append":
                 return name, value
-            elif name in ("parameter", "header"):
+            if name in ("parameter", "header"):
                 return name, stmt.key
-            elif name == "print":
+            if name == "print":
                 return "print", None
 
         # fallback if no terminator found
@@ -500,9 +495,9 @@ class HttpGetBlockClientParser:
 
             if name == "uri-append":
                 return name, value
-            elif name in ("parameter", "header"):
+            if name in ("parameter", "header"):
                 return name, stmt.key
-            elif name == "print":
+            if name == "print":
                 return "print", None
 
         # fallback if no terminator found
@@ -673,9 +668,9 @@ class HttpPostBlockServerParser:
 
             if name == "uri-append":
                 return name, value
-            elif name in ("parameter", "header"):
+            if name in ("parameter", "header"):
                 return name, stmt.key
-            elif name == "print":
+            if name == "print":
                 return "print", None
 
         # fallback if no terminator found
@@ -788,9 +783,9 @@ class HttpPostBlockClientParser:
 
             if name == "uri-append":
                 return name, value
-            elif name in ("parameter", "header"):
+            if name in ("parameter", "header"):
                 return name, stmt.key
-            elif name == "print":
+            if name == "print":
                 return "print", None
             # if multiple terminators, this will return the last one
 
@@ -815,9 +810,9 @@ class HttpPostBlockClientParser:
 
             if name == "uri-append":
                 return name, value
-            elif name in ("parameter", "header"):
+            if name in ("parameter", "header"):
                 return name, stmt.key
-            elif name == "print":
+            if name == "print":
                 return "print", None
             # if multiple terminators, this will return the last one
 

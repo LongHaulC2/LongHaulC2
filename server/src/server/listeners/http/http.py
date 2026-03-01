@@ -407,8 +407,7 @@ class DumpRequestMiddleware(BaseHTTPMiddleware):
         # print("QUERY:", dict(request.query_params))
         # print("BODY:", body.decode(errors="ignore"))
 
-        response = await call_next(request)
-        return response
+        return await call_next(request)
 
 
 ###################################
@@ -512,8 +511,7 @@ async def http_get(request: Request) -> Response:
 
     # add implant to sql
 
-    response = http_response(data_from_implant=data_from_implant, request=request)
-    return response
+    return http_response(data_from_implant=data_from_implant, request=request)
 
 
 def http_response(data_from_implant: bytes, request: Request):
@@ -735,8 +733,7 @@ async def http_post(request: Request) -> Response:
         listener_logger.info("task response stored in redis", implant_uuid=_implant_uuid, task_uuid=_task_uuid)
 
     # Generate a response for the implant according to Malleable c2 & send back
-    response = http_post_response()
-    return response
+    return http_post_response()
 
 
 def http_post_response():
@@ -836,15 +833,12 @@ async def http_catchall(request: Request, full_path: str):  # noqa ARG001 - Pote
     # )
     if actual_path.startswith(http_get_uri) and request.method == http_get_method:
         listener_logger.debug("http_get_matched", path=actual_path, uri=http_get_uri)
-        response = await http_get(request=request)
-        return response
+        return await http_get(request=request)
 
-    elif actual_path.startswith(http_post_uri) and request.method == http_post_method:
+    if actual_path.startswith(http_post_uri) and request.method == http_post_method:
         listener_logger.debug("http_post_matched", path=actual_path, uri=http_get_uri)
 
-        response = await http_post(request=request)
-        return response
+        return await http_post(request=request)
 
-    else:
-        listener_logger.debug("URI did not match any configured endpoints", path=actual_path, method=request.method)
-        return {"error": "Not Found"}, 404
+    listener_logger.debug("URI did not match any configured endpoints", path=actual_path, method=request.method)
+    return {"error": "Not Found"}, 404

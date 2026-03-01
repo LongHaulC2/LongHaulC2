@@ -578,8 +578,7 @@ def create_and_verify_task(implant_uuid: str, task: TaskDetail):
         _type_: _description_
     """
     t = Task(implant_uuid=implant_uuid, task=task)
-    task_as_dict = asdict(t)
-    return task_as_dict
+    return asdict(t)
 
 
 @dataclass(frozen=True)
@@ -606,8 +605,7 @@ class Cd:
         task_args = {"directory": self.directory}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-        return final_task
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 
 @dataclass(frozen=True)
@@ -633,8 +631,7 @@ class Sleep:
         task_args = {"sleep_time": int(self.sleep_time)}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-        return final_task
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 
 @dataclass(frozen=True)
@@ -663,8 +660,7 @@ class StratPost:
         task_args = {"strategy_name": self.strategy_name}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-        return final_task
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 
 @dataclass(frozen=True)
@@ -693,8 +689,7 @@ class StratGet:
         task_args = {"strategy_name": self.strategy_name}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-        return final_task
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 
 @dataclass(frozen=True)
@@ -721,8 +716,7 @@ class StratList:
         task_args = {}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-        return final_task
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 
 @dataclass(frozen=True)
@@ -741,8 +735,7 @@ class StratActive:
         task_args = {}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-        return final_task
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 
 @dataclass(frozen=True)
@@ -771,8 +764,7 @@ class FileDownload:
         task_args = {"file_path": self.file_path}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-        return final_task
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 
 @dataclass(frozen=True)
@@ -832,8 +824,7 @@ class FileUpload:
                     }
 
             task_detail = TaskDetail(task_name=self.command_name, args=task_args)
-            final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-            return final_task
+            return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         except Exception as e:
             # likely base64 err. could  handle this better.
             raise ParseError from e
@@ -885,8 +876,7 @@ class MemStoreUpload:
 
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-        return final_task
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 
 @dataclass(frozen=True)
@@ -918,8 +908,7 @@ class MemStoreDownload:
         }
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-        return final_task
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 
 @dataclass(frozen=True)
@@ -948,8 +937,7 @@ class MemStoreDelete:
         task_args = {"file_name": self.file_name}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-        return final_task
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 
 @dataclass(frozen=True)
@@ -968,8 +956,7 @@ class MemStoreClear:
         task_args = {}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-        return final_task
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 
 @dataclass(frozen=True)
@@ -988,8 +975,7 @@ class MemStoreList:
         task_args = {}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-        return final_task
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 
 @dataclass(frozen=True)
@@ -1050,8 +1036,7 @@ class BofRunner:
                     }
 
             task_detail = TaskDetail(task_name=self.command_name, args=task_args)
-            final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-            return final_task
+            return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         except Exception as e:
             # likely base64 err. could  handle this better.
             raise ParseError from e
@@ -1072,8 +1057,7 @@ class DiscoverNeighbors:
         # convert from base64, to bytes, for easier CLI handling
         try:
             task_detail = TaskDetail(task_name=self.command_name, args={})
-            final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-            return final_task
+            return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
         except Exception as e:
             raise ParseError from e
 
@@ -1095,8 +1079,7 @@ class Exit:
         task_args = {}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-        return final_task
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 
 @dataclass(frozen=True)
@@ -1126,8 +1109,7 @@ class Ls:
         task_args = {"directory": self.directory}
         task_detail = TaskDetail(task_name=self.command_name, args=task_args)
 
-        final_task = create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-        return final_task
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 
 # List of system commands.
@@ -1155,8 +1137,7 @@ def get_all_command_classes():
     """
 
     # get the longest command, use that as ref for spacing the :desc
-    all_cmds = system_cmds + fs_cmds + mem_cmds + strat_cmds + execution_cmds + discover_cmds + terminal_helper_cmds
-    return all_cmds
+    return system_cmds + fs_cmds + mem_cmds + strat_cmds + execution_cmds + discover_cmds + terminal_helper_cmds
 
 
 # old way of doing this, which is fine,but takes more effort to keep classes up to date
