@@ -23,15 +23,15 @@ import msgpack
 import structlog
 
 from ...db.mysql_connector import get_mysql_session
-from ...instance import active_threads
-from ...modules.neo4j_functions import (
+from ...db.mysql_functions import MySQLImplantTaskService
+from ...db.neo4j_functions import (
     Neo4jFileNodeService,
     Neo4jHostNodeService,
+    Neo4jImplantNodeService,
     Neo4jMemstoreFileNodeService,
     Neo4jNicNodeService,
 )
-from ..mysql_functions import MySQLImplantTaskService
-from ..neo4j_functions import Neo4jImplantNodeService
+from ...instance import active_threads
 from ..redis_functions import RedisImplantTaskService
 
 response_pipeline_logger = structlog.getLogger("response_pipeline")

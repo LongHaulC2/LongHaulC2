@@ -4,8 +4,8 @@ import threading
 
 import structlog
 
+from ..db.neo4j_functions import Neo4jListenerNodeService
 from ..instance import active_processes
-from ..modules.neo4j_functions import Neo4jListenerNodeService
 from ..schemas.listeners import ListenerCreate
 from ..utils.checks import check_type
 from .http.http import run as http_run

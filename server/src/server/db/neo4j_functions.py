@@ -3,7 +3,9 @@
 import structlog
 from neomodel import db
 
-from ..db.neo4j_models import (
+from ..schemas.listeners import ListenerCreate, ListenerUpdate
+from ..utils.checks import check_type
+from .neo4j_models import (
     Neo4jC2ChannelNode,
     Neo4jFileNode,
     Neo4jHostNode,
@@ -13,8 +15,6 @@ from ..db.neo4j_models import (
     Neo4jNetworkNode,
     Neo4jNicNode,
 )
-from ..schemas.listeners import ListenerCreate, ListenerUpdate
-from ..utils.checks import check_type
 
 neo4j_logger = structlog.getLogger("neo4j_logger")
 server_logger = structlog.getLogger("server")

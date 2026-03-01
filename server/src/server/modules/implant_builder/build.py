@@ -10,8 +10,8 @@ import structlog
 from docker.models.containers import Container
 
 from ...db.mysql_connector import get_mysql_session
-from ...modules.mysql_functions import MySQLImplantPayloadService
-from ...modules.neo4j_functions import Neo4jListenerNodeService
+from ...db.mysql_functions import MySQLImplantPayloadService
+from ...db.neo4j_functions import Neo4jListenerNodeService
 from .render import render_implant, sanitize_cpp_name
 from .types import ListenerProfile
 

@@ -16,9 +16,9 @@ from ...api_models.listener import (
     LISTENERS_POST_INPUT,
     LISTENERS_POST_RESPONSE,
 )
+from ...db.neo4j_functions import Neo4jListenerNodeService
 from ...instance import api
 from ...listeners.supervisor import start_listener, stop_listener
-from ...modules.neo4j_functions import Neo4jListenerNodeService
 from ...schemas.listeners import ListenerCreate
 from ...utils.checks import check_type
 from ...utils.response import APIResponse

@@ -6,9 +6,9 @@ from typing import Literal
 import structlog
 from sqlalchemy import or_, text
 
-from ..db.mysql_models import ImplantPayload, ImplantTask
 from ..schemas.implant import Task
 from ..utils.checks import check_type
+from .mysql_models import ImplantPayload, ImplantTask
 
 server_logger = structlog.getLogger("server")
 

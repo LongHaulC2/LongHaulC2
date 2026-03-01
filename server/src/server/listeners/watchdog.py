@@ -4,7 +4,7 @@ import time
 import structlog
 
 from ..db.mysql_connector import get_mysql_session
-from ..modules.neo4j_functions import Neo4jListenerNodeService
+from ..db.neo4j_functions import Neo4jListenerNodeService
 from .supervisor import listeners, listeners_lock
 
 server_logger = structlog.getLogger("server")

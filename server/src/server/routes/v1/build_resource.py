@@ -15,9 +15,9 @@ from ...api_models.build import (
 )
 from ...api_models.error import COMMON_ERRORS, ERROR_MODEL
 from ...db.mysql_connector import get_mysql_session
+from ...db.mysql_functions import MySQLImplantPayloadService
 from ...instance import api
 from ...modules.implant_builder.build import build_implant
-from ...modules.mysql_functions import MySQLImplantPayloadService
 from ...utils.checks import check_type
 from ...utils.response import APIResponse
 

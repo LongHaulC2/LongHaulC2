@@ -10,7 +10,7 @@ from dataclasses import asdict
 import msgpack
 import structlog
 
-from ...modules.mysql_functions import MySQLImplantTaskService
+from ...db.mysql_functions import MySQLImplantTaskService
 from ...modules.redis_functions import RedisImplantTaskService
 from ...schemas.implant import Task, TaskDetail
 from ...utils.checks import check_type

@@ -26,9 +26,9 @@ from ...api_models.implants import (
     TASK_SEARCH_POST_RESPONSE,
 )
 from ...db.mysql_connector import get_mysql_session
+from ...db.mysql_functions import MySQLImplantTaskService, MySQLSearchService
+from ...db.neo4j_functions import Neo4jImplantNodeService
 from ...instance import api
-from ...modules.mysql_functions import MySQLImplantTaskService, MySQLSearchService
-from ...modules.neo4j_functions import Neo4jImplantNodeService
 from ...modules.redis_functions import RedisImplantTaskService
 from ...modules.task.task import TaskService
 from ...schemas.implant import ImplantUpdate, Search, Task

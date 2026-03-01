@@ -30,7 +30,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from ...db.mysql_connector import get_mysql_session
 
 # from ...modules.mysql_functions import ImplantService
-from ...modules.neo4j_functions import Neo4jImplantNodeService
+from ...db.neo4j_functions import Neo4jImplantNodeService
 from ...modules.redis_functions import RedisImplantTaskService
 from ...modules.task.task import TaskService
 from ...schemas.implant import ImplantCreate, ImplantUpdate
