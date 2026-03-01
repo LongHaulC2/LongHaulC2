@@ -458,6 +458,8 @@ async def terminal(implant_uuid: str):
         elif result_type == ResultType.LIST:
             for line in result_data:
                 ui_log.push(line)
+        elif result_type == ResultType.CLEAR:
+            ui_log.clear()
         elif result_type == ResultType.ERROR:
             await push_error_to_terminal(result_data)
 

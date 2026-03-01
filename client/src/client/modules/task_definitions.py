@@ -42,6 +42,7 @@ class ResultType(Enum):
     ERROR = "error"  # errors are dumped on screen, without prepend, in orange/yellow
     LIST = "list"  # Lists, are parsed over and send one entry at a time on screen, with no terminal prepend
     # maybe add a PARSE_ERROR if needed later.
+    CLEAR = "clear"  # Clear the terminal.
 
 
 def get_short_help(cls) -> str:
@@ -495,6 +496,9 @@ async def task_tree(user_input, implant_uuid):
 
         # if user types "help <somecommand>" turn it into "somecommand --help"
         split_args = split_args[1:] + ["--help"]
+
+    if base_command == "clear":
+        return (ResultType.CLEAR, "")
 
     # setup our parser
     parser = build_cli_parser(implant_uuid)
