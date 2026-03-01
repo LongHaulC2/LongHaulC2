@@ -38,8 +38,6 @@ Relationships:
  more. This should be the source of truth going forward for each item. If it's UUID is here, that is how it should
  be referred to, where possible, throughout the program
 
- - All name_uuid are now "uuid", for easier parsing on the frontend. The service classes still use name_uuid,
- the models will just use UUID.
 
  """
 
@@ -59,7 +57,7 @@ class Neo4jImplantNode(SemiStructuredNode):
     Implant Node for Implants.
     """
 
-    uuid = StringProperty(unique_index=True, required=True)
+    implant_uuid = StringProperty(unique_index=True, required=True)
 
     # implant -> host
     running_on = RelationshipTo("Neo4jHostNode", "RUNNING_ON")
@@ -70,12 +68,12 @@ class Neo4jImplantNode(SemiStructuredNode):
     memstore_files = RelationshipFrom("Neo4jMemstoreFileNode", "STORED_IN")
 
     @classmethod
-    def find_existing(cls, uuid=None) -> "Neo4jImplantNode | None":
+    def find_existing(cls, implant_uuid=None) -> "Neo4jImplantNode | None":
         """
         Lookup an implant by its unique UUID.
         """
-        if uuid:
-            return cls.nodes.get_or_none(uuid=uuid)
+        if implant_uuid:
+            return cls.nodes.get_or_none(implant_uuid=implant_uuid)
         return None
 
 
@@ -85,7 +83,7 @@ class Neo4jHostNode(SemiStructuredNode):
     """
 
     # default index
-    uuid = StringProperty(unique_index=True, default=uuid7)
+    host_uuid = StringProperty(unique_index=True, default=uuid7)
 
     # move me to *not* default.
     hostname = StringProperty(unique_index=True, required=True)
@@ -127,7 +125,7 @@ class Neo4jNetworkNode(SemiStructuredNode):
     Represents a Layer 3 network segment (subnet/VLAN).
     """
 
-    uuid = StringProperty(unique_index=True, default=uuid7)
+    network_uuid = StringProperty(unique_index=True, default=uuid7)
 
     # move me to not default
     cidr = StringProperty(unique_index=True, required=True)  # 10.0.1.0/24
@@ -231,7 +229,7 @@ class Neo4jC2ChannelNode(SemiStructuredNode):
     Intermediate node representing the communication path.
     """
 
-    uuid = StringProperty(unique_index=True, default=uuid7)
+    channel_uuid = StringProperty(unique_index=True, default=uuid7)
 
     channel_id = StringProperty(unique_index=True, required=True)  # e.g., session_id or protocol_host_hash
     protocol = StringProperty(required=True)  # "HTTPS", "DNS", "SMB"
@@ -257,7 +255,7 @@ class Neo4jC2ChannelNode(SemiStructuredNode):
 
 
 class Neo4jNicNode(SemiStructuredNode):
-    uuid = StringProperty(unique_index=True, default=uuid7)
+    implant_uuid = StringProperty(unique_index=True, default=uuid7)
 
     mac_address = StringProperty()
     ip_address = StringProperty()
@@ -280,7 +278,7 @@ class Neo4jNicNode(SemiStructuredNode):
 
 
 class Neo4jMemstoreFileNode(SemiStructuredNode):
-    uuid = StringProperty(unique_index=True, default=uuid7)
+    memstore_file_uuid = StringProperty(unique_index=True, default=uuid7)
 
     file_name = StringProperty(unique_index=True, required=True)
 
@@ -303,7 +301,7 @@ class Neo4jMemstoreFileNode(SemiStructuredNode):
 
 
 class Neo4jFileNode(SemiStructuredNode):
-    uuid = StringProperty(unique_index=True, default=uuid7)
+    file_uuid = StringProperty(unique_index=True, default=uuid7)
 
     file_path = StringProperty(unique_index=True, required=True)
     md5 = StringProperty()

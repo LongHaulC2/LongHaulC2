@@ -51,7 +51,7 @@ class Neo4jImplantNodeService:
         # Use Cypher MERGE to ensure atomicity at the DB level
         # TLDR, becaause we are using semi unstructured, duplicates are allowed by db.
         query = """
-        MERGE (n:Neo4jImplantNode {uuid: $uuid})
+        MERGE (n:Neo4jImplantNode {implant_uuid: $implant_uuid})
         SET n += $props
         RETURN n
         """
@@ -60,10 +60,10 @@ class Neo4jImplantNodeService:
         del data_for_neo["nics"]  # tldr neo4j doenst like structured data.
         # This prevents the race condition where two threads check find_existing
         # at the same time and both see 'None'
-        db.cypher_query(query, {"uuid": self.implant_uuid, "props": data_for_neo})
+        db.cypher_query(query, {"implant_uuid": self.implant_uuid, "props": data_for_neo})
 
         # Refresh the local object reference
-        self.implant_node = Neo4jImplantNode.nodes.get(uuid=self.implant_uuid)
+        self.implant_node = Neo4jImplantNode.nodes.get(implant_uuid=self.implant_uuid)
 
         hostname = kwargs.get("system_hostname")
         # the only auto linking/magic that happens here is linking our implant to a host, and linking our implant
@@ -101,9 +101,9 @@ class Neo4jImplantNodeService:
         Creates a node. Useful for getting a quick new node and letting this handle all
         the node logic
         """
-        implant_node = Neo4jImplantNode.find_existing(uuid=implant_uuid)
+        implant_node = Neo4jImplantNode.find_existing(implant_uuid=implant_uuid)
         if not implant_node:
-            implant_node = Neo4jImplantNode(uuid=implant_uuid).save()
+            implant_node = Neo4jImplantNode(implant_uuid=implant_uuid).save()
             neo4j_logger.info("New node created", implant_uuid=implant_uuid)
 
         return implant_node
@@ -168,7 +168,7 @@ class Neo4jImplantNodeService:
 
     @staticmethod
     def get_by_uuid(implant_uuid: str):
-        node = Neo4jImplantNode.nodes.get_or_none(uuid=implant_uuid)
+        node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
         if not node:
             return None
 
@@ -180,17 +180,17 @@ class Neo4jImplantNodeService:
         # direct query to allow addtl fields that don't exist
         # to be added. Could change later for tightening it up
         query = """
-        MATCH (n:Neo4jImplantNode {uuid: $uuid})
+        MATCH (n:Neo4jImplantNode {implant_uuid: $implant_uuid})
         SET n += $props
         RETURN properties(n)
         """
 
-        results, _ = db.cypher_query(query, {"uuid": implant_uuid, "props": data})
+        results, _ = db.cypher_query(query, {"implant_uuid": implant_uuid, "props": data})
         # no return to save some processing
 
     @staticmethod
     def delete_by_uuid(implant_uuid: str) -> bool:
-        node = Neo4jImplantNode.nodes.get_or_none(uuid=implant_uuid)
+        node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
         if not node:
             return False  # node doesn't exist
 
@@ -358,7 +358,7 @@ class Neo4jListenerNodeService:
                 host=getattr(listener, "listener_host", None),
                 port=getattr(listener, "listener_port", None),
                 active=getattr(listener, "listener_active", None),
-                exclude_uuid=listener.uuid,
+                exclude_uuid=listener.listener_uuid,
             )
 
             listener.save()
@@ -571,7 +571,7 @@ class Neo4jMemstoreFileNodeService:
     def get_all_files_nodes_for_implant(
         implant_uuid: str,
     ) -> list[Neo4jMemstoreFileNode]:
-        implant_node = Neo4jImplantNode.nodes.get_or_none(uuid=implant_uuid)
+        implant_node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
 
         if not implant_node:
             return []
