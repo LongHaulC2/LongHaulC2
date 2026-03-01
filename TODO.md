@@ -192,10 +192,16 @@ HEY - add delete listener in gui so it actually deletes it from the db
 * [ ] Clean up api to pass schemathesis
    > big issue: data being NULL
    > Use werkzeug errors where needed
+   > really fucking annoying. There's a few to fix still
 
+* [ ] Seaarch seems to have gotten broken in the process. 
 
 * [X] write some GUI tests too once API done
    > kind of smoke tests cuz it was being dumb
+
+Neo4j Cleanup
+* [ ] UUID7 as primary key for every node
+
 
 ### Implant: Command Tree & Capabilities
 

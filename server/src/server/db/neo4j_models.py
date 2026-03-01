@@ -1,3 +1,4 @@
+from edwh_uuid7 import uuid7
 from neomodel import (
     RelationshipFrom,
     RelationshipTo,
@@ -29,6 +30,10 @@ Relationships:
 
 
  for now, start with rel to (simplicity), then add rel_from later when advanced querying is needed.
+
+ Upgrade: Every node will have a UUID7 assigned to it. This eliminates unique data problems and allows this to grow
+ more. This should be the source of truth going forward for each item. If it's UUID is here, that is how it should
+ be referred to, where possible, throughout the program
  """
 
 
@@ -72,6 +77,10 @@ class Neo4jHostNode(SemiStructuredNode):
     Implant Node for Implants.
     """
 
+    # default index
+    host_uuid = StringProperty(unique_index=True, default=uuid7)
+
+    # move me to *not* default.
     hostname = StringProperty(unique_index=True, required=True)
 
     # for addtl unique id if ever needed
@@ -111,6 +120,9 @@ class Neo4jNetworkNode(SemiStructuredNode):
     Represents a Layer 3 network segment (subnet/VLAN).
     """
 
+    network_uuid = StringProperty(unique_index=True, default=uuid7)
+
+    # move me to not default
     cidr = StringProperty(unique_index=True, required=True)  # 10.0.1.0/24
     # name = StringProperty()
     # vlan_id = IntegerProperty()
@@ -156,6 +168,8 @@ class Neo4jC2ChannelNode(SemiStructuredNode):
     Intermediate node representing the communication path.
     """
 
+    channel_uuid = StringProperty(unique_index=True, default=uuid7)
+
     channel_id = StringProperty(unique_index=True, required=True)  # e.g., session_id or protocol_host_hash
     protocol = StringProperty(required=True)  # "HTTPS", "DNS", "SMB"
     # jitter = IntegerProperty(default=0)
@@ -180,6 +194,8 @@ class Neo4jC2ChannelNode(SemiStructuredNode):
 
 
 class Neo4jNicNode(SemiStructuredNode):
+    nic_uuid = StringProperty(unique_index=True, default=uuid7)
+
     mac_address = StringProperty(unique_index=True, required=True)
 
     # ip, optional
@@ -201,6 +217,8 @@ class Neo4jNicNode(SemiStructuredNode):
 
 
 class Neo4jMemstoreFileNode(SemiStructuredNode):
+    file_uuid = StringProperty(unique_index=True, default=uuid7)
+
     file_name = StringProperty(unique_index=True, required=True)
 
     # ip, optional
@@ -222,6 +240,8 @@ class Neo4jMemstoreFileNode(SemiStructuredNode):
 
 
 class Neo4jFileNode(SemiStructuredNode):
+    file_uuid = StringProperty(unique_index=True, default=uuid7)
+
     file_path = StringProperty(unique_index=True, required=True)
     md5 = StringProperty()
 
