@@ -218,9 +218,7 @@ def build_header_bar():
 
         if previous_data != new_data:
             new_data_label.set_visibility(True)
-            previous_data = new_data
-        else:
-            new_data_label.set_visibility(False)
+            # don't sent previous data to new data, the warning will only go away on refresh, which is intentional
 
     # node is a bit of a heavier query, do it every 5 seconds
     ui.timer(5, check_if_new_data)
@@ -373,55 +371,3 @@ def get_implant_name(props: dict) -> str:
 def get_file_path_name(props: dict) -> str:
     """Returns the path if available, otherwise falls back to name"""
     return props.get("file_path") or props.get("file_name") or "Unknown File"
-
-
-# def set_node_icons(nodes, categories):
-#     for node in nodes:
-#         # Prevent NiceGUI EChartPointClickEventArguments KeyError
-#         node.setdefault("value", 0)
-#         props = node.get("props", {})
-
-#         # # Dynamically determine the true category based on properties
-#         # use the prim keys for this
-#         if "implant_uuid" in props:
-#             cat = 0  # Implant
-#         elif "listener_uuid" in props:
-#             cat = 1  # Listener
-#         elif "channel_id" in props:
-#             cat = 2  # c2 channel
-#         elif "address" in props:
-#             cat = 3  # Host
-#         else:
-#             cat = node.get("category", 3)  # Fallback
-
-#         # Overwrite the backend's broken category ID so ECharts maps it correctly
-#         # node["category"] = cat
-
-#         # get index of category, according to the nodes field
-#         cat_index = node.get("category")
-
-#         # for _cat in categories:
-#         #     if cat_index == _cat.get("index"):
-
-#         # take nodes, correlate them, and add props to them.
-#         if cat_index == 0:  # Implant
-#             user = props.get("user", "").lower()
-#             is_admin = "system" in user
-#             color = "#ef4444" if is_admin else CHART_COLORS[0]
-
-#             node["symbol"] = wrap_svg(PATH_IMPLANT, color)
-#             node["symbolSize"] = 35
-
-#         elif cat_index == 1:  # Network
-#             node["symbol"] = wrap_svg(PATH_NETWORK, CHART_COLORS[1])
-#             node["symbolSize"] = 45
-
-#         elif cat_index == 2:  # Gateway
-#             node["symbol"] = wrap_svg(PATH_GATEWAY, CHART_COLORS[2])
-#             node["symbolSize"] = 55
-
-#         elif cat_index == 3:  # Host
-#             node["symbol"] = wrap_svg(PATH_HOST, CHART_COLORS[3])
-#             node["symbolSize"] = 35
-
-#     return nodes
