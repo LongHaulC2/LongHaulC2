@@ -197,6 +197,7 @@ class Neo4jImplantNodeService:
         node.delete()
         return True
 
+    @staticmethod
     def search_implants(search_term: str) -> list[dict]:
         """
         Search implants using a Full-Text Index.
