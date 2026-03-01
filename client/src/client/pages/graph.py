@@ -220,8 +220,8 @@ def build_header_bar():
             new_data_label.set_visibility(True)
             # don't sent previous data to new data, the warning will only go away on refresh, which is intentional
 
-    # node is a bit of a heavier query, do it every 5 seconds
-    ui.timer(5, check_if_new_data)
+    update_time = app.storage.user.get("auto_refresh_rate", 5)
+    ui.timer(update_time, check_if_new_data)
 
 
 def handle_click(e, nodes, sidebar_container):

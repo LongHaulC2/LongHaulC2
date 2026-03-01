@@ -1,6 +1,6 @@
 import httpx
 import structlog
-from nicegui import ui
+from nicegui import app, ui
 
 from client.src.client.modules.api_calls import (
     get_all_implant_data,
@@ -268,7 +268,8 @@ async def implant_view():
         else:
             ui.notify("Select an implant to edit notes", type="warning", color="orange-9")
 
-    ui.timer(1, refresh)
+    update_time = app.storage.user.get("auto_refresh_rate", 1)
+    ui.timer(update_time, refresh)
 
 
 # -------------------------------
@@ -578,4 +579,6 @@ async def terminal(implant_uuid: str):
         )
 
     await setup_terminal()
-    ui.timer(1, update_terminal)
+
+    update_time = app.storage.user.get("auto_refresh_rate", 1)
+    ui.timer(update_time, update_terminal)

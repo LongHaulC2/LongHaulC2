@@ -257,4 +257,6 @@ async def status_page():
                 update_service_row("listeners", svc_name, status)
 
     # Fire the loop every 1.0 seconds
+    # relatively light, so leaving at 1 second, not influenced by
+    # auto_refresh_rate storage setting
     ui.timer(1.0, poll_data)
