@@ -8,6 +8,7 @@ from nicegui import app, ui
 from client.src.client.modules.api_calls import get_all_graph_data
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
+from client.src.client.utils.helpers import get_time_ago, get_timestamp_from_uuid7
 
 server_log = structlog.getLogger("server")
 
@@ -210,6 +211,13 @@ def handle_click(e, nodes, sidebar_container):
     props = selected_node.get("props", {})
     node_name = selected_node.get("name", "Unknown")
     node_type = selected_node.get("category")
+
+    # add some metadata based on UUID 7
+    node_uuid = props.get("uuid", "")
+    if node_uuid:
+        first_seen = get_timestamp_from_uuid7(node_uuid)
+        props["first_seen"] = first_seen
+        props["time_since_first_seen"] = get_time_ago(first_seen)
 
     # Clear and Redraw the sidebar
     sidebar_container.clear()
