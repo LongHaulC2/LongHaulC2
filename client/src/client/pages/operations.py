@@ -423,21 +423,30 @@ async def terminal(implant_uuid: str):
 
     async def handle_command():
         user_input = ui_user_input.value
-        if not user_input:
+        # this checks if user input == "", if so, just give the user a newline
+        # strip is so we account for everything, such as " ", "  ", and so on
+        if not user_input.strip():
+            await push_text_to_terminal(data="")
+            # set the terminal value back to nothing so the spaces or whatever doesn't stay in it
+            ui_user_input.value = ""
             return
 
         # Save to history
         command_history[implant_uuid].append(user_input)
         history_index[implant_uuid] = -1  # Reset index
 
+        # push user input to terminal so they can "see" the command they just ran
         await push_text_to_terminal(user_input)
+        # reset contents of cli bar to nothing
         ui_user_input.value = ""
 
-        parts = user_input.split()
-        command = parts[0]
-        args = " ".join(parts[1:])
+        # We know parts has at least one item because of the .strip() check above that
+        # checks for nothing in the cli bar
+        # parts = user_input.split()
+        # command = parts[0]
+        # args = " ".join(parts[1:])
 
-        result_type, result_data = await task_tree(command=command, args=args, implant_uuid=implant_uuid)
+        result_type, result_data = await task_tree(user_input=user_input, implant_uuid=implant_uuid)
 
         if result_type == ResultType.TASK:
             await queue_task(implant_uuid=implant_uuid, task=result_data)

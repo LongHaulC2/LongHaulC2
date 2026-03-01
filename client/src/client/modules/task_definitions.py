@@ -1,43 +1,11 @@
+import argparse
 import base64
+import inspect
+import shlex
 from dataclasses import asdict, dataclass
 from enum import Enum
 
 from ..modules.api_calls import get_implant_task_history
-
-"""
-Testing task definitions here, so there's a structured way of handling tasks.
-
-
-example of a cmd.exe task:
-
-task = Cmd(cli="whoami /all")
-cmd_task = cmd.to_task()
-
-# now can send this off to the server to queue
-
-
-How this bubbles down:
-
-1. User inputs command.
-
-2. Command is split into 2 parts, 1: command, and arguments.
-
-3. Based on command, a class is chosen to handle it.
-
-4. That class does further processing on the command,a nd its arguments, to get it in a task ready form.
-
-5. If no parsing errors, command is converted into a task ready form, and returned with a ResultType.TASK.
-    Calling func then sends to server
-
-6. If parsing errors, command is returned with a ResultType.DATA, and an "invalid command" message is pushed to screen
-
-"""
-
-
-class ParseError(Exception):
-    """Custom exception for Parse validation errors."""
-
-    pass
 
 
 class ResultType(Enum):
@@ -46,6 +14,22 @@ class ResultType(Enum):
     ERROR = "error"  # errors are dumped on screen, without prepend, in orange/yellow
     LIST = "list"  # Lists, are parsed over and send one entry at a time on screen, with no terminal prepend
     # maybe add a PARSE_ERROR if needed later.
+
+
+def get_short_help(cls) -> str:
+    """Extracts just the first sentence of the docstring for the parent menu."""
+    if not cls.__doc__:
+        return ""
+    clean_doc = inspect.cleandoc(cls.__doc__)
+    # Split by newline and grab the first line to keep the parent help menu clean
+    return clean_doc.split("\n")[0]
+
+
+def get_full_desc(cls) -> str:
+    """Extracts the entire cleaned docstring for the command's --help menu."""
+    if not cls.__doc__:
+        return ""
+    return inspect.cleandoc(cls.__doc__)
 
 
 def get_description_of_dataclasses(dataclasses, fixed_width=None):
@@ -74,308 +58,404 @@ def get_description_of_dataclasses(dataclasses, fixed_width=None):
     return descriptions
 
 
-async def task_tree(command, args, implant_uuid):
-    """Task tree for parsing commands, and formatting them.
+class ParseError(Exception):
+    """Custom exception for Parse validation errors."""
 
-    Args:
-        command (_type_): _description_
-        args (_type_): _description_
-        implant_uuid (_type_): _description_
+    pass
 
-    Returns:
-        _type_: _description_
+
+class HelpException(Exception):
+    """Raised when a user requests help (-h/--help) to intercept stdout."""
+
+    pass
+
+
+class C2Parser(argparse.ArgumentParser):
     """
-    match command:
-        # special command
-        case "help":
-            all_command_classes = get_all_command_classes()
-            # Use max length + 4 buffer for the colon alignment
-            global_max_len = max(len(cls.command_name) for cls in all_command_classes) + 4
+    Custom parser that intercepts help/errors and returns them
+    as strings instead of calling sys.exit() and killing the CLI.
+    """
 
-            # 3. Helper to format the group
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("allow_abbrev", False)
+        super().__init__(*args, **kwargs)
+
+    def print_help(self, file=None):  # noqa: ARG002
+        help_text = self.format_help()
+        raise HelpException(help_text)
+
+    def error(self, message):
+        raise ParseError(f"Argument parsing error: {message}\nUsage: {self.format_usage()}")
+
+    def exit(self, status=0, message=None):  # noqa: ARG002
+        if message:
+            raise ParseError(message)
+
+
+def build_cli_parser(implant_uuid: str):
+    root_parser = C2Parser(prog="", add_help=False)
+    # parser_class=C2Parser ensures all subcommands inherit the silent/no-exit behavior
+    subparsers = root_parser.add_subparsers(dest="command", parser_class=C2Parser)
+
+    # ==========================================
+    # System & File System Commands
+    # ==========================================
+    cd_parser = subparsers.add_parser(
+        "cd",
+        help=get_short_help(Cd),
+        description=get_full_desc(Cd),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    cd_parser.add_argument("directory", nargs="?", default=".")
+    cd_parser.set_defaults(
+        func=lambda args: (ResultType.TASK, Cd(implant_uuid=implant_uuid, directory=args.directory).to_task())
+    )
+
+    ls_parser = subparsers.add_parser(
+        "ls",
+        help=get_short_help(Ls),
+        description=get_full_desc(Ls),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ls_parser.add_argument("directory", nargs="?", default=".")
+    ls_parser.set_defaults(
+        func=lambda args: (ResultType.TASK, Ls(implant_uuid=implant_uuid, directory=args.directory).to_task())
+    )
+
+    sleep_parser = subparsers.add_parser(
+        "sleep",
+        help=get_short_help(Sleep),
+        description=get_full_desc(Sleep),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    sleep_parser.add_argument("sleep_time", nargs="?", default="")
+    sleep_parser.set_defaults(
+        func=lambda args: (ResultType.TASK, Sleep(implant_uuid=implant_uuid, sleep_time=args.sleep_time).to_task())
+    )
+
+    exit_parser = subparsers.add_parser(
+        "exit",
+        help=get_short_help(Exit),
+        description=get_full_desc(Exit),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    exit_parser.set_defaults(func=lambda: (ResultType.TASK, Exit(implant_uuid=implant_uuid).to_task()))
+
+    cheat_parser = subparsers.add_parser("cheatsheet", help="Show input formatting rules")
+
+    def run_cheatsheet():
+        line = "-" * 50
+        rules = [
+            line,
+            "Operator Input Cheatsheet",
+            line,
+            "1. SPACES: Wrap paths or arguments in double quotes.",
+            '   Example: ls "C:\\Program Files"',
+            "",
+            "2. LEADING DASHES: Use '--' to stop the parser from interpreting data.",
+            "   Example: bof *my_bof -- -Base64WithDash==",
+            "",
+            "3. QUOTES IN QUOTES: Use a backslash to escape internal quotes.",
+            '   Example: bof *reg "HKLM\\Software\\"My App\\""',
+            "",
+            "4. TRAILING SLASHES: Avoid ending a quoted Windows path with a single backslash.",
+            '   Wrong: "C:\\Users\\" -> Safe: "C:\\Users" or "C:\\Users\\\\"',
+            line,
+        ]
+        return (ResultType.LIST, rules)
+
+    cheat_parser.set_defaults(func=run_cheatsheet)
+
+    # ==========================================
+    # Nested Commands (Strat, File, Memstore, Discover)
+    # ==========================================
+    strat_parser = subparsers.add_parser("strat", help="C2 Strategy commands")
+    strat_subs = strat_parser.add_subparsers(dest="strat_cmd", parser_class=C2Parser)
+
+    strat_post = strat_subs.add_parser(
+        "post",
+        help=get_short_help(StratPost),
+        description=get_full_desc(StratPost),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    strat_post.add_argument("strategy_name")
+    strat_post.set_defaults(
+        func=lambda args: (
+            ResultType.TASK,
+            StratPost(implant_uuid=implant_uuid, strategy_name=args.strategy_name).to_task(),
+        )
+    )
+
+    strat_get = strat_subs.add_parser(
+        "get",
+        help=get_short_help(StratGet),
+        description=get_full_desc(StratGet),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    strat_get.add_argument("strategy_name")
+    strat_get.set_defaults(
+        func=lambda args: (
+            ResultType.TASK,
+            StratGet(implant_uuid=implant_uuid, strategy_name=args.strategy_name).to_task(),
+        )
+    )
+
+    strat_list = strat_subs.add_parser(
+        "list",
+        help=get_short_help(StratList),
+        description=get_full_desc(StratList),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    strat_list.set_defaults(func=lambda: (ResultType.TASK, StratList(implant_uuid=implant_uuid).to_task()))
+
+    strat_active = strat_subs.add_parser(
+        "active",
+        help=get_short_help(StratActive),
+        description=get_full_desc(StratActive),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    strat_active.set_defaults(func=lambda: (ResultType.TASK, StratActive(implant_uuid=implant_uuid).to_task()))
+
+    file_parser = subparsers.add_parser("file", help="File commands")
+    file_subs = file_parser.add_subparsers(dest="file_cmd", parser_class=C2Parser)
+
+    file_down = file_subs.add_parser(
+        "download",
+        help=get_short_help(FileDownload),
+        description=get_full_desc(FileDownload),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    file_down.add_argument("file_path")
+    file_down.set_defaults(
+        func=lambda args: (ResultType.TASK, FileDownload(implant_uuid=implant_uuid, file_path=args.file_path).to_task())
+    )
+
+    file_up = file_subs.add_parser(
+        "upload",
+        help=get_short_help(FileUpload),
+        description=get_full_desc(FileUpload),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    file_up.add_argument("file_path")
+    file_up.add_argument("file_contents")
+    file_up.set_defaults(
+        func=lambda args: (
+            ResultType.TASK,
+            FileUpload(implant_uuid=implant_uuid, file_path=args.file_path, file_contents=args.file_contents).to_task(),
+        )
+    )
+
+    mem_parser = subparsers.add_parser("memstore", help="Memstore commands")
+    mem_subs = mem_parser.add_subparsers(dest="mem_cmd", parser_class=C2Parser)
+
+    mem_up = mem_subs.add_parser(
+        "upload",
+        help=get_short_help(MemStoreUpload),
+        description=get_full_desc(MemStoreUpload),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    mem_up.add_argument("file_name")
+    mem_up.add_argument("file_contents")
+    mem_up.set_defaults(
+        func=lambda args: (
+            ResultType.TASK,
+            MemStoreUpload(
+                implant_uuid=implant_uuid, file_name=args.file_name, file_contents=args.file_contents
+            ).to_task(),
+        )
+    )
+
+    mem_down = mem_subs.add_parser(
+        "download",
+        help=get_short_help(MemStoreDownload),
+        description=get_full_desc(MemStoreDownload),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    mem_down.add_argument("file_name")
+    mem_down.set_defaults(
+        func=lambda args: (
+            ResultType.TASK,
+            MemStoreDownload(implant_uuid=implant_uuid, file_name=args.file_name).to_task(),
+        )
+    )
+
+    mem_del = mem_subs.add_parser(
+        "delete",
+        help=get_short_help(MemStoreDelete),
+        description=get_full_desc(MemStoreDelete),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    mem_del.add_argument("file_name")
+    mem_del.set_defaults(
+        func=lambda args: (
+            ResultType.TASK,
+            MemStoreDelete(implant_uuid=implant_uuid, file_name=args.file_name).to_task(),
+        )
+    )
+
+    mem_clear = mem_subs.add_parser(
+        "clear",
+        help=get_short_help(MemStoreClear),
+        description=get_full_desc(MemStoreClear),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    mem_clear.set_defaults(func=lambda: (ResultType.TASK, MemStoreClear(implant_uuid=implant_uuid).to_task()))
+
+    mem_list = mem_subs.add_parser(
+        "list",
+        help=get_short_help(MemStoreList),
+        description=get_full_desc(MemStoreList),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    mem_list.set_defaults(func=lambda: (ResultType.TASK, MemStoreList(implant_uuid=implant_uuid).to_task()))
+
+    # ==========================================
+    # Complex Commands (BOF)
+    # ==========================================
+    bof_parser = subparsers.add_parser(
+        "bof",
+        help=get_short_help(BofRunner),
+        description=get_full_desc(BofRunner),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    bof_parser.add_argument("bof_contents")
+    bof_parser.add_argument("bof_args", nargs=argparse.REMAINDER)
+    bof_parser.set_defaults(
+        func=lambda args: (
+            ResultType.TASK,
+            BofRunner(
+                implant_uuid=implant_uuid, bof_contents=args.bof_contents, bof_args=" ".join(args.bof_args)
+            ).to_task(),
+        )
+    )
+
+    disc_parser = subparsers.add_parser("discover", help="Discover commands")
+    disc_subs = disc_parser.add_subparsers(dest="disc_cmd", parser_class=C2Parser)
+
+    disc_neigh = disc_subs.add_parser(
+        "neighbors",
+        help=get_short_help(DiscoverNeighbors),
+        description=get_full_desc(DiscoverNeighbors),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    disc_neigh.add_argument("--resolve", action="store_true")
+    disc_neigh.set_defaults(
+        func=lambda args: (
+            ResultType.TASK,
+            DiscoverNeighbors(implant_uuid=implant_uuid, resolve=args.resolve).to_task(),
+        )
+    )
+
+    return root_parser
+
+
+async def task_tree(user_input, implant_uuid):
+    """Task tree for parsing commands, and formatting them."""
+
+    try:
+        # split the user intput into list, ex: ["ls", "C:\"]
+        # use shelx here, instead of .split, shlex handles input like a unix term would
+
+        split_args = shlex.split(user_input)
+    except ValueError as e:
+        return (ResultType.ERROR, f"Quote parsing error: {str(e)}")
+
+    if not split_args:
+        return (ResultType.TEXT, "")
+
+    # grab the core command, the first one passed in
+    base_command = split_args[0]
+
+    # Intercept History (Due to async requirement)
+    if base_command == "history":
+        task_history_dict: list = await get_implant_task_history(implant_uuid)
+        task_history_list = task_history_dict.get("data")
+        line = "-" * 50
+        task_history_list.insert(0, line)
+        task_history_list.insert(1, "Task History")
+        task_history_list.insert(2, line)
+        task_history_list.insert(len(task_history_list) + 1, line)
+        task_history_list.insert(
+            len(task_history_list) + 2,
+            "all tasks, some may be truncated due to 1000 line limit of this terminal.",
+        )
+        task_history_list.insert(len(task_history_list) + 3, line)
+        return (ResultType.LIST, task_history_list)
+
+    if base_command == "help":
+        if len(split_args) == 1:
+            # They just typed "help", show the custom grouped menu
+            def get_short_desc(cls):
+                return (
+                    inspect.cleandoc(cls.__doc__).split("\n")[0] if getattr(cls, "__doc__", None) else "No description."
+                )
+
             def format_group(header, cmd_list):
-                # Get the command lines using the global width
-                lines = get_description_of_dataclasses(cmd_list, fixed_width=global_max_len)
+                lines = ["-" * len(header), header, "-" * len(header)]
+                for cmd in cmd_list:
+                    lines.append(f"{cmd.command_name: <18}: {get_short_desc(cmd)}")  # noqa: PERF401
+                return lines + ["\n"]
 
-                # Return:
-                # [Newline + Header Name]
-                # [Underline (same length as header)]
-                # [Command List...]
-                return ["-" * len(header), f"\n{header}", "-" * len(header)] + lines
-
-            final_output = []
-
-            final_output.append("-" * 50)
-            final_output.append("Implant Help Menu")
-            final_output.append("-" * 50)
-
+            final_output = ["-" * 50, "Implant Help Menu", "-" * 50, "\n"]
             final_output.extend(format_group("System", system_cmds))
             final_output.extend(format_group("File System", fs_cmds))
             final_output.extend(format_group("Memory Store", mem_cmds))
             final_output.extend(format_group("C2 Strategy", strat_cmds))
             final_output.extend(format_group("Execution", execution_cmds))
             final_output.extend(format_group("Discovery", discover_cmds))
-
-            final_output.append("\n")
-
             return (ResultType.LIST, final_output)
-        case "history":
-            # add a json object for json dump, and a plaintext option (default)  for parsed output
-            # uses this list to pull the docstrings from, and turn into a help menu
 
-            task_history_dict: list = await get_implant_task_history(implant_uuid)
-            task_history_list = task_history_dict.get("data")
-            # add in barriers:
-            line = "-" * 50
-            task_history_list.insert(0, line)
-            task_history_list.insert(1, "Task History")
-            task_history_list.insert(2, line)
+        # if user types "help <somecommand>" turn it into "somecommand --help"
+        split_args = split_args[1:] + ["--help"]
 
-            # format options
-            # print(args)
-            # if args[1] == "json":
-            #     return (ResultType.TEXT, "json")
+    # setup our parser
+    parser = build_cli_parser(implant_uuid)
 
-            # get last item,
-            task_history_list.insert(len(task_history_list) + 1, line)
-            task_history_list.insert(
-                len(task_history_list) + 2,
-                "all tasks, some may be truncated due to 1000 line limit of this terminal.",
+    try:
+        parsed = parser.parse_args(split_args)
+
+        # Failsafe if user types an incomplete command like just "strat"
+        if not hasattr(parsed, "func"):
+            return (
+                ResultType.ERROR,
+                f"Incomplete command '{parsed.command}'. Use '{parsed.command} --help' for usage.",
             )
-            task_history_list.insert(len(task_history_list) + 3, line)
 
-            return (ResultType.LIST, task_history_list)
+        # Execute the specific Dataclass mapping
+        return parsed.func(parsed)
 
-        case "cd":
-            try:
-                task = Cd(implant_uuid=implant_uuid, directory=args).to_task()
-                return (ResultType.TASK, task)
-            # if not all args are present, or there's a bug, this will bubble up and be put on screen
-            except ParseError as pe:
-                return (ResultType.ERROR, str(pe))
-            except Exception as e:
-                return (ResultType.ERROR, str(e))
+    except HelpException as h:
+        return (ResultType.TEXT, str(h))
+    except ParseError as pe:
+        return (ResultType.ERROR, str(pe))
+    except Exception as e:
+        return (ResultType.ERROR, str(e))
 
-        case "ls":
-            try:
-                task = Ls(implant_uuid=implant_uuid, directory=args).to_task()
-                return (ResultType.TASK, task)
-            # if not all args are present, or there's a bug, this will bubble up and be put on screen
-            except ParseError as pe:
-                return (ResultType.ERROR, str(pe))
-            except Exception as e:
-                return (ResultType.ERROR, str(e))
 
-        case "sleep":
-            try:
-                task = Sleep(implant_uuid=implant_uuid, sleep_time=args).to_task()
-                return (ResultType.TASK, task)
-            # if not all args are present, or there's a bug, this will bubble up and be put on screen
-            except ParseError as pe:
-                return (ResultType.ERROR, str(pe))
-            except Exception as e:
-                return (ResultType.ERROR, str(e))
-        case "strat":
-            if args.startswith("post"):
-                strategy_name = args[5:]  # Extract strategy name after "post "
-                try:
-                    task = StratPost(implant_uuid=implant_uuid, strategy_name=strategy_name).to_task()
-                    return (ResultType.TASK, task)
-                except ParseError as pe:
-                    return (ResultType.ERROR, str(pe))
-                except Exception as e:
-                    return (ResultType.ERROR, str(e))
+@dataclass(frozen=True)
+class Cheatsheet:
+    R"""
+    Display the operator input rules for handling spaces, quotes, and dashes.
+    """
 
-            elif args.startswith("get"):
-                strategy_name = args[4:]  # Extract strategy name after "get "
-                try:
-                    task = StratGet(implant_uuid=implant_uuid, strategy_name=strategy_name).to_task()
-                    return (ResultType.TASK, task)
-                except ParseError as pe:
-                    return (ResultType.ERROR, str(pe))
-                except Exception as e:
-                    return (ResultType.ERROR, str(e))
+    command_name = "cheatsheet"
+    implant_uuid: str
 
-            elif args.startswith("list"):
-                try:
-                    task = StratList(implant_uuid=implant_uuid).to_task()
-                    return (ResultType.TASK, task)
-                except ParseError as pe:
-                    return (ResultType.ERROR, str(pe))
-                except Exception as e:
-                    return (ResultType.ERROR, str(e))
+    def to_task(self) -> dict:
+        return {}
 
-            elif args.startswith("active"):
-                try:
-                    task = StratActive(implant_uuid=implant_uuid).to_task()
-                    return (ResultType.TASK, task)
-                except ParseError as pe:
-                    return (ResultType.ERROR, str(pe))
-                except Exception as e:
-                    return (ResultType.ERROR, str(e))
 
-            else:
-                return (
-                    ResultType.ERROR,
-                    "Invalid strat command. Use `strat post <strategy_name>`, "
-                    "`strat get <strategy_name>`, or `strat list`",
-                )
+@dataclass(frozen=True)
+class Help:
+    R"""
+    Displays the help menu for the commands
+    """
 
-        case "file":
-            if args.startswith("download"):
-                raw_args = args[9:]  # Extract file path after "download"
-                args_list = raw_args.split()
-                # The file path is the first argument after "download"
-                file_path = args_list[0]
+    command_name = "cheatsheet"
+    implant_uuid: str
 
-                try:
-                    task = FileDownload(implant_uuid=implant_uuid, file_path=file_path).to_task()
-                    return (ResultType.TASK, task)
-                except ParseError as pe:
-                    return (ResultType.ERROR, str(pe))
-                except Exception as e:
-                    return (ResultType.ERROR, str(e))
-
-            if args.startswith("upload"):
-                raw_args = args[7:]  # Extract file path after "upload"
-                args_list = raw_args.split()
-                # The file path is the first argument after "download"
-                file_path = args_list[0]
-                # The file contents is the second argument after "upload"
-                # replace " " with "" to remove any spaces that could be trailing/leading,
-                # which may cause problems with base64 decoding
-                file_contents = (args_list[1]).replace(" ", "")
-
-                try:
-                    task = FileUpload(
-                        implant_uuid=implant_uuid,
-                        file_path=file_path,
-                        file_contents=file_contents,
-                    ).to_task()
-                    return (ResultType.TASK, task)
-                except ParseError as pe:
-                    return (ResultType.ERROR, str(pe))
-                except Exception as e:
-                    return (ResultType.ERROR, str(e))
-            else:
-                return (
-                    ResultType.ERROR,
-                    "Invalid file command. Use `file upload <file_path>` or `file download <file_path>`",
-                )
-
-        case "memstore":
-            if args.startswith("upload"):
-                raw_args = args[7:]  # Extract file name after "upload"
-                args_list = raw_args.split()
-                # The file name is the first argument after "upload"
-                file_name = args_list[0]
-                # The file contents is the second argument after "upload"
-                # replace " " with "" to remove any spaces that could be trailing/leading, which may cause
-                # problems with base64 decoding
-                file_contents = (args_list[1]).replace(" ", "")
-
-                try:
-                    task = MemStoreUpload(
-                        implant_uuid=implant_uuid,
-                        file_name=file_name.strip(),
-                        file_contents=file_contents.strip(),
-                    ).to_task()
-                    return (ResultType.TASK, task)
-                except ParseError as pe:
-                    return (ResultType.ERROR, str(pe))
-                except Exception as e:
-                    return (ResultType.ERROR, str(e))
-            elif args.startswith("download"):
-                raw_args = args[9:]  # Extract file name after "download"
-                args_list = raw_args.split()
-                # The file name is the first argument after "download"
-                file_name = args_list[0]
-
-                try:
-                    task = MemStoreDownload(implant_uuid=implant_uuid, file_name=file_name).to_task()
-                    return (ResultType.TASK, task)
-                except ParseError as pe:
-                    return (ResultType.ERROR, str(pe))
-                except Exception as e:
-                    return (ResultType.ERROR, str(e))
-
-            elif args.startswith("delete"):
-                raw_args = args[7:]  # Extract file name after "delete"
-                args_list = raw_args.split()
-                # The file name is the first argument after "delete"
-                file_name = args_list[0]
-
-                try:
-                    task = MemStoreDelete(implant_uuid=implant_uuid, file_name=file_name).to_task()
-                    return (ResultType.TASK, task)
-                except ParseError as pe:
-                    return (ResultType.ERROR, str(pe))
-                except Exception as e:
-                    return (ResultType.ERROR, str(e))
-
-            elif args.startswith("clear"):
-                try:
-                    task = MemStoreClear(implant_uuid=implant_uuid).to_task()
-                    return (ResultType.TASK, task)
-                except ParseError as pe:
-                    return (ResultType.ERROR, str(pe))
-                except Exception as e:
-                    return (ResultType.ERROR, str(e))
-            elif args.startswith("list"):
-                try:
-                    task = MemStoreList(implant_uuid=implant_uuid).to_task()
-                    return (ResultType.TASK, task)
-                except ParseError as pe:
-                    return (ResultType.ERROR, str(pe))
-                except Exception as e:
-                    return (ResultType.ERROR, str(e))
-
-            else:
-                return (
-                    ResultType.ERROR,
-                    "Invalid memstore command.",
-                )
-
-        case "bof":
-            try:
-                args = args.split()
-                bof_bytes = args[0]  # either the bytes of the bof, *or* the *memstore_name
-                bof_args = args[1:]  # the rest of the args are here.
-                bof_args = "".join(bof_args)  # turn args into one str for now
-                # this could get really ugly really quick, ex bof kfasldfjsdfjsakfjsa== myarg
-                # or just do bof *mybof args
-
-                # no args, args are just bof content, either in base64 or a memstore location
-                task = BofRunner(implant_uuid=implant_uuid, bof_contents=bof_bytes, bof_args=bof_args).to_task()
-                return (ResultType.TASK, task)
-
-            except ParseError as pe:
-                return (ResultType.ERROR, str(pe))
-            except Exception as e:
-                return (ResultType.ERROR, str(e))
-
-        case "discover":
-            if args.startswith("neighbors"):
-                task = DiscoverNeighbors(implant_uuid=implant_uuid).to_task()
-                return (ResultType.TASK, task)
-
-            else:
-                return (
-                    ResultType.ERROR,
-                    "Invalid discover command.",
-                )
-
-        case "exit":
-            try:
-                task = Exit(implant_uuid=implant_uuid).to_task()
-                return (ResultType.TASK, task)
-            except ParseError as pe:
-                return (ResultType.ERROR, str(pe))
-            except Exception as e:
-                return (ResultType.ERROR, str(e))
-
-        case _:
-            return (ResultType.ERROR, "Invalid command")  # Or some other response
+    def to_task(self) -> dict:
+        return {}
 
 
 @dataclass(frozen=True)
@@ -970,6 +1050,8 @@ strat_cmds = [StratActive, StratList, StratPost, StratGet]
 execution_cmds = [BofRunner]
 discover_cmds = [DiscoverNeighbors]
 
+terminal_helper_cmds = [Help, Cheatsheet]
+
 
 def get_all_command_classes():
     """
@@ -977,7 +1059,7 @@ def get_all_command_classes():
     """
 
     # get the longest command, use that as ref for spacing the :desc
-    all_cmds = system_cmds + fs_cmds + mem_cmds + strat_cmds + execution_cmds + discover_cmds
+    all_cmds = system_cmds + fs_cmds + mem_cmds + strat_cmds + execution_cmds + discover_cmds + terminal_helper_cmds
     return all_cmds
 
 

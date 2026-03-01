@@ -200,8 +200,11 @@ HEY - add delete listener in gui so it actually deletes it from the db
    > kind of smoke tests cuz it was being dumb
 
 Neo4j Cleanup
-* [ ] UUID7 as primary key for every node
-
+* [X] UUID7 as primary key for every node
+* [ ] Rough structure for keys each moodel would have. Ex: mac_address, ip_address, hostname, for NIC. These do not need to be 
+   filled it at creation time, but should be available for each host. This gives the data a repeatable, predictable structure.
+* [ ] 1/2 agent, 1/2 neo/pipeline: Remove the automatic host resolver call for discover neighbors, and make it an argument. By default, this should be
+   ARP only, and the operator should specify if they want to resolve or not. something like "--resolve", somehow fit into the current command schema
 
 ### Implant: Command Tree & Capabilities
 
