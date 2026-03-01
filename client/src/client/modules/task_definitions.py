@@ -7,6 +7,34 @@ from enum import Enum
 
 from ..modules.api_calls import get_implant_task_history
 
+'''
+Notes:
+
+Can add command examples with:
+
+def get_epilog(cls) -> str:
+    """Formats the dataclass examples list into a clean epilog string."""
+    if hasattr(cls, 'examples') and cls.examples:
+        return "Examples:\n  > " + "\n  > ".join(cls.examples)
+    return ""
+
+and
+
+file_up = file_subs.add_parser(
+        "upload",
+        help=get_short_desc(FileUpload),
+        epilog=get_epilog(FileUpload),  # add epliog call.
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+
+Then per class:
+
+dataclass
+MyClass:
+    examples = ["abcd", "bcde"]
+
+'''
+
 
 class ResultType(Enum):
     TASK = "task"  # tasks are sent to server - this is a dict of the FULL task
