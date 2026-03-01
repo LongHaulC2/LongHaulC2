@@ -34,6 +34,10 @@ Relationships:
  Upgrade: Every node will have a UUID7 assigned to it. This eliminates unique data problems and allows this to grow
  more. This should be the source of truth going forward for each item. If it's UUID is here, that is how it should
  be referred to, where possible, throughout the program
+
+ - All name_uuid are now "uuid", for easier parsing on the frontend. The service classes still use name_uuid,
+ the models will just use UUID.
+
  """
 
 
@@ -52,7 +56,7 @@ class Neo4jImplantNode(SemiStructuredNode):
     Implant Node for Implants.
     """
 
-    implant_uuid = StringProperty(unique_index=True, required=True)
+    uuid = StringProperty(unique_index=True, required=True)
 
     # implant -> host
     running_on = RelationshipTo("Neo4jHostNode", "RUNNING_ON")
@@ -63,12 +67,12 @@ class Neo4jImplantNode(SemiStructuredNode):
     memstore_files = RelationshipFrom("Neo4jMemstoreFileNode", "STORED_IN")
 
     @classmethod
-    def find_existing(cls, implant_uuid=None) -> "Neo4jImplantNode | None":
+    def find_existing(cls, uuid=None) -> "Neo4jImplantNode | None":
         """
         Lookup an implant by its unique UUID.
         """
-        if implant_uuid:
-            return cls.nodes.get_or_none(implant_uuid=implant_uuid)
+        if uuid:
+            return cls.nodes.get_or_none(uuid=uuid)
         return None
 
 
@@ -78,7 +82,7 @@ class Neo4jHostNode(SemiStructuredNode):
     """
 
     # default index
-    host_uuid = StringProperty(unique_index=True, default=uuid7)
+    uuid = StringProperty(unique_index=True, default=uuid7)
 
     # move me to *not* default.
     hostname = StringProperty(unique_index=True, required=True)
@@ -120,7 +124,7 @@ class Neo4jNetworkNode(SemiStructuredNode):
     Represents a Layer 3 network segment (subnet/VLAN).
     """
 
-    network_uuid = StringProperty(unique_index=True, default=uuid7)
+    uuid = StringProperty(unique_index=True, default=uuid7)
 
     # move me to not default
     cidr = StringProperty(unique_index=True, required=True)  # 10.0.1.0/24
@@ -146,7 +150,7 @@ class Neo4jListenerNode(SemiStructuredNode):
     Listener Node for Listeners.
     """
 
-    listener_uuid = StringProperty(unique_index=True, required=True)
+    uuid = StringProperty(unique_index=True, required=True)
 
     # listener_name = StringProperty()
 
@@ -154,12 +158,12 @@ class Neo4jListenerNode(SemiStructuredNode):
     # host = RelationshipFrom("Neo4jNetworkNode", "EGRESS")
 
     @classmethod
-    def find_existing(cls, listener_uuid=None) -> "Neo4jListenerNode | None":
+    def find_existing(cls, uuid=None) -> "Neo4jListenerNode | None":
         """
         Lookup an implant by its unique UUID.
         """
-        if listener_uuid:
-            return cls.nodes.get_or_none(listener_uuid=listener_uuid)
+        if uuid:
+            return cls.nodes.get_or_none(uuid=uuid)
         return None
 
 
@@ -168,7 +172,7 @@ class Neo4jC2ChannelNode(SemiStructuredNode):
     Intermediate node representing the communication path.
     """
 
-    channel_uuid = StringProperty(unique_index=True, default=uuid7)
+    uuid = StringProperty(unique_index=True, default=uuid7)
 
     channel_id = StringProperty(unique_index=True, required=True)  # e.g., session_id or protocol_host_hash
     protocol = StringProperty(required=True)  # "HTTPS", "DNS", "SMB"
@@ -194,7 +198,7 @@ class Neo4jC2ChannelNode(SemiStructuredNode):
 
 
 class Neo4jNicNode(SemiStructuredNode):
-    nic_uuid = StringProperty(unique_index=True, default=uuid7)
+    uuid = StringProperty(unique_index=True, default=uuid7)
 
     mac_address = StringProperty(unique_index=True, required=True)
 
@@ -217,7 +221,7 @@ class Neo4jNicNode(SemiStructuredNode):
 
 
 class Neo4jMemstoreFileNode(SemiStructuredNode):
-    file_uuid = StringProperty(unique_index=True, default=uuid7)
+    uuid = StringProperty(unique_index=True, default=uuid7)
 
     file_name = StringProperty(unique_index=True, required=True)
 
@@ -240,7 +244,7 @@ class Neo4jMemstoreFileNode(SemiStructuredNode):
 
 
 class Neo4jFileNode(SemiStructuredNode):
-    file_uuid = StringProperty(unique_index=True, default=uuid7)
+    uuid = StringProperty(unique_index=True, default=uuid7)
 
     file_path = StringProperty(unique_index=True, required=True)
     md5 = StringProperty()
