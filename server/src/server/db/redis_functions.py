@@ -3,9 +3,9 @@ from dataclasses import asdict
 import msgpack
 import structlog
 
-from ..db.redis_connector import get_redis_connection
 from ..schemas.implant import Task
 from ..utils.checks import check_type
+from .redis_connector import get_redis_connection
 
 server_logger = structlog.getLogger("server")
 

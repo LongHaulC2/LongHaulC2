@@ -31,8 +31,8 @@ from ...db.neo4j_functions import (
     Neo4jMemstoreFileNodeService,
     Neo4jNicNodeService,
 )
+from ...db.redis_functions import RedisImplantTaskService
 from ...instance import active_threads
-from ..redis_functions import RedisImplantTaskService
 
 response_pipeline_logger = structlog.getLogger("response_pipeline")
 server_logger = structlog.getLogger("server")

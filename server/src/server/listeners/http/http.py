@@ -31,7 +31,7 @@ from ...db.mysql_connector import get_mysql_session
 
 # from ...modules.mysql_functions import ImplantService
 from ...db.neo4j_functions import Neo4jImplantNodeService
-from ...modules.redis_functions import RedisImplantTaskService
+from ...db.redis_functions import RedisImplantTaskService
 from ...modules.task.task import TaskService
 from ...schemas.implant import ImplantCreate, ImplantUpdate
 from ...utils.checks import check_type

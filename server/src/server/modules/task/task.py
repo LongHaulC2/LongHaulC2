@@ -11,7 +11,7 @@ import msgpack
 import structlog
 
 from ...db.mysql_functions import MySQLImplantTaskService
-from ...modules.redis_functions import RedisImplantTaskService
+from ...db.redis_functions import RedisImplantTaskService
 from ...schemas.implant import Task, TaskDetail
 from ...utils.checks import check_type
 

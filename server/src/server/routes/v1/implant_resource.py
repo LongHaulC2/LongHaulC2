@@ -28,8 +28,8 @@ from ...api_models.implants import (
 from ...db.mysql_connector import get_mysql_session
 from ...db.mysql_functions import MySQLImplantTaskService, MySQLSearchService
 from ...db.neo4j_functions import Neo4jImplantNodeService
+from ...db.redis_functions import RedisImplantTaskService
 from ...instance import api
-from ...modules.redis_functions import RedisImplantTaskService
 from ...modules.task.task import TaskService
 from ...schemas.implant import ImplantUpdate, Search, Task
 from ...utils.checks import check_type
