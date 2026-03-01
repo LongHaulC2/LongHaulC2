@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any
 
-from nicegui import ui
+from nicegui import app, ui
 
 from client.src.client.info import VERSION_NUMBER
 from client.src.client.modules.api_calls import get_all_implant_data, get_all_listener_data
@@ -23,7 +23,8 @@ async def build_footer():
 
     # Only initialize the poller once per session to avoid hammering the API
     if not _poller_initialized:
-        ui.timer(5, update_dashboard_stats)
+        update_time = app.storage.user.get("auto_refresh_rate", 5)
+        ui.timer(update_time, update_dashboard_stats)
         _poller_initialized = True
 
     with ui.footer().classes("bg-[#0a0a0a] border-t border-white/5 py-1 px-4"):  # noqa: SIM117

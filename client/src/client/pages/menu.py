@@ -104,6 +104,7 @@ def setup_menu(title: str):
             ui.separator().classes("bg-white/5 mt-4 mb-2")
             ui.label("ADMIN").classes("tech-label-sub")
             nav_btn("STATUS", "arrow_circle_up", "/status")
+            nav_btn("SETTINGS", "settings", "/settings")
 
             # FOOTER
             ui.space()

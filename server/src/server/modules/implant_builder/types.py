@@ -5,7 +5,7 @@ from typing import TypedDict
 
 
 class ListenerProfile(TypedDict):
-    """Represents the raw data coming from the MySQL ListenerService."""
+    """Represents the raw data coming from the Neo4jListenerNodeService."""
 
     listener_uuid: str
     listener_host: str

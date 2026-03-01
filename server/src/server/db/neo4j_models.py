@@ -1,8 +1,11 @@
 from edwh_uuid7 import uuid7
 from neomodel import (
+    BooleanProperty,
+    IntegerProperty,
     RelationshipFrom,
     RelationshipTo,
     StringProperty,
+    StructuredNode,
     StructuredRel,
 )
 from neomodel.contrib import SemiStructuredNode
@@ -145,26 +148,82 @@ class Neo4jNetworkNode(SemiStructuredNode):
         return None
 
 
-class Neo4jListenerNode(SemiStructuredNode):
+# class Neo4jListenerNode(SemiStructuredNode):
+#     """
+#     Listener Node for Listeners.
+#     """
+
+#     uuid = StringProperty(unique_index=True, required=True)
+
+#     # rest of fields are filled in by kwargs of register_listener
+#     # listeners also curerntly live in the mysql db, they need to be transfered over to Neo4j at some point
+
+#     # connected_to = RelationshipTo("Neo4jNetworkNode", "CONNECTED_TO")
+#     # host = RelationshipFrom("Neo4jNetworkNode", "EGRESS")
+
+#     @classmethod
+#     def find_existing(cls, uuid=None) -> "Neo4jListenerNode | None":
+#         """
+#         Lookup an implant by its unique UUID.
+#         """
+#         if uuid:
+#             return cls.nodes.get_or_none(uuid=uuid)
+#         return None
+
+
+class Neo4jListenerNode(StructuredNode):
     """
-    Listener Node for Listeners.
+    Listener Node for Listeners. Strictly typed to mirror the MySQL schema.
     """
 
-    uuid = StringProperty(unique_index=True, required=True)
+    listener_uuid = StringProperty(unique_index=True, required=True)
 
-    # listener_name = StringProperty()
+    # Core fields
+    listener_host = StringProperty(max_length=256)
+    listener_port = IntegerProperty()
+    listener_type = StringProperty(max_length=255)
+    listener_name = StringProperty(max_length=255)
 
+    # Unlimited length text fields (equivalent to SQLAlchemy 'Text')
+    listener_notes = StringProperty()
+
+    # State
+    listener_active = BooleanProperty(default=False)
+
+    # Malleable C2 fields
+    listener_profile_name = StringProperty()
+    listener_profile_contents = StringProperty()
+
+    # Relationships
     # connected_to = RelationshipTo("Neo4jNetworkNode", "CONNECTED_TO")
     # host = RelationshipFrom("Neo4jNetworkNode", "EGRESS")
 
     @classmethod
-    def find_existing(cls, uuid=None) -> "Neo4jListenerNode | None":
+    def find_existing(cls, listener_uuid: str = None) -> "Neo4jListenerNode | None":
         """
-        Lookup an implant by its unique UUID.
+        Lookup a listener by its unique UUID.
         """
-        if uuid:
-            return cls.nodes.get_or_none(uuid=uuid)
+        if listener_uuid:
+            return cls.nodes.get_or_none(listener_uuid=listener_uuid)
         return None
+
+    def to_dict(self) -> dict:
+        """
+        Serialize the node properties into a standard dictionary.
+
+        Used by the API for getting listener data
+        """
+        return {
+            "listener_uuid": self.listener_uuid,
+            "listener_host": self.listener_host,
+            "listener_port": self.listener_port,
+            "listener_type": self.listener_type,
+            "listener_name": self.listener_name,
+            "listener_notes": self.listener_notes,
+            "listener_active": self.listener_active,
+            "listener_profile_name": self.listener_profile_name,
+            "listener_profile_contents": self.listener_profile_contents,
+        }
 
 
 class Neo4jC2ChannelNode(SemiStructuredNode):

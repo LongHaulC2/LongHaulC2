@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import structlog
-from nicegui import ui
+from nicegui import app, ui
 
 # Imports
 from client.src.client.modules.api_calls import (
@@ -135,7 +135,8 @@ async def render_listeners_table():
         except Exception as e:
             server_log.error(f"Table Update Failed: {e}")
 
-    ui.timer(2.0, update_table_data)
+    update_time = app.storage.user.get("auto_refresh_rate", 2)
+    ui.timer(update_time, update_table_data)
     await update_table_data()
 
     table.add_slot(

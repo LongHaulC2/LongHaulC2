@@ -4,9 +4,8 @@ import threading
 
 import structlog
 
-from ..db.mysql_connector import get_mysql_session
 from ..instance import active_processes
-from ..modules.mysql_functions import ListenerService
+from ..modules.neo4j_functions import Neo4jListenerNodeService
 from ..schemas.listeners import ListenerCreate
 from ..utils.checks import check_type
 from .http.http import run as http_run
@@ -32,16 +31,15 @@ def restart_active_listeners():
 
     """
     # grab listeners with active flag, and restart
-    with get_mysql_session() as session:
-        ls = ListenerService(session)
-        all_listeners = ls.get_all()
-        for listener in all_listeners:
-            if listener.listener_active:
-                # create our dataclass with listener data, as that's what the start endpoint wants
-                # note, listener is a sql object, so need to convert to dict then pass for a proper unpacking
-                listener_dict = listener.to_dict()
-                listener_data = ListenerCreate(**listener_dict)
-                start_listener(listener_data)
+    ls = Neo4jListenerNodeService()
+    all_listeners = ls.get_all()
+    for listener in all_listeners:
+        if listener.listener_active:
+            # create our dataclass with listener data, as that's what the start endpoint wants
+            # note, listener is a sql object, so need to convert to dict then pass for a proper unpacking
+            listener_dict = listener.to_dict()
+            listener_data = ListenerCreate(**listener_dict)
+            start_listener(listener_data)
 
 
 def start_listener(

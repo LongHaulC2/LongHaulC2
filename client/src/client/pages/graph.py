@@ -181,6 +181,11 @@ def build_header_bar():
             ui.label("NETWORK_TOPOLOGY //").classes("tech-label-header-section")
 
         with ui.row().classes("items-center gap-4"):
+            # data available
+            new_data_label = ui.label("New data available, refresh to update chart").classes(
+                "!text-yellow-500 tech-label-sub whitespace-nowrap "
+            )
+            new_data_label.set_visibility(False)
             # Timestamp
             ui.label(f"UTC: {datetime.now(UTC).strftime('%H:%M:%S')}").classes("tech-label-sub whitespace-nowrap")
 
@@ -196,6 +201,27 @@ def build_header_bar():
             ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/graph")).props("dense flat size=sm").classes(
                 "tech-btn-action-2"
             )
+
+    previous_data = None
+
+    async def check_if_new_data():
+        """
+        Checks if new data is available for the graph. Notifies user if so
+        """
+        nonlocal previous_data
+        graph_data_response = await get_all_graph_data()
+        new_data = graph_data_response.get("data", {})
+
+        if previous_data is None:
+            previous_data = new_data
+            return
+
+        if previous_data != new_data:
+            new_data_label.set_visibility(True)
+            # don't sent previous data to new data, the warning will only go away on refresh, which is intentional
+
+    update_time = app.storage.user.get("auto_refresh_rate", 5)
+    ui.timer(update_time, check_if_new_data)
 
 
 def handle_click(e, nodes, sidebar_container):
@@ -220,6 +246,11 @@ def handle_click(e, nodes, sidebar_container):
             props["time_since_first_seen"] = get_time_ago(first_seen)
 
             break  # break cuz 1 uuidper object
+
+    # nuke listener_profile_contents if present, too big to display
+    if props.get("listener_profile_contents", ""):
+        # del props["listener_profile_contents"]
+        props["listener_profile_contents"] = "Too big to display"
 
     # Clear and Redraw the sidebar
     sidebar_container.clear()
@@ -340,55 +371,3 @@ def get_implant_name(props: dict) -> str:
 def get_file_path_name(props: dict) -> str:
     """Returns the path if available, otherwise falls back to name"""
     return props.get("file_path") or props.get("file_name") or "Unknown File"
-
-
-# def set_node_icons(nodes, categories):
-#     for node in nodes:
-#         # Prevent NiceGUI EChartPointClickEventArguments KeyError
-#         node.setdefault("value", 0)
-#         props = node.get("props", {})
-
-#         # # Dynamically determine the true category based on properties
-#         # use the prim keys for this
-#         if "implant_uuid" in props:
-#             cat = 0  # Implant
-#         elif "listener_uuid" in props:
-#             cat = 1  # Listener
-#         elif "channel_id" in props:
-#             cat = 2  # c2 channel
-#         elif "address" in props:
-#             cat = 3  # Host
-#         else:
-#             cat = node.get("category", 3)  # Fallback
-
-#         # Overwrite the backend's broken category ID so ECharts maps it correctly
-#         # node["category"] = cat
-
-#         # get index of category, according to the nodes field
-#         cat_index = node.get("category")
-
-#         # for _cat in categories:
-#         #     if cat_index == _cat.get("index"):
-
-#         # take nodes, correlate them, and add props to them.
-#         if cat_index == 0:  # Implant
-#             user = props.get("user", "").lower()
-#             is_admin = "system" in user
-#             color = "#ef4444" if is_admin else CHART_COLORS[0]
-
-#             node["symbol"] = wrap_svg(PATH_IMPLANT, color)
-#             node["symbolSize"] = 35
-
-#         elif cat_index == 1:  # Network
-#             node["symbol"] = wrap_svg(PATH_NETWORK, CHART_COLORS[1])
-#             node["symbolSize"] = 45
-
-#         elif cat_index == 2:  # Gateway
-#             node["symbol"] = wrap_svg(PATH_GATEWAY, CHART_COLORS[2])
-#             node["symbolSize"] = 55
-
-#         elif cat_index == 3:  # Host
-#             node["symbol"] = wrap_svg(PATH_HOST, CHART_COLORS[3])
-#             node["symbolSize"] = 35
-
-#     return nodes

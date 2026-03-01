@@ -206,7 +206,9 @@ Neo4j Cleanup
 * [ ] 1/2 agent, 1/2 neo/pipeline: Remove the automatic host resolver call for discover neighbors, and make it an argument. By default, this should be
    ARP only, and the operator should specify if they want to resolve or not. something like "--resolve", somehow fit into the current command schema
    > Command schema has been updated to allow for positional & -- commands.
-   
+
+* [X] Migration of listeners to neo4j
+ 
 ### Implant: Command Tree & Capabilities
 
 ~* [ ] `setting`: Generic setting changer command (`setting name new_value`, `setting list`)~

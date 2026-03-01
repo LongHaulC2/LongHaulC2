@@ -3,7 +3,6 @@
 import structlog
 from neomodel import db
 
-from ..db.mysql_connector import get_mysql_session
 from ..db.neo4j_models import (
     Neo4jC2ChannelNode,
     Neo4jFileNode,
@@ -14,9 +13,11 @@ from ..db.neo4j_models import (
     Neo4jNetworkNode,
     Neo4jNicNode,
 )
-from .mysql_functions import ListenerService
+from ..schemas.listeners import ListenerCreate, ListenerUpdate
+from ..utils.checks import check_type
 
 neo4j_logger = structlog.getLogger("neo4j_logger")
+server_logger = structlog.getLogger("server")
 
 """
 each service class should have a:
@@ -116,7 +117,8 @@ class Neo4jImplantNodeService:
         # 2: Create c2 channel node if not exist
 
         # create or get listener node
-        listener_node = Neo4jListenerNodeService.create_or_get_node(listener_uuid)
+        # listener_node = Neo4jListenerNodeService.create_or_get_node(listener_uuid)
+        listener_node = Neo4jListenerNode.find_existing(listener_uuid=listener_uuid)
         # create or get channel node
         c2_channel_node = Neo4jC2ChannelNodeService.create_or_get_node(listener_uuid)
 
@@ -282,40 +284,144 @@ class Neo4jHostNodeService:
 
 
 class Neo4jListenerNodeService:
-    def __init__(self, listener_uuid):
-        self.listener_uuid = listener_uuid
+    # DO NOT include create_or_get_node, we fully control the data of Neo4jListenerNodeServices, and
+    # it is a structured node, so this does not make sense here. Listeners are not as variable as the
+    # rest of the models/services
+    # @staticmethod
+    # def create_or_get_node(listener_uuid):
 
-    @staticmethod
-    def create_or_get_node(listener_uuid):
+    def create(self, data: ListenerCreate) -> "Neo4jListenerNode":
         """
-        Creates a node. Useful for getting a quick new node and letting this handle all
-        the node logic
+        Create a new listener node.
         """
-        listener_node = Neo4jListenerNode.find_existing(uuid=listener_uuid)
-        if not listener_node:
-            listener_node = Neo4jListenerNode(uuid=listener_uuid).save()
-            neo4j_logger.info("New listener node created", listener_uuid=listener_uuid)
+        server_logger.debug("Creating new listener node")
+        check_type(data, ListenerCreate, "data")
 
-        return listener_node
+        try:
+            # Convert dataclass/pydantic to dict
+            props = vars(data).copy()
 
-    def register_listener(self, **kwargs):
+            # Check composite uniqueness manually (Neo4j doesn't do multi-property unique constraints
+            # natively on SemiStructured nodes)
+            self._enforce_composite_unique(
+                host=props.get("listener_host"), port=props.get("listener_port"), active=props.get("listener_active")
+            )
+
+            listener = Neo4jListenerNode(**props).save()
+            return listener
+
+        except Exception as e:
+            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
+            raise
+
+    def get_by_id(self, listener_id: str) -> "Neo4jListenerNode | None":
         """
-        Registers or updates a listener node.
+        Retrieve a listener node by primary key (uuid).
         """
-        # make sure it exsists....
-        listener_node = Neo4jListenerNode.find_existing(self.listener_uuid)
+        check_type(listener_id, str, "listener_id")
 
-        if not listener_node:
-            neo4j_logger.info("Registering new Listener", listener_uuid=self.listener_uuid)
-            listener_node = Neo4jListenerNode(uuid=self.listener_uuid, **kwargs).save()
-        else:
-            neo4j_logger.debug("Updating existing Listener", listener_uuid=self.listener_uuid)
-            # Update dynamic properties (status, current connections, etc.)
-            for key, value in kwargs.items():
-                setattr(listener_node, key, value)
-            listener_node.save()
+        try:
+            server_logger.debug("Retrieving listener from Neo4j Database", listener_uuid=listener_id)
+            return Neo4jListenerNode.find_existing(listener_uuid=listener_id)
 
-        return listener_node
+        except Exception as e:
+            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
+            raise
+
+    def get_all(self):
+        """
+        Gets all listener nodes.
+        """
+        try:
+            server_logger.debug("Retrieving all listeners from Neo4j Database")
+            return Neo4jListenerNode.nodes.all()
+
+        except Exception as e:
+            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
+            raise
+
+    def update(self, listener_id: str, data: ListenerUpdate) -> "Neo4jListenerNode | None":
+        """
+        Update a listener node by uuid.
+        """
+        server_logger.debug("Updating listener in Neo4j Database", listener_uuid=listener_id, data=data)
+        check_type(listener_id, str, "listener_id")
+        check_type(data, ListenerUpdate, "data")
+
+        try:
+            listener = self.get_by_id(listener_id)
+            if not listener:
+                return None
+
+            # Re-check uniqueness before saving if host/port/active changed
+            self._enforce_composite_unique(
+                host=getattr(listener, "listener_host", None),
+                port=getattr(listener, "listener_port", None),
+                active=getattr(listener, "listener_active", None),
+                exclude_uuid=listener.uuid,
+            )
+
+            listener.save()
+            return listener
+
+        except Exception as e:
+            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
+            raise
+
+    def set_active(self, listener_id: str, active: bool):
+        server_logger.debug("Setting listener state Neo4j Database", listener_uuid=listener_id, state=active)
+        check_type(listener_id, str, "listener_id")
+        check_type(active, bool, "active")
+
+        listener = self.get_by_id(listener_id)
+        if not listener:
+            return None
+
+        listener.listener_active = active
+
+        # Enforce constraints
+        self._enforce_composite_unique(
+            host=getattr(listener, "listener_host", None),
+            port=getattr(listener, "listener_port", None),
+            active=active,
+            exclude_uuid=listener.listener_uuid,
+        )
+
+        listener.save()
+
+    def delete(self, listener_id: str) -> bool:
+        """
+        Delete a listener node by uuid.
+        """
+        server_logger.debug("Deleting listener in Neo4j Database", listener_uuid=listener_id)
+        check_type(listener_id, str, "listener_id")
+
+        try:
+            listener = self.get_by_id(listener_id)
+            if not listener:
+                return None
+
+            listener.delete()
+            return True
+
+        except Exception as e:
+            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
+            raise
+
+    def _enforce_composite_unique(self, host, port, active, exclude_uuid=None):
+        """
+        Helper to simulate MySQL's UniqueConstraint("listener_host", "listener_port", "listener_active").
+        """
+        if host is None or port is None or active is None:
+            return  # Skip check if we don't have all parts of the composite key
+
+        existing = Neo4jListenerNode.nodes.filter(listener_host=host, listener_port=port, listener_active=active)
+
+        for node in existing:
+            if node.listener_uuid != exclude_uuid:
+                raise ValueError(
+                    "UniqueConstraint violated: listener_host, listener_port, listener_active must be unique."
+                )
 
 
 class Neo4jNicNodeService:
@@ -388,9 +494,6 @@ class Neo4jNetworkNodeService:
 
 
 class Neo4jC2ChannelNodeService:
-    # def __init__(self, listener_uuid):
-    #     ...
-
     @staticmethod
     def create_or_get_node(listener_uuid) -> Neo4jC2ChannelNode:
         """
@@ -400,13 +503,9 @@ class Neo4jC2ChannelNodeService:
 
         channel_id = Neo4jC2ChannelNodeService._get_channel_id(listener_uuid)
 
-        listener_data = {}
-        with get_mysql_session() as session:
-            listener_class = ListenerService(session)
-            listener_object = listener_class.get_by_id(listener_uuid)
-            listener_data = listener_object.to_dict()
-
-        listener_type = listener_data.get("listener_type", "")
+        listener_class = Neo4jListenerNodeService()
+        listener_object = listener_class.get_by_id(listener_uuid)
+        listener_type = listener_object.listener_type
 
         channel_node = Neo4jC2ChannelNode.find_existing(channel_id=channel_id)
         if not channel_node:
@@ -420,17 +519,10 @@ class Neo4jC2ChannelNodeService:
         """
         Create a unique key for the channel id in neo4j.
         """
-        listener_data = {}
-        with get_mysql_session() as session:
-            listener_class = ListenerService(session)
-            listener_object = listener_class.get_by_id(listener_uuid)
-            listener_data = listener_object.to_dict()
+        listener_class = Neo4jListenerNodeService()
+        listener_object = listener_class.get_by_id(listener_uuid)
 
-        listener_type = listener_data.get("listener_type", "")
-        listener_port = listener_data.get("listener_port", "")
-        listener_host = listener_data.get("listener_host", "")
-
-        channel_id = f"{listener_uuid}_{listener_type}_{listener_host}_{listener_port}"
+        channel_id = f"{listener_object.listener_uuid}_{listener_object.listener_type}_{listener_object.listener_host}_{listener_object.listener_port}"  # noqa - unique channel id
         return channel_id
 
 

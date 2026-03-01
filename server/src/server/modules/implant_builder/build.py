@@ -10,7 +10,8 @@ import structlog
 from docker.models.containers import Container
 
 from ...db.mysql_connector import get_mysql_session
-from ...modules.mysql_functions import ListenerService, MySQLImplantPayloadService
+from ...modules.mysql_functions import MySQLImplantPayloadService
+from ...modules.neo4j_functions import Neo4jListenerNodeService
 from .render import render_implant, sanitize_cpp_name
 from .types import ListenerProfile
 
@@ -58,7 +59,7 @@ def build_implant(
     start_time = time.perf_counter()
 
     with get_mysql_session() as session:
-        listener_service = ListenerService(session)
+        listener_service = Neo4jListenerNodeService()
         payload_service = MySQLImplantPayloadService(session)
 
         # Register build start
