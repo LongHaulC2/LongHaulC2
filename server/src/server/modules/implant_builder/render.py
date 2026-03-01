@@ -163,7 +163,7 @@ def _render_file(dest_path: Path, template_name: str, context: dict, mode: str =
 
         dest_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(dest_path, mode) as f:
+        with Path.open(dest_path, mode) as f:
             f.write(rendered_code)
 
     except Exception as e:

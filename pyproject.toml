@@ -91,7 +91,9 @@ select = [
     "SIM",      # flake8-simplify
     "ARG",      # flake8-unused-arguments
     "B",        # flake8-bugbear
-    "RET"       # Return best practices
+    "RET",       # Return best practices
+    #"TID"      # import rules - flagging on my relative.
+    "PTH"       # force pathlib where possible
 ]
 # Tell Ruff which variable names are actually loggers
 logger-objects = [

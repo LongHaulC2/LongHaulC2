@@ -295,7 +295,7 @@ async def create_new_file(file_path: str, file_name: str) -> bool:
         return False
 
     try:
-        with open(full_path, "w") as f:
+        with Path.open(full_path, "w") as f:
             f.write("")
         ui.notify(f"Created {file_name}", type="positive", color="emerald-9")
         file_picker.refresh()
@@ -336,7 +336,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
     check_type(file_path, str, "file_path")
 
     async def load_file():
-        with open(file_path, "r+") as file:
+        with Path.open(file_path, "r+") as file:
             return file.read()
 
     file_contents = await load_file()
@@ -372,7 +372,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
 
                 # Save
                 async def save_logic():
-                    with open(file_path, "w") as f:
+                    with Path.open(file_path, "w") as f:
                         f.write(editor.value)
                     ui.notify("Saved", type="positive", color="emerald-9")
 
@@ -398,7 +398,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
 
                         def finalize_save():
                             new_p = Path(file_path).parent / new_name.value
-                            with open(new_p, "w") as f:
+                            with Path.open(new_p, "w") as f:
                                 f.write(editor.value)
                             d.close()
                             file_picker.refresh()

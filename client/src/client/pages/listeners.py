@@ -348,7 +348,7 @@ def get_malleable_profiles_list() -> list:
 
 def get_malleable_profile_content(file_path) -> str:
     try:
-        with open(file_path) as file:
+        with Path.open(file_path) as file:
             return file.read()
     except Exception:
         return ""
