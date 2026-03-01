@@ -181,6 +181,11 @@ def build_header_bar():
             ui.label("NETWORK_TOPOLOGY //").classes("tech-label-header-section")
 
         with ui.row().classes("items-center gap-4"):
+            # data available
+            new_data_label = ui.label("New data available, refresh to update chart").classes(
+                "!text-yellow-500 tech-label-sub whitespace-nowrap "
+            )
+            new_data_label.set_visibility(False)
             # Timestamp
             ui.label(f"UTC: {datetime.now(UTC).strftime('%H:%M:%S')}").classes("tech-label-sub whitespace-nowrap")
 
@@ -196,6 +201,29 @@ def build_header_bar():
             ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/graph")).props("dense flat size=sm").classes(
                 "tech-btn-action-2"
             )
+
+    previous_data = None
+
+    async def check_if_new_data():
+        """
+        Checks if new data is available for the graph. Notifies user if so
+        """
+        nonlocal previous_data
+        graph_data_response = await get_all_graph_data()
+        new_data = graph_data_response.get("data", {})
+
+        if previous_data is None:
+            previous_data = new_data
+            return
+
+        if previous_data != new_data:
+            new_data_label.set_visibility(True)
+            previous_data = new_data
+        else:
+            new_data_label.set_visibility(False)
+
+    # node is a bit of a heavier query, do it every 5 seconds
+    ui.timer(5, check_if_new_data)
 
 
 def handle_click(e, nodes, sidebar_container):

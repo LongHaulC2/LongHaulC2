@@ -283,61 +283,12 @@ class Neo4jHostNodeService:
         # range, we could add ourselves to it.
 
 
-# class Neo4jListenerNodeService:
-#     def __init__(self, listener_uuid):
-#         self.listener_uuid = listener_uuid
-
-#     @staticmethod
-#     def create_or_get_node(listener_uuid):
-#         """
-#         Creates a node. Useful for getting a quick new node and letting this handle all
-#         the node logic
-#         """
-#         listener_node = Neo4jListenerNode.find_existing(uuid=listener_uuid)
-#         if not listener_node:
-#             listener_node = Neo4jListenerNode(uuid=listener_uuid).save()
-#             neo4j_logger.info("New listener node created", listener_uuid=listener_uuid)
-
-#         return listener_node
-
-#     def register_listener(self, **kwargs):
-#         """
-#         Registers or updates a listener node.
-#         """
-#         # make sure it exsists....
-#         listener_node = Neo4jListenerNode.find_existing(self.listener_uuid)
-
-#         if not listener_node:
-#             neo4j_logger.info("Registering new Listener", listener_uuid=self.listener_uuid)
-#             listener_node = Neo4jListenerNode(uuid=self.listener_uuid, **kwargs).save()
-#         else:
-#             neo4j_logger.debug("Updating existing Listener", listener_uuid=self.listener_uuid)
-#             # Update dynamic properties (status, current connections, etc.)
-#             for key, value in kwargs.items():
-#                 setattr(listener_node, key, value)
-#             listener_node.save()
-
-#         return listener_node
-
-# Assuming server_logger, check_type, ListenerCreate, ListenerUpdate are imported here
-
-
 class Neo4jListenerNodeService:
     # DO NOT include create_or_get_node, we fully control the data of Neo4jListenerNodeServices, and
     # it is a structured node, so this does not make sense here. Listeners are not as variable as the
     # rest of the models/services
     # @staticmethod
     # def create_or_get_node(listener_uuid):
-    #     """
-    #     Creates a node. Useful for getting a quick new node and letting this handle all
-    #     the node logic
-    #     """
-    #     listener_node = Neo4jListenerNode.find_existing(listener_uuid=listener_uuid)
-    #     if not listener_node:
-    #         listener_node = Neo4jListenerNode(uuid=listener_uuid).save()
-    #         neo4j_logger.info("New listener node created", listener_uuid=listener_uuid)
-
-    #     return listener_node
 
     def create(self, data: ListenerCreate) -> "Neo4jListenerNode":
         """
