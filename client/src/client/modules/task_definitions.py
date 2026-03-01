@@ -134,7 +134,13 @@ def build_cli_parser(implant_uuid: str):
         description=get_full_desc(Cd),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    cd_parser.add_argument("directory", nargs="?", default=".")
+    cd_parser.add_argument(
+        "directory",
+        nargs="?",
+        default=".",
+        metavar="<directory>",
+        help="The target directory path to navigate to (default: current directory).",
+    )
     cd_parser.set_defaults(
         func=lambda args: (ResultType.TASK, Cd(implant_uuid=implant_uuid, directory=args.directory).to_task())
     )
@@ -145,7 +151,13 @@ def build_cli_parser(implant_uuid: str):
         description=get_full_desc(Ls),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    ls_parser.add_argument("directory", nargs="?", default=".")
+    ls_parser.add_argument(
+        "directory",
+        nargs="?",
+        default=".",
+        metavar="<directory>",
+        help="The target directory to list contents for (default: current directory).",
+    )
     ls_parser.set_defaults(
         func=lambda args: (ResultType.TASK, Ls(implant_uuid=implant_uuid, directory=args.directory).to_task())
     )
@@ -156,7 +168,13 @@ def build_cli_parser(implant_uuid: str):
         description=get_full_desc(Sleep),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    sleep_parser.add_argument("sleep_time", nargs="?", default="")
+    sleep_parser.add_argument(
+        "sleep_time",
+        nargs="?",
+        default="",
+        metavar="<sleep_time>",
+        help="The new sleep interval for the implant, in seconds.",
+    )
     sleep_parser.set_defaults(
         func=lambda args: (ResultType.TASK, Sleep(implant_uuid=implant_uuid, sleep_time=args.sleep_time).to_task())
     )
@@ -171,7 +189,7 @@ def build_cli_parser(implant_uuid: str):
 
     cheat_parser = subparsers.add_parser("cheatsheet", help="Show input formatting rules")
 
-    def run_cheatsheet():
+    def run_cheatsheet(args):  # noqa - args is req'd here due to argparse setup despite it not being used
         line = "-" * 50
         rules = [
             line,
@@ -206,7 +224,11 @@ def build_cli_parser(implant_uuid: str):
         description=get_full_desc(StratPost),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    strat_post.add_argument("strategy_name")
+    strat_post.add_argument(
+        "strategy_name",
+        metavar="<strategy_name>",
+        help="The name of the egress strategy to set for POST actions. Run `strat list` to get current strategies",
+    )
     strat_post.set_defaults(
         func=lambda args: (
             ResultType.TASK,
@@ -220,7 +242,11 @@ def build_cli_parser(implant_uuid: str):
         description=get_full_desc(StratGet),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    strat_get.add_argument("strategy_name")
+    strat_get.add_argument(
+        "strategy_name",
+        metavar="<strategy_name>",
+        help="The name of the egress strategy to set for GET actions. Run `strat list` to get current strategies",
+    )
     strat_get.set_defaults(
         func=lambda args: (
             ResultType.TASK,
@@ -253,7 +279,11 @@ def build_cli_parser(implant_uuid: str):
         description=get_full_desc(FileDownload),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    file_down.add_argument("file_path")
+    file_down.add_argument(
+        "file_path",
+        help=r"The path of the file to retrieve (ex: C:\secrets.txt).",
+        metavar="<file_path>",
+    )
     file_down.set_defaults(
         func=lambda args: (ResultType.TASK, FileDownload(implant_uuid=implant_uuid, file_path=args.file_path).to_task())
     )
@@ -264,8 +294,17 @@ def build_cli_parser(implant_uuid: str):
         description=get_full_desc(FileUpload),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    file_up.add_argument("file_path")
-    file_up.add_argument("file_contents")
+    file_up.add_argument(
+        "file_path",
+        help=r"The path that this file should be written to (ex: C:\Temp\not_malware.exe).",
+        metavar="<file_path>",
+    )
+    file_up.add_argument(
+        "file_contents",
+        metavar="<base64 | *memstore_name>",
+        help="The base64 encoded payload, OR a pointer to a memstore file (ex: *not_malware). There's a "
+        "button for this too if you have a file on disk.",
+    )
     file_up.set_defaults(
         func=lambda args: (
             ResultType.TASK,
@@ -282,8 +321,14 @@ def build_cli_parser(implant_uuid: str):
         description=get_full_desc(MemStoreUpload),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    mem_up.add_argument("file_name")
-    mem_up.add_argument("file_contents")
+    mem_up.add_argument(
+        "file_name", metavar="<file_name>", help="The alias/name to assign this file inside the memstore."
+    )
+    mem_up.add_argument(
+        "file_contents",
+        metavar="<base64>",
+        help="The base64 encoded payload to store in memory. There's a button for this too if you have a file on disk.",
+    )
     mem_up.set_defaults(
         func=lambda args: (
             ResultType.TASK,
@@ -299,7 +344,9 @@ def build_cli_parser(implant_uuid: str):
         description=get_full_desc(MemStoreDownload),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    mem_down.add_argument("file_name")
+    mem_down.add_argument(
+        "file_name", metavar="<file_name>", help="The name of the file to retrieve from the memstore."
+    )
     mem_down.set_defaults(
         func=lambda args: (
             ResultType.TASK,
@@ -313,7 +360,7 @@ def build_cli_parser(implant_uuid: str):
         description=get_full_desc(MemStoreDelete),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    mem_del.add_argument("file_name")
+    mem_del.add_argument("file_name", metavar="<file_name>", help="The name of the file to delete from the memstore.")
     mem_del.set_defaults(
         func=lambda args: (
             ResultType.TASK,
@@ -346,8 +393,17 @@ def build_cli_parser(implant_uuid: str):
         description=get_full_desc(BofRunner),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    bof_parser.add_argument("bof_contents")
-    bof_parser.add_argument("bof_args", nargs=argparse.REMAINDER)
+    bof_parser.add_argument(
+        "bof_contents",
+        metavar="<base64 | *memstore_name>",
+        help="The BOF binary as base64 or a pointer to a memstore file.",
+    )
+    bof_parser.add_argument(
+        "bof_args",
+        nargs=argparse.REMAINDER,
+        metavar="<args...>",
+        help="Trailing arguments passed directly to the BOF runner, if the BOF takes arguments.",
+    )
     bof_parser.set_defaults(
         func=lambda args: (
             ResultType.TASK,
@@ -366,7 +422,10 @@ def build_cli_parser(implant_uuid: str):
         description=get_full_desc(DiscoverNeighbors),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    disc_neigh.add_argument("--resolve", action="store_true")
+    # Flags don't need metavars, argparse formats them as [--resolve] automatically
+    disc_neigh.add_argument(
+        "--resolve", action="store_true", help="Attempt to resolve hostnames for discovered IP addresses."
+    )
     disc_neigh.set_defaults(
         func=lambda args: (
             ResultType.TASK,
@@ -431,6 +490,7 @@ async def task_tree(user_input, implant_uuid):
             final_output.extend(format_group("C2 Strategy", strat_cmds))
             final_output.extend(format_group("Execution", execution_cmds))
             final_output.extend(format_group("Discovery", discover_cmds))
+            final_output.extend(format_group("Terminal (local)", terminal_helper_cmds))
             return (ResultType.LIST, final_output)
 
         # if user types "help <somecommand>" turn it into "somecommand --help"
@@ -483,7 +543,7 @@ class Help:
     Displays the help menu for the commands
     """
 
-    command_name = "cheatsheet"
+    command_name = "help"
     implant_uuid: str
 
     def to_task(self) -> dict:
@@ -714,7 +774,7 @@ class FileDownload:
 @dataclass(frozen=True)
 class FileUpload:
     R"""
-    Upload a file to the host the implant is running on.
+    Upload a file to the host the implant is running on, OR, write a file to disk from the memstore.
     """
 
     command_name = "file upload"
@@ -1095,20 +1155,59 @@ def get_all_command_classes():
     return all_cmds
 
 
-def get_all_command_names():
-    """
-    Gets a list of all valid commands (ie. their text invokation) for the CLI.
-    """
-    cmd_classes = get_all_command_classes()
-    cmd_list = []
+# old way of doing this, which is fine,but takes more effort to keep classes up to date
+# def get_all_command_names():
+#     """
+#     Gets a list of all valid commands (ie. their text invocation) for the CLI.
+#     """
+#     cmd_classes = get_all_command_classes()
+#     cmd_list = []
 
-    for cmd in cmd_classes:
-        command_name = cmd.command_name
+#     for cmd in cmd_classes:
+#         command_name = cmd.command_name
 
-        # see if there's a command structure list for examples
-        if hasattr(cmd, "command_structure"):
-            command_structure = [cs for cs in cmd.command_structure]
-            cmd_list.extend(command_structure)
+#         # see if there's a command structure list for examples
+#         if hasattr(cmd, "command_structure"):
+#             command_structure = [cs for cs in cmd.command_structure]
+#             cmd_list.extend(command_structure)
 
-        cmd_list.append(command_name)
-    return cmd_list
+#         cmd_list.append(command_name)
+#     return cmd_list
+
+
+def get_all_command_names(parser, current_path="") -> list[str]:
+    """Recursively walks an argparse tree to extract commands and their expected arguments."""
+    commands = []
+
+    #  Add the base command path (e.g., "file", "file upload")
+    if current_path:
+        commands.append(current_path)
+
+    has_subparsers = False
+
+    # Look for nested commands
+    if parser._subparsers:
+        for action in parser._subparsers._group_actions:
+            if isinstance(action, argparse._SubParsersAction):
+                has_subparsers = True
+                for cmd_name, subparser in action.choices.items():
+                    full_cmd = f"{current_path} {cmd_name}".strip()
+                    # Recursively dig down
+                    commands.extend(get_all_command_names(subparser, full_cmd))
+
+    #  If it's an "end-node" command (like 'upload' or 'ls'), grab its argument structure
+    if not has_subparsers and current_path:
+        # Get the native usage string
+        raw_usage = parser.format_usage()
+
+        # Clean it up for the UI dropdown
+        clean_usage = raw_usage.replace("usage: ", "").replace("[-h]", "").strip()
+
+        # Remove multiple spaces caused by stripping [-h]
+        clean_usage = " ".join(clean_usage.split())
+
+        # Add it to the autocomplete list if it has arguments
+        if clean_usage and clean_usage != current_path:
+            commands.append(clean_usage)
+
+    return commands

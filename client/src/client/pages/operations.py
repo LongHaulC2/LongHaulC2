@@ -12,6 +12,7 @@ from client.src.client.modules.api_calls import (
 )
 from client.src.client.modules.task_definitions import (
     ResultType,
+    build_cli_parser,
     get_all_command_names,
     task_tree,
 )
@@ -384,7 +385,8 @@ async def terminal(implant_uuid: str):
     terminal_prepend = f"{implant_uuid[:8]} > "
     last_uuid = None
 
-    list_of_commands_for_autocomplete = get_all_command_names()
+    cli_parser = build_cli_parser(implant_uuid="AUTOCOMPLETE")
+    list_of_commands_for_autocomplete = get_all_command_names(cli_parser)
 
     # Layout: Output gets all space, Input gets fixed bottom
     with ui.column().classes("w-full h-full gap-0"):
