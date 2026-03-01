@@ -452,6 +452,7 @@ async def terminal(implant_uuid: str):
             await queue_task(implant_uuid=implant_uuid, task=result_data)
         elif result_type == ResultType.TEXT:
             await push_text_to_terminal(result_data)
+
         elif result_type == ResultType.LIST:
             for line in result_data:
                 ui_log.push(line)

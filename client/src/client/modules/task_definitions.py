@@ -453,7 +453,11 @@ async def task_tree(user_input, implant_uuid):
         return parsed.func(parsed)
 
     except HelpException as h:
-        return (ResultType.TEXT, str(h))
+        # hacky way to get to terminal without a "... >"
+        # split help menu into a list, and say it's a list in return type, which will
+        # not trigger the "...>"
+        help_lines = str(h).splitlines()
+        return (ResultType.LIST, help_lines)
     except ParseError as pe:
         return (ResultType.ERROR, str(pe))
     except Exception as e:
