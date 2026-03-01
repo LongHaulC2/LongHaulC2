@@ -4,7 +4,7 @@ import time
 import structlog
 
 from ..db.mysql_connector import get_mysql_session
-from ..modules.mysql_functions import ListenerService
+from ..modules.neo4j_functions import Neo4jListenerNodeService
 from .supervisor import listeners, listeners_lock
 
 server_logger = structlog.getLogger("server")
@@ -43,6 +43,6 @@ def _watchdog():
 
                 # mark as inactive in the DB
                 with get_mysql_session() as session:
-                    listener_service = ListenerService(session)
+                    listener_service = Neo4jListenerNodeService()
                     listener_service.set_active(listener_uuid, active=False)
                     session.commit()

@@ -16,10 +16,8 @@ from ...api_models.listener import (
     LISTENERS_POST_INPUT,
     LISTENERS_POST_RESPONSE,
 )
-from ...db.mysql_connector import get_mysql_session
 from ...instance import api
 from ...listeners.supervisor import start_listener, stop_listener
-from ...modules.mysql_functions import ListenerService
 from ...modules.neo4j_functions import Neo4jListenerNodeService
 from ...schemas.listeners import ListenerCreate
 from ...utils.checks import check_type
@@ -71,13 +69,12 @@ class Listener(Resource):
         api_logger.info("Getting listener data", listener_uuid=uuid, caller_ip=ip)
         check_type(uuid, str, "uuid")
 
-        with get_mysql_session() as session:
-            listener_service = ListenerService(session)
-            listeners = listener_service.get_by_id(uuid)
+        listener_service = Neo4jListenerNodeService()
+        listeners = listener_service.get_by_id(uuid)
 
-            # The helper 'wrap_response_single' defaults data to {},
-            # but explicit empty dict is fine too.
-            data = {} if listeners is None else listeners.to_dict()
+        # The helper 'wrap_response_single' defaults data to {},
+        # but explicit empty dict is fine too.
+        data = {} if listeners is None else listeners.to_dict()
 
         # in the event we don't have any data here for this specific listener, just 404
         if not data:
@@ -110,9 +107,8 @@ class Listener(Resource):
         # if successful, remove from db
         stop_listener(listener_uuid=uuid)
 
-        with get_mysql_session() as session:
-            listener_service = ListenerService(session)
-            listener_service.delete(uuid)
+        listener_service = Neo4jListenerNodeService()
+        listener_service.delete(uuid)
 
         api_logger.info("Listener deleted successfully", listener_uuid=uuid, caller_ip=ip)
 
@@ -148,38 +144,37 @@ class Listener(Resource):
         user_wants_active = active_val
 
         # Open one database session for the entire operation
-        with get_mysql_session() as session:
-            listener_service = ListenerService(session)
-            listener = listener_service.get_by_id(uuid)
+        listener_service = Neo4jListenerNodeService()
+        listener = listener_service.get_by_id(uuid)
 
-            if listener is None:
-                # api_logger.warning(f"Listener does not exist: {uuid}")
-                abort(404, message="Listener does not exist")
-                # 404 on no listener
+        if listener is None:
+            # api_logger.warning(f"Listener does not exist: {uuid}")
+            abort(404, message="Listener does not exist")
+            # 404 on no listener
 
-            is_currently_active = listener.listener_active
+        is_currently_active = listener.listener_active
 
-            # Check if the listener is ALREADY in the desired state
-            if user_wants_active and is_currently_active:
-                return APIResponse(status=200, message="Listener already online")
-            if not user_wants_active and not is_currently_active:
-                return APIResponse(status=200, message="Listener already offline")
+        # Check if the listener is ALREADY in the desired state
+        if user_wants_active and is_currently_active:
+            return APIResponse(status=200, message="Listener already online")
+        if not user_wants_active and not is_currently_active:
+            return APIResponse(status=200, message="Listener already offline")
 
-            # Perform the state change
-            if user_wants_active:
-                # Start listener workflow
-                listener_data = listener.to_dict()
-                listener_dataclass = ListenerCreate(**listener_data)
+        # Perform the state change
+        if user_wants_active:
+            # Start listener workflow
+            listener_data = listener.to_dict()
+            listener_dataclass = ListenerCreate(**listener_data)
 
-                start_listener(listener_dataclass)
-                listener_service.set_active(uuid, active=True)
-                message = "Listener started successfully"
+            start_listener(listener_dataclass)
+            listener_service.set_active(uuid, active=True)
+            message = "Listener started successfully"
 
-            else:
-                # Stop listener workflow
-                stop_listener(listener_uuid=uuid)
-                listener_service.set_active(uuid, active=False)
-                message = "Listener stopped successfully"
+        else:
+            # Stop listener workflow
+            stop_listener(listener_uuid=uuid)
+            listener_service.set_active(uuid, active=False)
+            message = "Listener stopped successfully"
 
         return APIResponse(status=200, message=message), 200
 
@@ -200,10 +195,9 @@ class Listeners(Resource):
 
         api_logger.info("Getting all listeners", caller_ip=ip)
 
-        with get_mysql_session() as session:
-            listener_service = ListenerService(session)
-            listeners = listener_service.get_all()
-            data = [] if listeners is None else [i.to_dict() for i in listeners]
+        listener_service = Neo4jListenerNodeService()
+        listeners = listener_service.get_all()
+        data = [] if listeners is None else [i.to_dict() for i in listeners]
 
         api_response = APIResponse(
             status="200",
@@ -238,22 +232,14 @@ class Listeners(Resource):
         start_listener(listener_dataclass)
 
         # get a session
-        with get_mysql_session() as session:
-            listener_service = ListenerService(session)
-            listener = listener_service.create(listener_dataclass)
-            listener_id = listener.listener_uuid
+        listener_service = Neo4jListenerNodeService()
+        listener = listener_service.create(listener_dataclass)
+        listener_id = listener.listener_uuid
 
-            # update listener to be active in the DB
-            listener_service.set_active(listener_id, active=True)
-            # and in the dataclass for the response
-            listener_dataclass.listener_active = True
-
-        # add to neo4j
-        neo4j_listener = Neo4jListenerNodeService(listener_uuid=listener_id)
-        # for now, nuke profile, don't need to store it here
-        listener_data = api.payload
-        del listener_data["listener_profile_contents"]
-        neo4j_listener.register_listener(**listener_data)
+        # update listener to be active in the DB
+        listener_service.set_active(listener_id, active=True)
+        # and in the dataclass for the response
+        listener_dataclass.listener_active = True
 
         data = asdict(listener_dataclass)
 

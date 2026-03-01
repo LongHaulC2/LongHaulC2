@@ -221,6 +221,11 @@ def handle_click(e, nodes, sidebar_container):
 
             break  # break cuz 1 uuidper object
 
+    # nuke listener_profile_contents if present, too big to display
+    if props.get("listener_profile_contents", ""):
+        # del props["listener_profile_contents"]
+        props["listener_profile_contents"] = "Too big to display"
+
     # Clear and Redraw the sidebar
     sidebar_container.clear()
     with sidebar_container:
