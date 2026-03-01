@@ -200,11 +200,11 @@ class Neo4jC2ChannelNode(SemiStructuredNode):
 class Neo4jNicNode(SemiStructuredNode):
     uuid = StringProperty(unique_index=True, default=uuid7)
 
-    mac_address = StringProperty(unique_index=True, required=True)
-
-    # ip, optional
+    mac_address = StringProperty()
     ip_address = StringProperty()
-
+    # associating hostname with NIC, as it's possible for this NIC's ip to be a different DNS name
+    # than another NIC's IP's
+    dns_name = StringProperty()
     # nic -> host
     attached_to = RelationshipTo("Neo4jHostNode", "ATTACHED_TO")
     # nic -> network
