@@ -213,11 +213,13 @@ def handle_click(e, nodes, sidebar_container):
     node_type = selected_node.get("category")
 
     # add some metadata based on UUID 7
-    node_uuid = props.get("uuid", "")
-    if node_uuid:
-        first_seen = get_timestamp_from_uuid7(node_uuid)
-        props["first_seen"] = first_seen
-        props["time_since_first_seen"] = get_time_ago(first_seen)
+    for key, value in props.items():
+        if key.endswith("_uuid") and value:
+            first_seen = get_timestamp_from_uuid7(value)
+            props["first_seen"] = first_seen
+            props["time_since_first_seen"] = get_time_ago(first_seen)
+
+            break  # break cuz 1 uuidper object
 
     # Clear and Redraw the sidebar
     sidebar_container.clear()
