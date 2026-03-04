@@ -357,9 +357,10 @@ pull_docker_images:
 	@echo "=================================================="
 	@echo "Pulling docker images..."
 	@echo "=================================================="
-	sudo docker pull mysql:latest
-	sudo docker pull redis:latest
-	sudo docker pull neo4j:latest
+	sudo docker pull mysql:latest & \
+	sudo docker pull redis:latest & \
+	sudo docker pull neo4j:latest & \
+	wait
 
 # ======================================
 # General Utilities
@@ -513,4 +514,4 @@ integration_test:
 		fi \
 	fi
 
-	$(DIR_OF_THIS_SCRIPT)/venv/bin/python -m pytest -v -s $(DIR_OF_THIS_SCRIPT)/tests/integration_test/run_implant_tasks.py::run_implant_tasks
+	$(DIR_OF_THIS_SCRIPT)/venv/bin/python -m pytest -v -s $(DIR_OF_THIS_SCRIPT)/tests/integration_test/run_implant_tasks.py::test_run_implant_tasks
