@@ -30,25 +30,17 @@ jobs:
 
         echo "Successfully deployed LongHaulC2"
 
+    # build implant
     - name: Setup
       run: |
-        # setup listeners, build implant
-        #pytest tests/full_scope/setup_implant.py::test_setup_implant
         make test
 
 
-    # copy from temp to apache
+    # copy from temp to apache, and host there.
     - name: Stage
       run: |
         echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S -E mkdir -p /var/www/html
         echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S -E cp /tmp/pytest_implant.exe /var/www/html
-
-
-    # - name: Test Implant
-    #   run: |
-    #     # Feed commands to implant. Assert for fast fail so this fails out
-    #     # pyfile me with api script
-
 
   implant-deployment:
     # waits on server to finish
@@ -63,3 +55,4 @@ jobs:
         # run implant
         Start-Process "C:\pytest_implant.exe"
 
+# implant testing job here, that runs again on the linux box, and runs api commands and checks them, via pytests
