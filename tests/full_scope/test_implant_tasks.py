@@ -21,25 +21,21 @@ def dispatch_and_wait(api_client, implant_uuid: str, task_object, timeout: int =
     task_uuid = response.get("data", {}).get("task_uuid")
     assert task_uuid, "Failed to retrieve task_uuid from server response"
 
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        task_response = api_client.get_implant_task(implant_uuid = implant_uuid, task_uuid = task_uuid)
+    #start_time = time.time()
+    #while time.time() - start_time < timeout:
+    # try 10 times to get message
+    try_times = 10
+    for i in range(0, try_times):
+        task_dict = api_client.get_implant_task(implant_uuid = implant_uuid, task_uuid = task_uuid)
 
-        task_data = task_response.get("data", {}).get("task_response")
+        task_response = task_dict.get("data", {}).get("task_response", None)
 
-        if task_data is not None and "windows_response_code" in task_data:
-            error_code = task_data.get("windows_response_code")            
+        if task_response is not None and "windows_error_code" in task_response:
+            error_code = task_response.get("windows_error_code")            
             assert error_code == 0, f"Task failed. Expected 0, got {error_code}"
-            return task_response.get("data", {})
+            return task_dict.get("data", {})
 
-        # if not task_response.get("data", {}).get("task_response") == None:
-        #     # data comes in as dict with: task_response, task_request, task_uuid, and implant_uuid
-        #     error_code = task_response.get("data", {}).get("task_response").get("windows_response_code")
-        #     assert error_code == 0, f"Task failed. Expected windows_error_code 0, got {error_code}"
-        #     # then, just return results of task, stripping away the .data
-        #     return task_response.get("data",{})
-
-        time.sleep(2)
+        time.sleep(5)
         
     pytest.fail(f"Task {task_uuid} timed out after {timeout} seconds")
 
