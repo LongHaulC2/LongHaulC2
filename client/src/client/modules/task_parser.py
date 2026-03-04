@@ -103,16 +103,16 @@ def build_cli_parser(implant_uuid: str):
             )
 
     subparsers.add_parser("exit", help=get_short_help(Exit)).set_defaults(
-        func=lambda: (ResultType.TASK, Exit(implant_uuid=implant_uuid).to_task())
+        func=lambda args: (ResultType.TASK, Exit(implant_uuid=implant_uuid).to_task())  # noqa - args needed for return
     )
 
     # Strat Nested
     strat_p = subparsers.add_parser("strat").add_subparsers(dest="strat_cmd", parser_class=C2Parser)
     strat_p.add_parser("list").set_defaults(
-        func=lambda: (ResultType.TASK, StratList(implant_uuid=implant_uuid).to_task())
+        func=lambda args: (ResultType.TASK, StratList(implant_uuid=implant_uuid).to_task())  # noqa - args needed for return
     )
     strat_p.add_parser("active").set_defaults(
-        func=lambda: (ResultType.TASK, StratActive(implant_uuid=implant_uuid).to_task())
+        func=lambda args: (ResultType.TASK, StratActive(implant_uuid=implant_uuid).to_task())  # noqa - args needed for return
     )
 
     for mode, cls in [("post", StratPost), ("get", StratGet)]:
@@ -146,10 +146,10 @@ def build_cli_parser(implant_uuid: str):
     # Memstore Nested
     mem_p = subparsers.add_parser("memstore").add_subparsers(dest="mem_cmd", parser_class=C2Parser)
     mem_p.add_parser("list").set_defaults(
-        func=lambda: (ResultType.TASK, MemStoreList(implant_uuid=implant_uuid).to_task())
+        func=lambda args: (ResultType.TASK, MemStoreList(implant_uuid=implant_uuid).to_task())  # noqa - args needed for return
     )
     mem_p.add_parser("clear").set_defaults(
-        func=lambda: (ResultType.TASK, MemStoreClear(implant_uuid=implant_uuid).to_task())
+        func=lambda args: (ResultType.TASK, MemStoreClear(implant_uuid=implant_uuid).to_task())  # noqa - args needed for return
     )
 
     for action, cls in [("upload", MemStoreUpload), ("download", MemStoreDownload), ("delete", MemStoreDelete)]:
@@ -184,7 +184,7 @@ def build_cli_parser(implant_uuid: str):
     # Discover
     disc = subparsers.add_parser("discover").add_subparsers(dest="disc_cmd", parser_class=C2Parser)
     disc.add_parser("neighbors").set_defaults(
-        func=lambda: (ResultType.TASK, DiscoverNeighbors(implant_uuid=implant_uuid).to_task())
+        func=lambda args: (ResultType.TASK, DiscoverNeighbors(implant_uuid=implant_uuid).to_task())  # noqa - args needed for return
     )
 
     return root_parser
