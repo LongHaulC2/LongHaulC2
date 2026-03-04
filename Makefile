@@ -477,7 +477,7 @@ test:
 #  	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
 #  		--ignore=$(DIR_OF_THIS_SCRIPT)/dev_testing \
 #  		$(DIR_OF_THIS_SCRIPT)/tests/full_scope/setup_implant.py::test_setup_implant
-	./venv/bin/python -m pytest -v -s ./tests/full_scope/deploy_implant.py::test_setup_implant
+	$(DIR_OF_THIS_SCRIPT)/venv/bin/python -m pytest -v -s $(DIR_OF_THIS_SCRIPT)/tests/full_scope/deploy_implant.py::test_setup_implant
 
 .PHONY: implant_tasks_test
 implant_tasks_test: 
@@ -494,4 +494,4 @@ implant_tasks_test:
 		fi \
 	fi
 
-	./venv/bin/python -m pytest -v -s ./tests/full_scope/implant_tasks_test.py::implant_tasks_test
+	$(DIR_OF_THIS_SCRIPT)/venv/bin/python -m pytest -v -s $(DIR_OF_THIS_SCRIPT)/tests/full_scope/test_implant_tasks.py::test_implant_tasks

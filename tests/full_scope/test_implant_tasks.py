@@ -182,7 +182,7 @@ def test_99_exit(api_client, target_implant):
     # Ensure it successfully posted instead.
     time.sleep(2)
 
-def implant_tasks_test(api_client):
+def test_implant_tasks(api_client):
     """Orchestrates the full suite of implant tasks in a logical sequence."""
     
     # 1. Setup & Discovery
