@@ -14,6 +14,9 @@ DEV_VENV_PATH ?= /venv
 APT_PACKAGES = python3 python3-pip virtualenv docker.io redis-tools postgresql-client
 SYSTEMD_SERVICES = longhaulc2-server longhaulc2-web
 
+# Minimal packages for hosted runnersm tldr, they already have docker installed
+GH_RUNNER_PACKAGES = virtualenv redis-tools postgresql-client
+
 # python shennanigans
 # where the pip deps lock file is stored, this is in the longhaulc2 dir at pull
 LOCK_FILE := $(DIR_OF_THIS_SCRIPT)/requirements.lock
@@ -76,13 +79,13 @@ deploy: check_root
 	# Docker fails on GH actions because it's already installed. Ignore if we're a non self hosted GH runner
 	@if echo "$$RUNNER_LABELS" | grep -q "self-hosted"; then \
 		echo "Self-hosted runner detected! Installing FULL dependencies..."; \
-		sudo apt-get install -y $(FULL_PACKAGES); \
+		sudo apt-get install -y $(APT_PACKAGES); \
 	elif [ "$$GITHUB_ACTIONS" = "true" ]; then \
 		echo "GitHub-hosted runner detected! Installing MINIMAL dependencies..."; \
 		sudo apt-get install -y $(MIN_PACKAGES); \
 	else \
 		echo "Local non-GitHub environment detected! Installing FULL dependencies..."; \
-		sudo apt-get install -y $(FULL_PACKAGES); \
+		sudo apt-get install -y $(APT_PACKAGES); \
 	fi
 
 	@echo "Dependencies installed, continuing with deployment..."
