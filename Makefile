@@ -192,9 +192,12 @@ undeploy: check_root
 	@echo "=================================================="
 	@echo "Stopping and removing Docker containers"
 	@echo "=================================================="
-	-sudo docker stop $(MYSQL_CONTAINER) $(REDIS_CONTAINER) $(NEO4J_CONTAINER)
-	-sudo docker rm $(MYSQL_CONTAINER) $(REDIS_CONTAINER) $(NEO4J_CONTAINER)
+# 	-sudo docker stop $(MYSQL_CONTAINER) $(REDIS_CONTAINER) $(NEO4J_CONTAINER)
+# 	-sudo docker rm $(MYSQL_CONTAINER) $(REDIS_CONTAINER) $(NEO4J_CONTAINER)
 	
+	# hard nukes the containers
+	sudo docker rm -f $(MYSQL_CONTAINER) $(REDIS_CONTAINER) $(NEO4J_CONTAINER) 2>/dev/null || true
+
 	@echo "=================================================="
 	@echo "Removing installed directories and files"
 	@echo "=================================================="
