@@ -95,7 +95,7 @@ deploy: check_root
 # 		sudo apt-get install -y $(APT_PACKAGES); \
 # 	fi; \
 
-	sudo apt-get install -y (APT_PACKAGES)
+	sudo apt-get install -y $(APT_PACKAGES)
 
 	@echo "Dependencies installed, continuing with deployment..."
 	
