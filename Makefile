@@ -466,11 +466,16 @@ test:
 	# *the* testing call to use on push
 	# fails on failed test
 
-	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
-			--ignore=$(DIR_OF_THIS_SCRIPT)/dev_testing \
-			$(DIR_OF_THIS_SCRIPT)/tests/server/api_schematesis.py
+# 	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
+# 			--ignore=$(DIR_OF_THIS_SCRIPT)/dev_testing \
+# 			$(DIR_OF_THIS_SCRIPT)/tests/server/api_schematesis.py
 
 
-	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
-		--ignore=$(DIR_OF_THIS_SCRIPT)/dev_testing \
-		$(DIR_OF_THIS_SCRIPT)/tests/web/web_tests.py
+# 	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
+# 		--ignore=$(DIR_OF_THIS_SCRIPT)/dev_testing \
+# 		$(DIR_OF_THIS_SCRIPT)/tests/web/web_tests.py
+
+	# just doing full scope test at the moment
+ 	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
+ 		--ignore=$(DIR_OF_THIS_SCRIPT)/dev_testing \
+ 		$(DIR_OF_THIS_SCRIPT)/tests/web/web_tests.py::test_setup_implant

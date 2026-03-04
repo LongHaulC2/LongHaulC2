@@ -22,15 +22,18 @@ jobs:
     - name: Deploy
       run: |
         # Testing out deployment
-        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" && sudo -S apt-get install make && sudo -S -E make deploy
+        # Install make if not present and deploy
+        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S apt-get update -y
+        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S apt-get install -y make
+        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S -E make deploy
+
         echo "Successfully deployed LongHaulC2"
 
     - name: Setup
       run: |
         # setup listeners, build implant
-        # pyfile me with api script
-        pytest tests/full_scope/setup_implant.py::test_setup_implant
-
+        #pytest tests/full_scope/setup_implant.py::test_setup_implant
+        make test
     # - name: Test Implant
     #   run: |
     #     # Feed commands to implant. Assert for fast fail so this fails out
