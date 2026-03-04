@@ -71,12 +71,13 @@ def test_setup_implant(api_client):
     payload_bytes = api_client.get_binary_actions(hash=payload_hash)
     # temp dir
 
-    with open("pytest_implant.exe", "rb") as payload:
+    # write to temp cuz it'll be there on all systems
+    with open("/tmp/pytest_implant.exe", "wb") as payload:
         payload.write(payload_bytes)
 
-    # serve for one GET
-    server = HTTPServer(("0.0.0.0", 8000), OneShotHandler)
-    server.serve_forever()
+    # # serve for one GET
+    # server = HTTPServer(("0.0.0.0", 8000), OneShotHandler)
+    # server.serve_forever()
 
     # if everyhting else works
     assert True

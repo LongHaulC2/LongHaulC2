@@ -24,7 +24,8 @@ jobs:
         # Testing out deployment
         # Install make if not present and deploy
         echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S apt-get update -y
-        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S apt-get install -y make
+        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S apt-get install -y make apache2
+        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S -E systemctl start apache2
         echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S -E make deploy
 
         echo "Successfully deployed LongHaulC2"
@@ -34,6 +35,15 @@ jobs:
         # setup listeners, build implant
         #pytest tests/full_scope/setup_implant.py::test_setup_implant
         make test
+
+
+    # copy from temp to apache
+    - name: Stage
+      run: |
+        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S -E mkdir -p /var/www/html
+        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S -E cp /tmp/pytest_implant.exe /var/www/html
+
+
     # - name: Test Implant
     #   run: |
     #     # Feed commands to implant. Assert for fast fail so this fails out
