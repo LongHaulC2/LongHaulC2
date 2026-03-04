@@ -12,8 +12,7 @@ jobs:
 
 # server setup
   server-deployment:
-    runs-on: "gh_runner_ubuntu"
-    
+    runs-on: [self-hosted, gh_runner_ubuntu]    
     steps:
     - name: Check out the code
       uses: actions/checkout@v4
@@ -38,13 +37,15 @@ jobs:
 
 
   implant-deployment:
-    runs-on: "GH_RUNNER_WIN"
-    
+    # waits on server to finish
+    needs: server-deployment
+    runs-on: [self-hosted, GH_RUNNER_WIN]    
+
     steps:
     - name: Get & Run Implant
       run: |
         # Pull implant
         Invoke-WebRequest http://10.0.1.170:8000/pytest_implant.exe -OutFile c:\pytest_implant.exe
         # run implant
-        C:\pytest_implant.exe
+        Start-Process "C:\pytest_implant.exe"
 
