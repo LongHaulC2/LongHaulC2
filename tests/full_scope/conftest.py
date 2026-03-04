@@ -145,8 +145,15 @@ class C2APIClient:
         response.raise_for_status()
         return response.json()
 
-    def get_implant_task(self, uuid: str) -> Dict[str, Any]:
+    def peek_implant_task(self, uuid: str) -> Dict[str, Any]:
         url = str(self.base_url / "implants" / uuid / "task")
+        response = self.session.get(url)
+        if not response.ok: self._log_error(response)
+        response.raise_for_status()
+        return response.json()
+
+    def get_implant_task(self, implant_uuid: str, task_uuid:str) -> Dict[str, Any]:
+        url = str(self.base_url / "implants" / implant_uuid / "task" / task_uuid)
         response = self.session.get(url)
         if not response.ok: self._log_error(response)
         response.raise_for_status()

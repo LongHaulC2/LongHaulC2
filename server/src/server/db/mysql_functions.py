@@ -302,7 +302,7 @@ class MySQLImplantTaskService:
                 "implant_uuid": task.implant_uuid,
                 "task_request": task.task_request,
                 "task_response": task.task_response,
-            }
+            }  # in api... data.task_x.whatever
         return None
 
 

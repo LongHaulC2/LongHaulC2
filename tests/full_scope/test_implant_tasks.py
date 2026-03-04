@@ -9,10 +9,10 @@ X64_DIR_BOF_BYTES = b"\x64\x86\x07\x00\x00\x00\x00\x00\x7c\x10\x00\x00\x37\x00\x
 # pull in all our tasks from the task defs, easier to maintain, and cleaner in the long run
 from client.src.client.modules.task_definitions import *
 
-def verify_task_success(task_response_data: dict):
-    result = task_response_data.get("result", {})
-    error_code = result.get("windows_error_code")
-    assert error_code == 0, f"Task failed. Expected windows_error_code 0, got {error_code}"
+# def verify_task_success(task_response_data: dict):
+#     result = task_response_data.get("result", {})
+#     error_code = result.get("windows_error_code")
+#     assert error_code == 0, f"Task failed. Expected windows_error_code 0, got {error_code}"
 
 def dispatch_and_wait(api_client, implant_uuid: str, task_object, timeout: int = 60) -> dict:
     task_payload = task_object.to_task()
@@ -23,17 +23,14 @@ def dispatch_and_wait(api_client, implant_uuid: str, task_object, timeout: int =
 
     start_time = time.time()
     while time.time() - start_time < timeout:
-        history_response = api_client.get_implant_history(implant_uuid)
-        tasks = history_response.get("data", [])
-        
-        for task in tasks:
-            if task.get("task_uuid") == task_uuid:
-                # check if response is populated
-                # if no response, this will be NONE until populated
-                if task.get("task_response", {}):
-                    verify_task_success(task)
-                    return tasks
-                # else continue loop
+        task_response = api_client.get_implant_task(implant_uuid = implant_uuid, task_uuid = task_uuid)
+        if task_response.get("data", {}).get("task_response"):
+            # data comes in as dict with: task_response, task_request, task_uuid, and implant_uuid
+            error_code = task_response.get("data", {}).get("task_response").get("windows_response_code")
+            assert error_code == 0, f"Task failed. Expected windows_error_code 0, got {error_code}"
+            # then, just return results of task, stripping away the .data
+            return task_response.get("data",{})
+
         time.sleep(2)
         
     pytest.fail(f"Task {task_uuid} timed out after {timeout} seconds")

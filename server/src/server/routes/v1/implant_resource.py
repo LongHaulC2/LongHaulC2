@@ -264,6 +264,26 @@ class ImplantTask(Resource):
         return APIResponse(status="200", message="Queued task successfully", data=data)
 
 
+class ImplantTaskDetail(Resource):
+    @implants_ns.doc(
+        summary="Get task status",
+        description="Retrieve details/status of a specific task by its UUID.",
+        params={"uuid": "Implant ID", "task_uuid": "Specific Task ID"},
+        responses={**COMMON_ERRORS, 404: "Task not found"},
+    )
+    # @implants_ns.marshal_with(IMPLANT_TASK_GET_RESPONSE) # Assuming you have a response model
+    def get(self, uuid, task_uuid):
+        """
+        Retrieve a specific task for an implant.
+        """
+        with get_mysql_session() as session:
+            task_service = MySQLImplantTaskService(implant_uuid=uuid, session=session)
+            task = task_service.get_task_by_uuid(task_uuid)
+
+        # return your APIResponse here
+        return APIResponse(status="200", message="Task retrieved", data=task)
+
+
 class ImplantTasks(Resource):
     @implants_ns.doc(
         summary="Peeks all currently queued tasks of implant",
@@ -420,6 +440,7 @@ implants_ns.add_resource(Implants, "/")
 implants_ns.add_resource(Implant, "/<string:uuid>")
 implants_ns.add_resource(ImplantTask, "/<string:uuid>/task")
 implants_ns.add_resource(ImplantTasks, "/<string:uuid>/tasks")
+implants_ns.add_resource(ImplantTaskDetail, "/<string:uuid>/task/<string:task_uuid>")
 implants_ns.add_resource(ImplantHistory, "/<string:uuid>/tasks/history")
 implants_ns.add_resource(ImplantSearch, "/search")
 implants_ns.add_resource(TaskSearch, "/history/search")
