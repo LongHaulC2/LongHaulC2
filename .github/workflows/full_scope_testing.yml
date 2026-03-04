@@ -62,6 +62,7 @@ jobs:
 # implant testing job here, that runs again on the linux box, and runs api commands and checks them, via pytests
 
   task_testing:
+    needs: implant-deployment
     # goes by tag, not by name of runner duh
     runs-on: [self-hosted, Ubuntu]    
     steps:
