@@ -1,6 +1,6 @@
 import requests
 from yarl import URL
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 import pytest 
 import os
 import time 
@@ -138,10 +138,20 @@ class C2APIClient:
 
     # --- Tasking Functions ---
 
-    def post_implant_task(self, uuid: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def post_implant_task(self, uuid: str, payload: Union[Dict[str, Any], bytes]) -> Dict[str, Any]:
         url = str(self.base_url / "implants" / uuid / "task")
-        response = self.session.post(url, json=payload)
-        if not response.ok: self._log_error(response, payload)
+        
+        if isinstance(payload, bytes):
+            # Sending msgpack or raw bytes
+            headers = {"Content-Type": "application/msgpack"} # server wants application/msgpack
+            response = self.session.post(url, data=payload, headers=headers)
+        else:
+            # Sending standard dictionary as JSON
+            response = self.session.post(url, json=payload)
+
+        if not response.ok: 
+            self._log_error(response, payload)
+    
         response.raise_for_status()
         return response.json()
 
