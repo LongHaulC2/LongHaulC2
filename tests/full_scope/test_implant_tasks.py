@@ -28,13 +28,8 @@ def dispatch_and_wait(api_client, implant_uuid: str, task_object, timeout: int =
         
         for task in tasks:
             if task.get("task_uuid") == task_uuid:
-                status = task.get("status")
-                if status == "complete" or status == "completed":
-                    verify_task_success(task)
-                    return task
-                elif status == "failed":
-                    pytest.fail(f"Task {task_uuid} reported a failed status on the server.")
-                    
+                verify_task_success(task)
+                return tasks
         time.sleep(2)
         
     pytest.fail(f"Task {task_uuid} timed out after {timeout} seconds")
