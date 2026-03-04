@@ -87,9 +87,6 @@ deploy: check_root
 		sudo apt-get install -y $(MIN_PACKAGES); \
 	# 3. Local / Everything else
 	else \
-		echo "Local non-GitHub environment detected! Installing FULL dependencies..."; \
-		sudo apt-get install -y $(APT_PACKAGES); \
-	fi
 
 	@echo "Dependencies installed, continuing with deployment..."
 	
