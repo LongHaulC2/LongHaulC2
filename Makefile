@@ -1,9 +1,12 @@
+SHELL := /bin/bash
+
 # deploy options
 PREFIX ?= /opt
 DEPLOY_DIR = $(PREFIX)/longhaulc2
 SVC_USER = longhaul
 DOCKER_DIR := setup/docker_images
 WORKSPACE_DIR = /var/lib/longhaulc2
+
 
 # dev vars
 DIR_OF_THIS_SCRIPT := $(shell pwd)
@@ -80,11 +83,8 @@ deploy: check_root
 	# local  runner, elif == gh runner, else == user installing
 	@if [[ "$(USER)" == "gh_runner_ubuntu" ]]; then \
 		echo "Self-hosted runner detected! Installing FULL dependencies..."; \
-		sudo apt-get install -y $(APT_PACKAGES); \
-	fi
-
-	
-	@if [ "$(GITHUB_ACTIONS)" = "true" ] && ! echo "$$RUNNER_LABELS" | grep -q "self-hosted"; then \
+		sudo apt-get install -y $(APT_PACKAGES); \	
+	elif [[ "$(GITHUB_ACTIONS)" = "true" ]]; then \
 		echo "GitHub-hosted runner detected! Installing MINIMAL dependencies..."; \
 		sudo apt-get install -y $(MIN_PACKAGES); \
 	else \
