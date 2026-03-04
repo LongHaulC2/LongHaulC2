@@ -1,3 +1,4 @@
+import os
 import re
 from pathlib import Path
 
@@ -8,7 +9,12 @@ from .context_generators.http_wininet import generate_http_wininet_context
 from .types import FunctionMapping, ListenerProfile  # Import your types
 
 server_logger = structlog.getLogger("server")
-TEMPLATE_DIR = Path(__file__).parent / "templates"
+# TEMPLATE_DIR = Path(__file__).parent / "templates"
+
+workspace_dir = os.getenv("WORKSPACE_DIR", "/var/lib/longhaulc2")
+# temp hardcode the win_x64_implant_base
+TEMPLATE_DIR = Path(workspace_dir) / "implant_templates" / "win_x64_implant_base" / "templates"
+
 
 # Initialize Jinja Environment once
 ENV = Environment(

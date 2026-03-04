@@ -15,9 +15,14 @@ from ...db.neo4j_functions import Neo4jListenerNodeService
 from .render import render_implant, sanitize_cpp_name
 from .types import ListenerProfile
 
-IMPLANT_BASE = Path(__file__).parent / "implant_base"
+# IMPLANT_BASE = Path(__file__).parent / "implant_base"
 server_logger = structlog.getLogger("server")
 docker_logger = structlog.getLogger("docker_logger")
+
+
+workspace_dir = os.getenv("WORKSPACE_DIR", "/var/lib/longhaulc2")
+# temp hardcode the win_x64_implant_base
+IMPLANT_BASE = Path(workspace_dir) / "implant_templates" / "win_x64_implant_base"
 
 
 def build_implant(

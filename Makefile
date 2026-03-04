@@ -99,6 +99,13 @@ deploy: check_root
 	
 	# /var/lib/longhaulc2 for workspace items
 	mkdir -p $(WORKSPACE_DIR)
+	
+	# location for implant templates to live
+	mkdir -p $(WORKSPACE_DIR)/implant_templates
+
+	# copy over templates
+	cp -r ./implant_templates/. $(WORKSPACE_DIR)/implant_templates
+
 	# log dir
 	mkdir -p /var/log/longhaulc2
 	
@@ -244,6 +251,11 @@ dev_install:
 	mkdir -p /var/log/longhaulc2
 	cp -r ./client/src/client/user/. $(WORKSPACE_DIR)
 	
+	# location for implant templates to live
+	mkdir -p $(WORKSPACE_DIR)/implant_templates
+
+	# copy over templates
+	cp -r ./implant_templates/. $(WORKSPACE_DIR)/implant_templates
 
 	@echo "=================================================="
 	@echo "Creating log dirs"
@@ -377,6 +389,7 @@ create_env:
 	@echo "MYSQL_CONTAINER=$(MYSQL_CONTAINER)" >> .env
 	@echo "REDIS_CONTAINER=$(REDIS_CONTAINER)" >> .env
 	@echo "NEO4J_CONTAINER=$(NEO4J_CONTAINER)" >> .env
+	@echo "WORKSPACE_DIR=$(WORKSPACE_DIR)" >> .env
 
 .PHONY: print_all_install_locations
 print_all_install_locations:
@@ -400,6 +413,9 @@ print_all_install_locations:
 	@echo "mysql:latest -> running as $(MYSQL_CONTAINER)" >> install_reference
 	@echo "redis-stack:latest -> running as $(REDIS_CONTAINER)" >> install_reference
 	@echo "neo4j:latest -> running as $(NEO4J_CONTAINER)" >> install_reference
+	@echo "Workspace Directory" >> install_reference
+	@echo "All workspace files (i.e., implant templates) are at $(WORKSPACE_DIR)" >> install_reference
+	@echo "" >> install_reference
 
 .PHONY: prep_for_push
 prep_for_push:
