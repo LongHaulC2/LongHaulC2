@@ -11,11 +11,11 @@ DEV_VENV := $(DIR_OF_THIS_SCRIPT)/venv
 DEV_VENV_PATH ?= /venv
 
 # Dependencies
-APT_PACKAGES = python3 python3-pip virtualenv docker.io redis-tools postgresql-client
+APT_PACKAGES = python3 python3-pip python3-virtualenv docker.io redis-tools postgresql-client
 SYSTEMD_SERVICES = longhaulc2-server longhaulc2-web
 
 # Minimal packages for hosted runnersm tldr, they already have docker installed
-GH_RUNNER_PACKAGES = virtualenv redis-tools postgresql-client
+GH_RUNNER_PACKAGES = python3-virtualenv redis-tools postgresql-client
 
 # python shennanigans
 # where the pip deps lock file is stored, this is in the longhaulc2 dir at pull
