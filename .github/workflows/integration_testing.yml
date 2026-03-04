@@ -69,5 +69,5 @@ jobs:
 
     - name: Test Tasks
       run: |
-        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S -E make implant_tasks_test
+        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S -E make integration_test
         echo "All tasks tested successfully"
