@@ -275,6 +275,11 @@ class ImplantTaskDetail(Resource):
     def get(self, uuid, task_uuid):
         """
         Retrieve a specific task for an implant.
+
+        Needs marshalling, for now, output is
+        :
+
+        data: {task_request:{}, task_response:{}, task_uuid:str, implant_uuid:str}
         """
         with get_mysql_session() as session:
             task_service = MySQLImplantTaskService(implant_uuid=uuid, session=session)

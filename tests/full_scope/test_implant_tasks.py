@@ -24,12 +24,20 @@ def dispatch_and_wait(api_client, implant_uuid: str, task_object, timeout: int =
     start_time = time.time()
     while time.time() - start_time < timeout:
         task_response = api_client.get_implant_task(implant_uuid = implant_uuid, task_uuid = task_uuid)
-        if task_response.get("data", {}).get("task_response"):
-            # data comes in as dict with: task_response, task_request, task_uuid, and implant_uuid
-            error_code = task_response.get("data", {}).get("task_response").get("windows_response_code")
-            assert error_code == 0, f"Task failed. Expected windows_error_code 0, got {error_code}"
-            # then, just return results of task, stripping away the .data
-            return task_response.get("data",{})
+
+        task_data = task_response.get("data", {}).get("task_response")
+
+        if task_data is not None and "windows_response_code" in task_data:
+            error_code = task_data.get("windows_response_code")            
+            assert error_code == 0, f"Task failed. Expected 0, got {error_code}"
+            return task_response.get("data", {})
+
+        # if not task_response.get("data", {}).get("task_response") == None:
+        #     # data comes in as dict with: task_response, task_request, task_uuid, and implant_uuid
+        #     error_code = task_response.get("data", {}).get("task_response").get("windows_response_code")
+        #     assert error_code == 0, f"Task failed. Expected windows_error_code 0, got {error_code}"
+        #     # then, just return results of task, stripping away the .data
+        #     return task_response.get("data",{})
 
         time.sleep(2)
         
