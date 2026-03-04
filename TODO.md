@@ -5,7 +5,7 @@
 * [ ] API Auth (via JWT) & Login page
    * [ ] HTTPS api 
 * [ ] Implant Encryption
-* [ ] Cleanup of old artifacts in `/tmp` (Verify if still applicable)
+* [X] Cleanup of old artifacts in `/tmp` (Verify if still applicable)
    * [ ] Consider a docker system prune on uninstall to prevent disk size ballooning
 * [X] Listener Restarts
 * [X] Implant Build Path
@@ -207,6 +207,12 @@ Neo4j Cleanup
 * [ ] 1/2 agent, 1/2 neo/pipeline: Remove the automatic host resolver call for discover neighbors, and make it an argument. By default, this should be
    ARP only, and the operator should specify if they want to resolve or not. something like "--resolve", somehow fit into the current command schema
    > Command schema has been updated to allow for positional & -- commands.
+
+* [ ] --resolve command
+   > [ ] Implant logic to handle it (arg: resolve=True)
+   > [ ] Web/Task logic to handle it (arg: resolve=True)
+
+*[ ] CICD testing locally
 
 * [X] Migration of listeners to neo4j
  

