@@ -498,8 +498,8 @@ test:
 #  		$(DIR_OF_THIS_SCRIPT)/tests/full_scope/setup_implant.py::test_setup_implant
 	$(DIR_OF_THIS_SCRIPT)/venv/bin/python -m pytest -v -s $(DIR_OF_THIS_SCRIPT)/tests/full_scope/deploy_implant.py::test_setup_implant
 
-.PHONY: implant_tasks_test
-implant_tasks_test: 
+.PHONY: integration_test
+integration_test: 
 	# make sure dev venv exsists first
 	@if [ ! -d "$(DEV_VENV)" ]; then \
 		echo "Environment not found. Creating venv at $(DEV_VENV)..."; \
@@ -513,4 +513,4 @@ implant_tasks_test:
 		fi \
 	fi
 
-	$(DIR_OF_THIS_SCRIPT)/venv/bin/python -m pytest -v -s $(DIR_OF_THIS_SCRIPT)/tests/full_scope/test_implant_tasks.py::test_implant_tasks
+	$(DIR_OF_THIS_SCRIPT)/venv/bin/python -m pytest -v -s $(DIR_OF_THIS_SCRIPT)/tests/integration_test/run_implant_tasks.py::run_implant_tasks

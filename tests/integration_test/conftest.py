@@ -4,6 +4,15 @@ from typing import Dict, Any, Optional, Union
 import pytest 
 import os
 import time 
+
+'''
+Step 1 of the integration task. 
+
+The setup for the integration test, and API wrapper
+
+
+'''
+
 class C2APIClient:
     """A dedicated client for interacting with the server API."""
     

@@ -1,6 +1,15 @@
 import time
 import sys
 
+'''
+Step 2 of integration test
+
+A test meant for linux github runners, that after the server is spun up,
+connects to server, starts a listeenr, builds and implant, and puts it in /tmp/...
+for the runner to host to the file, and the windows runner to execute
+
+'''
+
 def start_listener(api_client):
     print(f"[*] Initializing listener...")
     with open("client/src/client/user/profiles/amazon.profile") as profile:
