@@ -7,7 +7,7 @@ def start_listener(api_client):
         profile_contents = profile.read()
 
     listener_data = {
-        "listener_host": "10.0.1.171",
+        "listener_host": "10.0.1.170",
         "listener_port": 9090,
         "listener_type": "http",
         "listener_name": "pytest_listener",
