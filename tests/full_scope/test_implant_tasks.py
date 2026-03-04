@@ -39,6 +39,7 @@ def dispatch_and_wait(api_client, implant_uuid: str, task_object, timeout: int =
         
     pytest.fail(f"Task {task_uuid} timed out after {timeout} seconds")
 
+
 @pytest.fixture(scope="module")
 def target_implant(api_client):
     response = api_client.get_implants()
