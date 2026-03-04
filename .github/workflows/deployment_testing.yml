@@ -32,6 +32,12 @@ jobs:
     #     python -m pip install --upgrade pip
     #     pip install -r ./server/src/server/requirements.txt
 
+    - name: Remove pre-installed Docker
+      run: |
+        sudo apt-get purge -y docker-ce docker-ce-cli containerd.io
+        sudo apt-get autoremove -y
+        sudo apt-get autoclean
+
     - name: Deploy
       run: |
         # Testing out deployment

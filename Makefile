@@ -82,17 +82,20 @@ deploy: check_root
 	# Docker fails on GH actions because it's already installed. Ignore if we're a non self hosted GH runner
 	# local  runner, elif == gh runner, else == user installing
 
-	@set -e; \
-	if [[ "$$USER" == "gh_runner_ubuntu" || "$$SUDO_USER" == "gh_runner_ubuntu" ]]; then \
-		echo "Self-hosted runner detected! Installing FULL dependencies..."; \
-		sudo apt-get install -y $(APT_PACKAGES); \
-	elif [[ "$$GITHUB_ACTIONS" == "true" ]]; then \
-		echo "GitHub-hosted runner detected! Installing MINIMAL dependencies..."; \
-		sudo apt-get install -y $(MIN_PACKAGES); \
-	else \
-		echo "Local non-GitHub environment detected! Installing FULL dependencies..."; \
-		sudo apt-get install -y $(APT_PACKAGES); \
-	fi; \
+	# check if user == gh_runner_ubuntu, the name of the local gh box, OR the sudo user is that (sudo_user stores prev user)
+# 	@set -e; \
+# 	if [[ "$$USER" == "gh_runner_ubuntu" || "$$SUDO_USER" == "gh_runner_ubuntu" ]]; then \
+# 		echo "Self-hosted runner detected! Installing FULL dependencies..."; \
+# 		sudo apt-get install -y $(APT_PACKAGES); \
+# 	elif [[ "$$GITHUB_ACTIONS" == "true" ]]; then \
+# 		echo "GitHub-hosted runner detected! Installing MINIMAL dependencies..."; \
+# 		sudo apt-get install -y $(MIN_PACKAGES); \
+# 	else \
+# 		echo "Local non-GitHub environment detected! Installing FULL dependencies..."; \
+# 		sudo apt-get install -y $(APT_PACKAGES); \
+# 	fi; \
+
+	sudo apt-get install -y (APT_PACKAGES)
 
 	@echo "Dependencies installed, continuing with deployment..."
 	
@@ -474,7 +477,7 @@ test:
 	# make sure dev venv exsists first
 	@if [ ! -d "$(DEV_VENV)" ]; then \
 		echo "Environment not found. Creating venv at $(DEV_VENV)..."; \
-		python3 -m venv $(DEV_VENV); \
+		virtualenv $(DEV_VENV); \
 		$(DEV_VENV)/bin/pip install --upgrade pip; \
 		if [ -f "$(LOCK_FILE)" ]; then \
 			echo "Installing dependencies from $(LOCK_FILE)..."; \
