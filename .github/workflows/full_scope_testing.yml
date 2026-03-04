@@ -60,3 +60,13 @@ jobs:
         Get-Process -Id $proc.Id
         $env:RUNNER_TRACKING_ID = $null
 # implant testing job here, that runs again on the linux box, and runs api commands and checks them, via pytests
+
+  task_testing:
+    # goes by tag, not by name of runner duh
+    runs-on: [self-hosted, Ubuntu]    
+    steps:
+
+    - name: Test Tasks
+      run: |
+        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S -E make implant_tasks_test
+        echo "All tasks tested successfully"
