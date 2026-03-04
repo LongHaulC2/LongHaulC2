@@ -69,32 +69,6 @@ deploy: check_root
 	
 	sudo apt-get update -y
 	
-# 	# Docker fails on GH actions because it's already installed. Ignore if we're a GH runner
-# 	# Additionally, python is already installed, so we can skip that too
-# 	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
-# 		echo "GitHub Actions detected! Skipping docker.io installation to avoid conflicts..."; \
-# 		sudo apt-get install virtualenv redis-tools postgresql-client -y; \
-# 	else \
-# 		echo "Local environment detected! Installing full dependencies..."; \
-# 		sudo apt-get install $(APT_PACKAGES) -y; \
-# 	fi
-	
-	# Docker fails on GH actions because it's already installed. Ignore if we're a non self hosted GH runner
-	# local  runner, elif == gh runner, else == user installing
-
-	# check if user == gh_runner_ubuntu, the name of the local gh box, OR the sudo user is that (sudo_user stores prev user)
-# 	@set -e; \
-# 	if [[ "$$USER" == "gh_runner_ubuntu" || "$$SUDO_USER" == "gh_runner_ubuntu" ]]; then \
-# 		echo "Self-hosted runner detected! Installing FULL dependencies..."; \
-# 		sudo apt-get install -y $(APT_PACKAGES); \
-# 	elif [[ "$$GITHUB_ACTIONS" == "true" ]]; then \
-# 		echo "GitHub-hosted runner detected! Installing MINIMAL dependencies..."; \
-# 		sudo apt-get install -y $(MIN_PACKAGES); \
-# 	else \
-# 		echo "Local non-GitHub environment detected! Installing FULL dependencies..."; \
-# 		sudo apt-get install -y $(APT_PACKAGES); \
-# 	fi; \
-
 	sudo apt-get install -y $(APT_PACKAGES)
 
 	@echo "Dependencies installed, continuing with deployment..."
@@ -502,4 +476,4 @@ test:
 	# just doing full scope test at the moment
  	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
  		--ignore=$(DIR_OF_THIS_SCRIPT)/dev_testing \
- 		$(DIR_OF_THIS_SCRIPT)/tests/web/web_tests.py::test_setup_implant
+ 		$(DIR_OF_THIS_SCRIPT)/tests/full_scope/setup_implant.py::test_setup_implant
