@@ -83,7 +83,7 @@ deploy: check_root
 	# local  runner, elif == gh runner, else == user installing
 
 	@set -e; \
-	if [[ "$$USER" == "gh_runner_ubuntu" ]]; then \
+	if [[ "$$USER" == "gh_runner_ubuntu" || "$$SUDO_USER" == "gh_runner_ubuntu" ]]; then \
 		echo "Self-hosted runner detected! Installing FULL dependencies..."; \
 		sudo apt-get install -y $(APT_PACKAGES); \
 	elif [[ "$$GITHUB_ACTIONS" == "true" ]]; then \
