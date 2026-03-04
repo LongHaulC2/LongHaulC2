@@ -81,16 +81,19 @@ deploy: check_root
 	
 	# Docker fails on GH actions because it's already installed. Ignore if we're a non self hosted GH runner
 	# local  runner, elif == gh runner, else == user installing
-	@if [[ "$$USER" == "gh_runner_ubuntu" ]]; then \
+
+	@set -e; \
+	if [[ "$$USER" == "gh_runner_ubuntu" ]]; then \
 		echo "Self-hosted runner detected! Installing FULL dependencies..."; \
-		sudo apt-get install -y $(APT_PACKAGES); \	
-	elif [[ "$$GITHUB_ACTIONS" = "true" ]]; then \
+		sudo apt-get install -y $(APT_PACKAGES); \
+	elif [[ "$$GITHUB_ACTIONS" == "true" ]]; then \
 		echo "GitHub-hosted runner detected! Installing MINIMAL dependencies..."; \
 		sudo apt-get install -y $(MIN_PACKAGES); \
 	else \
 		echo "Local non-GitHub environment detected! Installing FULL dependencies..."; \
 		sudo apt-get install -y $(APT_PACKAGES); \
-	fi
+	fi; \
+
 	@echo "Dependencies installed, continuing with deployment..."
 	
 	@echo "=================================================="
