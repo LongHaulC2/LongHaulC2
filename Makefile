@@ -90,6 +90,7 @@ deploy: check_root
 		echo "Local non-GitHub environment detected! Installing FULL dependencies..."; \
 		sudo apt-get install -y $(APT_PACKAGES); \
 	fi
+
 	@echo "Dependencies installed, continuing with deployment..."
 	
 	@echo "=================================================="
