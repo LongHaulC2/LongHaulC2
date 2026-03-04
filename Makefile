@@ -63,16 +63,28 @@ deploy: check_root
 	
 	sudo apt-get update -y
 	
-	# Docker fails on GH actions because it's already installed. Ignore if we're a GH runner
-	# Additionally, python is already installed, so we can skip that too
-	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
-		echo "GitHub Actions detected! Skipping docker.io installation to avoid conflicts..."; \
-		sudo apt-get install virtualenv redis-tools postgresql-client -y; \
-	else \
-		echo "Local environment detected! Installing full dependencies..."; \
-		sudo apt-get install $(APT_PACKAGES) -y; \
-	fi
+# 	# Docker fails on GH actions because it's already installed. Ignore if we're a GH runner
+# 	# Additionally, python is already installed, so we can skip that too
+# 	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
+# 		echo "GitHub Actions detected! Skipping docker.io installation to avoid conflicts..."; \
+# 		sudo apt-get install virtualenv redis-tools postgresql-client -y; \
+# 	else \
+# 		echo "Local environment detected! Installing full dependencies..."; \
+# 		sudo apt-get install $(APT_PACKAGES) -y; \
+# 	fi
 	
+	# Docker fails on GH actions because it's already installed. Ignore if we're a non self hosted GH runner
+	@if echo "$$RUNNER_LABELS" | grep -q "self-hosted"; then \
+		echo "Self-hosted runner detected! Installing FULL dependencies..."; \
+		sudo apt-get install -y $(FULL_PACKAGES); \
+	elif [ "$$GITHUB_ACTIONS" = "true" ]; then \
+		echo "GitHub-hosted runner detected! Installing MINIMAL dependencies..."; \
+		sudo apt-get install -y $(MIN_PACKAGES); \
+	else \
+		echo "Local non-GitHub environment detected! Installing FULL dependencies..."; \
+		sudo apt-get install -y $(FULL_PACKAGES); \
+	fi
+
 	@echo "Dependencies installed, continuing with deployment..."
 	
 	@echo "=================================================="
