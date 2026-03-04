@@ -212,9 +212,16 @@ Neo4j Cleanup
    > [ ] Implant logic to handle it (arg: resolve=True)
    > [ ] Web/Task logic to handle it (arg: resolve=True)
 
-*[ ] CICD testing locally
-
 * [X] Migration of listeners to neo4j
+
+### System: CICD
+
+* [X] CICD testing locally
+* [X] CICD testing GH runners
+   > Note: Works, need to fix a few bugs its found with commands ()
+   > Also, runners (i.e. the ubuntu server runner) needs to be rolled back, restarted to, and logged into each run
+      >for some reason make redeploy doesn't nuke neo4j
+
  
 ### Implant: Command Tree & Capabilities
 

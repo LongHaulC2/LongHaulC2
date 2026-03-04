@@ -10,12 +10,7 @@ from client.src.client.modules.api_calls import (
     queue_task,
     update_implant,
 )
-from client.src.client.modules.task_definitions import (
-    ResultType,
-    build_cli_parser,
-    get_all_command_names,
-    task_tree,
-)
+from client.src.client.modules.task_parser import ResultType, build_cli_parser, get_all_command_names, task_tree
 from client.src.client.pages.dialogues import upload_dialog
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.listeners import start_listener_dialogue
