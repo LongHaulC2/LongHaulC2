@@ -14,7 +14,7 @@ public:
     // Naming: snake_case_ for members
     std::string implant_uuid_;
 
-    // --- Lifecycle Methods ---
+    // --- comms Methods ---
 
     //init's everyhting for the cycle
     static void init();

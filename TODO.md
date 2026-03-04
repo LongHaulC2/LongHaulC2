@@ -218,10 +218,16 @@ Neo4j Cleanup
 
 * [X] CICD testing locally
 * [X] CICD testing GH runners
+>HERE
    > Note: Works, need to fix a few bugs its found with commands ()
    > Also, runners (i.e. the ubuntu server runner) needs to be rolled back, restarted to, and logged into each run
       >for some reason make redeploy doesn't nuke neo4j
 
+   * [ ] Fix commands to pass testing
+   * [ ] Continue to clean up
+      > see obsidian, 
+      - [ ] Clean up implant file structure
+      - [ ] implant to /var/lib instead of in file dir
  
 ### Implant: Command Tree & Capabilities
 

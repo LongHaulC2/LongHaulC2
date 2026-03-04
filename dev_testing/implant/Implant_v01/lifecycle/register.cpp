@@ -4,7 +4,7 @@
 #include "../data/msgpack/msgpack.h"
 #include "../protocols/json/json.h"
 
-//placeholder register func. Put somehwere in control
+//placeholder register func. Put somehwere in core
 std::string register_implant() {
     std::string http_response_buffer;
 

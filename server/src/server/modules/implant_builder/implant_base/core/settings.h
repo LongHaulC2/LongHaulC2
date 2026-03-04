@@ -69,7 +69,7 @@ private:
 /*
 Usage:
 
-#include "control/SettingsManager.h"
+#include "core/SettingsManager.h"
 SettingsManager::instance().set("host_ip", "192.168.1.50");
 int port = SettingsManager::instance().get<int>("port", 80);
 */

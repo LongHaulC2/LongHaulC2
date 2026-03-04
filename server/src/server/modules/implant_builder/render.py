@@ -72,7 +72,7 @@ def render_implant(
 
     # Render Controller (c2.cpp)
     _render_file(
-        output_dir / "control/c2.cpp",
+        output_dir / "core/c2.cpp",
         "c2.j2",
         {
             "get_function_mappings": get_func_mappings,
@@ -86,7 +86,7 @@ def render_implant(
     # ! For now, rendering transport as well in here, they have the same req's.
     # move to its own function when needed
     _render_file(
-        output_dir / "lifecycle/transport.h",
+        output_dir / "comms/transport.h",
         "transport.h.j2",
         {
             "get_function_mappings": get_func_mappings,
@@ -115,7 +115,7 @@ def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dic
     if listener_type == "http":
         # Render comms.cpp (Append mode)
         _render_file(
-            output_dir / "lifecycle/comms.cpp",
+            output_dir / "comms/comms.cpp",
             "wininet_comms_http.j2",
             context,
             mode="a",  # append here, as there are multiple profiles being added to the file.

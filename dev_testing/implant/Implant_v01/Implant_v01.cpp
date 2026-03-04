@@ -33,7 +33,7 @@
 #include <windows.h>
 #include "Implant_v01.h"
 #include "tests/test.h"
-#include "lifecycle/comms.h"
+#include "comms/comms.h"
 #include "data/msgpack/msgpack.h"
 
 int temp_loop() {

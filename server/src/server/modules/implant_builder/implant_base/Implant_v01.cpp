@@ -34,7 +34,7 @@
 #include "Implant_v01.h"
 #include "tests/test.h"
 #include "data/msgpack/msgpack.h"
-#include "control/c2.h"
+#include "core/c2.h"
 // int temp_loop() {
     
 //     //note - do a while not registered?

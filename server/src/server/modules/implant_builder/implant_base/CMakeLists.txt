@@ -19,7 +19,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "/output")
 set(SOURCES
     "Implant_v01.cpp"
     "Implant_v01.h"
-    "control/settings.h"
+    "core/settings.h"
     "protocols/json/json.h"
     "data/msgpack/msgpack.cpp"
     "data/msgpack/msgpack.h"
@@ -29,11 +29,11 @@ set(SOURCES
     "tests/test.h"
     "protocols/base64/base64.cpp"
     "protocols/base64/base64.h"
-    "lifecycle/comms.cpp"
-    "control/c2.h"
-    "control/c2.cpp"
-    "control/commandtree.cpp"
-    "control/commandtree.h"
+    "comms/comms.cpp"
+    "core/c2.h"
+    "core/c2.cpp"
+    "core/commandtree.cpp"
+    "core/commandtree.h"
     "modules/cd.cpp" 
     "modules/cd.h" 
     "modules/strategy.cpp" 
@@ -41,14 +41,14 @@ set(SOURCES
     "modules/files.cpp" 
     "modules/files.h" 
     "data/structs.h"  
-    "systems/memstore.h" 
+    "systems/memstore.h"
     "modules/metadata.cpp" 
     "modules/metadata.h"
     "modules/bof.cpp"
     "modules/bof.h"
     "libs/bof_launcher_api.h"
 )
-add_executable(Implant_v01 ${SOURCES} "modules/discover.cpp" "modules/discover.h" "lifecycle/transport.h" )
+add_executable(Implant_v01 ${SOURCES} "modules/discover.cpp" "modules/discover.h" "comms/transport.h" )
 
 target_precompile_headers(Implant_v01 PRIVATE
     <string>
