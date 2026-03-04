@@ -12,7 +12,8 @@ jobs:
 
 # server setup
   server-deployment:
-    runs-on: [self-hosted, gh_runner_ubuntu]    
+    # goes by tag, not by name of runner duh
+    runs-on: [self-hosted, Ubuntu]    
     steps:
     - name: Check out the code
       uses: actions/checkout@v4
@@ -39,7 +40,7 @@ jobs:
   implant-deployment:
     # waits on server to finish
     needs: server-deployment
-    runs-on: [self-hosted, GH_RUNNER_WIN]    
+    runs-on: [self-hosted, Windows]    
 
     steps:
     - name: Get & Run Implant
