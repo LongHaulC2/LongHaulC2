@@ -22,7 +22,7 @@ jobs:
     - name: Deploy
       run: |
         # Testing out deployment
-        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" | sudo -S -E make deploy
+        echo "${{ secrets.SUDO_UBUNTU_RUNNER_PASSWORD }}" && sudo -S apt-get install make && sudo -S -E make deploy
         echo "Successfully deployed LongHaulC2"
 
     - name: Setup
