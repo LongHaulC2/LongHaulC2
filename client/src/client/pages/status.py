@@ -93,13 +93,13 @@ async def status_page():
             with ui.row().classes("w-full items-start gap-8 flex-nowrap"):
                 # Column 1: Core
                 with ui.column().classes("w-1/2 gap-4"):
-                    ui.label("CORE_SERVICES").classes("tech-label-header-section")
+                    ui.label("CORE").classes("tech-label-header-section")
                     ui.separator()
                     core_container = ui.column().classes("w-full gap-2")
 
                 # Column 2: Listeners
                 with ui.column().classes("w-1/2 gap-4"):
-                    ui.label("LISTENER_PROCESSES").classes("tech-label-header-section")
+                    ui.label("LISTENERS").classes("tech-label-header-section")
                     ui.separator()
                     listener_container = ui.column().classes("w-full gap-2")
 

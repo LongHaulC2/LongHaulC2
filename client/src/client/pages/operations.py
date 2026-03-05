@@ -91,7 +91,7 @@ async def implant_view():
         with ui.row().classes("w-full items-center justify-between tech-header-bar h-14"):
             # Title
             with ui.row().classes("items-center gap-2"):
-                ui.icon("hub", color="emerald-500").classes("text-xl")
+                ui.icon("terminal", color="emerald-500").classes("text-xl")
                 ui.label("ACTIVE_SESSIONS //").classes("tech-label-header-section")
 
             # Toolbar

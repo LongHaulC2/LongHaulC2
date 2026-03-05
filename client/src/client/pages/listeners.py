@@ -49,7 +49,7 @@ async def listener_view():
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
             with ui.row().classes("items-center gap-3"):
-                ui.icon("rss_feed", color="emerald-500").classes("text-xl")
+                ui.icon("headphones", color="emerald-500").classes("text-xl")
                 ui.label("LISTENERS //").classes("tech-label-header-section")
 
             with ui.row().classes("items-center gap-2"):

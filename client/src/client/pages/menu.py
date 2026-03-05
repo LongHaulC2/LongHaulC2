@@ -58,7 +58,7 @@ def setup_menu(title: str):
                     "p-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 w-12"
                 ).classes("animate-pulse")
                 with ui.column().classes("gap-0"):
-                    ui.label("LONGHAUL").classes("tech-label-header-section")
+                    ui.label("LONGHAUL").classes("tech-label-header")
                     ui.label("C2 FRAMEWORK").classes("tech-label-sub !text-emerald-500")
 
             # NAVIGATION
@@ -88,10 +88,10 @@ def setup_menu(title: str):
             # Render Buttons
             ui.separator().classes("bg-white/5 mt-2 mb-2")
             ui.label("OPERATIONS").classes("tech-label-sub")
-            nav_btn("OPERATIONS", "precision_manufacturing", "/operations")
-            nav_btn("ENGAGEMENT_MAP", "hub", "/graph")
+            nav_btn("OPERATIONS", "terminal", "/operations")
+            nav_btn("ENGAGEMENT_MAP", "device_hub", "/graph")
             nav_btn("PAYLOADS", "layers", "/payloads")
-            nav_btn("LISTENERS", "rss_feed", "/listeners")
+            nav_btn("LISTENERS", "headphones", "/listeners")
 
             ui.separator().classes("bg-white/5 mt-4 mb-2")
             ui.label("SEARCHING").classes("tech-label-sub")
@@ -99,7 +99,7 @@ def setup_menu(title: str):
 
             ui.separator().classes("bg-white/5 mt-4 mb-2")
             ui.label("AUTOMATION").classes("tech-label-sub")
-            nav_btn("SCRIPTS", "terminal", "/scripts")
+            nav_btn("SCRIPTS", "code", "/scripts")
             nav_btn("DOCS", "info", "/docs")
 
             ui.separator().classes("bg-white/5 mt-4 mb-2")
