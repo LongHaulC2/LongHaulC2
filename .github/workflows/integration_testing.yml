@@ -4,7 +4,7 @@ name: Integration Testing
 
 on:
   push:
-    #branches: [ "main" ] # commented out to test pushes
+    branches: [ "main" ] # Only run on push to main 
   pull_request:
     branches: [ "main" ]
 
@@ -59,7 +59,6 @@ jobs:
         Start-Sleep -Seconds 2
         Get-Process -Id $proc.Id
         $env:RUNNER_TRACKING_ID = $null
-# implant testing job here, that runs again on the linux box, and runs api commands and checks them, via pytests
 
   task_testing:
     needs: implant-deployment

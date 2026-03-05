@@ -17,11 +17,6 @@ X64_DIR_BOF_BYTES = b"\x64\x86\x07\x00\x00\x00\x00\x00\x7c\x10\x00\x00\x37\x00\x
 # pull in all our tasks from the task defs, easier to maintain, and cleaner in the long run
 from client.src.client.modules.task_definitions import *
 
-# def verify_task_success(task_response_data: dict):
-#     result = task_response_data.get("result", {})
-#     error_code = result.get("windows_error_code")
-#     assert error_code == 0, f"Task failed. Expected windows_error_code 0, got {error_code}"
-
 def dispatch_and_wait(api_client, implant_uuid: str, task_object, timeout: int = 60, send_as_msgpack:bool =False) -> dict:
     task_payload = task_object.to_task()
     
@@ -33,8 +28,6 @@ def dispatch_and_wait(api_client, implant_uuid: str, task_object, timeout: int =
     task_uuid = response.get("data", {}).get("task_uuid")
     assert task_uuid, "Failed to retrieve task_uuid from server response"
 
-    #start_time = time.time()
-    #while time.time() - start_time < timeout:
     # try 10 times to get message
     try_times = 10
     for i in range(0, try_times):
