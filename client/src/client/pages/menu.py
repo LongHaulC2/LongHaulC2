@@ -53,12 +53,13 @@ def setup_menu(title: str):
         with ui.column().classes("h-full w-full p-6 gap-1"):
             # BRANDING
             with ui.row().classes("w-full items-center gap-3 mb-8 px-2 opacity-90 mt-2"):
-                ui.icon("hub", size="md", color="emerald-500").classes("animate-pulse")
+                # ui.icon("hub", size="md", color="emerald-500").classes("animate-pulse")
+                ui.image("/static/world_outline.png").classes(
+                    "p-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 w-12"
+                ).classes("animate-pulse")
                 with ui.column().classes("gap-0"):
-                    ui.label("LONGHAUL").classes("tech-label-sub")
-                    ui.label("C2 FRAMEWORK").classes(
-                        "text-[9px] font-mono text-emerald-500 tracking-[0.2em] leading-none"
-                    )
+                    ui.label("LONGHAUL").classes("tech-label-header-section")
+                    ui.label("C2 FRAMEWORK").classes("tech-label-sub !text-emerald-500")
 
             # NAVIGATION
             def nav_btn(label, icon, target):
