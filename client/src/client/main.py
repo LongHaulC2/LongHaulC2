@@ -51,7 +51,15 @@ app.native.settings["ALLOW_DOWNLOADS"] = True
 def main():
     # ui.run(native=True, dark=True)
     ui.run(
-        native=False, dark=True, show=False, reload=True, port=8083, storage_secret=STORAGE_SECRET, title="LongHaulC2"
+        native=False,
+        dark=True,
+        show=False,
+        reload=True,
+        port=8083,
+        storage_secret=STORAGE_SECRET,
+        title="LongHaulC2",
+        reconnect_timeout=30,  # how long browser waits for server to re-connect, tldr, longer better for
+        # heavy UI style tasks.
     )
     # reload=platform.system() != "Windows")
     # reload false to disable reload, which breaks async on windows
