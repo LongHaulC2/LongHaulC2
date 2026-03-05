@@ -1,7 +1,7 @@
 #include <string>
 #include <vector>
-#include <windows.h>
 #include "../data/structs.h"
+#include "../defense/winapi.h"
 
 /**
  * @brief Gets a file from the OS, and returns the content to the caller
@@ -15,7 +15,7 @@ ModuleResult get_file(std::string file_path) {
 	std::wstring w_file_path(file_path.begin(), file_path.end());
 
 	//get file handle first
-	HANDLE h_file = CreateFileW(
+	HANDLE h_file = WinApi::CreateFileW(
 		static_cast<LPCWSTR>(w_file_path.c_str()), //static cast cuz it's safer than just (LPCWSTR)
 		GENERIC_READ, //only need to read file
 		FILE_SHARE_READ, //let other processes read, my thoguhts are to not inhibit other processes/users
@@ -26,15 +26,15 @@ ModuleResult get_file(std::string file_path) {
 
 	);
 	if (h_file == INVALID_HANDLE_VALUE) {
-		return { "Could not get a handle to the file", GetLastError()};
+		return { "Could not get a handle to the file", WinApi::GetLastError()};
 	}
 
 	//get file size cus the winapi is barbaric and wants you to tell it how much of the file to read. 
 	//https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-large_integer-r1 - this is where quadpart comes from.
 	LARGE_INTEGER size;
-	if (!GetFileSizeEx(h_file, &size)) {
-		CloseHandle(h_file);
-		return { "Could not get size of file", GetLastError() };
+	if (!WinApi::GetFileSizeEx(h_file, &size)) {
+		WinApi::CloseHandle(h_file);
+		return { "Could not get size of file", WinApi::GetLastError() };
 	}
 
 	std::string file_contents_buffer;
@@ -45,7 +45,7 @@ ModuleResult get_file(std::string file_path) {
 
 	//https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile
 	//then read from the file handle
-	BOOL read_success = ReadFile(
+	BOOL read_success = WinApi::ReadFile(
 		h_file,
 		&file_contents_buffer[0], //using &var[0] for a writeable pointer, //(LPVOID)file_contents_buffer.c_str(), old method is a const char*
 		bytes_to_read,
@@ -54,12 +54,12 @@ ModuleResult get_file(std::string file_path) {
 	);
 
 	if (!read_success) {
-		return { "File read failed", GetLastError() };
+		return { "File read failed", WinApi::GetLastError() };
 	}
 
 	//could do a comparison of bytes to read, vs bytes read, and error if not fully read. 
 
-	CloseHandle(h_file);
+	WinApi::CloseHandle(h_file);
 	//return contents as str. 
 	return { file_contents_buffer, 0 };
 
@@ -75,7 +75,7 @@ ModuleResult put_file(std::vector<uint8_t> file_contents, std::string file_path)
 	//convert to w string cuz windows
 	std::wstring w_file_path(file_path.begin(), file_path.end());
 
-	HANDLE h_file = CreateFileW(
+	HANDLE h_file = WinApi::CreateFileW(
 		static_cast<LPCWSTR>(w_file_path.c_str()),//static cast cuz it's safer than just (LPCWSTR)
 		GENERIC_WRITE, //might need read as well
 		0, //Tell every other process to fuck off while we write. 
@@ -87,12 +87,12 @@ ModuleResult put_file(std::vector<uint8_t> file_contents, std::string file_path)
 	);
 	if (h_file == INVALID_HANDLE_VALUE) {
 		//int return_code = static_cast<DWORD>(GetLastError());
-		return { "Invalid handle to file", GetLastError()};
+		return { "Invalid handle to file", WinApi::GetLastError()};
 	}
 
 	LPDWORD bytes_written = 0;
 
-	BOOL write_file = WriteFile(
+	BOOL write_file = WinApi::WriteFile(
 		h_file,
 		static_cast<LPCVOID>(file_contents.data()), //get pointer of array, then cast to LPCVOID
 		static_cast<DWORD>(file_contents.size()),
@@ -103,7 +103,7 @@ ModuleResult put_file(std::vector<uint8_t> file_contents, std::string file_path)
 
 	//check if bytes written != array.size, throw something/err. 
 
-	CloseHandle(h_file);
+	WinApi::CloseHandle(h_file);
 	//success
 	return { "File written successfully", 0 };
 

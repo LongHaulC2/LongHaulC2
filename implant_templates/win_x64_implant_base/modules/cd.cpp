@@ -2,13 +2,17 @@
 #include <iostream>
 #include "../data/structs.h"
 #include "cd.h"
+#include "../defense/winapi.h"
 /*
 Minimal example of a command module. 
 */
 
 ModuleResult cd(std::string pathname) {
-	BOOL result = SetCurrentDirectory(
-		pathname.c_str()
+	//convert to wstr
+	std::wstring w_pathname(pathname.begin(), pathname.end());
+
+	BOOL result = WinApi::SetCurrentDirectoryW(
+		w_pathname.c_str()
 	);
 
 	//failure. confusing, sorry. TLDR, return value is non-zero here. Thanks windows. 
@@ -21,6 +25,4 @@ ModuleResult cd(std::string pathname) {
 	//on success return ERROR_SUCCESS
 	// no data to send back
 	return { "", ERROR_SUCCESS };
-
-
 }

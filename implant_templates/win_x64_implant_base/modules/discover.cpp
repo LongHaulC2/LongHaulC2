@@ -17,6 +17,7 @@
 
 #include "../protocols/json/json.h"
 #include "../data/structs.h"
+#include "../defense/winapi.h"
 
 //idea, name this "neighbor discovery" or something, for each enightbor, addd it to a map of ipand mac,and send back in data. 
 // this allows for better parsing/neighbor discovery/a consistent return so the server knows how to handle it, and pass to neo4j.
@@ -27,14 +28,14 @@ ModuleResult passive_arp_discovery() {
     PMIB_IPNET_TABLE2 pTable = nullptr;
     nlohmann::json output = nlohmann::json::array();
 
-    if (GetIpNetTable2(AF_UNSPEC, &pTable) == NO_ERROR) {
+    if (WinApi::GetIpNetTable2(AF_UNSPEC, &pTable) == NO_ERROR) {
         for (ULONG i = 0; i < pTable->NumEntries; i++) {
             MIB_IPNET_ROW2 row = pTable->Table[i];
 
             // Filter for Reachable only to avoid stale entries
             if (row.State == NlnsReachable) {
                 wchar_t ipStr[64];
-                InetNtopW(row.Address.si_family, &row.Address.Ipv4.sin_addr, ipStr, 64);
+                WinApi::InetNtopW(row.Address.si_family, &row.Address.Ipv4.sin_addr, ipStr, 64);
 
                 // DNS Resolution Logic ---
                 wchar_t hostName[NI_MAXHOST];
@@ -42,7 +43,7 @@ ModuleResult passive_arp_discovery() {
 
                 // NI_NAMEREQD: Only returns a name if one is found (prevents returning the IP as the name)
                 // NI_NOFQDN: Returns only the hostname part for local hosts
-                if (GetNameInfoW((struct sockaddr*)&row.Address, sizeof(row.Address),
+                if (WinApi::GetNameInfoW((struct sockaddr*)&row.Address, sizeof(row.Address),
                     hostName, NI_MAXHOST, NULL, 0, NI_NAMEREQD | NI_NOFQDN) == 0) {
                     std::wstring w_host(hostName);
                     string_host = std::string(w_host.begin(), w_host.end());
@@ -66,7 +67,7 @@ ModuleResult passive_arp_discovery() {
                 output.push_back(neighbor);
             }
         }
-        FreeMibTable(pTable);
+        WinApi::FreeMibTable(pTable);
     }
 
     return { output, ERROR_SUCCESS };
