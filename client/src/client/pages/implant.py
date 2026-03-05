@@ -1,10 +1,7 @@
 import structlog
 from nicegui import ui
 
-from client.src.client.modules.api_calls import (
-    get_implant_data,
-    get_implant_task_history,
-)
+from client.src.client.modules.api_calls import get_implant_data, get_implant_task_history
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
 
@@ -28,8 +25,8 @@ def info_row(key: str, value: str):
     with ui.row().classes(
         "w-full justify-between items-center py-1 border-b border-white/5 hover:bg-white/5 transition-colors"
     ):
-        ui.label(key).classes("tech-label-sub")
-        ui.label(str(value)).classes("tech-label-sub")
+        ui.label(key).classes("tech-label")
+        ui.label(str(value)).classes("tech-label")
 
 
 # ========================================
@@ -45,40 +42,28 @@ async def implant_details(implant_uuid: str):
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
     )
 
-    setup_menu("Operations")
+    setup_menu("Implant View")
 
-    # Fetch Implant Metadata
+    # Fetch Implant Metaimplant_metadata
     api_res = await get_implant_data(implant_uuid)
-    data = api_res.get("data", {})
+    implant_metadata = api_res.get("data", {})
 
-    # Fallback Data
-    if not data:
-        data = {
-            "implant_uuid": implant_uuid,
-            "computer_name": "UNKNOWN_HOST",
-            "user_name": "N/A",
-            "ip_address": "0.0.0.0",
-            "os_details": "Unknown OS",
-            "process_id": "0000",
-            "process_name": "unknown.exe",
-            "sleep": "60",
-            "jitter": "10",
-            "last_seen": "Never",
-            "listener_url": "http://localhost:80",
-            "arch": "x64",
-        }
+    # Fallback implant_metadata
+    if not implant_metadata:
+        # blank it out
+        implant_metadata = {}
 
     # Render Dashboard
-    await render_dashboard(data, implant_uuid)
+    await render_dashboard(implant_metadata, implant_uuid)
     await build_footer()
 
 
 # ========================================
 # dashboard
 # ========================================
-async def render_dashboard(data: dict, implant_uuid: str):
-    hostname = data.get("computer_name", "DESKTOP-UNKNOWN")
-    user = data.get("user_name", "SYSTEM")
+async def render_dashboard(implant_metadata: dict, implant_uuid: str):
+    # hostname = implant_metadata.get("computer_name", "DESKTOP-UNKNOWN")
+    # user = implant_metadata.get("user", "?")
 
     # MAIN CONTAINER
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
@@ -94,14 +79,14 @@ async def render_dashboard(data: dict, implant_uuid: str):
                     "p-2 bg-emerald-500/10 rounded border border-emerald-500/20"
                 )
                 with ui.column().classes("gap-0"):
-                    with ui.row().classes("items-center gap-2"):
-                        ui.label(hostname).classes("tech-label-sub")
-                        with ui.row().classes(
-                            "items-center gap-1 bg-emerald-900/30 px-2 rounded-full border border-emerald-500/30"
-                        ):
-                            ui.element("div").classes("w-2 h-2 rounded-full bg-emerald-400 animate-pulse")
-                            ui.label("ONLINE").classes("tech-label-sub")
-                    ui.label(f"UUID: {implant_uuid}").classes("tech-label-sub")
+                    # with ui.row().classes("items-center gap-2"):
+                    #     ui.label(implant_metadata.get("implant_uuid")).classes("tech-label-sub")
+                    #     with ui.row().classes(
+                    #         "items-center gap-1 bg-emerald-900/30 px-2 rounded-full border border-emerald-500/30"
+                    #     ):
+                    #         ui.element("div").classes("w-2 h-2 rounded-full bg-emerald-400 animate-pulse")
+                    #         ui.label("ONLINE").classes("tech-label-sub")
+                    ui.label(f"IMPLANT: {implant_uuid}").classes("tech-label-header-section")
 
             with ui.row().classes("items-center gap-2"):
                 ui.button(
@@ -113,18 +98,18 @@ async def render_dashboard(data: dict, implant_uuid: str):
         # ====================
         #   2. BODY (Fills remaining height)
         # ====================
-        with ui.column().classes("w-full flex-grow p-6 gap-6 overflow-hidden"):
+        with ui.column().classes("w-full flex-grow p-6 gap-6 overflow-hidden"):  # noqa
             # ROW 1: VITALS (Fixed Height)
-            with ui.row().classes("w-full gap-4 flex-nowrap overflow-x-auto pb-1 shrink-0"):
-                stat_card("PRIMARY USER", user, "person")
-                stat_card("NETWORK ADDR", data.get("ip_address"), "lan")
-                stat_card(
-                    "PROCESS ID",
-                    f"{data.get('process_id')} ({data.get('process_name')})",
-                    "memory",
-                )
-                stat_card("LAST SEEN", data.get("last_seen"), "schedule", color="orange")
-                stat_card("ARCHITECTURE", data.get("arch"), "dns")
+            # with ui.row().classes("w-full gap-4 flex-nowrap overflow-x-auto pb-1 shrink-0"):
+            #     stat_card("PRIMARY USER", user, "person")
+            #     stat_card("NETWORK ADDR", implant_metadata.get("ip_address"), "lan")
+            #     stat_card(
+            #         "PROCESS ID",
+            #         f"{implant_metadata.get('process_id')} ({implant_metadata.get('process_name')})",
+            #         "memory",
+            #     )
+            #     stat_card("LAST SEEN", implant_metadata.get("last_seen"), "schedule", color="orange")
+            #     stat_card("ARCHITECTURE", implant_metadata.get("arch"), "dns")
 
             # ROW 2: WORKSPACE & SIDEBAR (Fills remaining height)
             # KEY FIX: 'no-wrap' forces side-by-side.
@@ -145,28 +130,25 @@ async def render_dashboard(data: dict, implant_uuid: str):
                         )
 
                         with tabs:
-                            ui.tab("dna", label="SYSTEM IDENTITY", icon="fingerprint").classes("h-12 min-h-0")
-                            ui.tab("history", label="MISSION LOG", icon="history").classes("h-12 min-h-0")
-                            ui.tab("files", label="FILE SYSTEM", icon="folder").classes("h-12 min-h-0")
+                            ui.tab("metadata_tab", label="IMPLANT METADATA").classes("h-8 min-h-0")
+                            ui.tab("history_tab", label="command history").classes("h-8 min-h-0")
+                            # ui.tab("files", label="FILE SYSTEM").classes("h-8 min-h-0")
+                            ui.tab("graph_tab", label="Graph").classes("h-8 min-h-0")
+                            ui.tab("terminal_tab", label="Terminal").classes("h-8 min-h-0")
 
                     # Tabs Content
-                    with ui.tab_panels(tabs, value="dna").classes(
+                    with ui.tab_panels(tabs, value="metadata_tab").classes(
                         "w-full flex-grow bg-transparent p-0 overflow-hidden"
                     ):
-                        # PANEL 1: SYSTEM DNA
-                        with ui.tab_panel("dna").classes("w-full h-full p-0"):  # noqa: SIM117
+                        # metadata tab
+                        with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):  # noqa: SIM117
                             with ui.scroll_area().classes("w-full h-full p-4"):
-                                info_row("Operating System", data.get("os_details", "N/A"))
-                                info_row("Build Number", "19044.1234 (Mock)")
-                                info_row("Domain", "WORKGROUP")
-                                info_row("Timezone", "UTC-5 (EST)")
-                                info_row("Local Admin", "True")
-                                info_row("AV Status", "Defender (Active)")
-                                info_row("Uptime", "14d 2h 12m")
-                                info_row("Integrity Level", "Medium")
+                                # dynamicalyl fill up the data
+                                for key, value in implant_metadata.items():
+                                    info_row(key, value)
 
-                        # PANEL 2: MISSION HISTORY
-                        with ui.tab_panel("history").classes("w-full h-full p-0"):
+                        # command history tab
+                        with ui.tab_panel("history_tab").classes("w-full h-full p-0"):
                             with ui.column().classes("w-full h-full gap-0"):
                                 # Toolbar
                                 with ui.row().classes(
@@ -200,12 +182,19 @@ async def render_dashboard(data: dict, implant_uuid: str):
 
                             ui.timer(0.1, load_history, once=True)
 
-                        # PANEL 3: FILES
-                        with ui.tab_panel("files").classes(
+                        # graph?
+                        with ui.tab_panel("graph_tab").classes(
                             "w-full h-full items-center justify-center text-neutral-600"
                         ):
                             ui.icon("folder_off", size="xl").classes("mb-2 opacity-50")
-                            ui.label("FILE BROWSER MODULE NOT LOADED").classes("tech-label-sub")
+                            ui.label("GRAPH MODULE NOT IMPLEMENTED").classes("tech-label-sub")
+
+                        # Terminal - steal some logic from operations
+                        with ui.tab_panel("terminal_tab").classes(
+                            "w-full h-full items-center justify-center text-neutral-600"
+                        ):
+                            ui.icon("folder_off", size="xl").classes("mb-2 opacity-50")
+                            ui.label("TERMINAL MODULE NOT IMPLEMENTED").classes("tech-label-sub")
 
                 # ====================
                 # KEY FIX: Strictly fixed width (w-[320px]), removed 'w-full', added 'shrink-0'
@@ -223,10 +212,10 @@ async def render_dashboard(data: dict, implant_uuid: str):
                             # Config
                             ui.label("BEACON SETTINGS").classes("tech-label-sub")
                             with ui.row().classes("w-full gap-2"):
-                                ui.input("SLEEP (s)", value=str(data.get("sleep"))).props(
+                                ui.input("SLEEP (s)", value=str(implant_metadata.get("sleep"))).props(
                                     "outlined dense dark color=emerald"
                                 ).classes("flex-1 tech-input")
-                                ui.input("JITTER (%)", value=str(data.get("jitter"))).props(
+                                ui.input("JITTER (%)", value=str(implant_metadata.get("jitter"))).props(
                                     "outlined dense dark color=emerald"
                                 ).classes("flex-1 tech-input")
                             ui.button("APPLY CONFIG", icon="save").classes(
@@ -265,7 +254,7 @@ def render_history_row(task: dict):
 
     task_name = task_req.get("task", {}).get("task_name", "UNKNOWN")
     task_args = task_req.get("task", {}).get("args", {})
-    task_out = task_res.get("data", "")
+    task_out = task_res.get("implant_metadata", "")
     args_str = " ".join([f"{k}={v}" for k, v in task_args.items()])
 
     is_complete = bool(task_out)

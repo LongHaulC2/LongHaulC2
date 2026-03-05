@@ -54,7 +54,7 @@ def main():
         native=False,
         dark=True,
         show=False,
-        reload=False,
+        reload=True,
         port=8083,
         storage_secret=STORAGE_SECRET,
         title="LongHaulC2",

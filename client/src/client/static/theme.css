@@ -80,6 +80,14 @@ body::before {
     color: #71717a;
     text-transform: uppercase;
 }
+/* "normal" label i guess? slightly bigger than sub */
+.tech-label {
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: #71717a;
+    text-transform: uppercase;
+}
 
 /* High-visibility headers for page titles */
 .tech-label-header-bold {

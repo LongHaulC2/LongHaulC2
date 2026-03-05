@@ -274,7 +274,8 @@ def handle_click(e, nodes, sidebar_container):
 
         if node_type == "Implant":
             with ui.column().classes("w-full"):
-                ui.button("Implant Page").classes("w-full")
+                implant_uuid = props.get("implant_uuid")
+                ui.button("Implant Page", on_click=lambda: ui.navigate.to(f"/implant/{implant_uuid}")).classes("w-full")
                 ui.button("Implant ...").classes("w-full")
 
         elif node_type == "Host":
