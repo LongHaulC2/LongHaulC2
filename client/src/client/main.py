@@ -41,7 +41,8 @@ load_dotenv()
 STORAGE_SECRET = os.getenv("NICEGUI_STORAGE_SECRET")
 
 ui.add_head_html('<link rel="stylesheet" type="text/css" href="/static/theme.css">', shared=True)
-
+# favicon was busted when calling via ui.run, so we inject it here
+ui.add_head_html('<link rel="icon" type="image/x-icon" href="/static/favicon.ico">', shared=True)
 # a tweak for native to allow dl's
 # https://github.com/zauberzeug/nicegui/issues/3402
 app.native.settings["ALLOW_DOWNLOADS"] = True
@@ -49,7 +50,9 @@ app.native.settings["ALLOW_DOWNLOADS"] = True
 
 def main():
     # ui.run(native=True, dark=True)
-    ui.run(native=False, dark=True, show=False, reload=True, port=8083, storage_secret=STORAGE_SECRET)
+    ui.run(
+        native=False, dark=True, show=False, reload=True, port=8083, storage_secret=STORAGE_SECRET, title="LongHaulC2"
+    )
     # reload=platform.system() != "Windows")
     # reload false to disable reload, which breaks async on windows
     # https://github.com/zauberzeug/nicegui/issues/486

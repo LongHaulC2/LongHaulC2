@@ -223,11 +223,11 @@ Neo4j Cleanup
    > Also, runners (i.e. the ubuntu server runner) needs to be rolled back, restarted to, and logged into each run
       >for some reason make redeploy doesn't nuke neo4j
 
-   * [ ] Fix commands to pass testing
-   * [ ] Continue to clean up
+   * [X] Fix commands to pass testing
+   * [X] Continue to clean up
       > see obsidian, 
-      - [ ] Clean up implant file structure
-      - [ ] implant to /var/lib instead of in file dir
+      - [X] Clean up implant file structure
+      - [X] implant to /var/lib instead of in file dir
  
 ### Implant: Command Tree & Capabilities
 
@@ -297,9 +297,17 @@ will decide how to update neo4j properly with said data passed to it.
 * [ ] Response queue (vector of tasks to run in background and queue return data)
    - This is a prereq to chaining
 * [ ] Switchable callback domains (Random fallback hosts, auto-fill default, editable via settings)
-* [ ] String Encryption (e.g., skCrypter at compile time)
 * [ ] Memory tracking system (store memory address/size on malloc for wiping/encryption)
 * [X] Memory Store encryption (XOR via key name)
+
+* [ ] String Encryption (e.g., skCrypter at compile time)
+   > [ ] Re-Compile .LIB of bof, to use skCrypter as well. It has some strings which are very obvious
+   * [ ] Convert rest of project to WinApi::FUNC (thinking, c2.cpp for sure)
+      * [ ] c2.cpp
+      * [ ] HTTP Calls (in IAT, very obvious)
+      * [ ] Socket Calls (in IAT, very obvious)
+      * [ ] Remove pragmas as well, these include all the funcs of what you incldued
+
 
 ### Server: Malleable C2
 
