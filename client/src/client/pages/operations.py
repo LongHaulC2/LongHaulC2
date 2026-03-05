@@ -59,14 +59,17 @@ async def operations():
     # Using a container that matches the background
     with ui.element().classes("w-full h-full gap-0"):  # noqa: SIM117
         # Splitter: Left (Implants) vs Right (Terminal)
-        with ui.splitter(horizontal=True, value=50).classes("w-full h-full").props(
-            "separator-class=bg-white/10 separator-style=width:1px"
+        with ui.splitter(horizontal=True, value=50, limits=(10, 99)).classes("w-full h-full").props(
+            "separator-class=bg-white/10"
         ) as splitter:
             with splitter.before:
                 await implant_view()
 
             with splitter.after:
                 await terminal_view()
+
+            with splitter.separator:
+                ui.icon("drag_handle").classes("text-emerald-700 w-full")
 
     await build_footer()
 
