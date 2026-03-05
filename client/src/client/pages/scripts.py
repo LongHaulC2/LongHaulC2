@@ -248,7 +248,7 @@ async def file_picker():
             # Props: Dark mode, dense, accordion
             ui.tree(nodes=tree_items, on_select=open_code_file).classes(
                 "w-full text-neutral-400 text-sm font-mono"
-            ).props("dark dense no-connectors selected-color=emerald").expand()
+            ).props("dark dense no-connectors selected-color=emerald")  # .expand()
 
 
 async def create_new_file_dialog(scripts_path):

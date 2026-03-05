@@ -74,7 +74,7 @@ async def render_payloads_table():
     with ui.row().classes("w-full items-center px-2 py-1 bg-white/2"):
         filter_text = (
             ui.input(placeholder="FILTER ARTIFACTS...")
-            .props("outlined dense dark color=emerald input-class=text-[10px]")
+            .props("outlined dense dark color=emerald input-class=text-[10px] autofocus")
             .classes("w-64 tech-input")
         )
 
