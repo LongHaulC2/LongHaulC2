@@ -54,12 +54,13 @@ def main():
         native=False,
         dark=True,
         show=False,
-        reload=True,
+        reload=False,
         port=8083,
         storage_secret=STORAGE_SECRET,
         title="LongHaulC2",
         reconnect_timeout=30,  # how long browser waits for server to re-connect, tldr, longer better for
         # heavy UI style tasks.
+        loop="uvloop",  # use UVloop for uvicorn, apparently its a lot faster
     )
     # reload=platform.system() != "Windows")
     # reload false to disable reload, which breaks async on windows
