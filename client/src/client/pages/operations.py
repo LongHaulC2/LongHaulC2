@@ -162,7 +162,7 @@ async def implant_view():
                 ).props("dense flat size=sm square").tooltip("Nuke Selected")
 
         # Table Container
-        with ui.column().classes("w-full flex-grow relative overflow-hidden bg-transparent"):
+        with ui.column().classes(" w-full flex-grow relative overflow-hidden bg-transparent"):
             table = (
                 ui.table(
                     columns=[],
