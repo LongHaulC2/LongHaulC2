@@ -10,7 +10,8 @@ project ("Implant_v01")
 # ==========================================
 # This ensures the .exe ends up in the /output folder inside the container
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "/output")
-
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "/output")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "/output")
 # ==========================================
 # 2. Source Files
 # ==========================================
@@ -91,6 +92,11 @@ add_executable(Implant_v01_exe
 # link against core
 target_link_libraries(Implant_v01_exe PRIVATE ImplantCore)
 
+# removes lib prefix on bins
+set_target_properties(Implant_v01_exe PROPERTIES 
+    OUTPUT_NAME "Implant_v01"
+)
+
 # create our DLL:
 add_library(Implant_v01_dll SHARED
     entrypoints/dll_main.cpp
@@ -98,6 +104,10 @@ add_library(Implant_v01_dll SHARED
 # link against core
 target_link_libraries(Implant_v01_dll PRIVATE ImplantCore)
 
+set_target_properties(Implant_v01_dll PROPERTIES 
+    OUTPUT_NAME "Implant_v01"
+    PREFIX "" # Stops MinGW from naming it "libImplant_v01.dll"
+)
 # ==========================================
 # External Libraries (BofRunner)
 # ==========================================
@@ -215,7 +225,10 @@ if(WIN32)
         set(CMAKE_C_FLAGS_RELEASE "-Os")
 
         # strip 
-        set(CMAKE_EXE_LINKER_FLAGS "-s")
+        #set(CMAKE_EXE_LINKER_FLAGS "-s")
+
+        target_link_options(Implant_v01_exe PRIVATE "-s")
+        target_link_options(Implant_v01_dll PRIVATE "-s")
 
         # dead code elim
         # this might knock out those extra funcs in comms... needs testing. 

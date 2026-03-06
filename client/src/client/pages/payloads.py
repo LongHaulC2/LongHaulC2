@@ -437,7 +437,7 @@ async def start_payload_dialogue():
 async def download_payload(hash, name):
     file_bytes = await get_payload_bytes(hash)
     if file_bytes:
-        ui.download(file_bytes, filename=f"{name}.bin")
+        ui.download(file_bytes, filename=f"{name}")
         ui.notify("Transfer Complete", type="positive")
     else:
         ui.notify("Transfer Failed", type="negative")

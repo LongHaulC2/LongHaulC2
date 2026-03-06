@@ -321,7 +321,6 @@ class MySQLImplantPayloadService:
         self,
         payload_name: str,
         payload_bytes: bytes,
-        # listener_uuid: str,
         source_code_bytes: bytes,
         build_uuid: str = None,
     ) -> str:
@@ -329,52 +328,43 @@ class MySQLImplantPayloadService:
         Create an entry for a new payload.
         Calculates the MD5, stores it as bytes, but returns it as a Hex String.
 
-        If build_uuid is provided, it updates that existing 'pending' row with the artifacts.
-
-        returns: The MD5 hex string of the payload
+        If build_uuid is provided, it checks for a pending row. If the pending row
+        is already filled by a previous artifact, it inserts a new row.
         """
         server_logger.info("Registering new payload", payload_name=payload_name)
 
         check_type(payload_bytes, bytes, "payload_bytes")
-        # check_type(listener_uuid, str, "listener_uuid")
         check_type(payload_name, str, "payload_name")
 
         # get hash of payload
         md5_obj = hashlib.md5(payload_bytes)
-
-        # We need the RAW BYTES for the Database (TINYBLOB)
         hash_bytes = md5_obj.digest()
-
-        # We need the HEX STRING for the return value/logs
         hash_str = md5_obj.hexdigest()
 
         # ASYNC UPDATE PATH
-        # If this is the result of an async build job, update the placeholder row.
         if build_uuid:
             server_logger.info("Finalizing build job with artifacts", build_uuid=build_uuid)
 
-            # Find the pending row by UUID
-            payload_entry = self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid).first()
-
-            if payload_entry:
-                # Update the existing row with the real data
-                payload_entry.payload_hash = hash_bytes
-                payload_entry.payload_bytes = payload_bytes
-                payload_entry.payload_source_code_bytes = source_code_bytes
-                payload_entry.payload_name = payload_name
-                # payload_entry.payload_listener_uuid = listener_uuid
-                payload_entry.build_status = "complete"  # Mark job as done
-
-                self.session.commit()
-                server_logger.info("Successfully updated build job", build_uuid=build_uuid, hash=hash_str)
-                return hash_str
-            server_logger.error(
-                "Build UUID was provided, but no matching row was found. Falling back to new insert.",
-                build_uuid=build_uuid,
+            # Find specifically the pending placeholder row (where bytes are None)
+            pending_entry = (
+                self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid, payload_bytes=None).first()
             )
 
-        # STANDARD INSERT PATH
-        # Deduplication check: See if this file hash already exists
+            if pending_entry:
+                # We found the empty placeholder. Update it with the first artifact (e.g., .exe)
+                pending_entry.payload_hash = hash_bytes
+                pending_entry.payload_bytes = payload_bytes
+                pending_entry.payload_source_code_bytes = source_code_bytes
+                pending_entry.payload_name = payload_name
+                pending_entry.build_status = "complete"
+
+                self.session.commit()
+                server_logger.info("Successfully updated placeholder build job", build_uuid=build_uuid, hash=hash_str)
+                return hash_str
+
+            # If we get here, the placeholder was already filled by a previous artifact.
+            server_logger.info("Placeholder filled, creating additional artifact row", build_uuid=build_uuid)
+
         existing = self.session.query(ImplantPayload).filter_by(payload_hash=hash_bytes).first()
 
         if existing:
@@ -385,10 +375,9 @@ class MySQLImplantPayloadService:
         payload_entry = ImplantPayload(
             payload_hash=hash_bytes,
             payload_bytes=payload_bytes,
-            # payload_listener_uuid=listener_uuid,
             payload_name=payload_name,
             payload_source_code_bytes=source_code_bytes,
-            # If we fell through to here, it's a direct upload or successful "immediate" build
+            build_uuid=build_uuid,
             build_status="complete",
         )
 
@@ -413,7 +402,6 @@ class MySQLImplantPayloadService:
         check_type(payload_name, str, "payload_name")
 
         # Create the row with the UUID, but leave the payload bytes Empty/Null for now.
-        # Note: Ensure your SQL Model 'ImplantPayload' allows payload_bytes to be Nullable
         payload_entry = ImplantPayload(
             build_uuid=build_uuid,  # Saving the UUID instead of a Hash
             payload_name=payload_name,
@@ -431,27 +419,28 @@ class MySQLImplantPayloadService:
 
     def update_build_status(self, build_uuid, build_status: Literal["building", "complete", "failed"]):
         """
-        Updates build status by querying the EXISTING row.
+        Updates build status for ALL rows associated with the build_uuid.
         """
         server_logger.info("Updating status of build", status=build_status, build_uuid=build_uuid)
 
         check_type(build_status, str, "status")
         check_type(build_uuid, str, "build_uuid")
 
-        # FETCH the existing row
-        payload_entry = self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid).first()
+        # UPDATE all rows matching the build_uuid
+        updated_count = (
+            self.session.query(ImplantPayload)
+            .filter_by(build_uuid=build_uuid)
+            .update({"build_status": build_status}, synchronize_session=False)
+        )
 
-        if not payload_entry:
-            server_logger.error("Could not find build job to update", build_uuid=build_uuid)
+        if updated_count == 0:
+            server_logger.error("Could not find any build jobs to update", build_uuid=build_uuid)
             return
 
-        # UPDATE the field on the existing object
-        payload_entry.build_status = build_status
-
-        # COMMIT (SQLAlchemy detects the change on the dirty object)
         self.session.commit()
-
-        server_logger.info("Successfully updated status", build_uuid=build_uuid, build_status=build_status)
+        server_logger.info(
+            "Successfully updated status", build_uuid=build_uuid, build_status=build_status, rows_affected=updated_count
+        )
 
     def get_payload_by_hash(self, payload_hash: str):
         """
@@ -486,7 +475,7 @@ class MySQLImplantPayloadService:
 
         server_logger.info("Retrieving build job status", build_uuid=build_uuid)
 
-        payload = self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid).first()
+        payload = self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid).first()  # .first()
 
         if payload:
             return payload.to_dict()

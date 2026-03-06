@@ -234,12 +234,56 @@ def _run_docker_build(build_dir: Path) -> bool:
         return False
 
 
+# def _store_artifacts(build_dir: Path, implant_name: str, build_uuid: str):
+#     """Zips source and uploads binaries to DB."""
+#     output_dir = build_dir / "output"
+#     zip_path = build_dir / f"{implant_name}_source.zip"
+
+#     # zip up the source code
+#     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+#         for path in build_dir.rglob("*"):
+#             if path.is_file() and path != zip_path and "output" not in path.parts:
+#                 z.write(path, arcname=path.relative_to(build_dir))
+
+#     zip_bytes = zip_path.read_bytes()
+
+#     # grab list of artifacts
+#     artifacts = [p for p in output_dir.iterdir() if p.is_file()]
+#     if not artifacts:
+#         server_logger.warning("No artifacts found in output directory.")
+#         return
+
+#     # write payload to db
+#     with get_mysql_session() as session:
+#         service = MySQLImplantPayloadService(session)
+#         for artifact in artifacts:
+#             service.register_payload(
+#                 payload_name=implant_name,
+#                 payload_bytes=artifact.read_bytes(),
+#                 source_code_bytes=zip_bytes,
+#                 # listener_uuid=primary_listener_uuid,
+#                 build_uuid=build_uuid,
+#             )
+
+#         # Update the build status to complete/success
+#         service.update_build_status(build_uuid=build_uuid, build_status="complete")
+
+#     server_logger.info("Stored artifacts", number_of_artifacts=len(artifacts), implant_name=implant_name)
+
+
+# updated to store multiple artifacts
 def _store_artifacts(build_dir: Path, implant_name: str, build_uuid: str):
-    """Zips source and uploads binaries to DB."""
+    """Zips source and uploads individual binary artifacts to DB."""
     output_dir = build_dir / "output"
     zip_path = build_dir / f"{implant_name}_source.zip"
 
-    # zip up the source code
+    # sanity check output cuz of exe/dll bug
+    if output_dir.exists():
+        # Grab just the file/folder names to keep the log clean
+        found_items = [p.name for p in output_dir.iterdir()]
+        docker_logger.warning("Post-build output directory contents", output_path=str(output_dir), items=found_items)
+
+    # Zip up the source code
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
         for path in build_dir.rglob("*"):
             if path.is_file() and path != zip_path and "output" not in path.parts:
@@ -247,25 +291,31 @@ def _store_artifacts(build_dir: Path, implant_name: str, build_uuid: str):
 
     zip_bytes = zip_path.read_bytes()
 
-    # grab list of artifacts
-    artifacts = [p for p in output_dir.iterdir() if p.is_file()]
+    # Grab list of artifacts, filtering for valid extensions - which are currently .exe & .dll
+    valid_extensions = {".exe", ".dll"}
+    artifacts = [p for p in output_dir.iterdir() if p.is_file() and p.suffix.lower() in valid_extensions]
+
     if not artifacts:
-        server_logger.warning("No artifacts found in output directory.")
+        server_logger.warning("No valid artifacts (.exe, .dll) found in output directory.")
+        # could set build to failed as well if there's nothign here
         return
 
-    # write payload to db
+    # Write each payload to the DB
     with get_mysql_session() as session:
         service = MySQLImplantPayloadService(session)
         for artifact in artifacts:
+            # Differentiate the payload name in the DB (ex "my_implant.exe" and "my_implant.dll")
+            artifact_db_name = f"{implant_name}{artifact.suffix}"
+
             service.register_payload(
-                payload_name=implant_name,
+                payload_name=artifact_db_name,
                 payload_bytes=artifact.read_bytes(),
                 source_code_bytes=zip_bytes,
-                # listener_uuid=primary_listener_uuid,
                 build_uuid=build_uuid,
             )
+            server_logger.debug("Stored individual artifact", artifact_name=artifact.name)
 
-        # Update the build status to complete/success
+        # Update the build status to complete/success after all are written
         service.update_build_status(build_uuid=build_uuid, build_status="complete")
 
-    server_logger.info("Stored artifacts", number_of_artifacts=len(artifacts), implant_name=implant_name)
+    server_logger.info("Stored artifacts successfully", number_of_artifacts=len(artifacts), implant_name=implant_name)
