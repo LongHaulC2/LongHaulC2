@@ -1,9 +1,0 @@
-#include <map>
-#include <string>
-#include "../data/structs.h"
-nlohmann::json populate_metadata();
-ModuleResult get_current_user();
-ModuleResult get_computer_name();
-ModuleResult get_current_process_name();
-ModuleResult get_current_process_pid();
-ModuleResult get_nic_info();

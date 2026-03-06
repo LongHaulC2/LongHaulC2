@@ -4,7 +4,7 @@ FROM dockcross/windows-static-x64
 
 # Install build dependencies: cmake, ninja, ccache, lld (llvm linker) and python3
 RUN apt-get update && apt-get install -y \
-    cmake \
+    #cmake \
     ninja-build \
     ccache \
     python3 \

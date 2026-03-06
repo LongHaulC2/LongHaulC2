@@ -308,6 +308,19 @@ will decide how to update neo4j properly with said data passed to it.
       * [ ] Socket Calls (in IAT, very obvious)
       * [ ] Remove pragmas as well, these include all the funcs of what you incldued
 
+> here
+Mental Dump
+
+Was working on SMB. Core logic is setup, need to integrate smb as a valid strategy to select.
+See comments about register pipe in c2.cpp.
+
+Additionally, need to fix the following (priroity):
+
+* [ ] Export all objects built by container, correctly, into db. i.e., exe, dll etc.
+   > sometimes you get the dll, sometiems you get the exe, client side. 
+* [ ] Create a 32 bit version of the .lib for bofrunner, and add into cmake for 32 bit builds
+
+> Left off touching up implants page in GUI. Start back with implant fixes/upgrades
 
 ### Server: Malleable C2
 

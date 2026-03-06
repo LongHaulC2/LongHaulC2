@@ -13,7 +13,7 @@ server_logger = structlog.getLogger("server")
 
 workspace_dir = os.getenv("WORKSPACE_DIR", "/var/lib/longhaulc2")
 # temp hardcode the win_x64_implant_base
-TEMPLATE_DIR = Path(workspace_dir) / "implant_templates" / "win_x64_implant_base" / "templates"
+TEMPLATE_DIR = Path(workspace_dir) / "implant_templates" / "win_implant_base" / "templates"
 
 
 # Initialize Jinja Environment once
