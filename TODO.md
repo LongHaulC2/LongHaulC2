@@ -317,9 +317,67 @@ See comments about register pipe in c2.cpp.
 
 Additionally, need to fix the following (priroity):
 
-* [ ] Export all objects built by container, correctly, into db. i.e., exe, dll etc.
+* [X] Export all objects built by container, correctly, into db. i.e., exe, dll etc.
    > sometimes you get the dll, sometimes you get the exe, client side. 
 * [ ] Create a 32 bit version of the .lib for bofrunner, and add into cmake for 32 bit builds
+
+* [ ] Implant, fix up smb logic, include by default, but add itin as an option
+   > figure out how to do "are pipes registered - probably in settings, as the implant waits for conn then
+   > More work, but INTEGRATE smb as a "normal listener" to add. This lays groundwork for other/multiple comms as well
+
+SMB Chain Steps:
+* [X] ChildStore in Implant (stores child connection info)
+   > added childhandler.cpp/.h. This handles child conns.
+* [ ] Server side link stuff
+   * [ ] link command 
+      > "link <host_or_ip>"
+      > Neo4j:
+         > creates implant node
+         > creates a c2 channel node
+         > Creates a link_to (or similar), with pipe names?
+
+      > implant:
+         > add link command -> command tree
+         > Accesses childhandler singleton to add a new child
+         > should be good after that
+
+   * [ ] On implant checkin, find linked (if any) from neo4j
+      Add all pending tasks for linked implants, to the task list.
+   
+   > finger crossed, this should work/go through
+
+   > test setup:
+   1 smb implant (use the dev_payload_source)
+   1 egress implant
+
+   run smb implant
+   run egress implant
+   run link on egress implant
+   hope new implant shows up. 
+      > hope registration works, it should
+
+<!-- Hitting a reg bug, parent -> child works, but then the child
+continues to try and register forever. Something is not quite lining up.
+
+maybe we need to send a blank task first, then on connect/data back from it, then send registration  -->
+
+> fixed - doubel array bug:
+   //quick note - somewhere, this gets wrapped as an array, so no need to 
+   //wrap it as one here. I dunno where that is happening, but somewhere down the line.
+
+> Now, this. Successful link = do these things
+Now, need to let the server know the task was successful, and on successful link,
+ > update neo4j,
+ > route all tasks for that uuid, to the agent they are linked in.
+   (at get, just shove all tasks into an array if there's a child that has an inbound task)
+
+
+[X] Another bug:
+ whetehr to send metadata or not is in the HTTP code, based on registered setting.
+ Find a better spot for this, maybe in register? I'm not sure.
+
+>>
+[X] maybe update fetch task to have an optional, data/metadata field, to include for GET request.
 
 > ========================================================
 

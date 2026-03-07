@@ -11,6 +11,7 @@ from client.src.client.modules.task_definitions import (
     Exit,
     FileDownload,
     FileUpload,
+    Link,
     Ls,
     MemStoreClear,
     MemStoreDelete,
@@ -23,9 +24,11 @@ from client.src.client.modules.task_definitions import (
     StratGet,
     StratList,
     StratPost,
+    Unlink,
     discover_cmds,
     execution_cmds,
     fs_cmds,
+    link_cmds,
     mem_cmds,
     strat_cmds,
     system_cmds,
@@ -187,6 +190,27 @@ def build_cli_parser(implant_uuid: str):
         func=lambda args: (ResultType.TASK, DiscoverNeighbors(implant_uuid=implant_uuid).to_task())  # noqa - args needed for return
     )
 
+    # link
+    link = subparsers.add_parser("link")
+    link.add_argument("protocol")
+    link.add_argument("target")
+    link.set_defaults(
+        func=lambda args: (
+            ResultType.TASK,
+            Link(implant_uuid=implant_uuid, protocol=args.protocol, target_host=args.target).to_task(),
+        )
+    )
+
+    unlink = subparsers.add_parser("unlink")
+    unlink.add_argument("protocol")
+    unlink.add_argument("target")
+    unlink.set_defaults(
+        func=lambda args: (
+            ResultType.TASK,
+            Unlink(implant_uuid=implant_uuid, protocol=args.protocol, target_host=args.target).to_task(),
+        )
+    )
+
     return root_parser
 
 
@@ -220,6 +244,7 @@ async def task_tree(user_input, implant_uuid):
                 ("Memory", mem_cmds),
                 ("Strategy", strat_cmds),
                 ("Execution", execution_cmds),
+                ("Link", link_cmds),
             ]:
                 out.extend(fmt(name, _class))
             return (ResultType.LIST, out)
@@ -231,7 +256,18 @@ async def task_tree(user_input, implant_uuid):
     parser = build_cli_parser(implant_uuid)
     try:
         parsed = parser.parse_args(split_args)
-        return parsed.func(parsed)
+
+        # Unpack the tuple returned by your lambda
+        res_type, task_data = parsed.func(parsed)
+
+        # If to_task() returned a coroutine, await it here!
+        # this is so we can use api calls in the task tree if ever needed (i.e., to pull in extra data the user
+        # doesn't need to put it, like for linking)
+        if inspect.isawaitable(task_data):
+            task_data = await task_data
+
+        return (res_type, task_data)
+
     except HelpException as h:
         return (ResultType.LIST, str(h).splitlines())
     except ParseError as pe:
@@ -279,4 +315,14 @@ def get_all_command_names(parser, current_path="") -> list[str]:
 
 
 def get_all_command_classes():
-    return system_cmds + fs_cmds + mem_cmds + strat_cmds + execution_cmds + discover_cmds + terminal_helper_cmds
+    # big list of command classes
+    return (
+        system_cmds
+        + fs_cmds
+        + mem_cmds
+        + strat_cmds
+        + execution_cmds
+        + discover_cmds
+        + terminal_helper_cmds
+        + link_cmds
+    )

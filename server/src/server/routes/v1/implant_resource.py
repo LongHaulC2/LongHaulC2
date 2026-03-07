@@ -22,6 +22,7 @@ from ...api_models.implants import (
     IMPLANT_TASKS_DELETE_RESPONSE,
     IMPLANT_TASKS_GET_RESPONSE,
     IMPLANTS_GET_RESPONSE,
+    IMPLANTS_POST_RESPONSE,
     TASK_SEARCH_POST_INPUT,
     TASK_SEARCH_POST_RESPONSE,
 )
@@ -111,37 +112,37 @@ class Implants(Resource):
 
         return APIResponse(status="200", message="Success", data=data)
 
-    # I don't think this is being used. Removing for now
-    # @implants_ns.doc(
-    #     summary="Create a new implant entry.",
-    #     description="Create a new implant entry. Returns an Implant ID.",
-    #     responses=COMMON_ERRORS,
-    # )
-    # @implants_ns.response(200, "Entry created", IMPLANTS_POST_RESPONSE)
-    # @implants_ns.marshal_with(IMPLANTS_POST_RESPONSE)
-    # def post(self):
-    #     """
-    #     Create a new implant entry
-    #     """
-    #     ip = request.remote_addr
-    #     api_logger.info("Creating an implant", caller_ip=ip)
+    @implants_ns.doc(
+        summary="Create a new implant entry.",
+        description="Create a new implant entry. Returns an Implant ID, and registers a blank implant to the neo4j db",
+        responses=COMMON_ERRORS,
+    )
+    @implants_ns.response(200, "Entry created", IMPLANTS_POST_RESPONSE)
+    @implants_ns.marshal_with(IMPLANTS_POST_RESPONSE)
+    def post(self):
+        """
+        Create a new, blank, implant entry
 
-    #     with get_mysql_session() as session:
-    #         implant_service = ImplantService(session)
-    #         data = ImplantCreate()
-    #         implant_object = implant_service.create(data)
-    #         implant_uuid = implant_object.implant_uuid
+        Returns a UUID for the implant entry.
+        """
+        ip = request.remote_addr
+        api_logger.info("Creating an implant", caller_ip=ip)
 
-    #     data = Neo4jImplantNodeService.update_by_uuid(
-    #         implant_uuid=uuid, data=asdict(implant_data)
-    #     )
+        new_implant_uuid = str(uuid7())
+        # load into datamodel.
+        implant_node = Neo4jImplantNodeService(
+            # listener uuidis passed in weird here, it's set as a global
+            # if this func is moved out, just have it be passed in via args
+            implant_uuid=new_implant_uuid,
+            listener_uuid="PLACEHOLDER_CHAINED",
+        )
+        # register, with no data
+        implant_node.create_or_get_node(new_implant_uuid)
 
-    #     data = {"uuid": implant_uuid}
+        data = {"uuid": new_implant_uuid}
 
-    #     api_logger.info(f"Implant {implant_uuid} created", caller_ip=ip)
-    #     return APIResponse(
-    #         status="200", message=f"Implant {implant_uuid} created", data=data
-    #     )
+        api_logger.info("New Implant Entry created", implant_uuid=new_implant_uuid, caller_ip=ip)
+        return APIResponse(status="200", message=f"Implant {new_implant_uuid} created", data=data)
 
 
 class Implant(Resource):

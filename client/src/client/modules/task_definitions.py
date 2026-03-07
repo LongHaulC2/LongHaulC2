@@ -1,6 +1,8 @@
 import base64
 from dataclasses import asdict, dataclass
 
+from client.src.client.modules.api_calls import create_implant_entry
+
 """
 Task definitions and supporting cast.
 
@@ -295,6 +297,64 @@ class DiscoverNeighbors:
 
 
 @dataclass(frozen=True)
+class Link:
+    """Link to a child implant"""
+
+    command_name = "link"
+    implant_uuid: str
+    protocol: str
+    target_host: str | bytes
+
+    # temp hardcoded
+    inbox_pipe = "inbox2"
+    outbox_pipe = "outbox2"
+    child_uuid: str | None = None
+
+    async def to_task(self) -> dict:
+        # get new impalnt uuid for linked implant
+        data_dict = await create_implant_entry(self.implant_uuid)
+
+        if not data_dict:
+            raise RuntimeError(f"API request failed: Could not create child implant for {self.implant_uuid}")
+
+        child_uuid = data_dict.get("data", {}).get("uuid", {})
+        # force set despite being frozen
+        object.__setattr__(self, "child_uuid", child_uuid)
+
+        task_detail = TaskDetail(
+            task_name=self.command_name,
+            args={
+                "protocol": self.protocol,
+                "target": self.target_host,
+                "child_uuid": self.child_uuid,
+                "inbox_pipe": self.inbox_pipe,
+                "outbox_pipe": self.outbox_pipe,
+            },
+        )
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
+
+
+@dataclass(frozen=True)
+class Unlink:
+    """Unlink from a child implant"""
+
+    command_name = "unlink"
+    implant_uuid: str
+    protocol: str
+    target_host: str | bytes
+
+    def to_task(self) -> dict:
+        task_detail = TaskDetail(
+            task_name=self.command_name, args={"protocol": self.protocol, "target": self.target_host}
+        )
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
+
+    # note - in future, need to do lookups for:
+    # name of smb pipes
+    # and we need to register a new implant that we will link *to*, to get a UUID for it
+
+
+@dataclass(frozen=True)
 class Exit:
     """Exit the implant and kill the process."""
 
@@ -337,5 +397,6 @@ fs_cmds = [Cd, Ls, FileDownload, FileUpload]
 mem_cmds = [MemStoreList, MemStoreUpload, MemStoreDownload, MemStoreDelete, MemStoreClear]
 strat_cmds = [StratActive, StratList, StratPost, StratGet]
 execution_cmds = [BofRunner]
+link_cmds = [Link, Unlink]
 discover_cmds = [DiscoverNeighbors]
 terminal_helper_cmds = [Help, Cheatsheet]

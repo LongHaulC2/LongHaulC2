@@ -162,6 +162,28 @@ async def update_implant(implant_uuid: str, data: dict) -> httpx.Response | None
     )
 
 
+async def create_implant_entry(implant_uuid: str) -> dict | None:
+    """
+    Creates a blank implant entry, and registers it to the datamodel
+
+    Args:
+        implant_uuid (str): The unique identifier (UUID) of the implant to update.
+        data (dict): The update data, such as notes or status changes.
+
+    Returns:
+        dict, with uuid in it
+    """
+    check_type(implant_uuid, str, "implant_uuid")
+
+    api_log.debug("Creating new implant entry")
+
+    return await safe_api_request(
+        method="POST",
+        endpoint="/api/v1/implants/",
+        log_context={"implant_uuid": implant_uuid},
+    )
+
+
 async def get_health_status() -> dict | None:
     """
     Gets health status of the server

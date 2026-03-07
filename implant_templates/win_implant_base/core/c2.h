@@ -34,8 +34,8 @@ private:
     void sleep_implant();
     void handle_tasks(const nlohmann::json& incoming);
 
-    HANDLE h_inbox = INVALID_HANDLE_VALUE;
-    HANDLE h_outbox = INVALID_HANDLE_VALUE;
+    HANDLE h_inbox_ = INVALID_HANDLE_VALUE;
+    HANDLE h_outbox_ = INVALID_HANDLE_VALUE;
 
 
     IIngressTransport* current_ingress_ = nullptr;

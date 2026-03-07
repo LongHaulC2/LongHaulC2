@@ -57,7 +57,8 @@ class Neo4jImplantNodeService:
         """
 
         data_for_neo = kwargs.copy()
-        del data_for_neo["nics"]  # tldr neo4j doenst like structured data.
+        if data_for_neo.get("nics"):
+            del data_for_neo["nics"]  # tldr neo4j doenst like structured data.
         # This prevents the race condition where two threads check find_existing
         # at the same time and both see 'None'
         db.cypher_query(query, {"implant_uuid": self.implant_uuid, "props": data_for_neo})
