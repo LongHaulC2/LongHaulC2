@@ -67,6 +67,11 @@ class Neo4jImplantNode(SemiStructuredNode):
     # inverse of stored in, this is from Memstore -> Implant
     memstore_files = RelationshipFrom("Neo4jMemstoreFileNode", "STORED_IN")
 
+    # parent/child
+    # later, involve c2 channel between these 2? could skip as well for simplicity...
+    parent_to = RelationshipFrom("Neo4jImplantNode", "LINKED")
+    child_of = RelationshipTo("Neo4jImplantNode", "LINKED")
+
     @classmethod
     def find_existing(cls, implant_uuid=None) -> "Neo4jImplantNode | None":
         """

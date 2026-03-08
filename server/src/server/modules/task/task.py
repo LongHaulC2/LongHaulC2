@@ -108,13 +108,15 @@ class TaskService:
         Args:
             task (Task): An instance of the dataclass "task" which defines the task structure
         """
-        server_logger.debug("Pushing task to redis")
+        server_logger.info("Pushing task to redis", task=self.task)
         self._save_to_mysql()
         self._save_to_redis()
 
     def _save_to_mysql(self):
         """Save task to MYSQL"""
-        server_logger.debug("Pushing task to mysql")
+        server_logger.info(
+            "Pushing task to mysql", task=self.task, implant_uuid=self.task.implant_uuid, task_uuid=self.task.task_uuid
+        )
         implant_uuid = self.task.implant_uuid
         task_uuid = self.task.task_uuid
 
@@ -127,7 +129,7 @@ class TaskService:
 
     def _save_to_redis(self):
         """Push task to redis"""
-        server_logger.debug("Pushing task to redis")
+        server_logger.debug("Pushing task to redis", implant_uuid=self.task.implant_uuid)
         implant_uuid = self.task.implant_uuid
 
         task_service = RedisImplantTaskService(implant_uuid)

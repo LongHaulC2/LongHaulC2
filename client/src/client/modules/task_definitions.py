@@ -1,8 +1,6 @@
 import base64
 from dataclasses import asdict, dataclass
 
-from client.src.client.modules.api_calls import create_implant_entry
-
 """
 Task definitions and supporting cast.
 
@@ -312,21 +310,21 @@ class Link:
 
     async def to_task(self) -> dict:
         # get new impalnt uuid for linked implant
-        data_dict = await create_implant_entry(self.implant_uuid)
+        # data_dict = await create_implant_entry(self.implant_uuid)
 
-        if not data_dict:
-            raise RuntimeError(f"API request failed: Could not create child implant for {self.implant_uuid}")
+        # if not data_dict:
+        #    raise RuntimeError(f"API request failed: Could not create child implant for {self.implant_uuid}")
 
-        child_uuid = data_dict.get("data", {}).get("uuid", {})
+        # child_uuid = data_dict.get("data", {}).get("uuid", {})
         # force set despite being frozen
-        object.__setattr__(self, "child_uuid", child_uuid)
+        # object.__setattr__(self, "child_uuid", child_uuid)
 
         task_detail = TaskDetail(
             task_name=self.command_name,
             args={
                 "protocol": self.protocol,
                 "target": self.target_host,
-                "child_uuid": self.child_uuid,
+                # "child_uuid": self.child_uuid,
                 "inbox_pipe": self.inbox_pipe,
                 "outbox_pipe": self.outbox_pipe,
             },

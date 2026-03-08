@@ -376,3 +376,41 @@ def process_single_response_for_neo4j(task_response_dict: dict):
         #         file_node.delete()
 
         # could do a file clear, that attempts to nuke all files, which would use the get_all_files_nodes_for_host
+
+        case "link":
+            """
+            Link actions.
+
+            If our link is successful,
+            - create or get child node by child_uuid
+            - add relationship of CHILD_OF (to parent)
+
+            - create or get parent node by implant_uuid
+            - add relationship of PARENT_TO (child)
+
+            This should be enough for querying parent/child rel's
+            """
+            link_logger = response_pipeline_logger.bind(task=task_name)
+            try:
+                child_uuid = task_response_dict.get("result", {}).get("data", {}).get("child_uuid", "")
+                # parent_uuid = task_request_dict.get("task", {}).get("args", {}).get("implant_uuid", "")
+                parent_uuid = implant_uuid
+
+                if not child_uuid:
+                    link_logger.error("Child uuid empty")
+                    return
+
+                if not parent_uuid:
+                    link_logger.error("Parent uuid empty")
+                    return
+
+                # create parent -> child,
+                Neo4jImplantNodeService.connect_parent_to_child(child_uuid=child_uuid, parent_uuid=parent_uuid)
+
+                # access child node - hey, merge this otherwise it overwrites the node
+                # child_node = Neo4jImplantNodeService.create_or_get_node(implant_uuid=child_uuid)
+                # child_node.listener = f"LINKED TO {parent_uuid}"
+                # child_node.save()
+
+            except Exception as e:
+                link_logger.error("An error occured", error=e)

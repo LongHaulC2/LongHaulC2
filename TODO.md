@@ -372,6 +372,241 @@ Now, need to let the server know the task was successful, and on successful link
    (at get, just shove all tasks into an array if there's a child that has an inbound task)
 
 
+OKAY big shift:
+ - Implants shuold now generate their own UUID's. 
+ This makes chaining a hell of a lot easier, and no need to fuck around with 
+ passing a uuid to the agent. 
+
+   > note, this will break current neo4j parent/child logic - fix could be:
+      if in list of responses from implant, if there's a UUID that's not ours,
+      hook it up to us in the graph
+
+...we are tentatively good. I think it worked. Just a fwe changes to the listener, one to agent, and the
+rest was mostly a drop in fix.
+
+As a HUGE bonus, implants that die/come back, or get deleted, re-check in now. 
+WAYYY more resilient, and this is how CS does it. 
+
+update & re-try smb now
+ > need to remove register task. 
+ Also, need to liekly re-work a little bit, so it gets its init callback
+ to the pipe it needs, i.e., wihtout a poke? not sure... 
+ remove register first, then see what happens
+
+==============================================================
+> Left off:
+ Switched it up, parent is now "server" and child sends data up
+ It's kind of working, there's something off with metadta/data coming back to server
+ It shows up as a blank implant, and I don't know why
+
+prbably related to the type == register thing... go fix/remove that
+		if (child_request.value("type", "") == "register") {
+
+Steps for bug hunting:
+1. dump every task/response (json .dump, there's an example smoewere) to verify whats up
+2. go over all of it again in the morning
+
+So, it appears the parent is getting the checkin from the child. Our bugs might be
+server side. 
+   Double check that "type, register", it seems redundant
+
+
+okay - predicament
+
+2 options for init checkin fro child:
+
+1. create a list of checkin tasks (GET), which contain each's child's chekcin/metadata
+
+Plan:
+
+GET: 
+   > move to an array of GET reqs (need a queue for this, request queue)
+   > server iter's over those requests. 
+   > server constructs ONE array of tasks, based on all provided UUID's of checkin tasks. 
+
+   ex:
+   [{implant_uuid:808080}, {implant_uuid:5145145}]
+
+   response_list = []
+
+   for implant in implant_uuids:
+      if implant_not_in_db:
+         register
+
+      else:
+         extract data/update metadata
+
+      finally:
+         if task_for_implant:
+            response_list.append(task)
+
+   msgpack it and -> to parent
+
+POST:
+   > Leave as is
+   > array of POST requests. 
+   > server iters over those requests
+
+
+note - smb task returns successfully, but we might have a 
+deadlock between the parent/child.
+
+TLDR: child stuck waiting for data in task
+
+Additionally, it's weird that the child is not showing on screen in gui
+
+okay bug here^ get task not being added to queue, or not recieved by parent. 
+> fixed, link task did not return OG, linked shows up now. 
+
+
+OKAY - NOW, re-do link command in response_queue so we know who is linked to who
+
+THEN, on task fetch, use that to get all tasks and feed to implant
+Then we should be golden & working
+
+link command, in data, should include:
+ - UUID of child, ex: ["data"]["child_uuid"] = child_uuid
+
+so the response has something to go off of/link the node *to* - done.
+
+Next bug: 
+ > child is not sending its metadata/GET each time, it waits on a connection to its pipe.
+ We (parent) might have to give it an empty message for it to continue on.
+
+okay - that was fixed by doing a full cycle, of sending a blank task to the child to reset it
+
+NEXT BUG: data gets out, but server is fuckign up and not getting it???
+Need to check. It's verfied to be printed out from parent, need to make sure:
+1. parent is queueing it up
+2. server gets it
+
+<!-- its implant side
+works fine when implant is NOT linked,
+but when a link is introduced it fails -->
+
+okay dumb server bug:
+
+it all works, and commands are stored in db.
+BUUUUUT, the task was sent to the PARENT, and exists as an entry with PARENT's
+row/uuid, so of course the gui doesn't know about it. wtf.
+
+
+See here: All tasks for the child () are stored under parent tasks. I don't know why. 
+I remember this might have been an intentional choice, but it's still dumb. Need to figure out what's up.
+```
+Task History
+{'implant_uuid': '019ccb99-dbf2-7431-a8a9-232c0be2220e', 'task_uuid': '019ccb9a-01e9-77fb-8526-d7b732ca0c4b', 'task_request': {'task': {'args': {'target': 'localhost', 'protocol': 'smb', 'inbox_pipe': 'inbox2', 'outbox_pipe': 'outbox2'}, 'task_name': 'link'}, 'task_uuid': '019ccb9a-01e9-77fb-8526-d7b732ca0c4b', 'implant_uuid': '019ccb99-dbf2-7431-a8a9-232c0be2220e'}, 'task_response': {'data': {'child_uuid': '019ccb9a-1766-772e-b8de-01cbd8b546a1'}, 'message': 'Successfully linked to child implant smb.', 'windows_error_code': 0}}
+
+{'implant_uuid': '019ccb99-dbf2-7431-a8a9-232c0be2220e', 'task_uuid': '019ccb9a-4673-7ea8-932e-15b751a54978', 'task_request': {'task': {'args': {'directory': '.'}, 'task_name': 'ls'}, 'task_uuid': '019ccb9a-4673-7ea8-932e-15b751a54978', 'implant_uuid': '019ccb99-dbf2-7431-a8a9-232c0be2220e'}, 'task_response': {'data': 'http.exe\nImplant_v01_dll.dll\nsmb.exe\n', 'message': 'Success', 'windows_error_code': 0}}
+
+# these 2 ls's specificlaly, why are they stored under the parent uuid
+{'implant_uuid': '019ccb99-dbf2-7431-a8a9-232c0be2220e', 'task_uuid': '019ccb9a-b357-7f42-8301-07a801d20cd4', 'task_request': {'task': {'args': {'directory': '.'}, 'task_name': 'ls'}, 'task_uuid': '019ccb9a-b357-7f42-8301-07a801d20cd4', 'implant_uuid': '019ccb9a-1766-772e-b8de-01cbd8b546a1'}, 'task_response': {'result': {'data': 'http.exe\nImplant_v01_dll.dll\nsmb.exe\n', 'message': 'Success', 'windows_error_code': 0}, 'implant_uuid': '019ccb9a-1766-772e-b8de-01cbd8b546a1'}}
+
+{'implant_uuid': '019ccb99-dbf2-7431-a8a9-232c0be2220e', 'task_uuid': '019ccb9b-10d0-7bb7-ab1e-5ce995f5850a', 'task_request': {'task': {'args': {'directory': '.'}, 'task_name': 'ls'}, 'task_uuid': '019ccb9b-10d0-7bb7-ab1e-5ce995f5850a', 'implant_uuid': '019ccb9a-1766-772e-b8de-01cbd8b546a1'}, 'task_response': {'result': {'data': 'http.exe\nImplant_v01_dll.dll\nsmb.exe\n', 'message': 'Success', 'windows_error_code': 0}, 'implant_uuid': '019ccb9a-1766-772e-b8de-01cbd8b546a1'}}
+--------------------------------------------------
+
+```
+
+TLDR: Something is off, and tasks for child implants are getting their parents UUID's instead
+of their own. 
+
+It's likely in the implant itself...
+go check how the implant child sends back data, and make sure a uuid is sent with:
+
+ex:
+
+```
+[*] Poll Based Ingress
+[*] SMB: Sending initial check-in GET request...
+[*] Waiting on a task to enter my inbox
+[
+    {
+        "implant_uuid": "019ccb9a-1766-772e-b8de-01cbd8b546a1",
+        "task": {
+            "args": {
+                "directory": "."
+            },
+            "task_name": "ls"
+        },
+        "task_uuid": "019ccb9b-10d0-7bb7-ab1e-5ce995f5850a"
+    }
+]
+Task List recieved
+[*] Start of cycle
+queued task for response:
+{ # << here (check parent side too)
+    "data": "http.exe\nImplant_v01_dll.dll\nsmb.exe\n",
+    "message": "Success",
+    "task_uuid": "019ccb9b-10d0-7bb7-ab1e-5ce995f5850a",
+    "windows_error_code": 0
+}
+[*] Worker completed, queueing task response
+[+] Instantly sent 189 bytes.
+[*] Start of cycle
+[*] Poll Based Ingress
+[*] SMB: Sending initial check-in GET request...
+[*] Waiting on a task to enter my inbox
+```
+
+
+from parent:
+
+```
+queued task for response:
+{
+    "implant_uuid": "019ccb9a-1766-772e-b8de-01cbd8b546a1",
+    "result": {
+        "data": "http.exe\nImplant_v01_dll.dll\nsmb.exe\n",
+        "message": "Success",
+        "windows_error_code": 0
+    },
+    "task_uuid": "019ccbc1-8ca2-7501-8f2a-b8fe4327d5d7"
+}
+```
+the implant uuid here is fine.
+
+I wonder if task_uuid is originally registered to parent for some reason?
+see if lookups are done via task_uuid?
+> HERE
+
+Checklist:
+
+- [X] GUI sending correct UUID
+- [X] API getting right UUID
+- [X] DB queuing right UUID
+
+- [X] listener on GET
+
+response:
+- [ ] listener getting right UUID
+- [ ] Saved to redis with right uuid
+
+found it:
+2026-03-08T07:06:15.721602Z [info     ] Received tasks from implant    [listener] implant_id=019ccc43-b66c-7168-a83c-4b2724b5c6ee ip=10.0.0.24 method=POST path=/N4215/adj/amzn.us.sr.aps tasks=[{'implant_uuid': '019ccc43-b66c-7168-a83c-4b2724b5c6ee', 'result': {'implant_uuid': '019ccc43-ddf3-737d-91b7-f4189403b084', 'result': {'data': 'http.exe\nImplant_v01_dll.dll\nsmb.exe\n', 'message': 'Success', 'windows_error_code': 0}}, 'task_uuid': '019ccc44-968d-7693-a719-514b16682261'}]
+
+somehow, the child task is having the parent implant UUID appended to it
+
+fixed it, it was the stpuid batching functino that added the parent UUID onto it. 
+
+okay now the fun part.
+
+cleanig up the fucking implant, and then moving to jinja
+
+Left off:
+ - [X] Chaining is working
+ - [ ] Clean up any other code/comments. 
+ - [ ] prep code for templating & update all of it (can keep hardcoded smb for now, just get it all updated)
+   > after that works, can work on things like an smb block for malleable c2/pipe names, etc. 
+- [ ] Listener cleanup
+   > move functions out to dedicated helpers where necessary, keep the listeners 
+   "transport only"
+
+ - Note: pipes were moved to synchronos handling for simpliocity. way less to bug out on. 
+ This means they will "sleep" as well, same for child pipes under them. latency may get long. review 
+ it all
+
+==============================================================
+
 [X] Another bug:
  whetehr to send metadata or not is in the HTTP code, based on registered setting.
  Find a better spot for this, maybe in register? I'm not sure.

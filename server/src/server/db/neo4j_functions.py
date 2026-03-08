@@ -49,7 +49,7 @@ class Neo4jImplantNodeService:
 
     def register_node(self, **kwargs):
         # Use Cypher MERGE to ensure atomicity at the DB level
-        # TLDR, becaause we are using semi unstructured, duplicates are allowed by db.
+        # TLDR, because we are using semi unstructured, duplicates are allowed by db.
         query = """
         MERGE (n:Neo4jImplantNode {implant_uuid: $implant_uuid})
         SET n += $props
@@ -58,7 +58,7 @@ class Neo4jImplantNodeService:
 
         data_for_neo = kwargs.copy()
         if data_for_neo.get("nics"):
-            del data_for_neo["nics"]  # tldr neo4j doenst like structured data.
+            del data_for_neo["nics"]  # tldr neo4j doesn't like structured data.
         # This prevents the race condition where two threads check find_existing
         # at the same time and both see 'None'
         db.cypher_query(query, {"implant_uuid": self.implant_uuid, "props": data_for_neo})
@@ -77,7 +77,7 @@ class Neo4jImplantNodeService:
 
         # data = {mac:{ip, cidr (ex,24), gateway},}
         for nic_mac_address, data in nics.items():
-            # exlude NIC's that didn't return a mac for some reason.
+            # exclude NIC's that didn't return a mac for some reason.
             if not nic_mac_address:
                 neo4j_logger.debug("mac address missing from nic, skipping", data=data)
                 continue
@@ -96,16 +96,34 @@ class Neo4jImplantNodeService:
                 network_segment = f"{gateway}/{cidr}"
                 Neo4jNicNodeService.connect_nic_to_network(network_segment, nic_mac_address)
 
+    # @staticmethod
+    # def create_or_get_node(implant_uuid):
+    #     """
+    #     Atomically creates or gets a node using Cypher MERGE to prevent
+    #     check-then-act race conditions that result in bare duplicate nodes.
+    #     """
+    #     query = """
+    #     MERGE (n:Neo4jImplantNode {implant_uuid: $implant_uuid})
+    #     RETURN n
+    #     """
+
+    #     # This guarantees only one node is created/fetched at the DB transaction level
+    #     db.cypher_query(query, {"implant_uuid": implant_uuid})
+
+    #     # Now it is safe to fetch the neomodel object reference
+    #     return Neo4jImplantNode.nodes.get(implant_uuid=implant_uuid)
+
     @staticmethod
     def create_or_get_node(implant_uuid):
         """
         Creates a node. Useful for getting a quick new node and letting this handle all
-        the node logic
+        the node logic. Uses neomodel's get_or_create to prevent check-then-act race conditions.
         """
-        implant_node = Neo4jImplantNode.find_existing(implant_uuid=implant_uuid)
-        if not implant_node:
-            implant_node = Neo4jImplantNode(implant_uuid=implant_uuid).save()
-            neo4j_logger.info("New node created", implant_uuid=implant_uuid)
+        # neomodel's get_or_create expects a dict and ALWAYS returns a list of nodes.
+        # We append [0] to grab the actual node object out of the list.
+        implant_node = Neo4jImplantNode.get_or_create({"implant_uuid": implant_uuid})[0]
+
+        neo4j_logger.info("Node fetched or created via get_or_create", implant_uuid=implant_uuid)
 
         return implant_node
 
@@ -157,6 +175,68 @@ class Neo4jImplantNodeService:
             self.implant_node.running_on.connect(host_node)
 
         neo4j_logger.info("Implant connected to host", implant_uuid=self.implant_uuid, hostname=hostname)
+
+    # NOte: explicit one of each, connect_parent_to_child and connect_child_to_parent, for
+    # allowance of split c2.
+    @staticmethod
+    def connect_parent_to_child(child_uuid, parent_uuid):
+        child_node = Neo4jImplantNodeService.create_or_get_node(
+            implant_uuid=child_uuid,
+        )
+
+        # parent should already exist, so we get by uuid
+        parent_node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=parent_uuid)
+
+        # if we aren't already parent of this implant
+        if not parent_node.parent_to.is_connected(child_node):
+            # add us to it
+            parent_node.parent_to.connect(child_node)
+
+        neo4j_logger.info("Parent connected to child", parent_uuid=parent_uuid, child_uuid=child_uuid)
+
+    @staticmethod
+    def get_children_for_parent(parent_uuid: str) -> list[dict]:
+        """
+        Finds all child implants linked TO the specified parent UUID.
+        Follows the (Child)-[:LINKED]->(Parent) relationship backwards.
+        """
+        # Get the parent node (don't create it if it doesn't exist here)
+        parent_node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=parent_uuid)
+
+        if not parent_node:
+            neo4j_logger.warning("Attempted to get children for non-existent parent", parent_uuid=parent_uuid)
+            return []
+
+        # neomodel handles the traversal. .all() returns a list of Neo4jImplantNode objects
+        child_nodes = parent_node.parent_to.all()
+
+        #  Return just the properties dictionaries, matching get_all() and get_by_uuid()
+        return [child.__properties__ for child in child_nodes]
+
+    @staticmethod
+    def get_egress_of_node(target_uuid):
+        """
+        Finds the specific egress (root) node for a given implant's chain.
+        If the UUID passed in is the egress, it returns that.
+
+        maybe move me to a pathfinding or chaining class?
+        """
+        query = """
+        MATCH (target:Neo4jImplantNode {implant_uuid: $target_uuid})-[:LINKED*0..]->(egress:Neo4jImplantNode)
+        WHERE NOT (egress)-[:LINKED]->(:Neo4jImplantNode)
+        RETURN egress.implant_uuid AS egress_uuid
+        """
+
+        results, _ = db.cypher_query(query, {"target_uuid": target_uuid})
+
+        # Extract the string from the list of lists
+        if results and len(results) > 0:
+            # results[0] is the first row, [0] is the first column
+            # should just return uuid of implant
+            return results[0][0]
+
+        # Return None if the target doesn't exist or has no path
+        return None
 
     # funcs to replicate api func
     @staticmethod

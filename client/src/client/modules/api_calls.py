@@ -122,6 +122,9 @@ async def queue_task(implant_uuid: str, task: dict) -> httpx.Response | None:
     api_log.debug("Queueing a task for implant")
     task_msgpack = msgpack.packb(task)
 
+    api_log.info("task", task=task)
+    api_log.info("implant_uuid", task=implant_uuid)
+
     return await safe_api_request(
         method="POST",
         endpoint=f"/api/v1/implants/{implant_uuid}/task",
