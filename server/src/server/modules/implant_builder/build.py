@@ -193,17 +193,19 @@ def _run_docker_build(build_dir: Path, options: dict) -> bool:
     # gurantees everything gets re-compiled with new code
     if options.get("clear_cache", False):
         docker_logger.info("Clearing previous build artifacts & cache")
-        shutil.rmtree(str(persistent_build_dir))
+        # ignore errors for if the dir doesn't exist
+        shutil.rmtree(str(persistent_build_dir), ignore_errors=True)
 
     persistent_build_dir.mkdir(parents=True, exist_ok=True)
 
+    debug_requested = options.get("debug", False)
+    cmake_debug_flag = "-DENABLE_IMPLANT_LOGS=ON" if debug_requested else "-DENABLE_IMPLANT_LOGS=OFF"
     cmd = (
-        "bash -c 'if [ ! -f /build/build.ninja ]; then "
-        "cmake -G Ninja -S /source -B /build -DCMAKE_BUILD_TYPE=Release; "
+        f"bash -c 'cmake -G Ninja -S /source -B /build -DCMAKE_BUILD_TYPE=Release {cmake_debug_flag} && "
         # ! set source and build to 777, so this script can delete them. Otherwise we get a perms denied,
         # ! as the docker container runs as root in the container, and breaks if you change to a different user.
         # ! I don't like it, but it works for now.
-        "fi && ninja -C /build && chmod -R 777 /source /output /build'"
+        "ninja -C /build && chmod -R 777 /source /output /build'"
     )
 
     docker_logger.info("Spinning up builder container (win_x64)")
