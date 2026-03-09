@@ -96,7 +96,7 @@ async def implant_view():
             # Title
             with ui.row().classes("items-center gap-2"):
                 ui.icon("terminal", color="emerald-500").classes("text-xl")
-                ui.label("ACTIVE_SESSIONS //").classes("tech-label-header-section")
+                ui.label("ACTIVE_SESSIONS // [todo: give table a search]").classes("tech-label-header-section")
 
             # Toolbar
             with ui.row().classes("items-center gap-1"):

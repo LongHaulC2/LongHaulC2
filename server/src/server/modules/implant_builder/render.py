@@ -69,7 +69,7 @@ def render_implant(
 
     _render_file(
         output_dir / "core/c2.cpp",
-        "c2.j2",
+        "c2.cpp.j2",
         {
             "profile_mappings": profile_mappings,
             "init_get_namespace": init_get_namespace,
@@ -120,7 +120,7 @@ def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dic
     if listener_type == "http":
         _render_file(
             output_dir / "comms/comms.h",
-            "wininet_comms_http.j2",
+            "wininet_comms_http.h.j2",
             context,
             mode="a",
         )

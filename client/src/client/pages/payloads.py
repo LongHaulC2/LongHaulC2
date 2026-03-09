@@ -340,6 +340,11 @@ async def start_payload_dialogue():
                     .props("outlined dense dark color=emerald")
                     .classes("flex-grow tech-input")
                 )
+                with name_input:
+                    formatted_tooltip(
+                        title="Name for the payload",
+                        body="All generated payloads will have this name, and the appropriate extension added to it.",
+                    )
 
                 format_select = (
                     ui.select(
@@ -350,6 +355,10 @@ async def start_payload_dialogue():
                     .props("outlined dense dark color=emerald options-dense")
                     .classes("w-1/3 tech-select")
                 )
+                with format_select:
+                    formatted_tooltip(
+                        title="[Not Implemented] The format of the implant output",
+                    )
 
             # LISTENER SELECTION
             listener_select = (

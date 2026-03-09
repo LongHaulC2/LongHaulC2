@@ -622,7 +622,7 @@ Left off - DO IN ORDER:
 
    call via this method. It's much cleaner for the long run
 
-- [] BUG!!!!! Crasheson no listener to connect too, this is not okay. Needs to sit & keep trying. 
+- [] BUG!!!!! Crashes on no listener to connect too, this is not okay. Needs to sit & keep trying. 
 - [ ] Move functions to WinApi::, replace as needed.
 - [ ] move stdout to a DEBUG_LOG function that can be defined away
 
@@ -635,9 +635,9 @@ Left off - DO IN ORDER:
 ```
    - [ ] add debug on flag in build
    - [ ] add clear cache flag in build, that deletes the cache before building
+      > buttons there, not hooked up to anything
 
 - [ ] SMB templating via python & final code resting location. 
-
 
    > after that works, can work on things like an smb block for malleable c2/pipe names, etc. 
 - [ ] Listener cleanup
