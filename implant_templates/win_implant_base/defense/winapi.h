@@ -39,13 +39,14 @@ namespace WinApi {
     //makes sure a module is loaded into mem, otherwise we hit a crash cuz lazy_importer can't find it
     //note - ensuremoduleloaded makes it so we don't have to resolve via .in... cuz it's already in the PEB. 
     inline void EnsureModuleLoaded(LPCSTR moduleName) {
-		DEBUG_LOG("[WinApi::EnsureModuleLoaded] Checking/Loading Module: " + std::string(moduleName));        
+		DEBUG_LOG("[WinApi::EnsureModuleLoaded] Checking if module is loaded: " + std::string(moduleName));        
 		//if we don't have the module....
         if (!LI_FN(GetModuleHandleA)(moduleName)) {
             //load it! :D
 			DEBUG_LOG("[WinApi::EnsureModuleLoaded] Module not found. Calling LoadLibraryA on: " + std::string(moduleName));
             LI_FN(LoadLibraryA)(moduleName);
         }
+        DEBUG_LOG("[WinApi::EnsureModuleLoaded] Already loaded!: " + std::string(moduleName));
     }
 
     // Wrapper for Sleep
