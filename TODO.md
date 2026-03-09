@@ -634,7 +634,7 @@ Left off - DO IN ORDER:
 #endif
 ```
    - [ ] add debug on flag in build
-   - [ ] add clear cache flag in build, taht deletes the cache before building
+   - [ ] add clear cache flag in build, that deletes the cache before building
 
 - [ ] SMB templating via python & final code resting location. 
 

@@ -11,6 +11,7 @@ from client.src.client.modules.api_calls import (
     get_payload_source_bytes,
 )
 from client.src.client.pages.footer import build_footer
+from client.src.client.pages.formatted_tooltip import formatted_tooltip
 from client.src.client.pages.menu import setup_menu
 
 server_log = structlog.getLogger("server")
@@ -383,6 +384,65 @@ async def start_payload_dialogue():
                     ui.tooltip("The profile to use for the initial GET requests").classes("bg-green-700")
                 with profile_post_select:
                     ui.tooltip("The profile to use for the initial POST requests").classes("bg-green-700")
+
+            ui.separator()
+            # with ui.row().classes("w-full items-center justify-between gap-4"):
+            #     with ui.column():
+            #         debug_logs_switch = (
+            #             ui.switch("Enable Debug Logs").classes("tech-switch").props("dark color=emerald")
+            #         )
+            #         with debug_logs_switch:
+            #             ui.tooltip("Enable output to terminal")
+
+            #     with ui.column():
+            #         clear_cache_switch = ui.switch("Fresh Cache").classes("tech-switch").props("dark color=emerald")
+            #         with clear_cache_switch:
+            #             ui.tooltip("Clears cache before building")
+
+            with ui.expansion("Additional Options").classes("tech-expansion w-full"):  # noqa - niecgui styling
+                # Container for the list. Removed the top border since the expansion handles it now.
+                with ui.column().classes("w-full p-0 gap-0"):
+                    # sep at start
+                    ui.separator()
+
+                    # Debug logs options
+                    with ui.row().classes("w-full items-center justify-between p-3 border-b border-white/5"):
+                        ui.label("IMPLANT DEBUG LOGS").classes(
+                            "text-[11px] text-zinc-400 font-bold tracking-widest font-mono uppercase"
+                        )
+                        debug_logs_toggle = (  # noqa - will use eventuall
+                            ui.toggle(["DISABLED", "ENABLED"], value="DISABLED")
+                            .classes("tech-toggle")
+                            .props("dark color=emerald")
+                        )
+                        with debug_logs_toggle:
+                            # ui.tooltip("Enable output to terminal via the implant").classes(
+                            #     "bg-neutral-900 border border-emerald-500/30 font-mono text-xs"
+                            # )
+                            formatted_tooltip(
+                                title="[not implemented] Enable Debug Logs",
+                                body="Enables debug logs for the implant. These print to STDOUT",
+                            )
+
+                    # Build Cache option
+                    with ui.row().classes("w-full items-center justify-between p-3"):
+                        ui.label("BUILD CACHE").classes(
+                            "text-[11px] text-zinc-400 font-bold tracking-widest font-mono uppercase"
+                        )
+                        clear_cache_toggle = (  # noqa - will use eventually
+                            ui.toggle(["KEEP", "CLEAR"], value="KEEP")
+                            .classes("tech-toggle")
+                            .props("dark color=emerald")
+                        )
+                        with clear_cache_toggle:
+                            formatted_tooltip(
+                                title="[not implemented] Clear Build Cache",
+                                body="Clears the build cache of the implant. Useful if editing the implant code",
+                                footer="<i>Expect compile times to be slightly longer<i>",
+                            )
+
+                    # sep at end
+                    ui.separator()
 
         # Footer
         with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3 relative"):

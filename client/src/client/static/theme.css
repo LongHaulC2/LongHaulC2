@@ -257,3 +257,153 @@ body::before {
     background: rgba(16, 185, 129, 0.04) !important;
     transition: background 0.2s ease;
 }
+
+/* --- TECH ui.switch --- */
+.tech-switch {
+    padding: 8px;
+    transition: all 0.2s ease;
+}
+
+/* The Track (Background) */
+.tech-switch .q-toggle__track {
+    border-radius: 2px !important; /* Square instead of pill */
+    height: 14px !important;
+    width: 34px !important;
+    opacity: 0.2 !important;
+    background: #3f3f46 !important; /* Zinc-600 */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tech-switch .q-toggle__thumb {
+    border-radius: 2px !important;
+    width: 14px !important;
+    height: 14px !important;
+    background: #71717a !important; /* Zinc-400 */
+    box-shadow: none !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+}
+
+/* Nuke Quasar's hidden circles, pseudo-elements, and SVGs */
+.tech-switch .q-toggle__thumb::before,
+.tech-switch .q-toggle__thumb::after,
+.tech-switch .q-toggle__thumb .q-icon {
+    border-radius: 2px !important;
+    box-shadow: none !important;
+}
+.tech-switch .q-toggle__thumb svg {
+    display: none !important; /* This is the main culprit */
+}
+
+/* Active State - When turned ON */
+.tech-switch.q-toggle--dark.q-toggle--active .q-toggle__track {
+    background: rgba(16, 185, 129, 0.4) !important; /* Emerald glow */
+    border-color: rgba(16, 185, 129, 0.5);
+    opacity: 0.6 !important;
+}
+
+.tech-switch.q-toggle--dark.q-toggle--active .q-toggle__thumb {
+    background: #34d399 !important; /* Emerald-400 */
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.8) !important;
+}
+
+/* --- TECH ui.toggle (Segmented Button Control) --- */
+.tech-toggle {
+    background: rgba(23, 23, 23, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 2px !important;
+    box-shadow: none !important;
+}
+
+/* Default unselected button state */
+.tech-toggle .q-btn {
+    font-family: ui-monospace, 'Cascadia Code', monospace !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #71717a !important; /* Zinc-400 */
+    border-radius: 0 !important; /* Force hard internal edges */
+    padding: 4px 12px !important;
+    min-height: 28px !important;
+}
+
+/* Hover state for unselected */
+.tech-toggle .q-btn:hover {
+    color: #e4e4e7 !important; /* Zinc-200 */
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Active/Selected button state */
+.tech-toggle .q-btn[aria-pressed="true"] {
+    background: rgba(16, 185, 129, 0.15) !important; /* Emerald tint */
+    color: #34d399 !important; /* Emerald text */
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    box-shadow: inset 0 0 8px rgba(16, 185, 129, 0.1) !important;
+}
+
+/* --- TECH ui.expansion --- */
+.tech-expansion {
+    background: rgba(23, 23, 23, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: 2px !important;
+    margin-bottom: 4px; /* Keeps gaps between multiple expansions very tight */
+    transition: all 0.2s ease;
+}
+
+/* The clickable header row */
+.tech-expansion .q-item {
+    min-height: 32px !important; /* Kills Quasar's default bulky height */
+    padding: 6px 12px !important; /* Tight padding */
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: rgba(16, 185, 129, 0.7); /* Emerald-500/70 to match your previous header */
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+/* Header hover effect */
+.tech-expansion .q-item:hover {
+    background: rgba(255, 255, 255, 0.02) !important;
+    color: rgba(16, 185, 129, 0.9);
+}
+
+/* When the expansion is OPEN */
+.tech-expansion.q-expansion-item--expanded {
+    border-color: rgba(16, 185, 129, 0.3) !important; /* Subtle emerald border glow */
+    background: rgba(15, 15, 15, 0.8) !important; /* Slightly darker background to recede */
+}
+
+/* The expanded content area wrapper */
+.tech-expansion .q-expansion-item__content {
+    border-top: 1px solid rgba(255, 255, 255, 0.05); /* Crisp dividing line */
+}
+
+/* The expand/collapse arrow */
+.tech-expansion .q-item__section--side .q-icon {
+    color: #71717a !important; /* Zinc-400 */
+    font-size: 16px !important;
+    transition: color 0.2s ease;
+}
+
+/* Highlight the arrow when hovering the header */
+.tech-expansion .q-item:hover .q-item__section--side .q-icon {
+    color: #e4e4e7 !important; /* Zinc-200 */
+}
+
+/* --- TECH ui.tooltip --- */
+.tech-tooltip {
+    background-color: rgba(23, 23, 23, 0.95) !important; /* Very dark zinc, nearly opaque */
+    border: 1px solid rgba(16, 185, 129, 0.3) !important; /* The subtle emerald outline */
+    border-radius: 2px !important; /* Matches your sharp component edges */
+    
+    /* Typography */
+    font-family: ui-monospace, 'Cascadia Code', monospace !important;
+    font-size: 11px !important;
+    color: #a1a1aa !important; /* Zinc-400 */
+    letter-spacing: 0.05em;
+    
+    /* Spacing and shadow */
+    padding: 6px 10px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(4px);
+}

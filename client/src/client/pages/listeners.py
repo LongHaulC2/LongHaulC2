@@ -197,8 +197,11 @@ async def render_listeners_table():
             "RESTART", icon="restart_alt", on_click=lambda: batch_action(restart_listener, "Restarted", "positive")
         ).props("flat dense color=orange no-caps size=sm"):
             formatted_tooltip(
-                title="Kill the current listener process, and re-spawn a new one with the same config",
-                body=("This is handy for if a listener crashes, or encounters a bug."),
+                title="Restart the Listener",
+                body=(
+                    "Kill the current listener process, and re-spawn a new one with the same config. "
+                    "This is handy for if a listener crashes, or encounters a bug."
+                ),
             )
 
         with ui.button("STOP", icon="stop", on_click=lambda: batch_action(stop_listener, "Stopped", "negative")).props(  # noqa
