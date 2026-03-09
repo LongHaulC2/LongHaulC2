@@ -6,7 +6,7 @@
 #include <string>
 #include <stdexcept>
 
-#define TEST(name) DEBUG_LOG("[*] Testing: " << name << "...");
+#define TEST(name) DEBUG_LOG("Testing: " << name << "...");
 #define OVERLOAD(name) DEBUG_LOG("[>] Overload: " << name << "...");
 
 #include "data/msgpack/msgpack.h"

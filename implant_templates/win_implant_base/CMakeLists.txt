@@ -68,6 +68,7 @@ set(SOURCES
     "comms/smb.cpp"
     "protocols/http_wininet/http.cpp"
     "protocols/http_wininet/http.h"
+    "_debug/debug.cpp"
 )
 #add_executable(Implant_v01 ${SOURCES} "modules/discover.cpp" "modules/discover.h" "comms/transport.h"   "defense/winapi.h" "comms/smb.h" "comms/smb.cpp")
 

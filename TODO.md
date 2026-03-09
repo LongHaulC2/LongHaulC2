@@ -625,15 +625,9 @@ Left off - DO IN ORDER:
 > left off here
 - [] BUG!!!!! Crashes on no listener to connect too, this is not okay. Needs to sit & keep trying. 
 - [ ] Move functions to WinApi::, replace as needed.
-- [ ] move stdout to a DEBUG_LOG function that can be defined away
+- [X] move stdout to a DEBUG_LOG function that can be defined away
+- [ ] Add better logging throughout the implant, for when it is on.
 
-```
-#ifdef _DEBUG
-    #define DEBUG_LOG(x) std::cout << "[+] " << x << std::endl
-#else
-    #define DEBUG_LOG(x) // Becomes empty space in production
-#endif
-```
    - [ ] add debug on flag in build
    - [ ] add clear cache flag in build, that deletes the cache before building
       > buttons there, not hooked up to anything

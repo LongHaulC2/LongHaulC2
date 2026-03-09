@@ -6,7 +6,7 @@
 #include <string>
 #include <stdexcept>
 
-#define TEST(name) std::cout << "[*] Testing: " << name << "..." << std::endl;
+#define TEST(name) std::cout << "Testing: " << name << "..." << std::endl;
 #define OVERLOAD(name) std::cout << "[>] Overload: " << name << "..." << std::endl;
 
 #include "../data/msgpack/msgpack.h"

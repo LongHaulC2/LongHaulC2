@@ -148,7 +148,7 @@ int main() {
     // ---------------------------------------------------------
     // TEST: store()
     // ---------------------------------------------------------
-    std::cout << "[*] TEST: store() - Adding multiple entries\n";
+    std::cout << "TEST: store() - Adding multiple entries\n";
     MemStore::instance().store(key1, std::vector<uint8_t>(data1.begin(), data1.end()));
     MemStore::instance().store(key2, std::vector<uint8_t>(data2.begin(), data2.end()));
     std::cout << "    >> Stored '" << key1 << "' and '" << key2 << "'\n\n";
@@ -158,7 +158,7 @@ int main() {
     // ---------------------------------------------------------
     // This allows us to see what keys currently exist in the map.
 
-    std::cout << "[*] TEST: get_file_names()\n";
+    std::cout << "TEST: get_file_names()\n";
     std::vector<std::string> keys = MemStore::instance().get_file_names();
     std::cout << "    Current keys in store: ";
     for (const auto& k : keys) {
@@ -169,7 +169,7 @@ int main() {
     // ---------------------------------------------------------
     // TEST: get() - Roundtrip validation
     // ---------------------------------------------------------
-    std::cout << "[*] TEST: get() - Validating integrity\n";
+    std::cout << "TEST: get() - Validating integrity\n";
     std::vector<uint8_t> retrieved = MemStore::instance().get(key2);
     std::string decryptedStr(retrieved.begin(), retrieved.end());
 
@@ -184,7 +184,7 @@ int main() {
     // ---------------------------------------------------------
     // TEST: remove() - Success and Failure modes
     // ---------------------------------------------------------
-    std::cout << "[*] TEST: remove()\n";
+    std::cout << "TEST: remove()\n";
 
     // Test successful removal
     int resOk = MemStore::instance().remove(key1);
@@ -202,7 +202,7 @@ int main() {
     // ---------------------------------------------------------
     // TEST: clear()
     // ---------------------------------------------------------
-    std::cout << "[*] TEST: clear() - Wiping the store\n";
+    std::cout << "TEST: clear() - Wiping the store\n";
     MemStore::instance().clear();
 
     std::vector<std::string> finalKeys = MemStore::instance().get_file_names();

@@ -34,6 +34,8 @@
 
 
 int main() {
+    DEBUG_LOG("[main] Implant executable started. Initializing C2Implant...");
+
     //call this once to setup the implant
     C2Implant c2implant;
     c2implant.init();
@@ -48,8 +50,8 @@ int main() {
     //    Sleep(5000);
     //}
 
+    DEBUG_LOG("[main] Initialization complete. Entering c2implant.cycle()");
     c2implant.cycle();
 
     return 0;
 }
-

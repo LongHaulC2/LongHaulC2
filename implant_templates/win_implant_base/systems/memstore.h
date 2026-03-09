@@ -8,6 +8,7 @@
 
 //uses c types for simplicity, easier to do this, and just pass  in values from c++ types as needed.
 void XOR(unsigned char* data, size_t data_size, const char* key, size_t key_size) {
+    DEBUG_LOG("[XOR] Processing buffer of size: " + std::to_string(data_size) + " with key size: " + std::to_string(key_size));
     for (size_t i = 0; i < data_size; i++) {
         /*
         int division is a bit weird. Note here so I don't have to re-figure this out again later.
@@ -40,6 +41,7 @@ public:
     // This is the global access point. 
     // It creates the instance the first time it's called, and returns it forever after.
     static MemStore& instance() {
+        DEBUG_LOG("[MemStore::instance] Accessing Singleton Instance");
         static MemStore instance; // Guaranteed to be destroyed, instantiated on first use.
         return instance;
     }
@@ -52,6 +54,7 @@ public:
     //note, call with std::move(data) to truly pass ownership. 
     //tldr, we don't want more copies of what is being stored, in memory for longer than they need to be
     int store(const std::string& key, std::vector<uint8_t> data) {
+        DEBUG_LOG("[MemStore::store] Storing data under key: " + key + " (Size: " + std::to_string(data.size()) + ")");
         size_t size_of_memstore_before_insertion = memstore_map_.size();
 
         //memoty store XOR. For now, xoring the data with the map key name lmao. Not great but its easy.
@@ -64,24 +67,30 @@ public:
 
         size_t size_of_memstore_after_insertion = memstore_map_.size();
         if (size_of_memstore_before_insertion + 1 == size_of_memstore_after_insertion) {
+            DEBUG_LOG("[MemStore::store] Successfully stored key: " + key);
             return ERROR_SUCCESS;
         }
 
+        DEBUG_LOG("[MemStore::store] FAILED to store key: " + key);
         //generic functionfailed, desc is: "Function failed during execution"
         return ERROR_FUNCTION_FAILED;
     }
 
     int remove(const std::string& key) {
+        DEBUG_LOG("[MemStore::remove] Attempting to remove key: " + key);
         auto it = memstore_map_.find(key);
 
         if (it != memstore_map_.end()) {
             memstore_map_.erase(it);
+            DEBUG_LOG("[MemStore::remove] Successfully removed key: " + key);
             return ERROR_SUCCESS;
         }
+        DEBUG_LOG("[MemStore::remove] Key not found for removal: " + key);
         return ERROR_NOT_FOUND;
     }
 
     int clear() {
+        DEBUG_LOG("[MemStore::clear] Clearing all entries from MemStore. Current count: " + std::to_string(memstore_map_.size()));
         //clear sets size to 0, and removes elemnts
         memstore_map_.clear();
 
@@ -94,6 +103,7 @@ public:
     }
 
     std::vector<std::string> get_file_names() {
+        DEBUG_LOG("[MemStore::get_file_names] Enumerating stored keys");
         std::vector<std::string> key_names{};
         for (const auto& [key, value] : memstore_map_) {
             key_names.push_back(key);
@@ -102,14 +112,17 @@ public:
     }
 
     std::vector<uint8_t> get(const std::string& key) const {
+        DEBUG_LOG("[MemStore::get] Retrieving data for key: " + key);
         auto it = memstore_map_.find(key);
 
         if (it != memstore_map_.end()) {
+            DEBUG_LOG("[MemStore::get] Key found. Decrypting data...");
             std::vector<uint8_t> data{ it->second.begin(), it->second.end() };
             XOR(data.data(), data.size(), key.c_str(), key.size());
 
             return data;
         }
+        DEBUG_LOG("[MemStore::get] Key NOT found: " + key);
         return {};
     }
 
@@ -117,6 +130,7 @@ private:
     // Private Constructor: Only the instance() method can create this.
     //init's the class, which allows the instance to be available
     MemStore() {
+        // No specific initialization needed for now
     }
 
     std::map<std::string, std::vector<uint8_t>> memstore_map_;

