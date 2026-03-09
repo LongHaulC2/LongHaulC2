@@ -54,7 +54,8 @@ async def payloads_view():
                 ):
                     ui.icon("add", size="xs").classes("mr-1")
                     ui.label("PAYLOAD").classes("tech-label-sub")
-                    ui.tooltip("Build New Payload")
+                    # ui.tooltip("Build New Payload")
+                    formatted_tooltip(title="Build a new payload")
                 ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/payloads")).props(
                     "dense flat size=sm"
                 ).classes("tech-btn-action-2")
@@ -362,7 +363,11 @@ async def start_payload_dialogue():
                 .classes("w-full tech-select")
             )
             with listener_select:
-                ui.tooltip("The profiles to include in the payload").classes("bg-green-700")
+                # ui.tooltip("The profiles to include in the payload").classes("bg-green-700")
+                formatted_tooltip(
+                    title="Profile to include in the payload",
+                    body="These are compiled in, and can be switched with the `strat` command.",
+                )
 
             # PROFILE CONFIG
             with ui.row().classes("w-full"):  # bg-white/5 rounded border border-white/5
@@ -381,9 +386,9 @@ async def start_payload_dialogue():
                 profile_post_select.disable()
 
                 with profile_get_select:
-                    ui.tooltip("The profile to use for the initial GET requests").classes("bg-green-700")
+                    formatted_tooltip("The profile to use for the initial GET requests")
                 with profile_post_select:
-                    ui.tooltip("The profile to use for the initial POST requests").classes("bg-green-700")
+                    formatted_tooltip("The profile to use for the initial POST requests")
 
             ui.separator()
             # with ui.row().classes("w-full items-center justify-between gap-4"):

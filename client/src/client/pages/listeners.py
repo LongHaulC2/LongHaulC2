@@ -60,7 +60,8 @@ async def listener_view():
                 ):
                     ui.icon("add", size="xs").classes("mr-1")
                     ui.label("LISTENER").classes("tech-label-sub")
-                    ui.tooltip("Build New Payload")
+                    # ui.tooltip("Build New Payload")
+                    formatted_tooltip(title="Start a new Listener")
                 ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/listeners")).props(
                     "dense flat size=sm"
                 ).classes("tech-btn-action-2")
@@ -299,7 +300,12 @@ async def start_listener_dialogue():
                     ui.input("BIND HOST").props("outlined dense dark color=emerald").classes("flex-1 tech-input")
                 )
                 with listener_host_field:
-                    ui.tooltip("External IP/Hostname (No 0.0.0.0)")
+                    # ui.tooltip("External IP/Hostname (No 0.0.0.0)")
+                    formatted_tooltip(
+                        title="Listener Host",
+                        body="The IP/Address the listener will listen on",
+                        footer="DO NOT put 0.0.0.0, the listener must bind to an IP/Hostname",
+                    )
 
                 listener_port_field = (
                     ui.input(

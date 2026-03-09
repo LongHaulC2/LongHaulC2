@@ -1,6 +1,7 @@
 from nicegui import app, ui
 
 from client.src.client.info import LOGIN_BANNER
+from client.src.client.pages.formatted_tooltip import formatted_tooltip
 
 
 @ui.page("/login")
@@ -41,9 +42,8 @@ def login_page():
                     .on("keydown.enter", lambda: username.run_method("focus"))  # Fixed flow
                 )
                 with host:
-                    ui.tooltip("Target LongHaulC2 Server Address").classes(
-                        "bg-black text-emerald-500 font-mono text-xs border border-emerald-500/30"
-                    )
+                    # ui.tooltip("").classes("bg-black text-emerald-500 font-mono text-xs border border-emerald-500/30")
+                    formatted_tooltip(title="Target LongHaulC2 Server Address", body="The server to connect to")
 
                 # Username
                 username = (

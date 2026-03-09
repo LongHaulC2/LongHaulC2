@@ -13,6 +13,7 @@ from client.src.client.modules.api_calls import (
 from client.src.client.modules.task_parser import ResultType, build_cli_parser, get_all_command_names, task_tree
 from client.src.client.pages.dialogues import upload_dialog
 from client.src.client.pages.footer import build_footer
+from client.src.client.pages.formatted_tooltip import formatted_tooltip
 from client.src.client.pages.listeners import start_listener_dialogue
 from client.src.client.pages.menu import setup_menu
 from client.src.client.pages.notes import open_notes_dialog
@@ -107,7 +108,7 @@ async def implant_view():
                 ):
                     ui.icon("add", size="xs").classes("mr-1")
                     ui.label("PAYLOAD").classes("tech-label-sub")
-                    ui.tooltip("Build New Payload")
+                    formatted_tooltip("Build New Payload")
 
                 with (
                     ui.button(on_click=lambda: start_listener_dialogue())
@@ -116,14 +117,17 @@ async def implant_view():
                 ):
                     ui.icon("add", size="xs").classes("mr-1")
                     ui.label("LISTENER").classes("tech-label-sub")
-                    ui.tooltip("Start a Listener")
+                    formatted_tooltip("Start a Listener")
 
                 ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
 
                 # Terminal (Open)
-                ui.button(icon="terminal", on_click=lambda: action_open_terminal()).classes(
-                    "tech-btn-action-2 tech-btn-action-2"
-                ).props("dense flat size=sm square").tooltip("Open Terminal for Selected")
+                with (
+                    ui.button(icon="terminal", on_click=lambda: action_open_terminal())
+                    .classes("tech-btn-action-2 tech-btn-action-2")
+                    .props("dense flat size=sm square")
+                ):
+                    formatted_tooltip("Open Terminal for Selected")
 
                 # God Shell
                 # ui.button(
@@ -136,30 +140,42 @@ async def implant_view():
                 #     "God Shell (Coming Soon)"
                 # )
 
-                ui.button(
-                    # get all selected to upload to
-                    icon="present_to_all",
-                    on_click=lambda: upload_dialog([row["implant_uuid"] for row in table.selected]),
-                ).classes("text-orange-400 hover:text-orange-200 transition-colors tech-btn-action-2").props(
-                    "dense flat size=sm square"
-                ).tooltip("Upload File")
+                with (
+                    ui.button(
+                        # get all selected to upload to
+                        icon="present_to_all",
+                        on_click=lambda: upload_dialog([row["implant_uuid"] for row in table.selected]),
+                    )
+                    .classes("text-orange-400 hover:text-orange-200 transition-colors tech-btn-action-2")
+                    .props("dense flat size=sm square")
+                ):
+                    formatted_tooltip("Upload File")
 
                 # Notes
-                ui.button(icon="notes", on_click=lambda: handle_notes()).classes(
-                    "tech-btn-action-2 tech-btn-action-2"
-                ).props("dense flat size=sm square ").tooltip("Edit Notes")
+                with (
+                    ui.button(icon="notes", on_click=lambda: handle_notes())
+                    .classes("tech-btn-action-2 tech-btn-action-2")
+                    .props("dense flat size=sm square ")
+                ):
+                    formatted_tooltip("Edit Notes")
 
                 # Refresh
-                ui.button(icon="refresh", on_click=lambda: refresh()).classes(
-                    "tech-btn-action-2 tech-btn-action-2"
-                ).props("dense flat size=sm square").tooltip("Force Refresh")
+                with (
+                    ui.button(icon="refresh", on_click=lambda: refresh())
+                    .classes("tech-btn-action-2 tech-btn-action-2")
+                    .props("dense flat size=sm square")
+                ):
+                    formatted_tooltip("Force Refresh")
 
                 ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
 
                 # Delete
-                ui.button(icon="delete", on_click=lambda: action_delete_rows()).classes(
-                    "text-red-400 hover:text-red-200 transition-colors tech-btn-action-2"
-                ).props("dense flat size=sm square").tooltip("Nuke Selected")
+                with (
+                    ui.button(icon="delete", on_click=lambda: action_delete_rows())
+                    .classes("text-red-400 hover:text-red-200 transition-colors tech-btn-action-2")
+                    .props("dense flat size=sm square")
+                ):
+                    formatted_tooltip("Nuke Selected")
 
         # Table Container
         with ui.column().classes(" w-full flex-grow relative overflow-hidden bg-transparent"):
@@ -290,9 +306,12 @@ async def terminal_view():
             tabs.classes("bg-transparent h-full flex-grow")
 
             ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
-            ui.button(icon="delete_sweep", on_click=terminal_close_all).props("flat dense square size=sm").classes(
-                "text-neutral-500 hover:text-red-400 transition-colors tech-btn-action-2"
-            ).tooltip("Close All Terminals")
+            with (
+                ui.button(icon="delete_sweep", on_click=terminal_close_all)
+                .props("flat dense square size=sm")
+                .classes("text-neutral-500 hover:text-red-400 transition-colors tech-btn-action-2")
+            ):
+                formatted_tooltip("Close All Terminals")
 
         # The Panel Container
         panels = ui.tab_panels(tabs).classes("w-full h-full bg-neutral-900/40").props("dense transition-duration=0")

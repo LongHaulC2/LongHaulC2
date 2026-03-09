@@ -9,6 +9,7 @@ from client.src.client.modules.api_calls import (
     stop_listener,
 )
 from client.src.client.pages.footer import build_footer
+from client.src.client.pages.formatted_tooltip import formatted_tooltip
 
 # Imports
 from client.src.client.pages.menu import setup_menu
@@ -166,21 +167,22 @@ async def status_page():
 
                 # Controls Side
                 with ui.row().classes("gap-1"):
-                    btn_start = (
-                        ui.button(icon="play_arrow", on_click=lambda: handle_action(category, svc_name, "start"))
-                        .props("dense flat size=sm color=emerald-400")
-                        .tooltip("Start")
+                    btn_start = ui.button(
+                        icon="play_arrow", on_click=lambda: handle_action(category, svc_name, "start")
+                    ).props("dense flat size=sm color=emerald-400")
+                    with btn_start:
+                        formatted_tooltip("Start")
+                    btn_restart = ui.button(
+                        icon="restart_alt", on_click=lambda: handle_action(category, svc_name, "restart")
+                    ).props("dense flat size=sm color=blue-400")
+                    with btn_restart:
+                        formatted_tooltip("Restart", body="Attempts to restart the given service")
+
+                    btn_stop = ui.button(icon="stop", on_click=lambda: handle_action(category, svc_name, "stop")).props(
+                        "dense flat size=sm color=red-400"
                     )
-                    btn_restart = (
-                        ui.button(icon="restart_alt", on_click=lambda: handle_action(category, svc_name, "restart"))
-                        .props("dense flat size=sm color=blue-400")
-                        .tooltip("Restart")
-                    )
-                    btn_stop = (
-                        ui.button(icon="stop", on_click=lambda: handle_action(category, svc_name, "stop"))
-                        .props("dense flat size=sm color=red-400")
-                        .tooltip("Stop")
-                    )
+                    with btn_stop:
+                        formatted_tooltip("Stop", body="Attempts to stop the given service")
 
         # Save to registry for fast updates later
         ui_registry[category][svc_name] = {

@@ -6,6 +6,7 @@ import structlog
 from nicegui import ui
 
 from client.src.client.pages.footer import build_footer
+from client.src.client.pages.formatted_tooltip import formatted_tooltip
 from client.src.client.pages.menu import setup_menu
 
 from ..utils.checks import check_type
@@ -207,14 +208,22 @@ async def file_picker():
                 ui.label("SCRIPTS //").classes("tech-label-header-section")
 
             with ui.row().classes("justify-end gap-1"):
-                ui.button(
-                    icon="add",
-                    on_click=lambda: create_new_file_dialog(str(script_path)),
-                ).classes("tech-btn-action px-2").props("dense flat size=xs").tooltip("New Script")
+                with (
+                    ui.button(
+                        icon="add",
+                        on_click=lambda: create_new_file_dialog(str(script_path)),
+                    )
+                    .classes("tech-btn-action px-2")
+                    .props("dense flat size=xs")
+                ):
+                    formatted_tooltip("New Script")
 
-                ui.button(icon="refresh", on_click=lambda: file_picker.refresh()).classes("tech-btn-action px-2").props(
-                    "dense flat size=xs"
-                ).tooltip("Reload Tree")
+                with (
+                    ui.button(icon="refresh", on_click=lambda: file_picker.refresh())
+                    .classes("tech-btn-action px-2")
+                    .props("dense flat size=xs")
+                ):
+                    formatted_tooltip("Reload Tree")
 
         # Tree Content
         with ui.scroll_area().classes("w-full flex-grow p-2 tech-scroll"):
@@ -366,7 +375,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
                         .props("flat square dense size=sm")
                     ):
                         ui.icon("play_arrow", size="xs")
-                        ui.tooltip("Execute")
+                        formatted_tooltip(title="Execute Script", footer="<i>Only works on .PY files at the moment</i>")
 
                 ui.separator().classes("bg-white/10 w-4")
 
@@ -378,7 +387,10 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
 
                 with ui.button(on_click=save_logic).classes("tech-btn-action-2").props("flat square dense size=sm"):
                     ui.icon("save", size="xs")
-                    ui.tooltip("Quick Save")
+                    formatted_tooltip(
+                        title="Quick Save",
+                        body="Saves the current file",
+                    )
 
                 # Save As (Dialog)
                 async def open_save_as():
@@ -408,16 +420,27 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
 
                 with ui.button(on_click=open_save_as).classes("tech-btn-action-2").props("flat square dense size=sm"):
                     ui.icon("save_as", size="xs")
-                    ui.tooltip("Save As...")
+                    formatted_tooltip(
+                        title="Save As",
+                        body="Saves the file as a certain file name",
+                        footer="A save dialog should open on click",
+                    )
 
                 # Reload
                 async def reload_logic():
                     editor.value = await load_file()
-                    ui.notify("Reloaded from disk")
+                    ui.notify(
+                        "Reloaded from disk",
+                    )
 
                 with ui.button(on_click=reload_logic).classes("tech-btn-action-2").props("flat square dense size=sm"):
                     ui.icon("refresh", size="xs")
-                    ui.tooltip("Reload from Disk")
+                    formatted_tooltip(
+                        title="Reload from Disk",
+                        body="Reloads current file from disk",
+                        footer="<i>This will overwrite all unsaved content in the editor. "
+                        "It will not prompt you to save</i>",
+                    )
 
 
 async def ide_add_tab(tab_name: str, script_path: str, executable=False):
