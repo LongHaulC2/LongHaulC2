@@ -592,13 +592,27 @@ okay now the fun part.
 
 cleanig up the fucking implant, and then moving to jinja
 
-Left off:
+Left off - DO IN ORDER:
  - [X] Chaining is working
+   - [X] IP address chaining rather than local
+      > note, got a could not find route to host with my personal workstation, but it works with IP on same host. THis is fine, my workstation can't reach my desktop for some reason lol
  - [ ] Clean up any other code/comments. 
  - [ ] prep code for templating & update all of it (can keep hardcoded smb for now, just get it all updated)
+      > moving all non-templated files over. Still need to do templted ones
+         - [X] Core
+            > [x] c2.cpp template
+         - [X] comms
+            > [x] comms.cpp template (should be fine... aside from smb considerations)
+            > [x] transport.h (hardcoded smb, general cleanup of rest of file)
+         - [X] defense
+         - [X] data
+         - [x] modules
+         - [X] protocols
+         - [X] systems 
+
    > after that works, can work on things like an smb block for malleable c2/pipe names, etc. 
 - [ ] Listener cleanup
-   > move functions out to dedicated helpers where necessary, keep the listeners 
+   > move functions out to dedicated helpers where necessary (register, etc), keep the listeners 
    "transport only"
 
  - Note: pipes were moved to synchronos handling for simpliocity. way less to bug out on. 

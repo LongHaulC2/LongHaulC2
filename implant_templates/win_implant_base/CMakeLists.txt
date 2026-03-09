@@ -10,8 +10,7 @@ project ("Implant_v01")
 # ==========================================
 # This ensures the .exe ends up in the /output folder inside the container
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "/output")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "/output")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "/output")
+
 # ==========================================
 # 2. Source Files
 # ==========================================
@@ -59,7 +58,7 @@ set(SOURCES
 
 add_library(ImplantCore STATIC
     ${SOURCES}
-)
+ "systems/childhandler.h" "systems/childhandler.cpp"  "data/uuid7.h" "comms/queues.h")
 
 # note - explicitly public so build targets can see these too
 target_include_directories(ImplantCore PUBLIC
@@ -88,26 +87,17 @@ target_precompile_headers(ImplantCore PRIVATE
 # create our EXE:
 add_executable(Implant_v01_exe
     entrypoints/exe_main.cpp
-)
+ "systems/childhandler.h" "systems/childhandler.cpp"  "data/uuid7.h" "comms/queues.h")
 # link against core
 target_link_libraries(Implant_v01_exe PRIVATE ImplantCore)
-
-# removes lib prefix on bins
-set_target_properties(Implant_v01_exe PROPERTIES 
-    OUTPUT_NAME "Implant_v01"
-)
 
 # create our DLL:
 add_library(Implant_v01_dll SHARED
     entrypoints/dll_main.cpp
-)
+ "systems/childhandler.h" "systems/childhandler.cpp"  "data/uuid7.h" "comms/queues.h")
 # link against core
 target_link_libraries(Implant_v01_dll PRIVATE ImplantCore)
 
-set_target_properties(Implant_v01_dll PROPERTIES 
-    OUTPUT_NAME "Implant_v01"
-    PREFIX "" # Stops MinGW from naming it "libImplant_v01.dll"
-)
 # ==========================================
 # External Libraries (BofRunner)
 # ==========================================
@@ -136,7 +126,7 @@ if(WIN32)
     #)
 
     target_link_libraries(Implant_v01_exe PRIVATE
-        BofRunner # HAS to go first
+        BofRunner # ALWYAS FIRST
         wininet
         iphlpapi
         ws2_32
@@ -145,7 +135,7 @@ if(WIN32)
     )
 
     target_link_libraries(Implant_v01_dll PRIVATE
-        BofRunner # HAS to go first
+        BofRunner
         wininet
         iphlpapi
         ws2_32
@@ -191,6 +181,8 @@ if(WIN32)
             $<$<CONFIG:Release>:/OPT:ICF>         # fold identical functions
             $<$<CONFIG:Release>:/INCREMENTAL:NO>  # disable incremental linking
         )
+
+    endif()
         
     # MinGW Specific (Cross-Compile on Linux)
     elseif(MINGW)
@@ -225,10 +217,7 @@ if(WIN32)
         set(CMAKE_C_FLAGS_RELEASE "-Os")
 
         # strip 
-        #set(CMAKE_EXE_LINKER_FLAGS "-s")
-
-        target_link_options(Implant_v01_exe PRIVATE "-s")
-        target_link_options(Implant_v01_dll PRIVATE "-s")
+        set(CMAKE_EXE_LINKER_FLAGS "-s")
 
         # dead code elim
         # this might knock out those extra funcs in comms... needs testing. 
@@ -238,7 +227,7 @@ if(WIN32)
         # notes, can switch to non-iostream/non-std libs for even smaller stuff if I need to. 
 
     endif()
-endif()
+
 
 # ==========================================
 # 4. Standard Config
