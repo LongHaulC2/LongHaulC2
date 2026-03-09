@@ -67,7 +67,7 @@ class Health(Resource):
         """
         ip = request.remote_addr
 
-        api_logger.info("Getting health data", caller_ip=ip)
+        api_logger.debug("Getting health data", caller_ip=ip)
 
         health_dict = get_health_status()
 

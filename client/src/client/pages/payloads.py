@@ -265,6 +265,11 @@ async def start_payload_dialogue():
             if uuid:
                 listener_uuids.append(uuid)
 
+        # put together options dict:
+        debug_value = debug_logs_toggle.value
+        clear_cache_value = clear_cache_toggle.value
+        options = {"debug": debug_value, "clear_cache": clear_cache_value}
+
         # API Call
         result = await build_implant(
             implant_name=name_input.value,
@@ -272,6 +277,7 @@ async def start_payload_dialogue():
             output_format=format_select.value,
             initial_get_profile_listener_uuid=listener_uuid_map.get(profile_get_select.value),
             initial_post_profile_listener_uuid=listener_uuid_map.get(profile_post_select.value),
+            options=options,
         )
 
         # Build Status Polling Logic
@@ -400,19 +406,6 @@ async def start_payload_dialogue():
                     formatted_tooltip("The profile to use for the initial POST requests")
 
             ui.separator()
-            # with ui.row().classes("w-full items-center justify-between gap-4"):
-            #     with ui.column():
-            #         debug_logs_switch = (
-            #             ui.switch("Enable Debug Logs").classes("tech-switch").props("dark color=emerald")
-            #         )
-            #         with debug_logs_switch:
-            #             ui.tooltip("Enable output to terminal")
-
-            #     with ui.column():
-            #         clear_cache_switch = ui.switch("Fresh Cache").classes("tech-switch").props("dark color=emerald")
-            #         with clear_cache_switch:
-            #             ui.tooltip("Clears cache before building")
-
             with ui.expansion("Additional Options").classes("tech-expansion w-full"):  # noqa - niecgui styling
                 # Container for the list. Removed the top border since the expansion handles it now.
                 with ui.column().classes("w-full p-0 gap-0"):
@@ -424,8 +417,8 @@ async def start_payload_dialogue():
                         ui.label("IMPLANT DEBUG LOGS").classes(
                             "text-[11px] text-zinc-400 font-bold tracking-widest font-mono uppercase"
                         )
-                        debug_logs_toggle = (  # noqa - will use eventuall
-                            ui.toggle(["DISABLED", "ENABLED"], value="DISABLED")
+                        debug_logs_toggle = (
+                            ui.toggle({False: "DISABLED", True: "ENABLED"}, value=False)
                             .classes("tech-toggle")
                             .props("dark color=emerald")
                         )
@@ -444,7 +437,7 @@ async def start_payload_dialogue():
                             "text-[11px] text-zinc-400 font-bold tracking-widest font-mono uppercase"
                         )
                         clear_cache_toggle = (  # noqa - will use eventually
-                            ui.toggle(["KEEP", "CLEAR"], value="KEEP")
+                            ui.toggle({False: "KEEP", True: "CLEAR"}, value=False)
                             .classes("tech-toggle")
                             .props("dark color=emerald")
                         )

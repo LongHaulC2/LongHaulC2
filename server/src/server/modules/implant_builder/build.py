@@ -32,6 +32,7 @@ def build_implant(
     build_uuid: str,
     init_get_profile_listener_uuid: str,
     init_post_profile_listener_uuid: str,
+    options: dict | None = None,
 ) -> dict:
     """Builds an implant  based on the provided parameters
 
@@ -52,6 +53,10 @@ def build_implant(
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(build_uuid=build_uuid, implant_name=implant_name)
     server_logger.info("Starting implant build process")
+
+    # init inside of func to avoid mutable as default problems with python
+    if options is None:
+        options = {}
 
     # Note, not including build status, that is set in the DB
     # initializing build_time to 0, so it always exists
@@ -117,7 +122,7 @@ def build_implant(
             )
 
             # Compile
-            if _run_docker_build(build_dir):
+            if _run_docker_build(build_dir, options=options):
                 _store_artifacts(build_dir, implant_name, build_uuid)
 
             else:
@@ -172,22 +177,25 @@ def _generate_source_code(
     )
 
 
-def _run_docker_build(build_dir: Path) -> bool:
+def _run_docker_build(build_dir: Path, options: dict) -> bool:
     """Runs the compilation container."""
     client = docker.from_env()
 
     docker_logger.info("Build Dir:", build_dir=build_dir)
 
-    # ! Up one directory, to the base path of the build dir.
-    # ! Ex: /build_dir/build, /build_dir/build_cache
-    # ! Otherwise, the build, and build_ccache are re-created each build,
-    # ! Ex, /build_dir/tmp1234/build, /build_dir/tmp1234/build_cache
-    # ! This greatly speeds up total compile time, I've seen about 50% on average
-    persistent_build_dir = Path(build_dir) / ".." / "build"
-    persistent_build_dir.mkdir(parents=True, exist_ok=True)
+    # base dir that we do all our compiling in
+    # ex, /dev/shm/...
+    # All the indiivdual builds go into base_dir / tmpXXXXX
+    base_dir = Path(build_dir).parent
+    persistent_build_dir = Path(base_dir) / "build"
 
-    ccache_dir = Path(build_dir) / ".." / "build_cache"
-    ccache_dir.mkdir(parents=True, exist_ok=True)
+    # clear everything from previous builds, which
+    # gurantees everything gets re-compiled with new code
+    if options.get("clear_cache", False):
+        docker_logger.info("Clearing previous build artifacts & cache")
+        shutil.rmtree(str(persistent_build_dir))
+
+    persistent_build_dir.mkdir(parents=True, exist_ok=True)
 
     cmd = (
         "bash -c 'if [ ! -f /build/build.ninja ]; then "
@@ -195,7 +203,7 @@ def _run_docker_build(build_dir: Path) -> bool:
         # ! set source and build to 777, so this script can delete them. Otherwise we get a perms denied,
         # ! as the docker container runs as root in the container, and breaks if you change to a different user.
         # ! I don't like it, but it works for now.
-        "fi && ninja -C /build && chmod -R 777 /source /output'"
+        "fi && ninja -C /build && chmod -R 777 /source /output /build'"
     )
 
     docker_logger.info("Spinning up builder container (win_x64)")
@@ -204,7 +212,6 @@ def _run_docker_build(build_dir: Path) -> bool:
         str(build_dir): {"bind": "/source", "mode": "rw"},
         str(build_dir / "output"): {"bind": "/output", "mode": "rw"},
         str(persistent_build_dir): {"bind": "/build", "mode": "rw"},
-        str(ccache_dir): {"bind": str(ccache_dir), "mode": "rw"},
     }
 
     try:

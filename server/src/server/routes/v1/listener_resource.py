@@ -191,7 +191,7 @@ class Listeners(Resource):
         """
         ip = request.remote_addr
 
-        api_logger.info("Getting all listeners", caller_ip=ip)
+        api_logger.debug("Getting all listeners", caller_ip=ip)
 
         listener_service = Neo4jListenerNodeService()
         listeners = listener_service.get_all()

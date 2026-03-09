@@ -101,7 +101,7 @@ class Implants(Resource):
         Gets all implants
         """
         ip = request.remote_addr
-        api_logger.info("Getting all implants", caller_ip=ip)
+        api_logger.debug("Getting all implants", caller_ip=ip)
 
         # with get_mysql_session() as session:
         #     implant_service = ImplantService(session)

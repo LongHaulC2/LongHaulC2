@@ -110,6 +110,10 @@ class Build(Resource):
         initial_get_profile_listener_uuid = data.get("initial_get_profile_listener_uuid", None)
         initial_post_profile_listener_uuid = data.get("initial_post_profile_listener_uuid", None)
 
+        options_dict = data.get("options", {})
+        enable_debug: bool = options_dict.get("enable_debug", None)  # noqa
+        clear_build_cache: bool = options_dict.get("enable_debug", None)  # noqa
+
         api_logger.info("Build requested", caller_ip=request.remote_addr)
 
         # Trigger Build
@@ -122,6 +126,7 @@ class Build(Resource):
             build_uuid,
             initial_get_profile_listener_uuid,
             initial_post_profile_listener_uuid,
+            options=options_dict,
         )
 
         response = {"build_uuid": build_uuid, "build_stats": build_stats}

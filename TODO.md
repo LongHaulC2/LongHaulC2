@@ -622,6 +622,7 @@ Left off - DO IN ORDER:
 
    call via this method. It's much cleaner for the long run
 
+> left off here
 - [] BUG!!!!! Crashes on no listener to connect too, this is not okay. Needs to sit & keep trying. 
 - [ ] Move functions to WinApi::, replace as needed.
 - [ ] move stdout to a DEBUG_LOG function that can be defined away

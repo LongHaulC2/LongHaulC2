@@ -97,6 +97,21 @@ BUILD_POST_INPUT = api.model(
             example="019c...",
             required=True,
         ),
+        "options": fields.Nested(
+            api.model(
+                "BUILD_OPTIONS",
+                {
+                    "debug": fields.Boolean(
+                        required=False, description="Build implant with debug logging", example=True, default=False
+                    ),
+                    "clear_cache": fields.Boolean(
+                        required=False, description="Clear build cache before compiling", example=False, default=False
+                    ),
+                },
+            ),
+            required=False,
+            description="Optional build configuration flags",
+        ),
     },
 )
 BUILD_POST_STATS = api.model(

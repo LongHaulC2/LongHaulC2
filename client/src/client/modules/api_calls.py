@@ -502,6 +502,7 @@ async def build_implant(
     output_format: str,
     initial_get_profile_listener_uuid: str,
     initial_post_profile_listener_uuid: str,
+    options: dict,
 ) -> dict | None:
     # print(initial_get_profile_listener_uuid)
     # print(initial_post_profile_listener_uuid)
@@ -547,6 +548,7 @@ async def build_implant(
         "output_format": output_format,
         "initial_get_profile_listener_uuid": initial_get_profile_listener_uuid,
         "initial_post_profile_listener_uuid": initial_post_profile_listener_uuid,
+        "options": options,
     }
 
     # core logic placeholder
