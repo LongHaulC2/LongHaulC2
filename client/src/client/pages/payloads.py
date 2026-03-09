@@ -427,8 +427,9 @@ async def start_payload_dialogue():
                             #     "bg-neutral-900 border border-emerald-500/30 font-mono text-xs"
                             # )
                             formatted_tooltip(
-                                title="[not implemented] Enable Debug Logs",
-                                body="Enables debug logs for the implant. These print to STDOUT",
+                                title="Enable Debug Logs",
+                                body="Enables debug logs for the implant. These print to STDOUT, "
+                                "and to a file named `implant_debug.log`",
                             )
 
                     # Build Cache option
@@ -443,7 +444,7 @@ async def start_payload_dialogue():
                         )
                         with clear_cache_toggle:
                             formatted_tooltip(
-                                title="[not implemented] Clear Build Cache",
+                                title="Clear Build Cache",
                                 body="Clears the build cache of the implant. Useful if editing the implant code",
                                 footer="<i>Expect compile times to be slightly longer<i>",
                             )
