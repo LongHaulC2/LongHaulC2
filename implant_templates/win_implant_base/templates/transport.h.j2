@@ -70,18 +70,18 @@ protected:
 
 // Forward declarations of GET functions from comms.cpp
 
-[%- for profile_name, ns in profile_mappings.items() %]
+[% for profile_name, ns in profile_mappings.items() %]
 
 namespace [[ ns ]] {
     std::vector<uint8_t> get(std::vector<uint8_t> metadata_as_msgpack);
     int post(std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list);
 }
 
-[%- endfor %]
+[% endfor %]
 
 //Declare classes for each comms type
 
-[%- for profile_name, ns in profile_mappings.items() %]
+[% for profile_name, ns in profile_mappings.items() %]
 
 // GET for [[ profile_name ]]
 class [[ ns ]]_Ingress : public IIngressTransport {
@@ -167,7 +167,7 @@ public:
 };
 
 
-[%- endfor %]
+[% endfor %]
 
 
 

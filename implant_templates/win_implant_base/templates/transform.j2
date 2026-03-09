@@ -1,42 +1,42 @@
 [# transforms.j2 #]
 
-[% macro trans_base64(target) -%]
+[% macro trans_base64(target) %]
     // [Transform] Base64 Encode
     base64_encode_inplace([[ target ]]);
-[%- endmacro %]
+[% endmacro %]
 
-[% macro trans_base64url(target) -%]
+[% macro trans_base64url(target) %]
     // [Transform] Base64 URL Encode
     base64url_encode_inplace([[ target ]]);
-[%- endmacro %]
+[% endmacro %]
 
-[% macro trans_mask(target, key) -%]
+[% macro trans_mask(target, key) %]
     // [Transform] XOR Masking
     xor_mask([[ target ]]);
-[%- endmacro %]
+[% endmacro %]
 
-[% macro trans_append(target, val) -%]
+[% macro trans_append(target, val) %]
     // [Transform] Append Data
     transform_append([[ target ]], "[[ val ]]"s);
-[%- endmacro %]
+[% endmacro %]
 
-[% macro trans_prepend(target, val) -%]
+[% macro trans_prepend(target, val) %]
     // [Transform] Prepend Data
     transform_prepend([[ target ]], "[[ val ]]"s);
-[%- endmacro %]
+[% endmacro %]
 
-[% macro trans_netbios(target) -%]
+[% macro trans_netbios(target) %]
     // [Transform] netbios conversion
     netbios_encode([[ target ]]);
-[%- endmacro %]
+[% endmacro %]
 
-[% macro trans_netbiosu(target) -%]
+[% macro trans_netbiosu(target) %]
     // [Transform] netbios conversion
     netbiosu_encode([[ target ]]);
-[%- endmacro %]
+[% endmacro %]
 
 [# --- THE GENERIC DISPATCHER --- #]
-[% macro render_transform(transform_object, target_var) -%]
+[% macro render_transform(transform_object, target_var) %]
 
     [% if transform_object.statement == 'base64' %]
         [[ trans_base64(target_var) ]]
@@ -60,4 +60,4 @@
         [[ trans_netbiosu(target_var) ]]
 
     [% endif %]
-[%- endmacro %]
+[% endmacro %]

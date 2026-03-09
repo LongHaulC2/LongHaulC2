@@ -440,3 +440,5 @@ server/src/server/logs/server.log.2
 .nicegui/storage*.json
 *.egg-info*
 *venv*
+
+*clang_tidy_test*

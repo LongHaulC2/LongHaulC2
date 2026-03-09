@@ -1,5 +1,6 @@
 import os
 import re
+import subprocess
 from pathlib import Path
 
 import structlog
@@ -37,6 +38,10 @@ def render_implant(
     initial_get_profile_listener_uuid: str,
     initial_post_profile_listener_uuid: str,
 ):
+    # generate the clang format for the implant
+    # Easier/faster to include it here than copy one in from root of project
+    _write_clang_format(output_dir)
+
     profile_mappings: dict[str, str] = {}
 
     for uuid, listener in listeners_data_dict.items():
@@ -87,6 +92,8 @@ def render_implant(
         },
         mode="w",  # overwrite if there was a file in the template dir
     )
+
+    # maybe upload source here, instead of at end of compilation, incase it bugs out
 
 
 def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dict[str, str]:
@@ -159,6 +166,17 @@ def _render_file(dest_path: Path, template_name: str, context: dict, mode: str =
         server_logger.error("Template render error", template_name=template_name, error=e)
         raise e
 
+    # try a clang format on it as well, otherwise the rendered JINJA is a bit messy
+    # doing this here, instead of in container, so we
+    # can debug locally if clang fucks up
+    if dest_path.suffix in [".cpp", ".h", ".hpp"]:
+        try:
+            server_logger.debug("Running clang format on generated file", file=dest_path)
+            # -i means inplace edit
+            subprocess.run(["clang-format", "-i", str(dest_path)], check=True)
+        except FileNotFoundError:
+            server_logger.warning("clang-format not found, skipping auto-format")
+
 
 def sanitize_cpp_name(name: str) -> str:
     """
@@ -168,3 +186,28 @@ def sanitize_cpp_name(name: str) -> str:
     if clean_name[0].isdigit():
         clean_name = f"_{clean_name}"
     return clean_name
+
+
+def _write_clang_format(output_dir: Path):
+    """
+    Write .clang-format file to the build dir so clang-format can find it correctly, without
+    too much path BS.
+    """
+    clang_config = """
+BasedOnStyle: Microsoft
+IndentWidth: 4          # 4 spaces looks better IMO
+UseTab: Never
+ColumnLimit: 0
+SortIncludes: false     # DO NOT SORT, can cause issues with header ordering (looking at you winsock)
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: Inline
+
+# Force braces and multi-line if statements, no more `if (whatever) then that;` BS
+InsertBraces: true
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortBlocksOnASingleLine: Empty
+    """.strip()
+
+    config_path = output_dir / ".clang-format"
+    with Path.open(config_path, "w") as f:
+        f.write(clang_config)

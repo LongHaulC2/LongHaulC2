@@ -8,44 +8,44 @@ IMPORTANT:
 - This file undoes what transforms.j2 applies
 #]
 
-[% macro rev_base64(target) -%]
+[% macro rev_base64(target) %]
     // [Reverse Transform] Base64 Decode
     base64_decode_inplace([[ target ]]);
-[%- endmacro %]
+[% endmacro %]
 
-[% macro rev_base64url(target) -%]
+[% macro rev_base64url(target) %]
     // [Reverse Transform] Base64 URL Decode
     base64url_decode_inplace([[ target ]]);
-[%- endmacro %]
+[% endmacro %]
 
-[% macro rev_mask(target) -%]
+[% macro rev_mask(target) %]
     // [Reverse Transform] XOR Mask (same op reverses)
     xor_mask([[ target ]]);
-[%- endmacro %]
+[% endmacro %]
 
-[% macro rev_append(target, val) -%]
+[% macro rev_append(target, val) %]
     // [Reverse Transform] Undo Append
     undo_transform_append([[ target ]], "[[ val ]]"s);
-[%- endmacro %]
+[% endmacro %]
 
-[% macro rev_prepend(target, val) -%]
+[% macro rev_prepend(target, val) %]
     // [Reverse Transform] Undo Prepend
     undo_transform_prepend([[ target ]], "[[ val ]]"s);
-[%- endmacro %]
+[% endmacro %]
 
-[% macro rev_netbios(target) -%]
+[% macro rev_netbios(target) %]
     // [Reverse Transform] NetBIOS Decode
     netbios_decode([[ target ]]);
-[%- endmacro %]
+[% endmacro %]
 
-[% macro rev_netbiosu(target) -%]
+[% macro rev_netbiosu(target) %]
     // [Reverse Transform] NetBIOSu Decode
     netbiosu_decode([[ target ]]);
-[%- endmacro %]
+[% endmacro %]
 
 [# --- THE REVERSE DISPATCHER --- #]
 [# Acts like a reverse switch statement #]
-[% macro render_reverse_transform(transform_object, target_var) -%]
+[% macro render_reverse_transform(transform_object, target_var) %]
 
     [% if transform_object.statement == 'base64' %]
         [[ rev_base64(target_var) ]]
@@ -70,4 +70,4 @@ IMPORTANT:
 
     [% endif %]
 
-[%- endmacro %]
+[% endmacro %]
