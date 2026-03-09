@@ -6,7 +6,7 @@ import structlog
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from .context_generators.http_wininet import generate_http_wininet_context
-from .types import FunctionMapping, ListenerProfile  # Import your types
+from .types import ListenerProfile  # Import your types
 
 server_logger = structlog.getLogger("server")
 # TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -37,56 +37,40 @@ def render_implant(
     initial_get_profile_listener_uuid: str,
     initial_post_profile_listener_uuid: str,
 ):
-    """
-    Main entry point for rendering C++ files.
-    1. Renders individual comms files (comms.cpp)
-    2. Maps function names for polymorphism
-    3. Renders the main controller (c2.cpp)
-    """
+    profile_mappings: dict[str, str] = {}
 
-    # Mappings for c2.cpp: { "profile_name": { "key": sanitized, "value": actual } }
-    get_func_mappings: dict[str, FunctionMapping] = {}
-    post_func_mappings: dict[str, FunctionMapping] = {}
-
-    # Render Listener Communication Modules (comms.cpp)
-    # This loop appends code to comms.cpp for every listener
     for uuid, listener in listeners_data_dict.items():
-        # Setup Logger Context
-        # print(listeners_data_dict)
         structlog.contextvars.bind_contextvars(listener_type=listener["listener_type"])
 
-        # Generate Context & Mappings
         try:
             mappings = _render_listener_variant(output_dir, listener)
 
-            # Update the master mapping dicts
-            profile_name = listener["listener_profile_name"]
-            get_func_mappings[profile_name] = mappings["get"]
-            post_func_mappings[profile_name] = mappings["post"]
+            # Extract the unified namespace we created in the variant function
+            ns_name = mappings["namespace"]
+
+            # Store it: e.g., profile_mappings["a"] = "http_10_0_0_30_9090_a"
+            profile_mappings[listener["listener_profile_name"]] = ns_name
 
         except Exception as e:
             server_logger.error("Failed to render listener", listener_uuid=uuid, error=e)
             raise e
 
-    # Determine Initial Profile Functions
-    # Retrieve the profile name associated with the initial UUIDs
+    # Retrieve initial namespace names
     init_get_name = listeners_data_dict[initial_get_profile_listener_uuid]["listener_profile_name"]
     init_post_name = listeners_data_dict[initial_post_profile_listener_uuid]["listener_profile_name"]
-    # Lookup the sanitized C++ function name
-    init_get_func = get_func_mappings.get(init_get_name, {}).get("value")
-    init_post_func = post_func_mappings.get(init_post_name, {}).get("value")
 
-    # Render Controller (c2.cpp)
+    init_get_namespace = profile_mappings.get(init_get_name)
+    init_post_namespace = profile_mappings.get(init_post_name)
+
     _render_file(
         output_dir / "core/c2.cpp",
         "c2.j2",
         {
-            "get_function_mappings": get_func_mappings,
-            "post_function_mappings": post_func_mappings,
-            "init_get_function": init_get_func,
-            "init_post_function": init_post_func,
+            "profile_mappings": profile_mappings,
+            "init_get_namespace": init_get_namespace,
+            "init_post_namespace": init_post_namespace,
         },
-        mode="w",  # overwrite if there was a file in the template dir
+        mode="w",
     )
 
     # ! For now, rendering transport as well in here, they have the same req's.
@@ -95,48 +79,47 @@ def render_implant(
         output_dir / "comms/transport.h",
         "transport.h.j2",
         {
-            "get_function_mappings": get_func_mappings,
-            "post_function_mappings": post_func_mappings,
-            # "init_get_function": init_get_func, # init get and init post not used in this template
-            # "init_post_function": init_post_func,
+            "profile_mappings": profile_mappings,
+            # "get_function_mappings": get_func_mappings,
+            # "post_function_mappings": post_func_mappings,
+            "init_get_function": init_get_namespace,  # init get and init post not used in this template
+            "init_post_function": init_post_namespace,
         },
         mode="w",  # overwrite if there was a file in the template dir
     )
 
 
-def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dict[str, FunctionMapping]:
+def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dict[str, str]:
     """
     Handles the logic for a specific listener type (e.g. HTTP).
-    Renders the comms code and returns the function names generated.
+    Renders the comms code and returns the UNIFIED function/namespace name.
     """
     listener_type = listener.get("listener_type")
     host = listener.get("listener_host")
     port = listener.get("listener_port")
     prof_name = listener.get("listener_profile_name")
 
+    # Generate ONE unified name. No more "get" or "post" here.
+    base_name = f"{host}_{port}_{prof_name}"
+    unified_namespace = sanitize_cpp_name(f"http_{base_name}")
+
     # Generate Context
     context = _get_listener_context(listener)
 
+    # Inject the unified name into the context so the comms.cpp template knows its name
+    context["http_function_name"] = unified_namespace
+
     # Render based on type
     if listener_type == "http":
-        # Render comms.cpp (Append mode)
         _render_file(
             output_dir / "comms/comms.h",
             "wininet_comms_http.j2",
             context,
-            mode="a",  # append here, as there are multiple profiles being added to the file.
+            mode="a",
         )
 
-        # Generate Function Names for the map
-        # Naming convention: http_get_HOST_PORT_PROFILENAME
-        base_name = f"{host}_{port}_{prof_name}"
-        get_func = sanitize_cpp_name(f"http_get_{base_name}")
-        post_func = sanitize_cpp_name(f"http_post_{base_name}")
-
-        return {
-            "get": {"key": get_func, "value": get_func},
-            "post": {"key": post_func, "value": post_func},
-        }
+        # Return just the one unified namespace
+        return {"namespace": unified_namespace}
 
     raise ValueError(f"Unsupported listener type: {listener_type}")
 

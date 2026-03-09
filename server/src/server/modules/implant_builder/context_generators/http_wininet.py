@@ -46,21 +46,14 @@ def generate_http_wininet_context(
     # Extract HTTP POST Options
     context.update(_extract_http_post_options(profile))
 
-    # add in function names for mangling
-    # context["http_get_function_name"] = (
-    #     f"http_get_{callback_host}_{callback_port}_{malleable_c2_profile_name}"
-    # )
-    # context["http_post_function_name"] = (
-    #     f"http_post_{callback_host}_{callback_port}_{malleable_c2_profile_name}"
-    # )
-    # need to safely format these names (no dots, etc)
+    # move to a unified namespace, this just adds the name of the namespace
+    # to the context. This used to split into get and post,but I moved it to a namespace instead
+    # so everyhing is http_localhost_6969_profile::get or http_localhost_6969_profile::post
+    # instead of http_get_localhost_6969_profile
     context.update(
         {
-            "http_get_function_name": sanitize_cpp_name(
-                f"http_get_{callback_host}_{callback_port}_{malleable_c2_profile_name}"
-            ),
-            "http_post_function_name": sanitize_cpp_name(
-                f"http_post_{callback_host}_{callback_port}_{malleable_c2_profile_name}"
+            "http_function_name": sanitize_cpp_name(
+                f"http_{callback_host}_{callback_port}_{malleable_c2_profile_name}"
             ),
         }
     )
