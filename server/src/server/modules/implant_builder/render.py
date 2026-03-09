@@ -121,7 +121,7 @@ def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dic
     if listener_type == "http":
         # Render comms.cpp (Append mode)
         _render_file(
-            output_dir / "comms/comms.cpp",
+            output_dir / "comms/comms.h",
             "wininet_comms_http.j2",
             context,
             mode="a",  # append here, as there are multiple profiles being added to the file.

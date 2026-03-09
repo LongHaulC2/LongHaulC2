@@ -27,7 +27,7 @@ set(SOURCES
     "tests/test.h"
     "protocols/base64/base64.cpp"
     "protocols/base64/base64.h"
-    "comms/comms.cpp"
+    "comms/comms.h"
     "core/c2.h"
     "core/c2.cpp"
     "core/commandtree.cpp"

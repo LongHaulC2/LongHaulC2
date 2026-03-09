@@ -9,10 +9,14 @@
    * [ ] Consider a docker system prune on uninstall to prevent disk size ballooning
 * [X] Listener Restarts
 * [X] Implant Build Path
-* [ ] Beacon Chaining
-   - [ ] SMB read/write comms method
-   - [ ] multi command retrieval
+* [X] Beacon Chaining
+   - [X] SMB read/write comms method
+   - [X] multi command retrieval
+   - [ ] proper templating in python/from gui
 * [X] API Docs    
+* [ ] Final protocol list:
+   * [ ] (External ONLY, due to admin restrictions) - ICMP
+   * [ ] (chain & external): NTP
 
 ### GUI
 
@@ -238,11 +242,13 @@ Neo4j Cleanup
 * [ ] Add Deref support to other binary commands   
    * [X] BOF
    * [X] file upload
-* [ ] Metadata gathering [In Progress]: Internal IP, architecture, docs
+* [ ] Metadata gathering [In Progress]: Internal IP, architecture, etc
 * [X] `strat active` / `strat get/post` validation
 * [X] File operations: `upload` and `download` (bytes format)
 * [X] Memstore operations: `upload`, `download`, `list`, `delete`, `clear`
 * [X] BOF implementation and documentation
+* [ ] Memstore - write output to pipe/memstore
+   > takes CLI output, writes to named pipe (created by implant), then implant stores data from named pipe into memstore for retrieval.  
 
 #### Multi Command Retrieval:
 
@@ -597,7 +603,7 @@ Left off - DO IN ORDER:
    - [X] IP address chaining rather than local
       > note, got a could not find route to host with my personal workstation, but it works with IP on same host. THis is fine, my workstation can't reach my desktop for some reason lol
  - [ ] Clean up any other code/comments. 
- - [ ] prep code for templating & update all of it (can keep hardcoded smb for now, just get it all updated)
+ - [X] prep code for templating & update all of it (can keep hardcoded smb for now, just get it all updated)
       > moving all non-templated files over. Still need to do templted ones
          - [X] Core
             > [x] c2.cpp template
@@ -610,10 +616,24 @@ Left off - DO IN ORDER:
          - [X] protocols
          - [X] systems 
 
+- [ ] Move comms.cpp to a .h only. Add namespaces to each comm method, ex:
+   http_whatever_port_wahtever::get
+   http_whateveR_port_wahtever::post
+
+   call via this method. It's much cleaner for the long run
+
+- [ ] Move functions to WinApi::, replace as needed.
+
+- [ ] SMB templating via python & final code resting location. 
+
+
    > after that works, can work on things like an smb block for malleable c2/pipe names, etc. 
 - [ ] Listener cleanup
    > move functions out to dedicated helpers where necessary (register, etc), keep the listeners 
    "transport only"
+
+
+
 
  - Note: pipes were moved to synchronos handling for simpliocity. way less to bug out on. 
  This means they will "sleep" as well, same for child pipes under them. latency may get long. review 
