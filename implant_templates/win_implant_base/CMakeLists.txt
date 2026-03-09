@@ -95,6 +95,8 @@ target_precompile_headers(ImplantCore PRIVATE
     <vector>
     <map>
     <windows.h>
+    <fstream>
+    <mutex>
     "protocols/json/json.h"
     "data/msgpack/msgpack.h"
 )

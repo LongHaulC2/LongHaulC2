@@ -1,29 +1,51 @@
 #pragma once
 #include <iostream>
 
-/*
-Note, this folder is named _debug cuz apparently debug/debug.h is a real
-c++ file name, and causes a collision lol
-
-*/
-
-/*
-Debug printing.
-
-To use, just:
-
-#include "_debug/debug.h"
-
-DEBUG_LOG("Status: " << status << " to port " << 9090);
-
-and go flip on the debug in cmake:
-option(ENABLE_IMPLANT_LOGS "Enable internal debug logging" ON)
-
-*/
 #ifdef IMPLANT_DEBUG_LOGS
-    // In Debug mode: Print to console
-    #define DEBUG_LOG(x) std::cout << "[+] " << x << std::endl
+
+#include <fstream>
+#include <mutex>
+#include <string>
+#include <sstream>
+
+class DebugLogger {
+private:
+    std::ofstream file;
+    std::mutex mtx;
+
+public:
+    DebugLogger(const std::string& filename) {
+        file.open(filename, std::ios::app);
+    }
+
+    ~DebugLogger() {
+        if (file.is_open()) {
+            file.close();
+        }
+    }
+
+    void write(const std::string& message) {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (file.is_open()) {
+            file << message << "\n";
+            file.flush(); 
+        }
+    }
+};
+
+//create one instance of the class
+// "inline" ensures we don't get "multiple definition" linker errors.
+inline DebugLogger global_debug_logger("implant_debug.log");
+
+#define DEBUG_LOG(x) \
+    do { \
+        std::ostringstream _oss; \
+        _oss << "[+] " << x; \
+        std::cout << _oss.str() << std::endl; \
+        global_debug_logger.write(_oss.str()); \
+    } while(0)
+
 #else
-    // In Release mode: The preprocessor replaces this with nothing
+    // if not in debug mode, this replaces the output with nothing
     #define DEBUG_LOG(x) ((void)0)
 #endif
