@@ -23,6 +23,7 @@ and an internal chain map that tells what my implant is connected to, and what t
 #include <queue>
 #include <mutex>
 #include "comms/queues.h"
+#include "_debug/debug.h"
 
 //Awaits for a parent to connect to the pipe. IF we don't have this, we get an immediate
 //536 pipe error: Waiting for a process to open the other end of the pipe.
@@ -74,7 +75,7 @@ namespace SMB {
     */
     namespace Child {
         bool await_client_connection(HANDLE h_pipe, const std::string& pipe_name) {
-            std::cout << "[*] Waiting for parent to connect to " << pipe_name << " pipe..." << std::endl;
+            DEBUG_LOG("[*] Waiting for parent to connect to " << pipe_name << " pipe...");
 
             // Synchronous block. It halts the thread here until the parent connects.
             BOOL connected = ConnectNamedPipe(h_pipe, NULL);
@@ -84,7 +85,7 @@ namespace SMB {
                 return false;
             }
 
-            std::cout << "[+] Parent connected to " << pipe_name << "!" << std::endl;
+            DEBUG_LOG("[+] Parent connected to " << pipe_name << "!");
             return true;
         }
 
@@ -151,7 +152,7 @@ namespace SMB {
                 return false;
             }
 
-            std::cout << "[+] Instantly sent " << bytes_written << " bytes to parent." << std::endl;
+            DEBUG_LOG("[+] Instantly sent " << bytes_written << " bytes to parent.");
             return true;
         }
 

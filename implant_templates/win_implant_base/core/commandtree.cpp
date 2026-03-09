@@ -35,6 +35,7 @@ errors without relying on addtl branch logic. I try to use windows error  macro 
 #include "comms/queues.h"
 #include "core/c2.h"
 #include "comms/smb.h"
+#include "_debug/debug.h"
 
 //move to own file?
 std::string GetErrorMessage(DWORD dwErrorCode) {
@@ -317,14 +318,14 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
         //poking child
         if (cri.route_type == ROUTE_SMB_PIPE) {
-            std::cout << "[*] Waiting for connection from child" << std::endl;
+            DEBUG_LOG("[*] Waiting for connection from child");
 
             // quickly connect to pipes
             HANDLE h_parent_write = CreateFileW(cri.pipe_inbox.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
             HANDLE h_parent_read = CreateFileW(cri.pipe_outbox.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 
             if (h_parent_write != INVALID_HANDLE_VALUE && h_parent_read != INVALID_HANDLE_VALUE) {
-                std::cout << "[*] Pipes connected. Waiting for child to check in..." << std::endl;
+                DEBUG_LOG("[*] Pipes connected. Waiting for child to check in...");
                 cri.h_pipe_inbox = h_parent_write;
                 cri.h_pipe_outbox = h_parent_read;
 
@@ -339,7 +340,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
                 DWORD read_status = SMB::read_pipe_dynamic(cri.h_pipe_outbox, request_bytes);
 
                 if (read_status != ERROR_SUCCESS || request_bytes.empty()) {
-                    std::cout << "[-] Pipe broke or child disconnected. Error: " << read_status << std::endl;
+                    DEBUG_LOG("[-] Pipe broke or child disconnected. Error: " << read_status);
                     result["error"] = "Pipe broke or child disconnected";
                     return result;
                 }
@@ -496,7 +497,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
             output += "\n";
         }
 
-        //std::cout << output << std::endl;
+        //DEBUG_LOG(output);
 
         //add_text_result(result, "data", output);
         //hardcode response, memstore does not have same return values as modules,  as it's not a module
@@ -679,6 +680,6 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
 //placeholder for  a beacon printf style func?
 int send_to_server(std::string output) {
-    std::cout << output << std::endl;
+    DEBUG_LOG(output);
     return 0;
 }

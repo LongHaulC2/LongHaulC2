@@ -6,8 +6,8 @@
 #include <string>
 #include <stdexcept>
 
-#define TEST(name) std::cout << "[*] Testing: " << name << "..." << std::endl;
-#define OVERLOAD(name) std::cout << "[>] Overload: " << name << "..." << std::endl;
+#define TEST(name) DEBUG_LOG("[*] Testing: " << name << "...");
+#define OVERLOAD(name) DEBUG_LOG("[>] Overload: " << name << "...");
 
 #include "data/msgpack/msgpack.h"
 #include "protocols/json/json.h"
@@ -31,7 +31,7 @@
 //    }
 //
 //    assert(unpacked_json["some_value"] == "urmom");
-//    std::cout << "    -> PASSED" << std::endl;
+//    DEBUG_LOG("    -> PASSED");
 //}
 
 //void test_decode_msgpack_task() {
@@ -63,7 +63,7 @@
 //    assert(task_json["task"]["task_name"] == "somename");
 //    assert(task_json["task"]["args"]["arg1"] == "value1");
 //
-//    std::cout << "    -> PASSED" << std::endl;
+//    DEBUG_LOG("    -> PASSED");
 //}
 
 //void test_create_task_response() {
@@ -84,7 +84,7 @@
 //    assert(j1["task_uuid"] == "00000000-0000-0000-0000-000000000000");
 //    assert(j1["result"]["data_type"] == "text");
 //    assert(j1["result"]["data"] == "Command successful");
-//    std::cout << "    -> PASSED" << std::endl;
+//    DEBUG_LOG("    -> PASSED");
 //
 //    // test 2: bin
 //    OVERLOAD("Overload 2: data_type:binary, data:binary")
@@ -106,7 +106,7 @@
 //        assert(extracted_vec == binary_data);
 //    }
 //
-//    std::cout << "    -> PASSED" << std::endl;
+//    DEBUG_LOG("    -> PASSED");
 //}
 
 
@@ -154,7 +154,7 @@ void test_transform_prepend_append() {
     undo_transform_append(data2, suffix);
     assert(data2 == "Hello");
 
-    std::cout << "    -> PASSED" << std::endl;
+    DEBUG_LOG("    -> PASSED");
 }
 
 void test_transform_xor() {
@@ -173,7 +173,7 @@ void test_transform_xor() {
     xor_mask(data, key);
     assert(data == "AAAA");
 
-    std::cout << "    -> PASSED" << std::endl;
+    DEBUG_LOG("    -> PASSED");
 }
 
 void test_transform_base64() {
@@ -214,7 +214,7 @@ void test_transform_base64() {
     assert((unsigned char)tricky_bin[0] == 0xFB);
     assert((unsigned char)tricky_bin[1] == 0xF0);
 
-    std::cout << "    -> PASSED" << std::endl;
+    DEBUG_LOG("    -> PASSED");
 }
 
 void test_transform_netbios() {
@@ -247,7 +247,7 @@ void test_transform_netbios() {
     netbiosu_decode(data2);
     assert(data2 == "A");
 
-    std::cout << "    -> PASSED" << std::endl;
+    DEBUG_LOG("    -> PASSED");
 }
 
 

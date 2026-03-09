@@ -10,6 +10,8 @@
 #include "comms/transport.h"
 #include "systems/childhandler.h"
 #include "comms/queues.h"
+#include "_debug/debug.h"
+
 //struct ChildRoutingContext {
 //    nlohmann::json task_data;
 //    ChildRouteInfo route_info;

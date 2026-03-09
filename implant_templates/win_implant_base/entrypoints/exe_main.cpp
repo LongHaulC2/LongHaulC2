@@ -30,6 +30,7 @@
  */
 #include <iostream>
 #include "core/c2.h"
+#include "_debug/debug.h"
 
 
 int main() {

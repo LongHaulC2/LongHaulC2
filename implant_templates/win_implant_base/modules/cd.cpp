@@ -3,6 +3,8 @@
 #include "data/structs.h"
 #include "cd.h"
 #include "defense/winapi.h"
+#include "_debug/debug.h"
+
 /*
 Minimal example of a command module. 
 */

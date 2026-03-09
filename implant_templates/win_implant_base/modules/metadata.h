@@ -1,6 +1,8 @@
 #include <map>
 #include <string>
 #include "data/structs.h"
+#include "_debug/debug.h"
+
 nlohmann::json populate_metadata();
 ModuleResult get_current_user();
 ModuleResult get_computer_name();

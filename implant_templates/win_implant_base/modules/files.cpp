@@ -2,6 +2,7 @@
 #include <vector>
 #include "data/structs.h"
 #include "defense/winapi.h"
+#include "_debug/debug.h"
 
 /**
  * @brief Gets a file from the OS, and returns the content to the caller

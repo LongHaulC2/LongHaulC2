@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include "protocols/base64/base64.h"
+#include "_debug/debug.h"
 
 // ==========================================
 // Prepend / Append (In-Place)
@@ -19,10 +20,10 @@ void transform_prepend(std::string& data, const std::string& value) {
 //     if (data.size() < value.size()) {
 //         throw std::runtime_error("undo_prepend: Data shorter than value");
 //     }
-//     std::cout << "undo_transform_prepend: Before: " << data << std::endl;
+//     DEBUG_LOG("undo_transform_prepend: Before: " << data);
 //     // Erase from index 0, count of value.size()
 //     data.erase(0, value.size());
-//     std::cout << "undo_transform_prepend: After: " << data << std::endl;
+//     DEBUG_LOG("undo_transform_prepend: After: " << data);
 
 // }
 
@@ -46,11 +47,11 @@ void undo_transform_append(std::string& data, const std::string& value) {
     if (data.size() < value.size()) {
         throw std::runtime_error("undo_append: Data shorter than value");
     }
-    std::cout << "undo_transform_append: Before: " << data << std::endl;
+    DEBUG_LOG("undo_transform_append: Before: " << data);
 
     // Resize to cut off the end
     data.resize(data.size() - value.size());
-    std::cout << "undo_transform_append: After: " << data << std::endl;
+    DEBUG_LOG("undo_transform_append: After: " << data);
 
 }
 

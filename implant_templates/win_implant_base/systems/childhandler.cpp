@@ -13,6 +13,8 @@ this implant has linked to it.
 #include <iostream>
 #include <windows.h>
 #include "comms/smb.h"
+#include "_debug/debug.h"
+
 //singleton for this
 ChildHandler& ChildHandler::instance() {
     static ChildHandler _instance;

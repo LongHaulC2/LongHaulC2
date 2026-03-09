@@ -3,6 +3,7 @@
 #include <string>
 #include "protocols/json/json.h"
 #include <queue>
+#include "_debug/debug.h"
 
 nlohmann::json create_batched_task_json(const std::string& current_implant_uuid, std::queue<nlohmann::json>& queue) {
     nlohmann::json batch = nlohmann::json::array();

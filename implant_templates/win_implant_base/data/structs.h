@@ -2,6 +2,8 @@
 #include <windows.h>
 #include <iostream>
 #include "protocols/json/json.h"
+#include "_debug/debug.h"
+
 //struct to hold return type.  Move to somewhere where everything can access. maybe a structs.h
 struct ModuleResult {
 	nlohmann::json data;  // Holds whatever data may be needed here, str, dict, list, etc. 

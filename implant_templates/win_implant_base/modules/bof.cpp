@@ -5,11 +5,12 @@ extern "C" { //tldr, compield in c, so we need to use those names, not the c++ m
 #include <vector>
 #include <iostream>
 #include <windows.h>
+#include "_debug/debug.h"
 
 ModuleResult run_bof(std::vector<uint8_t> bof_bytes, const std::string& bof_args) {
 
     if (bofLauncherInit() < 0) {
-        //std::cout << "Bof init occured" << std::endl;
+        //DEBUG_LOG("Bof init occured");
         return { "", ERROR_INTERNAL_ERROR };
 
     }
@@ -17,7 +18,7 @@ ModuleResult run_bof(std::vector<uint8_t> bof_bytes, const std::string& bof_args
     BofObjectHandle bof_handle;
     if (bofObjectInitFromMemory(bof_bytes.data(), bof_bytes.size(), &bof_handle) < 0) {
         // handle the error
-        //std::cout << "Bof init from mem occured" << std::endl;
+        //DEBUG_LOG("Bof init from mem occured");
         return { "", ERROR_BAD_FORMAT };
     }
 
@@ -25,7 +26,7 @@ ModuleResult run_bof(std::vector<uint8_t> bof_bytes, const std::string& bof_args
     //args
     BofArgs* args0 = NULL;
     if (bofArgsInit(&args0) < 0) {
-        std::cout << "Bof args err" << std::endl;
+        DEBUG_LOG("Bof args err");
         return { "", ERROR_OUTOFMEMORY };
 
 
@@ -38,7 +39,7 @@ ModuleResult run_bof(std::vector<uint8_t> bof_bytes, const std::string& bof_args
     // Execute
     BofContext* context = NULL;
     if (bofObjectRun(bof_handle, (unsigned char*)bofArgsGetBuffer(args0), bofArgsGetBufferSize(args0), &context) < 0) {
-        //std::cout << "Bof run err occured" << std::endl;
+        //DEBUG_LOG("Bof run err occured");
         return { "", ERROR_INTERNAL_ERROR };
     }
 

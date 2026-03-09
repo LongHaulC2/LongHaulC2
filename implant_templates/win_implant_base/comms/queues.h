@@ -5,6 +5,7 @@
 #include <mutex>
 #include "protocols/json/json.h"
 #include <iostream>
+#include "_debug/debug.h"
 
 /*
 Hi!
@@ -30,8 +31,8 @@ namespace GetQueue {
         get_queue.push(task_result);
 
         //debug inbound
-        std::cout << "queued task for get_queue back to server:" << std::endl;
-        std::cout << task_result.dump(4) << std::endl;
+        DEBUG_LOG("queued task for get_queue back to server:");
+        DEBUG_LOG(task_result.dump(4));
     }
 
     inline nlohmann::json drain_queue() {
@@ -45,8 +46,8 @@ namespace GetQueue {
         }
 
         // debug outbound
-        std::cout << "drained get_queue results to send to server:" << std::endl;
-        std::cout << results.dump(4) << std::endl;
+        DEBUG_LOG("drained get_queue results to send to server:");
+        DEBUG_LOG(results.dump(4));
 
         return results;
     }
@@ -67,7 +68,7 @@ namespace PostQueue {
         post_queue.push(task_result);
 
         //debug inbound
-        std::cout << "queued task for response:" << std::endl;
-        std::cout << task_result.dump(4) << std::endl;
+        DEBUG_LOG("queued task for response:");
+        DEBUG_LOG(task_result.dump(4));
     }
 }

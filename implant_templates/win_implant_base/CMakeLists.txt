@@ -5,6 +5,21 @@ cmake_minimum_required (VERSION 3.16)
 
 project ("Implant_v01")
 
+
+# ==========================================
+# QUICK DEBUG OPTIONS
+# ==========================================
+option(ENABLE_IMPLANT_LOGS "Enable internal debug logging" OFF)
+
+if(ENABLE_IMPLANT_LOGS)
+    add_definitions(-DIMPLANT_DEBUG_LOGS)
+    message(STATUS "Internal Logging: ENABLED")
+else()
+    message(STATUS "Internal Logging: DISABLED")
+endif()
+
+# toggle from cli with: cmake -B build -D ENABLE_IMPLANT_LOGS=ON/OFF
+
 # ==========================================
 # 1. Output Directory
 # ==========================================

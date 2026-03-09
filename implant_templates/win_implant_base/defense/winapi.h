@@ -29,6 +29,7 @@ Also - a nice resource for finding what f*cking dll a function uses: https://mal
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
 #include <netioapi.h>//NET_IF_STATUS
+#include "_debug/debug.h"
 
 //* NO PRAGMA's, this includes all these funcs in the IAT. Use EnsureMOduleLoaded instead
 //#pragma comment(lib, "iphlpapi.lib")

@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 #include <windows.h>
+#include "_debug/debug.h"
 
 //uses c types for simplicity, easier to do this, and just pass  in values from c++ types as needed.
 void XOR(unsigned char* data, size_t data_size, const char* key, size_t key_size) {

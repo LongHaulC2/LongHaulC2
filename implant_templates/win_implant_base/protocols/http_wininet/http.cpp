@@ -2,6 +2,7 @@
 #include <wininet.h>
 #include <iostream>
 #include <vector>
+#include "_debug/debug.h"
 
 #pragma comment(lib, "wininet.lib")
 

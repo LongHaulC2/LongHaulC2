@@ -5,6 +5,8 @@
 #include <windows.h>
 #include "data/structs.h"
 #include "ls.h"
+#include "_debug/debug.h"
+
 namespace fs = std::filesystem;
 
 ModuleResult ls(std::string path) {

@@ -9,6 +9,8 @@
 #include "modules/metadata.h"
 #include "comms/queues.h"
 #include "comms/comms.h"
+#include "debug/debug.h"
+
 // ==========================================================
 // BASE INTERFACES
 // ==========================================================
@@ -134,8 +136,8 @@ public:
         nlohmann::json this_implants_get = this->create_get_request(implant_uuid, populate_this_implants_metadata);
         get_array.push_back(this_implants_get);
 
-        std::cout << "CHECKIN DATA -> SERVER" << std::endl;
-        std::cout << get_array.dump(4) << std::endl;
+        DEBUG_LOG("CHECKIN DATA -> SERVER");
+        DEBUG_LOG(get_array.dump(4));
 
         //to msgpack
         std::vector<uint8_t> get_as_msgpack;

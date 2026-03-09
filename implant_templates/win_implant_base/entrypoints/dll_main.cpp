@@ -1,5 +1,6 @@
 #include <windows.h>
 #include "core/c2.h"
+#include "_debug/debug.h"
 
 DWORD WINAPI ImplantThread(LPVOID)
 {

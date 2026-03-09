@@ -6,6 +6,7 @@
 #include <sstream>
 #include <cstdint>
 #include <string>
+#include "_debug/debug.h"
 
 namespace uuid7 {
     inline std::string generate() {

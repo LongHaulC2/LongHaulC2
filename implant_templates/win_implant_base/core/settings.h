@@ -7,6 +7,8 @@
 #include "c2.h" //ingress,egress definitions
 #include <windows.h>
 #include <mutex>
+#include "_debug/debug.h"
+
 // 1. Define allowed types
 //std::map<std::string, EgressFunc> and std::map<std::string, IngressFunc> are included as allowed types, so that we can store the strategy maps in the settings manager to get later. Kinda hacky
 using SettingValue = std::variant<bool, int, double, HANDLE, std::string, std::vector<std::string>>;

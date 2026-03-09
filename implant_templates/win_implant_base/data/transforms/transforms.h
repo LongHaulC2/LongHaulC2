@@ -1,4 +1,5 @@
 #include <string>
+#include "_debug/debug.h"
 
 void transform_prepend(std::string& data, const std::string& value);
 void undo_transform_prepend(std::string& data, const std::string& value);

@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
 #include <vector>
+#include "_debug/debug.h"
 
 
 namespace SMB {

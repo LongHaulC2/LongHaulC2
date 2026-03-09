@@ -616,13 +616,25 @@ Left off - DO IN ORDER:
          - [X] protocols
          - [X] systems 
 
-- [ ] Move comms.cpp to a .h only. Add namespaces to each comm method, ex:
+- [X] Move comms.cpp to a .h only. Add namespaces to each comm method, ex:
    http_whatever_port_wahtever::get
    http_whateveR_port_wahtever::post
 
    call via this method. It's much cleaner for the long run
 
+- [] BUG!!!!! Crasheson no listener to connect too, this is not okay. Needs to sit & keep trying. 
 - [ ] Move functions to WinApi::, replace as needed.
+- [ ] move stdout to a DEBUG_LOG function that can be defined away
+
+```
+#ifdef _DEBUG
+    #define DEBUG_LOG(x) std::cout << "[+] " << x << std::endl
+#else
+    #define DEBUG_LOG(x) // Becomes empty space in production
+#endif
+```
+   - [ ] add debug on flag in build
+   - [ ] add clear cache flag in build, taht deletes the cache before building
 
 - [ ] SMB templating via python & final code resting location. 
 

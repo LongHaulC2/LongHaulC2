@@ -1,5 +1,6 @@
 #include <string>
 #include "core/settings.h"
+#include "_debug/debug.h"
 
 
 int set_comms_get_strategy(std::string strategy_name) {

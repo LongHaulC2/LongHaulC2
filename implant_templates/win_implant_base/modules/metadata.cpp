@@ -7,6 +7,8 @@
 #include <lmcons.h> // Contains UNLEN (Maximum username length)
 #include <filesystem>
 #include "defense/winapi.h"
+#include "_debug/debug.h"
+
 //placeholder, move me to a diff file later, that has the ability to get this data
 //void populate_metadata(std::map<std::string, std::string>& metadata) {
 //    // Hardcoded placeholders as requested
@@ -209,6 +211,6 @@ ModuleResult get_nic_info() {
     }
 
     // Return the json object directly into your new ModuleResult struct
-    //std::cout << "IP IS STRING TEMP PLACEHODLER" << std::endl;
+    //DEBUG_LOG("IP IS STRING TEMP PLACEHODLER");
     return { network_dict, dwRetVal};
 }

@@ -6,6 +6,8 @@
 #include "protocols/json/json.h"
 #include <windows.h>
 #include <queue>
+#include "_debug/debug.h"
+
 /*
 =============================
 Child tracker Overview
