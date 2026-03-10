@@ -15,12 +15,10 @@ server_log = structlog.getLogger("server")
 # ========================================
 def flat_stat(label: str, value: str, icon: str, color: str = "emerald"):
     """Flat, inline stat widget against the background"""
-    with ui.element("div").classes(
-        "flex-1 h-full px-4 gap-2 flex items-center border-r border-white/5 bg-transparent min-w-max"
-    ):
+    with ui.element("div").classes("tech-stat-pill flex-1 min-w-max"):
         ui.icon(icon, size="14px", color=f"{color}-500").classes("opacity-70")
         ui.label(label).classes("tech-label-sub")
-        ui.label(str(value)).classes("text-[11px] font-mono text-neutral-200")
+        ui.label(str(value)).classes("tech-data-mono")
 
 
 def info_row(key: str, value: str):
@@ -29,7 +27,7 @@ def info_row(key: str, value: str):
         "w-full justify-between items-center py-2 border-b border-white/5 hover:bg-white/5 transition-colors"
     ):
         ui.label(key).classes("tech-label-sub")
-        ui.label(str(value)).classes("text-xs font-mono text-neutral-300 break-all text-right max-w-[60%]")
+        ui.label(str(value)).classes("tech-data-mono break-all text-right max-w-[60%]")
 
 
 # ========================================
@@ -67,20 +65,18 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
         # ====================
         #   1. HEADER
         # ====================
-        with ui.row().classes("w-full p-4 border-b border-white/5 bg-black/40 items-center justify-between shrink-0"):
+        with ui.row().classes("tech-header-bar flex w-full items-center justify-between shrink-0"):
             with ui.row().classes("items-center gap-4"):
                 ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to("/operations")).props(
-                    "flat dense square size=sm color=grey"
-                )
+                    "flat dense square size=sm"
+                ).classes("tech-btn-ghost")
                 ui.icon("terminal", size="md", color="emerald-500").classes(
                     "p-2 bg-emerald-500/10 rounded border border-emerald-500/20"
                 )
                 with ui.column().classes("gap-0"):
-                    ui.label(f"{listener_uuid}").classes(
-                        "text-sm font-bold tracking-[0.2em] text-white font-mono uppercase"
-                    )
+                    ui.label(f"{listener_uuid}").classes("tech-label-header-bold")
                     ui.label(f"listener // {listener_data.get('listener_host', '0.0.0.0')}").classes(
-                        "text-[12px] font-mono text-emerald-500 tracking-[0.2em]"
+                        "tech-label-sub text-emerald-500"
                     )
 
             with ui.row().classes("items-center gap-2"):
@@ -156,7 +152,7 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
                                     continue
                                 info_row(key, value)
 
-                    # Metadata Tab
+                    # Connected Implants Tab
                     with ui.tab_panel("connected_implants_tab").classes(
                         "w-full h-full items-center justify-center text-neutral-600"
                     ):  # noqa
@@ -188,7 +184,7 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
                     #     ui.label("GRAPH MODULE NOT IMPLEMENTED").classes("tech-label-sub")
 
                 # Footer Actions
-                with ui.column().classes("w-full p-4 gap-2 border-t shrink-0"):
+                with ui.column().classes("w-full p-4 gap-2 border-t border-white/5 shrink-0 bg-black/20"):
                     ui.label("ACTIONS").classes("tech-label-sub")
                     # with ui.row().classes("w-full gap-2"):
                     # ui.button("KILL", icon="bolt").classes(

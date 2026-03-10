@@ -276,12 +276,13 @@ def handle_click(e, nodes, sidebar_container):
             with ui.column().classes("w-full"):
                 implant_uuid = props.get("implant_uuid")
                 ui.button("Implant Page", on_click=lambda: ui.navigate.to(f"/implant/{implant_uuid}")).classes("w-full")
-                ui.button("Implant ...").classes("w-full")
+                ui.button("Implant ...").classes("w-full !tech-btn-action")
 
         elif node_type == "Host":
             with ui.column().classes("w-full"):
-                ui.button("Host Page").classes("w-full")
-                ui.button("something else").classes("w-full")
+                host_uuid = props.get("host_uuid")
+                ui.button("Host Page", on_click=lambda: ui.navigate.to(f"/host/{host_uuid}")).classes("w-full")
+                ui.button("something else").classes("w-full !tech-btn-action")
 
         elif node_type == "Listener":
             with ui.column().classes("w-full"):
@@ -290,10 +291,28 @@ def handle_click(e, nodes, sidebar_container):
                     "!tech-btn-action w-full "
                 )
 
+        elif node_type == "Nic":
+            with ui.column().classes("w-full"):
+                nic_uuid = props.get("nic_uuid")
+                ui.button("Nic Page", on_click=lambda: ui.navigate.to(f"/nic/{nic_uuid}")).classes(
+                    "!tech-btn-action w-full "
+                )
+
+        elif node_type == "Network":
+            with ui.column().classes("w-full"):
+                network_uuid = props.get("network_uuid")
+                ui.button("Network Page", on_click=lambda: ui.navigate.to(f"/network/{network_uuid}")).classes(
+                    "!tech-btn-action w-full "
+                )
+
         elif node_type == "File" or node_type == "MemstoreFile":
             with ui.column().classes("w-full"):
-                ui.button("Download").classes("w-full")
-                ui.button("Delete", color="red").classes("w-full")
+                file_uuid = props.get("file_uuid")
+                ui.button("File Page", on_click=lambda: ui.navigate.to(f"/file/{file_uuid}")).classes(
+                    "!tech-btn-action w-full "
+                )
+                ui.button("Download").classes("w-full !tech-btn-action")
+                ui.button("Delete", color="red").classes("w-full !tech-btn-action")
         else:
             ui.label("No actions for this type of node").classes("tech-label-sub")
 

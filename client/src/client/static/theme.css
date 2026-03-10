@@ -9,6 +9,11 @@ body {
   font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
   /*default to 12 if not set */
   font-size: 12px !important;
+  /*remove all default margin*/
+  margin: 0 !important;
+  /* removes default padding too */
+  padding: 0 !important;       
+
 }
 
 
@@ -58,6 +63,17 @@ body::before {
     box-shadow: none !important;
     
   }
+}
+
+/* generic UI row and UI column class */
+.tech-layout-light {
+    padding: 0.5rem;           /* light padding inside the container */
+    gap: 0.5rem;               /* space between child elements */
+    margin: 0;                 /* remove default margin */
+    display: flex;             /* ensures proper flex behavior */
+    flex-wrap: wrap;           /* allow wrapping if needed */
+    align-items: center;       /* vertical alignment */
+    /* justify-content: flex-start; horizontal alignment */
 }
 
 /* Main container for full-page dashboard modules */

@@ -12,11 +12,15 @@ import client.src.client.modules.health_check  # noqa: F401
 import client.src.client.pages.docs  # noqa: F401
 import client.src.client.pages.error  # noqa: F401
 import client.src.client.pages.graph  # noqa: F401
-import client.src.client.pages.implant  # noqa: F401
-import client.src.client.pages.listener  # noqa: F401
 import client.src.client.pages.listeners  # noqa: F401
 import client.src.client.pages.login  # noqa: F401
 import client.src.client.pages.logout  # noqa: F401
+import client.src.client.pages.node.file  # noqa: F401
+import client.src.client.pages.node.host  # noqa: F401
+import client.src.client.pages.node.implant  # noqa: F401
+import client.src.client.pages.node.listener  # noqa: F401
+import client.src.client.pages.node.network  # noqa: F401
+import client.src.client.pages.node.nic  # noqa: F401
 
 # notes, just import your page here and it'll do the import python magic to add it to the web interface
 # also, use full paths due to nicegui being picky about relative paths
