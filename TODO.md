@@ -626,10 +626,10 @@ Left off - DO IN ORDER:
 - [] BUG!!!!! Crashes on no listener to connect too, this is not okay. Needs to sit & keep trying. 
 - [ ] Move functions to WinApi::, replace as needed.
 - [X] move stdout to a DEBUG_LOG function that can be defined away
-- [ ] Add better logging throughout the implant, for when it is on.
+- [X] Add better logging throughout the implant, for when it is on.
 
-   - [ ] add debug on flag in build
-   - [ ] add clear cache flag in build, that deletes the cache before building
+   - [X] add debug on flag in build
+   - [X] add clear cache flag in build, that deletes the cache before building
       > buttons there, not hooked up to anything
 
 - [ ] SMB templating via python & final code resting location. 

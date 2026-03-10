@@ -6,7 +6,6 @@ from pathlib import Path
 import structlog
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from .context_generators.http_wininet import generate_http_wininet_context
 from .types import ListenerProfile  # Import your types
 
 server_logger = structlog.getLogger("server")
@@ -136,12 +135,21 @@ def _get_listener_context(listener: ListenerProfile) -> dict:
     listener_type = listener.get("listener_type")
 
     if listener_type == "http":
-        return generate_http_wininet_context(
-            listener.get("listener_profile_contents"),
-            listener.get("listener_host"),
-            listener.get("listener_port"),
-            listener.get("listener_profile_name"),
+        # return generate_http_wininet_context(
+        #     listener.get("listener_profile_contents"),
+        #     listener.get("listener_host"),
+        #     listener.get("listener_port"),
+        #     listener.get("listener_profile_name"),
+        # )
+        from .context_generators.context_toml import generate_toml_context
+
+        return generate_toml_context(
+            profile_toml=listener.get("listener_profile_contents"),
+            host=listener.get("listener_host"),
+            port=listener.get("listener_port"),
+            profile_name=listener.get("listener_profile_name"),
         )
+
     return {}
 
 

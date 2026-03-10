@@ -14,6 +14,77 @@ profile-language.htm#_Toc65482837 (Data Transform Language))
 """
 
 
+def apply_python_transforms(data: bytes, transforms_list: list[dict] | None) -> bytes:
+    """
+    Applies a list of transform operations sequentially.
+    Matches the order the C++ agent uses to encode data.
+    """
+    if not transforms_list:
+        return data
+
+    current_data = data
+    for step in transforms_list:
+        op = step.get("op")
+        val = step.get("val")
+
+        if op == "base64":
+            current_data = base64_encode(current_data)
+        elif op == "base64url":
+            current_data = base64url_encode(current_data)
+        elif op == "prepend":
+            current_data = transform_prepend(current_data, val)
+        elif op == "append":
+            current_data = transform_append(current_data, val)
+        elif op == "mask":
+            # xor_mask requires key to be explicitly bytes, so we convert it here
+            key_bytes = val if isinstance(val, bytes) else malleable_string_to_bytes(str(val))
+            current_data = xor_mask(current_data, key_bytes)
+        elif op == "netbios":
+            current_data = netbios_encode(current_data)
+        elif op == "netbiosu":
+            current_data = netbiosu_encode(current_data)
+        else:
+            server_logger.warning("Unknown transform operation requested for encoding", op=op)
+
+    return current_data
+
+
+def reverse_python_transforms(data: bytes, transforms_list: list[dict] | None) -> bytes:
+    """
+    Reverses a list of transform operations.
+    Iterates BACKWARDS to safely unpack the payload.
+    """
+    if not transforms_list:
+        return data
+
+    current_data = data
+    # fyi - use reversed() to undo operations from last to first
+    for step in reversed(transforms_list):
+        op = step.get("op")
+        val = step.get("val")
+
+        if op == "base64":
+            current_data = base64_decode(current_data)
+        elif op == "base64url":
+            current_data = base64url_decode(current_data)
+        elif op == "prepend":
+            current_data = undo_transform_prepend(current_data, val)
+        elif op == "append":
+            current_data = undo_transform_append(current_data, val)
+        elif op == "mask":
+            # XOR mask reverses itself with the exact same operation
+            key_bytes = val if isinstance(val, bytes) else malleable_string_to_bytes(str(val))
+            current_data = xor_mask(current_data, key_bytes)
+        elif op == "netbios":
+            current_data = netbios_decode(current_data)
+        elif op == "netbiosu":
+            current_data = netbiosu_decode(current_data)
+        else:
+            server_logger.warning("Unknown transform operation requested for decoding", op=op)
+
+    return current_data
+
+
 def transform_prepend(data: bytes, value) -> bytes:
     check_type(data, bytes, "data")
 
