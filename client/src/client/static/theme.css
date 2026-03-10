@@ -5,7 +5,12 @@ body {
   background-size: 24px 24px;
   color: #e4e4e7;
   min-height: 100vh;
+  /*font here, way easier to change */
+  font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
+  /*default to 12 if not set */
+  font-size: 12px !important;
 }
+
 
 body::before {
   content: '';
@@ -74,44 +79,40 @@ body::before {
 
 /* Small mono labels for metadata and headers */
 .tech-label-sub {
-    font-family: ui-monospace, 'Cascadia Code', monospace;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    color: #71717a;
+    /*10 is too small, 12 seems to be fine*/
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: #a1a1aa;
     text-transform: uppercase;
 }
 /* "normal" label i guess? slightly bigger than sub */
 .tech-label {
-    font-family: ui-monospace, 'Cascadia Code', monospace;
     font-size: 12px;
-    letter-spacing: 0.1em;
-    color: #71717a;
+    letter-spacing: 0.06em;
+    color: #a1a1aa;
     text-transform: uppercase;
 }
 
 /* High-visibility headers for page titles */
 .tech-label-header-bold {
-    font-family: ui-monospace, 'Cascadia Code', monospace;
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 500;
     letter-spacing: 0.1em;
-    color: #71717a;
+    color: #a1a1aa;
     text-transform: uppercase;
 }
 .tech-label-header-section {
-    font-family: ui-monospace, 'Cascadia Code', monospace;
     font-size: 16px;
     letter-spacing: 0.1em;
-    color: #71717a;
+    color: #a1a1aa;
     text-transform: uppercase;
 }
 
 /* header but for each section on a page, see active sessions in operations */
 .tech-label-header-section {
-    font-family: ui-monospace, 'Cascadia Code', monospace;
     font-size: 14px;
     letter-spacing: 0.1em;
-    color: #71717a;
+    color: #a1a1aa;
     text-transform: uppercase;
 }
 
@@ -183,7 +184,6 @@ body::before {
 /* Label and Text styling */
 .tech-input .q-field__label, 
 .tech-input .q-field__native {
-    font-family: ui-monospace, 'Cascadia Code', monospace;
     font-size: 12px;
     letter-spacing: 0.05em;
     color: #a1a1aa !important; /* Zinc-400 */
@@ -191,7 +191,7 @@ body::before {
 
 .tech-input .q-field__native {
     /*color: #ffffff !important; */
-    color: #71717a !important;
+    color: #a1a1aa !important;
 }
 
 /* --- TECH ui.select --- */
@@ -210,7 +210,6 @@ body::before {
 
 /* Individual Options in the list */
 .tech-select-menu .q-item {
-    font-family: ui-monospace, 'Cascadia Code', monospace;
     font-size: 11px;
     color: #a1a1aa;
     transition: all 0.2s ease;
@@ -236,9 +235,10 @@ body::before {
 /* The Header: Darken and force the high-density mono text */
 .tech-table-head th {
     background-color: rgba(15, 15, 15, 0.95) !important;
-    color: #71717a !important; /* Zinc-400 */
-    font-family: ui-monospace, monospace !important;
-    font-size: 10px !important;
+    color: #a1a1aa !important; /* Zinc-400 */
+  
+    /*IMO 10 is too small, 12 is too big, 11 fits*/
+    font-size: 11px !important;
     font-weight: 700 !important;
     letter-spacing: 0.1em !important;
     text-transform: uppercase !important;
@@ -248,6 +248,7 @@ body::before {
 /* The Body: Ensure data text is crisp Zinc-200 */
 .tech-table-body td {
     color: #e4e4e7 !important; /* Zinc-200 */
+  
     font-size: 12px !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
 }
@@ -278,7 +279,7 @@ body::before {
     border-radius: 2px !important;
     width: 14px !important;
     height: 14px !important;
-    background: #71717a !important; /* Zinc-400 */
+    background: #a1a1aa !important; /* Zinc-400 */
     box-shadow: none !important;
     top: 50% !important;
     transform: translateY(-50%) !important;
@@ -317,10 +318,10 @@ body::before {
 
 /* Default unselected button state */
 .tech-toggle .q-btn {
-    font-family: ui-monospace, 'Cascadia Code', monospace !important;
+  
     font-size: 11px !important;
     font-weight: 600 !important;
-    color: #71717a !important; /* Zinc-400 */
+    color: #a1a1aa !important; /* Zinc-400 */
     border-radius: 0 !important; /* Force hard internal edges */
     padding: 4px 12px !important;
     min-height: 28px !important;
@@ -353,7 +354,6 @@ body::before {
 .tech-expansion .q-item {
     min-height: 32px !important; /* Kills Quasar's default bulky height */
     padding: 6px 12px !important; /* Tight padding */
-    font-family: ui-monospace, 'Cascadia Code', monospace;
     font-size: 11px;
     letter-spacing: 0.1em;
     color: rgba(16, 185, 129, 0.7); /* Emerald-500/70 to match your previous header */
@@ -380,7 +380,7 @@ body::before {
 
 /* The expand/collapse arrow */
 .tech-expansion .q-item__section--side .q-icon {
-    color: #71717a !important; /* Zinc-400 */
+    color: #a1a1aa !important; /* Zinc-400 */
     font-size: 16px !important;
     transition: color 0.2s ease;
 }
@@ -397,7 +397,7 @@ body::before {
     border-radius: 2px !important; /* Matches your sharp component edges */
     
     /* Typography */
-    font-family: ui-monospace, 'Cascadia Code', monospace !important;
+  
     font-size: 11px !important;
     color: #a1a1aa !important; /* Zinc-400 */
     letter-spacing: 0.05em;

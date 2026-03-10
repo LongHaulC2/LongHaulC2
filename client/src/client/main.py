@@ -13,6 +13,7 @@ import client.src.client.pages.docs  # noqa: F401
 import client.src.client.pages.error  # noqa: F401
 import client.src.client.pages.graph  # noqa: F401
 import client.src.client.pages.implant  # noqa: F401
+import client.src.client.pages.listener  # noqa: F401
 import client.src.client.pages.listeners  # noqa: F401
 import client.src.client.pages.login  # noqa: F401
 import client.src.client.pages.logout  # noqa: F401

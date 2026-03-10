@@ -230,12 +230,14 @@ async def implant_view():
                 "header",
                 r"""
 <q-tr :props="props" class="bg-white/5 text-neutral-400 uppercase text-xs tracking-wider border-b border-white/10">
-    <q-th auto-width />
+    <q-th auto-width>
+        <q-checkbox dense size="sm" v-model="props.selected" />
+    </q-th>
     <q-th v-for="col in props.cols" :key="col.name" :props="props">
         {{ col.label }}
     </q-th>
 </q-tr>
-            """,
+""",
             )
 
             table_initialized = True

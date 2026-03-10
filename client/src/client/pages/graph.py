@@ -285,8 +285,10 @@ def handle_click(e, nodes, sidebar_container):
 
         elif node_type == "Listener":
             with ui.column().classes("w-full"):
-                ui.button("Restart").classes("w-full")
-                ui.button("Stop", color="red").classes("w-full")
+                listener_uuid = props.get("listener_uuid")
+                ui.button("Listener Page", on_click=lambda: ui.navigate.to(f"/listener/{listener_uuid}")).classes(
+                    "!tech-btn-action w-full "
+                )
 
         elif node_type == "File" or node_type == "MemstoreFile":
             with ui.column().classes("w-full"):

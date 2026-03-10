@@ -1,3 +1,5 @@
+import json
+
 import structlog
 from nicegui import ui
 
@@ -55,17 +57,20 @@ def render_history_row(task: dict):
                         ui.label(args_str).classes("text-[10px] font-mono text-neutral-400 truncate max-w-md")
                 ui.label(f"ID: {task.get('task_uuid', '')}").classes("tech-label-sub")
 
+        # --- Request Section ---
         with ui.column().classes("w-full bg-black/40 p-4 border-t border-white/5 shadow-inner"):
-            # ui.label("OUTPUT STREAM //").classes("tech-label-sub")
-            ui.code(f"{task_req}").classes(
+            ui.label("REQUEST DATA //").classes("text-[10px] text-emerald-500/50 font-mono mb-1")
+            # Using json.dumps for pretty printing
+            ui.code(json.dumps(task_req, indent=2)).classes(
                 "w-full bg-transparent text-emerald-400 font-mono text-xs overflow-x-auto p-0 m-0"
             )
 
-        # Flat dropdown content
+        # --- Response Section ---
         with ui.column().classes("w-full bg-black/40 p-4 border-t border-white/5 shadow-inner"):
-            # ui.label("OUTPUT STREAM //").classes("tech-label-sub")
+            ui.label("RESPONSE DATA //").classes("text-[10px] text-emerald-500/50 font-mono mb-1")
             if task_res:
-                ui.code(str(task_res)).classes(
+                # Using json.dumps for pretty printing
+                ui.code(json.dumps(task_res, indent=2)).classes(
                     "w-full bg-transparent text-emerald-400 font-mono text-xs overflow-x-auto p-0 m-0"
                 )
             else:
@@ -102,6 +107,7 @@ async def implant_details(implant_uuid: str):
 async def render_dashboard(implant_metadata: dict, implant_uuid: str):
     hostname = implant_metadata.get("system_hostname", "?")
     user = implant_metadata.get("user", "UNKNOWN")
+    process_name = implant_metadata.get("process", "?")
 
     # MAIN CONTAINER
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
@@ -129,7 +135,7 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
                     "INTERACT",
                     icon="terminal",
                     on_click=lambda: ui.navigate.to("/operations"),
-                ).classes("tech-btn-action px-4").props("unelevated dense")
+                ).classes("!tech-btn-action px-4").props("unelevated dense")
 
         # ====================
         #   2. VITALS BAR (Flat layout replacing stat_cards)
@@ -138,10 +144,10 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
             "w-full h-10 gap-0 bg-black/20 border-b border-white/5 items-center shrink-0 flex-nowrap overflow-x-auto"
         ):
             flat_stat("USER", user, "person", "emerald")
-            flat_stat("NETWORK ADDR", implant_metadata.get("ip_address", "0.0.0.0"), "lan", "blue")
+            flat_stat("EXT NETWORK ADDR", implant_metadata.get("external_ip", "0.0.0.0"), "lan", "blue")
             flat_stat(
                 "PROCESS",
-                f"{implant_metadata.get('process_id', '?')} ({implant_metadata.get('process_name', '?')})",
+                process_name,
                 "memory",
                 "purple",
             )
@@ -151,7 +157,7 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
         # ====================
         #   3. BODY
         # ====================
-        with ui.row().classes("w-full flex-grow p-4 gap-4 overflow-hidden no-wrap items-stretch"):
+        with ui.row().classes("w-full flex-grow p-4 gap-4 overflow-hidden no-wrap items-stretch"):  # noqa - nicegui styling
             # --------------------
             # LEFT: WORKSPACE / TABS (Removed ui.card)
             # --------------------
@@ -170,7 +176,7 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
                     with tabs:
                         ui.tab("metadata_tab", label="METADATA").classes("h-10 min-h-0 tech-label-sub")
                         ui.tab("history_tab", label="COMMAND HISTORY").classes("h-10 min-h-0 tech-label-sub")
-                        ui.tab("graph_tab", label="GRAPH").classes("h-10 min-h-0 tech-label-sub")
+                        # ui.tab("graph_tab", label="GRAPH").classes("h-10 min-h-0 tech-label-sub")
                         ui.tab("terminal_tab", label="TERMINAL").classes("h-10 min-h-0 tech-label-sub")
 
                 # Tabs Content
@@ -215,11 +221,11 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
                             ui.timer(0.1, load_history, once=True)
 
                     # Graph Tab
-                    with ui.tab_panel("graph_tab").classes(
-                        "w-full h-full items-center justify-center text-neutral-600"
-                    ):
-                        ui.icon("hub", size="xl").classes("mb-2 opacity-50")
-                        ui.label("GRAPH MODULE NOT IMPLEMENTED").classes("tech-label-sub")
+                    # with ui.tab_panel("graph_tab").classes(
+                    #     "w-full h-full items-center justify-center text-neutral-600"
+                    # ):
+                    #     ui.icon("hub", size="xl").classes("mb-2 opacity-50")
+                    #     ui.label("GRAPH MODULE NOT IMPLEMENTED").classes("tech-label-sub")
 
                     # Terminal Tab
                     with ui.tab_panel("terminal_tab").classes(
@@ -228,55 +234,13 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
                         ui.icon("terminal", size="xl").classes("mb-2 opacity-50")
                         ui.label("TERMINAL MODULE NOT IMPLEMENTED").classes("tech-label-sub")
 
-            # --------------------
-            # RIGHT: CONTROLS SIDEBAR (Removed ui.card)
-            # --------------------
-            with ui.column().classes(
-                "w-[320px] shrink-0 bg-black/20 border border-white/5 rounded overflow-hidden flex-nowrap gap-0"
-            ):
-                # Header
-                with ui.row().classes("w-full p-3 border-b border-white/5 bg-black/40 items-center gap-2 shrink-0"):
-                    ui.icon("settings", size="xs", color="emerald-500")
-                    ui.label("CONTROLS //").classes("tech-label-sub")
-
-                # Scrollable Config
-                with ui.scroll_area().classes("w-full flex-grow"):  # noqa
-                    with ui.column().classes("p-4 w-full gap-5"):
-                        # Config
-                        with ui.column().classes("w-full gap-2"):
-                            ui.label("Something")
-                        #     ui.label("IMPLANT SETTINGS").classes("tech-label-sub")
-                        #     with ui.row().classes("w-full gap-2"):
-                        #         ui.input("SLEEP (s)", value=str(implant_metadata.get("sleep", "60"))).props(
-                        #             "outlined dense dark color=emerald"
-                        #         ).classes("flex-1 tech-input")
-                        #         ui.input("JITTER (%)", value=str(implant_metadata.get("jitter", "10"))).props(
-                        #             "outlined dense dark color=emerald"
-                        #         ).classes("flex-1 tech-input")
-                        #     ui.button("APPLY CONFIG", icon="save").classes(
-                        #         "w-full tech-btn-action-2 border border-white/10"
-                        #     ).props("flat dense")
-
-                        ui.separator().classes("bg-white/5")
-
-                        # Scripts
-                        with ui.column().classes("w-full gap-2"):
-                            ui.label("Something else")
-                            # ui.label("AUTORUN SCRIPTS").classes("tech-label-sub")
-                            # ui.button("SPAWN PIVOT", icon="lan").classes(
-                            #     "w-full bg-black/20 text-neutral-400 justify-start hover:text-emerald-400 border border-white/5" #noqa
-                            # ).props("flat dense")
-                            # ui.button("DUMP CREDENTIALS", icon="key").classes(
-                            #     "w-full bg-black/20 text-neutral-400 justify-start hover:text-emerald-400 border border-white/5" #noqa
-                            # ).props("flat dense")
-
                 # Footer Actions
-                with ui.column().classes("w-full p-4 gap-2 bg-red-900/10 border-t border-red-500/20 shrink-0"):
-                    ui.label("ACTIONS").classes("tech-label-sub text-red-500/70")
-                    with ui.row().classes("w-full gap-2"):
-                        # ui.button("KILL", icon="bolt").classes(
-                        #     "flex-1 bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-colors"  # noqa
-                        # ).props("unelevated dense")
-                        ui.button("EXIT", icon="logout").classes(
-                            "!tech-btn-action w-full"  # noqa
-                        ).props("unelevated dense")
+                with ui.column().classes("w-full p-4 gap-2 border-t  shrink-0"):
+                    ui.label("ACTIONS").classes("tech-label-sub ")
+                    # with ui.row().classes("w-full gap-2"):
+                    # ui.button("KILL", icon="bolt").classes(
+                    #     "flex-1 bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-colors"  # noqa
+                    # ).props("unelevated dense")
+                    # ui.button("EXIT", icon="logout").classes(
+                    #     "!tech-btn-action w-full"  # noqa
+                    # ).props("unelevated dense")

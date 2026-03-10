@@ -28,7 +28,6 @@ server = [
     "flask-compress",
     "flask-limiter",
     "edwh-uuid7",
-    "pyMalleableProfileParser",
     "uvicorn",
     "concurrent-log-handler",
     "neomodel",

@@ -94,7 +94,6 @@ pycparser==3.0
 pydantic==2.12.5
 pydantic_core==2.41.5
 Pygments==2.19.2
-pyMalleableProfileParser==0.3.3
 PyMySQL==1.1.2
 pyparsing==3.3.2
 pyrate-limiter==3.9.0

@@ -635,16 +635,18 @@ Left off - DO IN ORDER:
 - [ ] SMB templating via python & final code resting location. 
 
    > after that works, can work on things like an smb block for malleable c2/pipe names, etc. 
-- [ ] Listener cleanup
+- [X] Listener cleanup
    > move functions out to dedicated helpers where necessary (register, etc), keep the listeners 
    "transport only"
 
 
 - [X] Moved to better profile langauge
 - [ ] clean up old aritfacts of mc2.
-   - [ ] files
-   - [ ] dependencies
+   - [X] files
+   - [X] dependencies
    - [ ] add rough docs? the place anywhere tokens are cool
+   - [ ] Listener page - network format parser. i.e., profile -> http or whatever formatter. 
+   - [ ] SMB templating
 
 
 
