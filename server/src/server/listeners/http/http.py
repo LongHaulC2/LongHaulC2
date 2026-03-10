@@ -150,6 +150,12 @@ async def http_post(request: Request, body_bytes: bytes) -> Response:
     post_config = g_profile.get("http", {}).get("post", {})
     client_config = post_config.get("client", {})
 
+    # Force correct user agent on post
+    allowed_ua = post_config.get("useragent")
+    if allowed_ua and request.headers.get("user-agent") != allowed_ua:
+        listener_logger.warning("user_agent_mismatch", expected=allowed_ua, actual=request.headers.get("user-agent"))
+        return Response(status_code=404)
+
     # Extract the Agent ID and Task Output tokens
     uri_template = post_config.get("uri", "")
     raw_id = find_payload(request, client_config, uri_template, "<CLIENT_ID>")

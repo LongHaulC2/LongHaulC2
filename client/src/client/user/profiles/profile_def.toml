@@ -10,6 +10,10 @@ author = "@harmj0y"
 
 
 ## =============================================
+## HTTP - Egress only ATM.
+## =============================================
+
+## =============================================
 ## HTTP GET (Beacon Check-in)
 ## =============================================
 [http.get]
@@ -118,5 +122,29 @@ transforms = []
 
 
 ## =============================================
-## SMB
+## SMB - internal only
 ## =============================================
+[smb]
+
+#some options here
+# max chunk size? i.e. how much to read each loop
+
+[smb.get]
+# gets transformed into \\<ip>\inbox
+pipe_name = "inbox"
+
+# transforms...
+# just takes passed task data and fucks it up...
+
+[smb.post]
+# gets transformed into \\<ip>\outbox
+pipe_name = "outbox"
+
+# transforms...
+# just takes passed task data and fucks it up...
+
+
+## =============================================
+## NTP - Internal & Egress
+## =============================================
+#...
