@@ -211,7 +211,7 @@ class MySQLImplantTaskService:
         Returns:
             List of task dictionaries.
         """
-        server_logger.info("Retrieving all tasks for implant", implant_uuid=self.implant_uuid)
+        server_logger.debug("Retrieving all tasks for implant", implant_uuid=self.implant_uuid)
 
         tasks = self.session.query(ImplantTask).filter_by(implant_uuid=self.implant_uuid).all()
 

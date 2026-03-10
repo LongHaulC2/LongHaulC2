@@ -261,7 +261,7 @@ class ImplantTask(Resource):
         task_uuid = task_service.task.task_uuid
         data = {"task_uuid": task_uuid}
 
-        api_logger.info("Task enqueued", task_uuid=task_uuid, implant_uuid=uuid, caller_ip=ip)
+        api_logger.debug("Task enqueued", task_uuid=task_uuid, implant_uuid=uuid, caller_ip=ip)
         return APIResponse(status="200", message="Queued task successfully", data=data)
 
 
