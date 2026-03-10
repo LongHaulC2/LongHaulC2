@@ -77,8 +77,8 @@ namespace [[ http_function_name ]] {
 
         // 3. Build Headers
         std::vector<std::wstring> headers;
-        headers.push_back(L"User-Agent: [[ http_user_agent | default('Mozilla/5.0') ]]");
-        
+        headers.push_back(L"User-Agent: [[ get_useragent ]]"); 
+
         [% for header in get_config.client.headers | default([]) %]
             [% for k, v in header.items() %]
             {
@@ -163,8 +163,8 @@ namespace [[ http_function_name ]] {
 
         // 3. Build Headers
         std::vector<std::wstring> headers;
-        headers.push_back(L"User-Agent: [[ http_user_agent | default('Mozilla/5.0') ]]");
-
+        headers.push_back(L"User-Agent: [[ post_useragent ]]");
+        
         [% for header in post_config.client.headers | default([]) %]
             [% for k, v in header.items() %]
             {

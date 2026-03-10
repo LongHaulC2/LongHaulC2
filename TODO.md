@@ -640,6 +640,12 @@ Left off - DO IN ORDER:
    "transport only"
 
 
+- [X] Moved to better profile langauge
+- [ ] clean up old aritfacts of mc2.
+   - [ ] files
+   - [ ] dependencies
+   - [ ] add rough docs? the place anywhere tokens are cool
+
 
 
  - Note: pipes were moved to synchronos handling for simpliocity. way less to bug out on. 

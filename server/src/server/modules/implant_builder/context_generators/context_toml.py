@@ -22,14 +22,18 @@ def generate_toml_context(profile_toml: str, host: str, port: int, profile_name:
         server_logger.error("Failed to parse TOML Profile", error=str(e))
         raise e
 
-    opts = data.get("profile", {}).get("options", {})
+    opts = data.get("profile", {}).get("options", {})  # noqa
+
+    get_block = data.get("http", {}).get("get", {})
+    post_block = data.get("http", {}).get("post", {})
 
     return {
         "callback_host": host,
         "callback_port": port,
-        "http_user_agent": opts.get("useragent", "Mozilla/5.0"),
+        "get_useragent": get_block.get("useragent", "Mozilla/5.0"),
+        "post_useragent": post_block.get("useragent", "Mozilla/5.0"),
         "http_function_name": sanitize_cpp_name(f"http_{host}_{port}_{profile_name}"),
         # Pass the raw config blocks directly to Jinja
-        "get_config": data.get("http", {}).get("get", {}),
-        "post_config": data.get("http", {}).get("post", {}),
+        "get_config": get_block,
+        "post_config": post_block,
     }

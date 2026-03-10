@@ -375,7 +375,7 @@ class ImplantHistory(Resource):
         with get_mysql_session() as session:
             mysql_implant_service = MySQLImplantTaskService(implant_uuid=uuid, session=session)
             if since:
-                api_logger.info(
+                api_logger.debug(
                     "Requesting history",
                     since=since,
                     implant_uuid=uuid,
@@ -385,7 +385,7 @@ class ImplantHistory(Resource):
                     implant_uuid=uuid, last_task_uuid=since
                 )
             else:
-                api_logger.info("Requesting history for implant", implant_uuid=uuid, caller_ip=ip)
+                api_logger.debug("Requesting history for implant", implant_uuid=uuid, caller_ip=ip)
                 tasks = mysql_implant_service.get_all_tasks()
 
         return APIResponse(status="200", message="Success", data=tasks)

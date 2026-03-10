@@ -91,6 +91,13 @@ async def http_get(request: Request, body_bytes: bytes) -> Response:
     get_config = g_profile.get("http", {}).get("get", {})
     client_config = get_config.get("client", {})
 
+    allowed_ua = get_config.get("useragent")
+
+    # Force correct user agent on get
+    if allowed_ua and request.headers.get("user-agent") != allowed_ua:
+        listener_logger.warning("user_agent_mismatch", expected=allowed_ua, actual=request.headers.get("user-agent"))
+        return Response(status_code=404)
+
     # Extract the raw token bytes from the URI, headers, or query parameters
     raw_metadata = find_payload(request, client_config, get_config.get("uri", ""), "<METADATA>")
 
