@@ -14,9 +14,12 @@
    - JWT: https://blog.appsignal.com/2025/04/30/using-jwts-in-python-flask-rest-framework.html
    - [X] Auth endpoints
    - [ ] Add jwt_required to every endpoint 
-- [ ] Set up the Login Page in the GUI (hook it to the JWT endpoint).
-- [ ] Enforce HTTPS on the API.
-   - [ ] cert generation via makefile 
+- [X] Set up the Login Page in the GUI (hook it to the JWT endpoint).
+
+- [ ] Enforce HTTPS on the API. 
+   - [X] cert generation via makefile 
+   - [X] Gunicorn
+- [ ] add a default user to db... 
 
 
 ### Day 2: March 11 - Schemathesis & Test Driven Fixes

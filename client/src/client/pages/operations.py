@@ -1,8 +1,8 @@
-import httpx
 import structlog
 from nicegui import app, ui
 
 from client.src.client.modules.api_calls import (
+    delete_implant,
     get_all_implant_data,
     get_implant_data,
     get_implant_task_history,
@@ -18,7 +18,6 @@ from client.src.client.pages.listeners import start_listener_dialogue
 from client.src.client.pages.menu import setup_menu
 from client.src.client.pages.notes import open_notes_dialog
 from client.src.client.pages.payloads import start_payload_dialogue
-from client.src.client.utils.url import generate_url
 
 from ..utils.checks import check_type
 
@@ -73,13 +72,6 @@ async def operations():
                 ui.icon("drag_handle").classes("text-emerald-700 w-full")
 
     await build_footer()
-
-
-async def delete_implant(implant_uuid=str) -> None:
-    check_type(implant_uuid, str, "implant_uuid")
-    async with httpx.AsyncClient() as client:
-        url = generate_url(f"/api/v1/implants/{implant_uuid}")
-        await client.delete(url)
 
 
 # -------------------------------

@@ -708,3 +708,19 @@ class MySQLUserService:
             self.session.rollback()
             mysql_delete_user_logger.error("An error occurred", error=str(e))
             raise e
+
+    def create_initial_user(self, username, password) -> bool:
+        """
+        Creates initial user, only if there are no other users
+        """
+        check_type(username, str, "username")
+        check_type(password, str, "password")
+
+        # Use the session to perform the count
+        user_count = self.session.query(UserLogin).count()
+
+        if user_count == 0:
+            server_logger.info("No users found. Creating initial admin user.")
+            return self.register_user(username=username, password=password)
+
+        return False

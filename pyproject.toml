@@ -37,7 +37,8 @@ server = [
     "orjson",
     "docker",
     "flask-jwt-extended",
-    "bcrypt"
+    "bcrypt",
+    "gunicorn"
 ]
 # GUI reqs
 web = [

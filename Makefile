@@ -44,6 +44,15 @@ NEO4J_DB_PORT ?= 7687
 NEO4J_USER ?= neo4j
 NEO4J_PASSWORD ?= P@ssw0rd1!
 JWT_SECRET_KEY ?= P@ssw0rd1!
+INIT_API_USER ?= longhaul
+INIT_API_PASS ?= P@ssw0rd1!
+
+# Certs
+CERT_DIR := /etc/ssl/certs/
+CERT_FILE := $(CERT_DIR)/longhaulc2_api_cert.pem
+KEY_FILE := $(CERT_DIR)/longhaulc2_api_key.pem
+DAYS := 365
+
 # ======================================
 # Helpers
 # ======================================
@@ -70,6 +79,9 @@ deploy: check_root
 	sudo apt-get update -y
 	
 	sudo apt-get install -y $(APT_PACKAGES)
+
+	# immediately setup cert stuff to make sure it exists
+	$(MAKE) cert_prereqs
 
 	@echo "Dependencies installed, continuing with deployment..."
 	
@@ -119,6 +131,8 @@ deploy: check_root
 	cp -r client/* $(DEPLOY_DIR)/client/
 	cp -r .env $(DEPLOY_DIR)/
 	
+
+
 	@echo "=================================================="
 	@echo "Creating virtualenv"
 	@echo "=================================================="
@@ -146,6 +160,13 @@ deploy: check_root
 	chown -R $(SVC_USER):$(SVC_USER) /var/lib/longhaulc2
 	chown -R $(SVC_USER):$(SVC_USER) /var/log/longhaulc2
 	
+	# Appdirs must be as well
+	sudo chown -R longhaul:longhaul /opt/longhaulc2/
+
+	# create certs
+
+	$(MAKE) certs
+
 	@echo "=================================================="
 	@echo "Setting up services"
 	@echo "=================================================="
@@ -189,6 +210,9 @@ undeploy: check_root
 	rm -f /etc/systemd/system/$(word 2, $(SYSTEMD_SERVICES)).service
 	systemctl daemon-reload
 	
+	# remove certs
+	$(MAKE) clean-certs
+
 	@echo "=================================================="
 	@echo "Stopping and removing Docker containers"
 	@echo "=================================================="
@@ -363,6 +387,47 @@ pull_docker_images:
 	wait
 
 # ======================================
+# Certs
+# ======================================
+.PHONY cert_prereqs: cert_prereqs
+cert_prereqs:
+	# these commands make sure the CA exists first. 
+	# TLDR, run FIRST before pip
+
+	sudo apt-get install -y --reinstall ca-certificates
+	sudo update-ca-certificates
+
+.PHONY: certs
+certs:
+	@echo "=================================================="
+	@echo "Creating Certificates"
+	@echo "=================================================="
+	@mkdir -p $(CERT_DIR)
+	@if [ ! -f $(CERT_FILE) ]; then \
+		echo "Generating self-signed certificates..."; \
+		openssl req -x509 -newkey rsa:4096 -nodes \
+			-keyout $(KEY_FILE) \
+			-out $(CERT_FILE) \
+			-days $(DAYS) \
+			-subj "/C=US/ST=State/L=City/O=LongHaulC2/CN=localhost"; \
+		chmod 600 $(KEY_FILE); \
+		chmod 644 $(CERT_FILE); \
+		sudo chown $(SVC_USER):$(SVC_USER) $(CERT_FILE); \
+		sudo chown $(SVC_USER):$(SVC_USER) $(KEY_FILE); \
+		sudo chmod 644 $(CERT_FILE); \
+		sudo chmod 600 $(KEY_FILE); \
+		echo "Certificates generated successfully in $(CERT_DIR)/"; \
+	else \
+		echo "Certificates already exist. Skipping generation to prevent overwrite."; \
+	fi
+
+.PHONY: clean-certs
+clean-certs:
+	@echo "Removing certificates..."
+	@rm -rf $(CERT_DIR)
+	@echo "Certificates removed."
+
+# ======================================
 # General Utilities
 # ======================================
 
@@ -395,6 +460,15 @@ create_env:
 	@echo "NEO4J_CONTAINER=$(NEO4J_CONTAINER)" >> .env
 	@echo "WORKSPACE_DIR=$(WORKSPACE_DIR)" >> .env
 	@echo "JWT_SECRET_KEY=$(JWT_SECRET_KEY)" >> .env
+
+	# cert stuff, put in path of certs
+	@echo "API_CERT_KEY=$(KEY_FILE)" >> .env
+	@echo "API_CERT_FILE=$(CERT_FILE)" >> .env
+
+	# init api user
+	@echo "INIT_API_USER=$(INIT_API_USER)" >> .env
+	@echo "INIT_API_PASS=$(INIT_API_PASS)" >> .env
+
 
 .PHONY: print_all_install_locations
 print_all_install_locations:
@@ -445,10 +519,12 @@ clean_python:
 	find . -type d -name "*.egg-info" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
 
-.PHONY: freeze
-freeze: clean_python
-	# freeze requirements excluding editable
-	pip freeze --exclude-editable > requirements.lock
+# don't run, this calls it form sudo due to this being ran as sudo. 
+# fix later, but for now manual pip freeze is easier.
+# .PHONY: freeze
+# freeze: clean_python
+# 	# freeze requirements excluding editable
+# 	pip freeze --exclude-editable > requirements.lock
 
 
 .PHONY: no_fail_test

@@ -2,14 +2,14 @@ import argparse
 import sys
 
 import structlog
-from waitress import serve
 
 # extensions, noqa403 as this sets up a handler on import
 from .api_extensions.orjson_override import *  # noqa F403
-from .db.mysql_connector import mysql_setup
+from .db.mysql_connector import get_mysql_session, mysql_setup
+from .db.mysql_functions import MySQLUserService
 from .db.neo4j_connector import init_neo4j
 from .db.redis_connector import get_redis_connection
-from .instance import app
+from .instance import app, env_config
 from .listeners.supervisor import restart_active_listeners
 from .listeners.watchdog import start_watchdog
 
@@ -83,9 +83,8 @@ get_redis_connection()
 init_neo4j()
 
 
-def main():
-    args = parse_args()
-    if args.compression:
+def initialize_app(compression=True, ratelimit=True):
+    if compression:
         from flask_compress import Compress
 
         server_logger.info("Response compression enabled")
@@ -95,7 +94,7 @@ def main():
         app.config["COMPRESS_MIMETYPES"] = ["application/json"]
         app.config["COMPRESS_MIN_SIZE"] = 1024  # 1kb or bigger we should compress. Subject to change
 
-    if args.ratelimit:
+    if ratelimit:
         from flask_limiter import Limiter
         from flask_limiter.util import get_remote_address
 
@@ -116,14 +115,43 @@ def main():
     # restart listeners
     restart_active_listeners()
 
-    # app.run(host="0.0.0.0", port=45045, debug=False)
-    # switch to waitress, setting threads to 1 until I can guarantee thread saftey, etc
-    serve(app, host="0.0.0.0", port=45045, threads=1)
+    # register API user if no other users
+    with get_mysql_session() as session:
+        msus = MySQLUserService(session)
+        msus.create_initial_user(username=env_config.get("INIT_API_USER"), password=env_config.get("INIT_API_PASS"))
+
+
+# gunicorn
+def run_api_with_gunicorn():
+    """
+    Dedicated entry point for Gunicorn.
+    Gunicorn will call this function to get the Flask app instance.
+
+    Returns an app instance
+    """
+    server_logger.info("Starting in Production Mode (Gunicorn)")
+
+    initialize_app(compression=True, ratelimit=True)
+
+    return app
+
+
+def run_api_dev_server():
+    """Dedicated entry point for local development.
+
+    Does not return an app instance, just runs the dev server
+    """
+    server_logger.info("Starting in Development Mode")
+    args = parse_args()
+
+    initialize_app(compression=args.compression, ratelimit=args.ratelimit)
+
+    app.run(host="0.0.0.0", port=45045, debug=False)
 
 
 if __name__ == "__main__":
     try:
-        main()
+        run_api_dev_server()
     except KeyboardInterrupt:
         server_logger.info("Server shutdown requested via KeyboardInterrupt")
         sys.exit(0)

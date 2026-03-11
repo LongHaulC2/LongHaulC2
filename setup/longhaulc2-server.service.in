@@ -8,6 +8,10 @@ Type=simple
 User=longhaul
 Group=longhaul
 
+
+# Note: Allows the non-root 'longhaul' user to bind Gunicorn to port 443
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
 # Set working directory to the dynamically injected install path
 WorkingDirectory=@DEPLOY_DIR@
 
@@ -15,7 +19,19 @@ WorkingDirectory=@DEPLOY_DIR@
 Environment=PYTHONUNBUFFERED=1
 # load .env so we can access various .env values if needed. Can just use load_dotenv and os.genenv()
 EnvironmentFile=@DEPLOY_DIR@/.env
-ExecStart=@DEPLOY_DIR@/server/venv/bin/python -m server.src.server.main
+
+# old, non-gunicorn way of starting the api
+#ExecStart=@DEPLOY_DIR@/server/venv/bin/python -m server.src.server.main
+
+# The Gunicorn call (using systemd's ${VAR} syntax to read from the EnvironmentFile)
+# sticking to one thread/worker for now until the API is threadsafe. 
+ExecStart=/bin/bash -c '@DEPLOY_DIR@/server/venv/bin/gunicorn \
+    --workers 1 \
+    --threads 1 \
+    --certfile="${API_CERT_FILE}" \
+    --keyfile="${API_CERT_KEY}" \
+    --bind 0.0.0.0:45045 \
+    "server.src.server.main:run_api_with_gunicorn()"'
 
 Restart=always
 RestartSec=5

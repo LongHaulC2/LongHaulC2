@@ -36,7 +36,7 @@ def generate_url(uri: str, params: Mapping[str, Any] | None = None) -> str:
         return ""
         # ui.navigate.to("/login")
 
-    HOST = f"http://{host}"
+    HOST = f"https://{host}"
 
     url = URL(HOST) / uri
     # Attach query parameters correctly

@@ -28,7 +28,8 @@ def get_client() -> httpx.AsyncClient:
     """
     global _client
     if _client is None:
-        _client = httpx.AsyncClient()
+        # verify false for allowing of self signed certs
+        _client = httpx.AsyncClient(verify=False)
     return _client
 
 
@@ -236,6 +237,17 @@ async def update_implant(implant_uuid: str, data: dict) -> httpx.Response | None
         return_type="response",
         log_context={"implant_uuid": implant_uuid},
         json=data,
+    )
+
+
+async def delete_implant(implant_uuid=str) -> None:
+    check_type(implant_uuid, str, "implant_uuid")
+
+    return await safe_api_request(
+        method="DELETE",
+        endpoint=f"/api/v1/implants/{implant_uuid}",
+        return_type="response",
+        log_context={"implant_uuid": implant_uuid},
     )
 
 
