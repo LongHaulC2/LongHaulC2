@@ -1,5 +1,6 @@
 import multiprocessing
 import threading
+from datetime import timedelta
 
 from dotenv import dotenv_values
 
@@ -26,7 +27,8 @@ if not jwt_key:
 
 app.config["JWT_SECRET_KEY"] = jwt_key
 
-
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=15)
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=1)
 authorizations = {
     "Bearer Auth": {
         "type": "apiKey",

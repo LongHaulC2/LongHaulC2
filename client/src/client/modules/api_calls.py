@@ -5,6 +5,7 @@ import httpx
 import msgpack
 import orjson  # trying for speed
 import structlog
+from nicegui import app
 
 from client.src.client.modules.latency_tracker import update_latency_metrics
 from client.src.client.utils.url import generate_url
@@ -36,20 +37,13 @@ async def safe_api_request(
     endpoint: str,
     return_type: str = "json",
     log_context: dict[str, Any] | None = None,
+    skip_auth: bool = False,
+    _is_retry: bool = False,  # Prevents infinite refresh loops
     **kwargs: Any,
 ) -> Any:
     """
-    Global helper to handle all API requests, standardize logging, and gracefully swallow network errors.
-
-    Args:
-        method (str): The HTTP method (e.g., "GET", "POST", "PATCH").
-        endpoint (str): The API path relative to the base URL (e.g., "/api/v1/health/").
-        return_type (str): The expected return format. Options: "json" (default), "content", "response".
-        log_context (dict | None): Optional dictionary of context variables to bind to structlog.
-        **kwargs: Additional arguments passed directly to httpx.request (e.g., json, content, headers, timeout).
-
-    Returns:
-        Any: Parsed JSON dict, raw bytes (content), httpx.Response, or None if the request fails.
+    Global helper to handle all API requests, standardize logging,
+    inject auth headers, and auto-refresh expired tokens.
     """
     url = generate_url(endpoint)
 
@@ -61,28 +55,79 @@ async def safe_api_request(
 
     client = get_client()
 
-    # start latency timer
+    # Safely get and copy headers so we don't lose custom ones (like Content-Type) on retries
+    headers = kwargs.get("headers", {}).copy()
+
+    if not skip_auth:
+        access_token = app.storage.user.get("access_token")
+        if access_token:
+            headers["Authorization"] = f"Bearer {access_token}"
+        else:
+            api_log.warning("No access token found in session")
+            # ui.navigate.to('/login')
+            return None
+
+    kwargs["headers"] = headers
+
     start_time = time.perf_counter()
     try:
         response = await client.request(method, url, **kwargs)
 
-        # stop latency timer
         end_time = time.perf_counter()
         update_latency_metrics((end_time - start_time) * 1000)
+
+        # --- AUTO REFRESH TRIGGER ---
+        if response.status_code == 401 and not skip_auth and not _is_retry:
+            api_log.warning("Access token expired. Attempting silent refresh...")
+            refresh_token = app.storage.user.get("refresh_token")
+
+            if refresh_token:
+                # Ask the server for a new access token
+                refresh_response = await client.post(
+                    generate_url("/api/v1/authentication/refresh"), headers={"Authorization": f"Bearer {refresh_token}"}
+                )
+
+                if refresh_response.status_code == 200:
+                    api_log.info("Token refreshed successfully. Retrying request.")
+                    new_data = orjson.loads(refresh_response.content)
+                    new_access_token = new_data.get("data", {}).get("access_token")
+
+                    # Update the browser cookie with the new access token
+                    app.storage.user["access_token"] = new_access_token
+
+                    # Retry the original request exactly once
+                    return await safe_api_request(
+                        method=method,
+                        endpoint=endpoint,
+                        return_type=return_type,
+                        log_context=log_context,
+                        skip_auth=skip_auth,
+                        _is_retry=True,
+                        **kwargs,
+                    )
+
+            # If we get here, either the refresh token is missing or it also expired
+            api_log.error("Refresh failed or token expired. Kicking to login.")
+            app.storage.user["access_token"] = None
+            app.storage.user["refresh_token"] = None
+            # ui.navigate.to("/login")
+            return None
+
+        # --- NORMAL RESPONSE HANDLING ---
 
         # binary content
         if return_type == "content":
             if response.status_code != 200:
                 server_log.error(f"Error downloading: {response.text}")
                 return None
-            # Use .content for binary, not .json()
             return response.content
 
         # direct network response object
         if return_type == "response":
             return response
 
-        return orjson.loads(response.content)  # response.json()
+        # default json parsing
+        return orjson.loads(response.content)
 
     except orjson.JSONDecodeError as e:
         api_log.error("Failed to decode JSON response", error=str(e))
@@ -93,6 +138,35 @@ async def safe_api_request(
     except Exception as e:
         api_log.error("An unexpected error occurred", error=str(e))
         return None
+
+
+async def authenticate_to_server(username: str, password: str) -> dict | None:
+    """
+    Authetnicates to the server
+    """
+    # validate inputs
+    # check_type(listener_host, str, "listener_host")
+    # check_type(listener_port, int, "listener_port")
+    # check_type(listener_type, str, "listener_type")
+
+    # # normalize / preprocess
+    # listener_host = listener_host.strip()
+    # listener_name = listener_name.strip()
+
+    request_data = {
+        "username": username,
+        "password": password,
+    }
+
+    # core logic placeholder
+    api_log.debug("Getting data for listener")
+
+    return await safe_api_request(
+        method="POST",
+        endpoint="/api/v1/authentication/",
+        json=request_data,
+        skip_auth=True,  # skip auth cuz this is login & it doesn't need it
+    )
 
 
 async def queue_task(implant_uuid: str, task: dict) -> httpx.Response | None:

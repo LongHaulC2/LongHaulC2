@@ -1,5 +1,5 @@
 import structlog
-from flask_jwt_extended import create_access_token, jwt_required
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
 from flask_restx import Namespace, Resource
 from werkzeug.exceptions import abort
 
@@ -42,12 +42,27 @@ class Auth(Resource):
 
         if user_login:
             access_token = create_access_token(identity=username)
-            response = {"token": access_token}
+            refresh_token = create_refresh_token(identity=username)
+
+            response = {"access_token": access_token, "refresh_token": refresh_token}
             # Return immediately
             return APIResponse(status="200", message="Login Successful", data=response)
 
         # Return immediately
         return APIResponse(status="200", message="Login Failed", data={})
+
+
+class Refresh(Resource):
+    @auth_ns.doc(security="Bearer Auth")
+    @jwt_required(refresh=True)  # only takes refresh tokens
+    def post(self):
+        """Exchange a valid refresh token for a new access token"""
+        current_user = get_jwt_identity()
+        new_access_token = create_access_token(identity=current_user)
+
+        return APIResponse(
+            status="200", message="Token refreshed successfully", data={"access_token": new_access_token}
+        )
 
 
 class Register(Resource):
@@ -81,5 +96,6 @@ class Register(Resource):
 
 auth_ns.add_resource(Auth, "/")
 auth_ns.add_resource(Register, "/register")
+auth_ns.add_resource(Refresh, "/refresh")
 
 api.add_namespace(auth_ns)

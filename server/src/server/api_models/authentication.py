@@ -60,8 +60,12 @@ AUTH_POST_INPUT = api.model(
 AUTH_LOGIN_MODEL = api.model(
     "AUTH_LOGIN_MODEL",
     {
-        "token": fields.String(
+        "access_token": fields.String(
             description="JWT Access Token for authenticating future API requests",
+            example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        ),
+        "refresh_token": fields.String(
+            description="JWT refresh token for getting new access tokens",
             example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
         ),
     },

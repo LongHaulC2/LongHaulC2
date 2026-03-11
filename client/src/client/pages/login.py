@@ -1,6 +1,7 @@
 from nicegui import app, ui
 
 from client.src.client.info import LOGIN_BANNER
+from client.src.client.modules.api_calls import authenticate_to_server
 from client.src.client.pages.formatted_tooltip import formatted_tooltip
 
 
@@ -93,12 +94,31 @@ def login_page():
                         "text-[12px] font-mono text-neutral-500 tracking-wide leading-relaxed whitespace-pre-line"
                     )
 
-    def handle_login(host, user, password):  # noqa: ARG001 - going to be filled in when login logic is done
+    async def handle_login(host, user, password):  # noqa: ARG001 - going to be filled in when login logic is done
         if host:
-            # generate url
-            # Save the host directly to the user's session
+            # set host here, so the app knows what to make req's to
             app.storage.user["api_host"] = host
-            ui.notify(f"Connected to {host}", type="positive")
-            ui.navigate.to("/operations")
+
+            # call auth
+            tokens = await authenticate_to_server(username=user, password=password)
+
+            if not tokens:
+                ui.notify(f"Authentication to {host} failed", type="negative")
+                return
+
+            refresh_token = tokens.get("data", {}).get("refresh_token")
+            access_token = tokens.get("data", {}).get("access_token")
+
+            if refresh_token and access_token:
+                # Save the host directly to the user's session
+                app.storage.user["refresh_token"] = refresh_token
+                app.storage.user["access_token"] = access_token
+
+                ui.notify(f"Connected to {host}", type="positive")
+                ui.navigate.to("/operations")
+                return
+
+            ui.notify(f"Authentication to {host} failed", type="negative")
+
         else:
             ui.notify("Please enter a valid server address", type="warning")
