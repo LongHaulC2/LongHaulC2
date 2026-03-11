@@ -147,5 +147,7 @@ class UserLogin(Base):
     __tablename__ = "users"
 
     # user as unique ID.
-    username = Column(Text, primary_key=True)
+    # use varchar instead cuz tldr, mysql wants a length when this is a prim key,
+    # and text doesn't provide that
+    username = Column(String(255), primary_key=True)
     password_hash = Column(Text)

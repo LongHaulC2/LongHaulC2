@@ -66,6 +66,7 @@ def parse_args():
 # setup the routes
 # noqa 403 as this is how these need to be imported for flask-restx
 # noqa 402 as these need to be imported here, rather than earlier
+from .routes.v1.auth_resource import *  # noqa: F403, E402
 from .routes.v1.build_resource import *  # noqa: F403, E402
 from .routes.v1.graph_resource import *  # noqa: F403, E402
 from .routes.v1.health_resource import *  # noqa: F403, E402

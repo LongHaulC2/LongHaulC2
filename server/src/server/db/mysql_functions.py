@@ -656,3 +656,55 @@ class MySQLUserService:
 
         except Exception as e:
             mysql_valid_password_logger.error("An error occured", error=str(e))
+
+    def delete_user(self, username: str) -> bool:
+        """Delete a user from the mysql db
+
+        Args:
+            username (str): username for the user to delete
+
+        Raises:
+            SQLAlchemyError: Raises error on database exceptions
+            Exception: Raises error on any other exception
+
+        Returns:
+            bool: True = user was deleted successfully, False = User not found.
+        """
+        mysql_delete_user_logger = server_logger.bind(username=username)
+
+        check_type(username, str, "username")
+
+        mysql_delete_user_logger.info("Attempting to delete user from DB")
+
+        try:
+            # Find the user in the db
+            user_record = (
+                self.session.query(UserLogin)
+                .filter(
+                    UserLogin.username == username,
+                )
+                .first()
+            )
+
+            # Prevent crash / False positive if user doesn't exist
+            if user_record is None:
+                mysql_delete_user_logger.warning("Deletion failed: User not found")
+                return False
+
+            # Delete the record and commit
+            self.session.delete(user_record)
+            self.session.commit()
+
+            mysql_delete_user_logger.info("User deleted successfully")
+            return True
+
+        except SQLAlchemyError as e:
+            # This triggers for unexpected db errors (connection drops, etc.)
+            self.session.rollback()
+            mysql_delete_user_logger.error("Database error occurred during deletion", error=str(e))
+            raise e
+
+        except Exception as e:
+            self.session.rollback()
+            mysql_delete_user_logger.error("An error occurred", error=str(e))
+            raise e

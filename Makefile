@@ -43,7 +43,7 @@ NEO4J_WEB_PORT ?= 7474
 NEO4J_DB_PORT ?= 7687
 NEO4J_USER ?= neo4j
 NEO4J_PASSWORD ?= P@ssw0rd1!
-
+JWT_SECRET_KEY ?= P@ssw0rd1!
 # ======================================
 # Helpers
 # ======================================
@@ -394,6 +394,7 @@ create_env:
 	@echo "REDIS_CONTAINER=$(REDIS_CONTAINER)" >> .env
 	@echo "NEO4J_CONTAINER=$(NEO4J_CONTAINER)" >> .env
 	@echo "WORKSPACE_DIR=$(WORKSPACE_DIR)" >> .env
+	@echo "JWT_SECRET_KEY=$(JWT_SECRET_KEY)" >> .env
 
 .PHONY: print_all_install_locations
 print_all_install_locations:

@@ -9,8 +9,10 @@
 
 ### Day 1: March 10 - Authentication & API Hardening
 - [ ] Implement API Auth via JWT.
-   - [ ] DB table of users
+   - [X] DB table of users
    - JWT: https://blog.appsignal.com/2025/04/30/using-jwts-in-python-flask-rest-framework.html
+   - [X] Auth endpoints
+   - [ ] Add jwt_required to every endpoint 
 - [ ] Set up the Login Page in the GUI (hook it to the JWT endpoint).
 - [ ] Enforce HTTPS on the API.
 
