@@ -36,6 +36,8 @@ server = [
     "waitress",
     "orjson",
     "docker",
+    "flask-jwt-extended",
+    "bcrypt"
 ]
 # GUI reqs
 web = [

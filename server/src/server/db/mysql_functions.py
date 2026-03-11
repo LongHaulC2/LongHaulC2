@@ -3,12 +3,14 @@ import re
 from dataclasses import asdict
 from typing import Literal
 
+import bcrypt
 import structlog
 from sqlalchemy import or_, text
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from ..schemas.implant import Task
 from ..utils.checks import check_type
-from .mysql_models import ImplantPayload, ImplantTask
+from .mysql_models import ImplantPayload, ImplantTask, UserLogin
 
 server_logger = structlog.getLogger("server")
 
@@ -555,3 +557,102 @@ class MySQLImplantPayloadService:
             server_logger.info("Payload deleted successfully.")
         else:
             server_logger.warning("Attempted to delete non-existent payload", payload_hash=payload_hash)
+
+
+class MySQLUserService:
+    """
+    Class for managing Implant Payloads.
+
+    Storage: Uses TINYBLOB(16) (Raw Bytes) for efficiency.
+    Interface: Uses String (Hex) for human-readability.
+    """
+
+    def __init__(self, session):
+        self.session = session
+
+    def register_user(self, username: str, password: str) -> bool:
+        """Register a user to the mysql db
+
+        Args:
+            username (str): username for new user
+            password (str): password for new user
+
+        Raises:
+            IntegrityError: Returns false, does NOT raise.
+            e: Raises error on any other exception
+
+        Returns:
+            bool: True = user was added succesfully, False = User already exists.
+            Raises E on other errors
+        """
+        mysql_register_user_logger = server_logger.bind(username=username)
+
+        check_type(username, str, "username")
+        check_type(password, str, "password")
+
+        mysql_register_user_logger.info("Registering user to DB")
+
+        try:
+            b_password = password.encode()
+            password_hash = bcrypt.hashpw(b_password, bcrypt.gensalt())
+
+            user = UserLogin(username=username, password_hash=password_hash)
+
+            # Add and commit the task
+            self.session.add(user)
+            self.session.commit()
+            return True
+
+        except IntegrityError:
+            # integ, such as if user already exists
+            self.session.rollback()
+            mysql_register_user_logger.warning("Registration failed: Username already exists")
+            return False
+
+        except SQLAlchemyError as e:
+            # This triggers for other db errors
+            self.session.rollback()
+            mysql_register_user_logger.error("Database error occurred during registration", error=str(e))
+            raise e
+
+        except Exception as e:
+            # catchall
+            self.session.rollback()
+            mysql_register_user_logger.error("An error occured", error=str(e))
+            raise e
+
+    def validate_password(self, username, password) -> bool:
+        """Validate the incoming password against the listed user
+
+        Args:
+            username (str): username for new user
+            password (str): password for new user
+
+        Returns:
+            bool: True = Success, password validated. False = Password not correct
+        """
+        mysql_valid_password_logger = server_logger.bind(username=username)
+
+        check_type(username, str, "username")
+        check_type(password, str, "password")
+
+        try:
+            # get hashed from db
+            user_record = (
+                self.session.query(UserLogin)
+                .filter(
+                    UserLogin.username == username,
+                )
+                .first()
+            )
+
+            if user_record is None:
+                mysql_valid_password_logger.warning("User not found in DB")
+                return False
+
+            b_password = password.encode()
+            b_stored_password = (user_record.password_hash).encode()
+            return bcrypt.checkpw(b_password, b_stored_password)
+
+        except Exception as e:
+            mysql_valid_password_logger.error("An error occured", error=str(e))

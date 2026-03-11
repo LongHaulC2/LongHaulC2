@@ -141,3 +141,11 @@ class ImplantPayload(Base):
         # note... have to do "''" due to mysql being picky
         {"mysql_compression": "'zlib'"}
     )
+
+
+class UserLogin(Base):
+    __tablename__ = "users"
+
+    # user as unique ID.
+    username = Column(Text, primary_key=True)
+    password_hash = Column(Text)
