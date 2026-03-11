@@ -26,9 +26,19 @@ if not jwt_key:
 
 app.config["JWT_SECRET_KEY"] = jwt_key
 
+
+authorizations = {
+    "Bearer Auth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Add token in this format: **Bearer &lt;JWT&gt;**",
+    }
+}
+
 # then setup objects
 jwt = JWTManager(app)
-api = Api(app, prefix="/api/v1", title="API V1", doc="/doc")
+api = Api(app, prefix="/api/v1", title="API V1", doc="/doc", authorizations=authorizations)
 
 # track active threads in the server
 # key: item name, value=thread object

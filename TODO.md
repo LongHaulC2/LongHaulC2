@@ -3,6 +3,7 @@
 **Pace:** 4 Hours / Day
 
 ---
+> NOTE! 1 branch per day. Keeps us on track
 
 ## Phase 1: Security & API Stabilization 
 *Goal: Lock down the API and fix tests before adding more features.*
@@ -15,6 +16,8 @@
    - [ ] Add jwt_required to every endpoint 
 - [ ] Set up the Login Page in the GUI (hook it to the JWT endpoint).
 - [ ] Enforce HTTPS on the API.
+   - [ ] cert generation via makefile 
+
 
 ### Day 2: March 11 - Schemathesis & Test Driven Fixes
 - [ ] Fix the API to pass Schemathesis (squash NULL data issues).

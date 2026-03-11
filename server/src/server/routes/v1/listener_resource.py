@@ -3,10 +3,11 @@ from dataclasses import asdict
 import structlog
 from edwh_uuid7 import uuid7
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restx import Namespace, Resource
-from werkzeug.exceptions import BadRequest, abort
+from werkzeug.exceptions import abort
 
-from ...api_models.error import COMMON_ERRORS, ERROR_MODEL
+from ...api_models.error import COMMON_ERRORS
 from ...api_models.listener import (
     LISTENER_DELETE_RESPONSE,
     LISTENER_GET_RESPONSE,
@@ -28,38 +29,17 @@ api_logger = structlog.getLogger("api")
 server_logger = structlog.getLogger("server")
 
 
-@listener_ns.errorhandler(BadRequest)
-@listener_ns.marshal_with(ERROR_MODEL)
-def handle_bad_request_and_abort(e):
-    """
-    Catches all Werkzeug/RESTX aborts and ensures they
-    match our {status, message, data} format. This will not catch
-    things like "raise valueerror", hence why there are other error handlers  too
-    """
-    server_logger.error("An error occured", error=e, message=str(e))
-
-    return {
-        "status": str(e.code),
-        "message": getattr(e, "message", str(e)),
-    }, e.code
-
-
-@listener_ns.errorhandler(Exception)
-@listener_ns.marshal_with(ERROR_MODEL)
-def handle_general_error(e):
-    server_logger.exception("An error occured", error=e)
-    return {"status": "500", "message": "An internal error occurred"}, 500
-
-
 class Listener(Resource):
     @listener_ns.doc(
         summary="Get listener",
         description="Retrieve a single listener by its unique ID.",
         params={"uuid": {"description": "Listener ID (uuid)", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @listener_ns.response(200, "Retrieved listener data successfully", LISTENER_GET_RESPONSE)
     @listener_ns.marshal_with(LISTENER_GET_RESPONSE)
+    @jwt_required()
     def get(self, uuid):
         """
         Gets one listener based on user supplied ID
@@ -91,9 +71,11 @@ class Listener(Resource):
         description="Stops one listener based on user supplied ID",
         params={"uuid": {"description": "Listener ID (uuid)", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @listener_ns.response(200, "The listener was deleted successfully", LISTENER_DELETE_RESPONSE)
     @listener_ns.marshal_with(LISTENER_DELETE_RESPONSE)
+    @jwt_required()
     def delete(self, uuid):  # delete one listener based on ID
         """
         Deletes/Stops one listener based on user supplied ID
@@ -118,10 +100,12 @@ class Listener(Resource):
         description="Restart a listener",
         responses=COMMON_ERRORS,
         params={"uuid": {"description": "Listener ID (uuid)", "in": "path", "format": "uuid"}},
+        security="Bearer Auth",
     )
     @listener_ns.expect(LISTENER_PATCH_INPUT)
     @listener_ns.response(200, "The listener was restarted successfully", LISTENER_PATCH_RESPONSE)
     @listener_ns.marshal_with(LISTENER_PATCH_RESPONSE)
+    @jwt_required()
     def patch(self, uuid):
         """
         Update a listener's active state. Using PATCH as the resource is being updated.
@@ -182,9 +166,11 @@ class Listeners(Resource):
         summary="Get all Listeners",
         description="Retrieve all listeners in the DB.",
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @listener_ns.response(200, "Retrieved all listener data successfully", LISTENERS_GET_RESPONSE)
     @listener_ns.marshal_with(LISTENERS_GET_RESPONSE)
+    @jwt_required()
     def get(self):
         """
         Gets all listeners
@@ -207,10 +193,12 @@ class Listeners(Resource):
         summary="Spawn a new listener",
         description="Create a new listener. Returns a listener ID to use with that listener",
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @listener_ns.expect(LISTENERS_POST_INPUT)
     @listener_ns.response(200, "Successfully created a new listener", LISTENERS_POST_RESPONSE)
     @listener_ns.marshal_with(LISTENERS_POST_RESPONSE)
+    @jwt_required()
     def post(self):
         """
         Spawn a new listener

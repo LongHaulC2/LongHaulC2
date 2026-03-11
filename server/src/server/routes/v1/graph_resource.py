@@ -1,10 +1,10 @@
 import structlog
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restx import Namespace, Resource
 from neomodel import db
-from werkzeug.exceptions import BadRequest, MethodNotAllowed, NotFound
 
-from ...api_models.error import COMMON_ERRORS, ERROR_MODEL
+from ...api_models.error import COMMON_ERRORS
 from ...api_models.listener import LISTENER_GET_RESPONSE
 from ...instance import api
 from ...utils.response import APIResponse
@@ -14,56 +14,16 @@ api_logger = structlog.getLogger("api")
 server_logger = structlog.getLogger("server")
 
 
-# Error handlers
-
-
-@graph_ns.errorhandler(NotFound)
-@graph_ns.marshal_with(ERROR_MODEL)
-def handle_not_found(e):
-    server_logger.error("An error occured", error=e)
-    return {"status": "404", "message": "Not Found", "data": ""}, 404
-
-
-@graph_ns.errorhandler(MethodNotAllowed)
-@graph_ns.marshal_with(ERROR_MODEL)
-def handle_method_not_allowed_error(e):
-    server_logger.error("An error occured", error=e)
-    # ! e.get_response().headers, allows the ALLOW header through, otherwise, schemathesis will fail
-    return {"status": "405", "message": "Method not allowed", "data": None}, 405, e.get_response().headers
-
-
-@graph_ns.errorhandler(BadRequest)
-@graph_ns.marshal_with(ERROR_MODEL)
-def handle_bad_request_and_abort(e):
-    """
-    Catches all Werkzeug/RESTX aborts and ensures they
-    match our {status, message, data} format. This will not catch
-    things like "raise valueerror", hence why there are other error handlers  too
-    """
-    server_logger.error("An error occured", error=e, message=str(e))
-
-    return {
-        "status": str(e.code),
-        "message": getattr(e, "message", str(e)),
-        "data": getattr(e, "data", {}),  # if abort is called, this will include it
-    }, e.code
-
-
-@graph_ns.errorhandler(Exception)
-@graph_ns.marshal_with(ERROR_MODEL)
-def handle_general_error(e):
-    server_logger.error("An error occured", error=e)
-    return {"status": "500", "message": "An internal error occurred", "data": None}, 500
-
-
 class Graph(Resource):
     @graph_ns.doc(
         summary="Get graph",
         description="Retrieves all the graph data, seperated into ...,..., ...",
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @graph_ns.response(200, "Retrieved graph data successfully", LISTENER_GET_RESPONSE)
     # @graph_ns.marshal_with(LISTENER_GET_RESPONSE)
+    @jwt_required()
     def get(self):
         """
         Gets graph data based on user supplied ID

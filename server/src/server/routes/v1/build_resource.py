@@ -3,8 +3,8 @@ import io
 import structlog
 from edwh_uuid7 import uuid7
 from flask import request, send_file
+from flask_jwt_extended import jwt_required
 from flask_restx import Namespace, Resource
-from werkzeug.exceptions import BadRequest, MethodNotAllowed, NotFound
 
 from ...api_models.build import (
     BINARYACTIONS_DELETE_RESPONSE,
@@ -13,7 +13,7 @@ from ...api_models.build import (
     BUILD_POST_RESPONSE,
     BUILDJOBS_GET_RESPONSE,
 )
-from ...api_models.error import COMMON_ERRORS, ERROR_MODEL
+from ...api_models.error import COMMON_ERRORS
 from ...db.mysql_connector import get_mysql_session
 from ...db.mysql_functions import MySQLImplantPayloadService
 from ...instance import api
@@ -26,57 +26,16 @@ api_logger = structlog.getLogger("api")
 server_logger = structlog.getLogger("server")
 
 
-# Error handlers
-# for ref: https://werkzeug.palletsprojects.com/en/stable/exceptions/
-
-
-@build_ns.errorhandler(BadRequest)
-@build_ns.marshal_with(ERROR_MODEL)
-def handle_bad_request_and_abort(e):
-    """
-    Catches all Werkzeug/RESTX aborts and ensures they
-    match our {status, message, data} format. This will not catch
-    things like "raise valueerror", hence why there are other error handlers  too
-    """
-    server_logger.error("An error occured", error=e, message=str(e))
-
-    return {
-        "status": str(e.code),
-        "message": getattr(e, "message", str(e)),
-        "data": getattr(e, "data", {}),  # if abort is called, this will include it
-    }, e.code
-
-
-@build_ns.errorhandler(NotFound)
-@build_ns.marshal_with(ERROR_MODEL)
-def handle_not_found(e):
-    server_logger.error("An error occured", error=e)
-    return {"status": "404", "message": "Not Found", "data": ""}, 404
-
-
-@build_ns.errorhandler(MethodNotAllowed)
-@build_ns.marshal_with(ERROR_MODEL)
-def handle_method_not_allowed_error(e):
-    server_logger.error("An error occured", error=e)
-    # ! e.get_response().headers, allows the ALLOW header through, otherwise, schemathesis will fail
-    return {"status": "405", "message": "Method not allowed", "data": None}, 405, e.get_response().headers
-
-
-@build_ns.errorhandler(Exception)
-@build_ns.marshal_with(ERROR_MODEL)
-def handle_general_error(e):
-    server_logger.error("An error occured", error=e)
-    return {"status": "500", "message": "An internal error occurred", "data": None}, 500
-
-
 # come back to this for models later lol
 class Build(Resource):
     @build_ns.doc(
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @build_ns.expect(BUILD_POST_INPUT, validate=False)  # flip to True to enforce
     @build_ns.response(200, "Build initiated", BUILD_POST_RESPONSE)
     @build_ns.marshal_with(BUILD_POST_RESPONSE)
+    @jwt_required()
     def post(self):
         """
         Submit a task to build a new C2 implant payload.
@@ -137,9 +96,11 @@ class Build(Resource):
         summary="Get all builds",
         description="Get a list of all payloads in the Database",
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @build_ns.response(200, "List of builds", BUILD_GET_RESPONSE)
     @build_ns.marshal_with(BUILD_GET_RESPONSE)
+    @jwt_required()
     def get(self):  # get one implant
         """
         Get a list of all payloads in the Database
@@ -163,9 +124,11 @@ class BuildJobs(Resource):
         description="Get the status of a specific build job.",
         responses=COMMON_ERRORS,
         params={"build_uuid": {"description": "The UUID of the build", "in": "path", "format": "uuid"}},
+        security="Bearer Auth",
     )
     @build_ns.response(200, "Build job status", BUILDJOBS_GET_RESPONSE)
     @build_ns.marshal_with(BUILDJOBS_GET_RESPONSE)
+    @jwt_required()
     def get(self, build_uuid):  # get one implant
         """
         Get the status of a build job
@@ -218,6 +181,7 @@ class BinaryActions(Resource):
             }
         },
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @build_ns.produces(["application/octet-stream"])
     @build_ns.response(
@@ -225,6 +189,7 @@ class BinaryActions(Resource):
         "Binary File Stream",
         headers={"Content-Disposition": "attachment; filename=payload.bin"},
     )
+    @jwt_required()
     @build_ns.response(404, "Payload Not Found")
     def get(self, hash):
         """
@@ -269,12 +234,14 @@ class BinaryActions(Resource):
             }
         },
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     # show a model for what happens when nothing is here
     @build_ns.response(200, "Deletion Successful", BINARYACTIONS_DELETE_RESPONSE)
     @build_ns.response(404, "Payload Not Found")
     # and then what to actually filter the output by
     @build_ns.marshal_with(BINARYACTIONS_DELETE_RESPONSE)
+    @jwt_required()
     def delete(self, hash):
         """
         Delete a specific payload artifact, based on the provided hash
@@ -300,6 +267,7 @@ class SourceActions(Resource):
         params={"hash": "The MD5 hash of the payload source to download"},
         # keeping simpler responses here
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @build_ns.produces(["application/octet-stream", "application/zip"])
     # important to response options here
@@ -309,6 +277,7 @@ class SourceActions(Resource):
         headers={"Content-Disposition": "attachment; filename=..._source.zip"},
     )
     @build_ns.response(404, "Source Code Not Found")
+    @jwt_required()
     def get(self, hash):
         """
         Download the source code zip for a specific payload.

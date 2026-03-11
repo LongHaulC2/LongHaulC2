@@ -5,10 +5,10 @@ import msgpack
 import structlog
 from edwh_uuid7 import uuid7
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restx import Namespace, Resource, reqparse
-from werkzeug.exceptions import BadRequest, MethodNotAllowed, NotFound
 
-from ...api_models.error import COMMON_ERRORS, ERROR_MODEL
+from ...api_models.error import COMMON_ERRORS
 from ...api_models.implants import (
     IMPLANT_DELETE_RESPONSE,
     IMPLANT_GET_RESPONSE,
@@ -42,60 +42,16 @@ api_logger = structlog.getLogger("api")
 server_logger = structlog.getLogger("server")
 
 
-# Error handlers
-
-
-@implants_ns.errorhandler(BadRequest)
-@implants_ns.marshal_with(ERROR_MODEL)
-def handle_bad_request_and_abort(e):
-    """
-    Catches all Werkzeug/RESTX aborts and ensures they
-    match our {status, message, data} format. This will not catch
-    things like "raise valueerror", hence why there are other error handlers  too
-    """
-    server_logger.error("An error occured", error=e, message=str(e))
-
-    return {
-        "status": str(e.code),
-        "message": getattr(e, "message", str(e)),
-        "data": getattr(e, "data", {}),  # if abort is called, this will include it
-    }, e.code
-
-
-@implants_ns.errorhandler(NotFound)
-@implants_ns.marshal_with(ERROR_MODEL)
-def handle_not_found(e):
-    server_logger.error("An error occured", error=e)
-    return {"status": "404", "message": "Not Found", "data": ""}, 404
-
-
-@implants_ns.errorhandler(MethodNotAllowed)
-@implants_ns.marshal_with(ERROR_MODEL)
-def handle_method_not_allowed_error(e):
-    server_logger.error("An error occured", error=e)
-    # ! e.get_response().headers, allows the ALLOW header through, otherwise, schemathesis will fail
-    return {"status": "405", "message": "Method not allowed", "data": None}, 405, e.get_response().headers
-
-
-@implants_ns.errorhandler(Exception)
-@implants_ns.marshal_with(ERROR_MODEL)
-def handle_general_error(e):
-    server_logger.error("An error occured", error=e)
-    return {"status": "500", "message": "An internal error occurred", "data": None}, 500
-
-
-# Internal Task models for validation (kept local if needed for custom logic,
-# otherwise rely on the models imported from ...api_models.implants)
-
-
 class Implants(Resource):
     @implants_ns.doc(
         summary="Get all implants",
         description="Retrieve all implants the server knows about.",
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @implants_ns.response(200, "All implants were retrieved", IMPLANTS_GET_RESPONSE)
     @implants_ns.marshal_with(IMPLANTS_GET_RESPONSE)
+    @jwt_required()
     def get(self):
         """
         Gets all implants
@@ -116,9 +72,11 @@ class Implants(Resource):
         summary="Create a new implant entry.",
         description="Create a new implant entry. Returns an Implant ID, and registers a blank implant to the neo4j db",
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @implants_ns.response(200, "Entry created", IMPLANTS_POST_RESPONSE)
     @implants_ns.marshal_with(IMPLANTS_POST_RESPONSE)
+    @jwt_required()
     def post(self):
         """
         Create a new, blank, implant entry
@@ -151,9 +109,11 @@ class Implant(Resource):
         description="Retrieve a single implant by its unique ID.",
         params={"uuid": {"description": "Implant ID", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @implants_ns.response(200, "The implant was retrieved", IMPLANT_GET_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_GET_RESPONSE)
+    @jwt_required()
     def get(self, uuid):
         """
         Gets one implant based on user supplied ID
@@ -178,10 +138,12 @@ class Implant(Resource):
         params={"uuid": {"description": "Implant ID", "in": "path", "format": "uuid"}},
         consumes=["application/json"],
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @implants_ns.expect(IMPLANT_PUT_INPUT)
     @implants_ns.response(200, "Success", IMPLANT_PUT_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_PUT_RESPONSE)
+    @jwt_required()
     def put(self, uuid):
         """
         Update a single implant by its unique ID.
@@ -206,9 +168,11 @@ class Implant(Resource):
         description="Delete a single implant by its unique ID.",
         params={"uuid": {"description": "Implant ID", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @implants_ns.response(200, "Success", IMPLANT_DELETE_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_DELETE_RESPONSE)
+    @jwt_required()
     def delete(self, uuid):
         """
         Deletes one implant based on user supplied ID
@@ -234,10 +198,12 @@ class ImplantTask(Resource):
         params={"uuid": {"description": "Implant ID", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
         consumes=["application/json", "application/msgpack"],
+        security="Bearer Auth",
     )
     @implants_ns.expect(IMPLANT_TASK_POST_INPUT, validate=False)
     @implants_ns.response(200, "The task was queued", IMPLANT_TASK_POST_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_TASK_POST_RESPONSE)
+    @jwt_required()
     def post(self, uuid):
         """
         Add a task to a single implant by its unique ID.
@@ -271,8 +237,10 @@ class ImplantTaskDetail(Resource):
         description="Retrieve details/status of a specific task by its UUID.",
         params={"uuid": "Implant ID", "task_uuid": "Specific Task ID"},
         responses={**COMMON_ERRORS, 404: "Task not found"},
+        security="Bearer Auth",
     )
     # @implants_ns.marshal_with(IMPLANT_TASK_GET_RESPONSE) # Assuming you have a response model
+    @jwt_required()
     def get(self, uuid, task_uuid):
         """
         Retrieve a specific task for an implant.
@@ -296,9 +264,11 @@ class ImplantTasks(Resource):
         description="Peeks all currently queued tasks of implant",
         params={"uuid": {"description": "Implant ID", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @implants_ns.response(200, "A list of tasks for the current implant", IMPLANT_TASKS_GET_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_TASKS_GET_RESPONSE)
+    @jwt_required()
     def get(self, uuid):
         """
         Peek all currently queued tasks of implant.
@@ -326,9 +296,11 @@ class ImplantTasks(Resource):
         description="Delete all the tasks of an implant",
         params={"uuid": {"description": "Implant ID", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @implants_ns.response(200, "The tasks for the implant were cleared", IMPLANT_TASKS_DELETE_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_TASKS_DELETE_RESPONSE)
+    @jwt_required()
     def delete(self, uuid):
         """
         Delete all the currently queued tasks of an agent.
@@ -359,10 +331,12 @@ class ImplantHistory(Resource):
         description="Gets task history.",
         params={"uuid": {"description": "Implant ID", "in": "path", "format": "uuid"}},
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @implants_ns.expect(history_parser)
     @implants_ns.response(200, "History retrieved", IMPLANT_HISTORY_GET_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_HISTORY_GET_RESPONSE)
+    @jwt_required()
     def get(self, uuid):
         """
         Gets ALL history of an implant from the DB.
@@ -396,10 +370,12 @@ class ImplantSearch(Resource):
         summary="Search for an implant",
         description="Search for an implant with fields that match the supplied term.",
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @implants_ns.expect(IMPLANT_SEARCH_POST_INPUT)
     @implants_ns.response(200, "A list of all resulting implants", IMPLANT_SEARCH_POST_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_SEARCH_POST_RESPONSE)
+    @jwt_required()
     def post(self):
         """
         Search for an implant
@@ -423,10 +399,12 @@ class TaskSearch(Resource):
         summary="Search for a task",
         description="Search for a task with fields that match the supplied term.",
         responses=COMMON_ERRORS,
+        security="Bearer Auth",
     )
     @implants_ns.expect(TASK_SEARCH_POST_INPUT)
     @implants_ns.response(200, "Search results", TASK_SEARCH_POST_RESPONSE)
     @implants_ns.marshal_with(TASK_SEARCH_POST_RESPONSE)
+    @jwt_required()
     def post(self):
         """
         Search for a task
