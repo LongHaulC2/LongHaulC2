@@ -3,6 +3,11 @@
 **Pace:** 4 Hours / Day
 
 ---
+Find a place for:
+- [ ] cleanup makefile
+   > individual scripts in setup would be nice. 
+
+
 > NOTE! 1 branch per day. Keeps us on track
 
 ## Phase 1: Security & API Stabilization 
@@ -13,14 +18,14 @@
    - [X] DB table of users
    - JWT: https://blog.appsignal.com/2025/04/30/using-jwts-in-python-flask-rest-framework.html
    - [X] Auth endpoints
-   - [ ] Add jwt_required to every endpoint 
+   - [X] Add jwt_required to every endpoint 
 - [X] Set up the Login Page in the GUI (hook it to the JWT endpoint).
 
-- [ ] Enforce HTTPS on the API. 
+- [X] Enforce HTTPS on the API. 
    - [X] cert generation via makefile 
    - [X] Gunicorn
-- [ ] add a default user to db... 
-
+- [X] add a default user to db... 
+  
 
 ### Day 2: March 11 - Schemathesis & Test Driven Fixes
 - [ ] Fix the API to pass Schemathesis (squash NULL data issues).
