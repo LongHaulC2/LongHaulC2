@@ -72,8 +72,8 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 - [X] Add local loggers to the pipeline using `structlog`.
 
 ### Day 6: March 15 - Deep Metadata Extraction
-- [ ] Ensure the pipeline extracts maximum metadata from responses.
-- [ ] Finalize file metadata extraction (file hash, size in KB, first X bytes for typing).
+- [X] Ensure the pipeline extracts maximum metadata from responses.
+- [X] Finalize file metadata extraction (file hash, size in KB, first X bytes for typing).
 - [X] Fix the issue where task history for a chained child gets assigned the parent's UUID.
 
 ---
@@ -82,8 +82,8 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 *Goal: Making the C++ payload stealthy, stable, and decoupled from standard stdout.*
 
 ### Day 7: March 16 - Evasion & API Hiding
-- [ ] Implement String Encryption (skCrypter) at compile time.
 - [ ] Convert the rest of the project to `WinApi::FUNC` (target `c2.cpp`, HTTP calls, and Socket calls in the IAT).
+- [ ] Implement String Encryption (skCrypter) at compile time.
 - [ ] Strip out `#pragma` includes that map directly to used functions.
 
 ### Day 8: March 17 - Logging & Stability
