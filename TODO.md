@@ -57,11 +57,11 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 *Goal: Fix how data flows from the implant, through the server, and into Neo4j.*
 
 ### Day 4: March 13 - Neo4j Schema & Structuring
-- [ ] Establish the strict structure for keys (e.g., `mac_address`, `ip_address`, `hostname`) for all node types so data is predictable.
+- [X] Establish the strict structure for keys (e.g., `mac_address`, `ip_address`, `hostname`) for all node types so data is predictable.
    > moved to structured nodes
-   > [ ] all non-critical data is in metadata, client parsing will need to be updated for this
-- [ ] Review and modularize Neo4j functions.
-- [ ] Add docstrings to every model and class.
+   > [X] all non-critical data is in metadata, client parsing will need to be updated for this
+- [X] Review and modularize Neo4j functions.
+- [X] Add docstrings to every model and class.
 
 ### Day 5: March 14 - Response Pipeline Safety
 - [ ] Add aggressive safety checks to `response_pipeline`.

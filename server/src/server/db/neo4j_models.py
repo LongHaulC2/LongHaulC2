@@ -244,6 +244,8 @@ class Neo4jC2ChannelNode(StructuredNode):
 
 
 class Neo4jNicNode(StructuredNode):
+    """A class for  NIC nodes."""
+
     implant_uuid = StringProperty(unique_index=True, default=uuid7)
 
     mac_address = StringProperty()
@@ -267,6 +269,8 @@ class Neo4jNicNode(StructuredNode):
 
 
 class Neo4jMemstoreFileNode(StructuredNode):
+    """A class for memory store file nodes"""
+
     memstore_file_uuid = StringProperty(unique_index=True, default=uuid7)
 
     file_name = StringProperty(unique_index=True, required=True)
@@ -290,6 +294,8 @@ class Neo4jMemstoreFileNode(StructuredNode):
 
 
 class Neo4jFileNode(StructuredNode):
+    """A class for file nodes"""
+
     file_uuid = StringProperty(unique_index=True, default=uuid7)
 
     file_path = StringProperty(unique_index=True, required=True)
