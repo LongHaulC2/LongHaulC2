@@ -16,7 +16,7 @@ from .neo4j_models import (
     Neo4jNicNode,
 )
 
-neo4j_logger = structlog.getLogger("neo4j_logger")
+neo4j_logger = structlog.getLogger("internal_neo4j")
 server_logger = structlog.getLogger("server")
 
 """
@@ -215,11 +215,15 @@ class Neo4jImplantNodeService:
         Registers an implant node, dynamically routing arbitrary data into a metadata bucket,
         and builds out the host, listener, and network relationships.
         """
+        log = neo4j_logger.bind(method="register_node", implant_uuid=implant_uuid, listener_uuid=listener_uuid)
+        log.debug("Starting node registration")
+
         # Grab known/defined fields out of the kwargs
         system_hostname = kwargs.pop("system_hostname", "Unknown")
         nics = kwargs.pop("nics", {})
 
         # Safely get or create the core implant node
+        log.debug("Retrieving or creating core implant node")
         implant_node = Neo4jImplantNode.get_or_create({"implant_uuid": implant_uuid})[0]
 
         # Assign explicitly defined schema properties
@@ -227,6 +231,7 @@ class Neo4jImplantNodeService:
 
         # dump any extra kwargs passed in, into the metadata field.
         if kwargs:
+            log.debug("Routing additional kwargs to metadata bucket")
             current_meta = implant_node.metadata or {}
             current_meta.update(kwargs)
             implant_node.metadata = current_meta
@@ -235,13 +240,14 @@ class Neo4jImplantNodeService:
         implant_node.save()
 
         # hook up core rels
+        log.debug("Hooking up core relationships")
         Neo4jImplantNodeService.connect_implant_to_listener(implant_uuid, listener_uuid)
         Neo4jImplantNodeService.connect_implant_to_host(implant_uuid, system_hostname)
 
         # Process and link NICs
         for nic_mac_address, data in nics.items():
             if not nic_mac_address:
-                neo4j_logger.debug("MAC address missing from nic, skipping", data=data)
+                log.debug("MAC address missing from nic, skipping", data=data)
                 continue
 
             nic_ip_address = data.get("ip")
@@ -249,6 +255,7 @@ class Neo4jImplantNodeService:
             gateway = data.get("gateway")
 
             # Create NIC and link to host
+            log.debug("Processing NIC", mac_address=nic_mac_address)
             Neo4jNicNodeService.create_or_get_node(mac_address=nic_mac_address)
             Neo4jNicNodeService.connect_nic_to_host(
                 system_hostname, mac_address=nic_mac_address, ip_address=nic_ip_address
@@ -257,8 +264,10 @@ class Neo4jImplantNodeService:
             # Link NIC to network segment if routing data exists
             if cidr and gateway:
                 network_segment = f"{gateway}/{cidr}"
+                log.debug("Linking NIC to network segment", network_segment=network_segment)
                 Neo4jNicNodeService.connect_nic_to_network(network_segment, nic_mac_address)
 
+        log.info("Node registration complete")
         return implant_node
 
     @staticmethod
@@ -267,17 +276,23 @@ class Neo4jImplantNodeService:
         Creates a node. Useful for getting a quick new node and letting this handle all
         the node logic. Uses neomodel's get_or_create to prevent check-then-act race conditions.
         """
+        log = neo4j_logger.bind(method="create_or_get_node", implant_uuid=implant_uuid)
+        log.debug("Attempting to fetch or create implant node")
+
         # neomodel's get_or_create expects a dict and ALWAYS returns a list of nodes.
         # We append [0] to grab the actual node object out of the list.
         implant_node = Neo4jImplantNode.get_or_create({"implant_uuid": implant_uuid})[0]
 
-        neo4j_logger.info("Node fetched or created via get_or_create", implant_uuid=implant_uuid)
-
+        log.info("Node fetched or created via get_or_create")
         return implant_node
 
     @staticmethod
     def connect_implant_to_listener(implant_uuid, listener_uuid):
         # connects this classes implant to a listener based on the listener UUID
+        log = neo4j_logger.bind(
+            method="connect_implant_to_listener", implant_uuid=implant_uuid, listener_uuid=listener_uuid
+        )
+        log.debug("Initiating implant to listener connection")
 
         # 2 step process
 
@@ -287,6 +302,7 @@ class Neo4jImplantNodeService:
         # create or get listener node
         # listener_node = Neo4jListenerNodeService.create_or_get_node(listener_uuid)
         listener_node = Neo4jListenerNode.find_existing(listener_uuid=listener_uuid)
+
         # create or get channel node
         c2_channel_node = Neo4jC2ChannelNodeService.create_or_get_node(listener_uuid)
 
@@ -295,13 +311,15 @@ class Neo4jImplantNodeService:
         # 3: link implant -> c2 channel,
         # if we aren't already hooked up to the c2 channel, add us to it
         if not implant_node.c2_established.is_connected(c2_channel_node):
+            log.debug("Connecting implant to C2 channel")
             implant_node.c2_established.connect(c2_channel_node)
 
         #  then c2 channel -> listener
         if not c2_channel_node.targets.is_connected(listener_node):
+            log.debug("Connecting C2 channel to listener")
             c2_channel_node.targets.connect(listener_node)
 
-        neo4j_logger.info("Implant connected to listener", implant_uuid=implant_uuid, listener_uuid=listener_uuid)
+        log.info("Implant connected to listener")
 
     # call these for various things related to enrichement.
     # basically, have caller handle this, not automatically
@@ -315,21 +333,31 @@ class Neo4jImplantNodeService:
             implant_uuid (_type_): uuid of implant
             hostname (_type_): hostname of target host.
         """
+        log = neo4j_logger.bind(method="connect_implant_to_host", implant_uuid=implant_uuid, hostname=hostname)
+        log.debug("Initiating implant to host connection")
+
         # lookup host
         host_node = Neo4jHostNodeService.create_or_get_node(hostname=hostname)
         implant_node = Neo4jImplantNode.find_existing(implant_uuid)
+
         # now that we have that new host, connect *us* to *it*. order very important here
         # if we aren't already running on this host
         if not implant_node.running_on.is_connected(host_node):
+            log.debug("Adding RUNNING_ON relationship to host")
             # add us to it
             implant_node.running_on.connect(host_node)
 
-        neo4j_logger.info("Implant connected to host", implant_uuid=implant_uuid, hostname=hostname)
+        log.info("Implant connected to host")
 
     @staticmethod
     def get_all() -> list:
         """Gets all Neo4jImplantNode instances in the DB, returns their properties."""
+        log = neo4j_logger.bind(method="get_all")
+        log.debug("Executing Cypher query to fetch all Neo4jImplantNodes")
+
         node_data, _ = db.cypher_query("MATCH (h:Neo4jImplantNode) RETURN properties(h)")
+
+        log.debug("Successfully fetched all implant nodes", count=len(node_data))
         return [row[0] for row in node_data]
 
         # need to take that, then get .properties, and return just properties
@@ -338,17 +366,21 @@ class Neo4jImplantNodeService:
     def get_by_uuid(implant_uuid: str) -> dict | None:
         """Gets a single implant node's properties by its UUID.
 
-
         Args:
             implant_uuid (str): the uuid of the implant
 
         Returns:
             dict | None: Dict of properties if a node exists, None, if no node.
         """
+        log = neo4j_logger.bind(method="get_by_uuid", implant_uuid=implant_uuid)
+        log.debug("Fetching node by UUID")
+
         node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
         if not node:
+            log.debug("Node not found")
             return None
 
+        log.debug("Node retrieved successfully")
         # again return only the properties
         return node.__properties__
 
@@ -363,9 +395,12 @@ class Neo4jImplantNodeService:
             implant_uuid (str): the uuid of the implant
             data (dict): The data to add/update to the implant
         """
+        log = neo4j_logger.bind(method="update_by_uuid", implant_uuid=implant_uuid)
+        log.debug("Attempting to update node", data_keys=list(data.keys()))
+
         node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
         if not node:
-            neo4j_logger.warning("Update failed: Implant not found", implant_uuid=implant_uuid)
+            log.warning("Update failed: Implant not found")
             return
 
         # Get the strictly defined schema properties for this node class
@@ -395,7 +430,7 @@ class Neo4jImplantNodeService:
         node.metadata = current_meta
         node.save()
 
-        neo4j_logger.info("Implant updated successfully", implant_uuid=implant_uuid)
+        log.info("Implant updated successfully")
 
     @staticmethod
     def delete_by_uuid(implant_uuid: str) -> bool:
@@ -407,11 +442,16 @@ class Neo4jImplantNodeService:
         Returns:
             bool: True: Successful deletion, False: Node failed to delete
         """
+        log = neo4j_logger.bind(method="delete_by_uuid", implant_uuid=implant_uuid)
+        log.debug("Attempting to delete implant node")
+
         node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
         if not node:
+            log.warning("Delete failed: Implant not found")
             return False  # node doesn't exist
 
         node.delete()
+        log.info("Implant deleted successfully")
         return True
 
     @staticmethod
@@ -421,6 +461,9 @@ class Neo4jImplantNodeService:
 
         Allows for lucene searching, ex `user:...`
         """
+        log = neo4j_logger.bind(method="search_implants", search_term=search_term)
+        log.debug("Executing full-text search query")
+
         # Use Lucene syntax. Adding '*' allows for partial matches if the term is incomplete.
         # Example: '192.168' becomes '192.168*'
         formatted_term = f"{search_term}*"
@@ -435,6 +478,7 @@ class Neo4jImplantNodeService:
         # Using your existing db.cypher_query pattern
         results, _ = db.cypher_query(query, {"term": formatted_term})
 
+        log.debug("Search query completed", result_count=len(results))
         return [row[0] for row in results]
 
     @staticmethod
@@ -444,15 +488,21 @@ class Neo4jImplantNodeService:
 
         implant_uuid: implant to get the host it's connected to
         """
+        log = neo4j_logger.bind(method="get_host_implant_is_connected_to", implant_uuid=implant_uuid)
+        log.debug("Retrieving connected host for implant")
+
         # get hostname of host that the implant is connected to
         implant_node = Neo4jImplantNodeService.create_or_get_node(implant_uuid)
+
         # need to get the host the implant is connected to
         host_nodes = hosts = implant_node.running_on.all()  # returns a list
 
         # saftey check so we don't get an index err
         if host_nodes:
+            log.debug("Successfully found connected host")
             return hosts[0]
 
+        log.debug("No connected host found for implant")
         return None
 
 
