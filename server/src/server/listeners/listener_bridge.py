@@ -22,12 +22,12 @@ def _register_new_implant(unpacked_metadata: dict, external_ip: str, listener_uu
         return
 
     # create in neo4j
-    implant_node = Neo4jImplantNodeService(
-        implant_uuid=implant_uuid,
-        listener_uuid=listener_uuid,
-    )
+    # implant_node = Neo4jImplantNodeService(
+    #     implant_uuid=implant_uuid,
+    #     listener_uuid=listener_uuid,
+    # )
     # pass ALL metadata to host
-    implant_node.register_node(**unpacked_metadata)
+    Neo4jImplantNodeService.register_node(listener_uuid=listener_uuid, **unpacked_metadata)
 
 
 def handle_beacon(data_from_implant: bytes, external_ip: str, listener_uuid: str) -> bytes | None:

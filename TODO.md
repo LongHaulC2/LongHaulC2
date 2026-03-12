@@ -58,6 +58,8 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 
 ### Day 4: March 13 - Neo4j Schema & Structuring
 - [ ] Establish the strict structure for keys (e.g., `mac_address`, `ip_address`, `hostname`) for all node types so data is predictable.
+   > moved to structured nodes
+   > [ ] all non-critical data is in metadata, client parsing will need to be updated for this
 - [ ] Review and modularize Neo4j functions.
 - [ ] Add docstrings to every model and class.
 

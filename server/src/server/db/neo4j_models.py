@@ -2,6 +2,7 @@ from edwh_uuid7 import uuid7
 from neomodel import (
     BooleanProperty,
     IntegerProperty,
+    JSONProperty,
     RelationshipFrom,
     RelationshipTo,
     StringProperty,
@@ -70,6 +71,9 @@ class Neo4jImplantNode(StructuredNode):
     # later, involve c2 channel between these 2? could skip as well for simplicity...
     parent_to = RelationshipFrom("Neo4jImplantNode", "LINKED")
     child_of = RelationshipTo("Neo4jImplantNode", "LINKED")
+
+    # catchall metadata for addtl fields not defined here
+    metadata = JSONProperty(default=dict)
 
     @classmethod
     def find_existing(cls, implant_uuid=None) -> "Neo4jImplantNode | None":

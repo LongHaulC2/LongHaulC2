@@ -209,85 +209,57 @@ class Neo4jChainingService:
 
 # NEW APPROACH, provide methods to hook things together, AVOID auto hooking, it makes things weird and not scalable
 class Neo4jImplantNodeService:
-    def __init__(self, implant_uuid, listener_uuid):
-        self.implant_uuid = implant_uuid  # fed by listener
-        self.listener_uuid = listener_uuid  # fed by listener
-        self.metadata: dict
-        self.implant_node = Neo4jImplantNode.find_existing(self.implant_uuid)
-
-    """
-    An implant can:
-
-    - Connect to a host
-
-    """
-    # create node...
-
-    def register_node(self, **kwargs):
-        # Use Cypher MERGE to ensure atomicity at the DB level
-        # TLDR, because we are using semi unstructured, duplicates are allowed by db.
-        query = """
-        MERGE (n:Neo4jImplantNode {implant_uuid: $implant_uuid})
-        SET n += $props
-        RETURN n
+    @staticmethod
+    def register_node(implant_uuid: str, listener_uuid: str, **kwargs):
         """
+        Registers an implant node, dynamically routing arbitrary data into a metadata bucket,
+        and builds out the host, listener, and network relationships.
+        """
+        # Grab known/defined fields out of the kwargs
+        system_hostname = kwargs.pop("system_hostname", "Unknown")
+        nics = kwargs.pop("nics", {})
 
-        data_for_neo = kwargs.copy()
-        if data_for_neo.get("nics"):
-            del data_for_neo["nics"]  # tldr neo4j doesn't like structured data.
-        # This prevents the race condition where two threads check find_existing
-        # at the same time and both see 'None'
-        db.cypher_query(query, {"implant_uuid": self.implant_uuid, "props": data_for_neo})
+        # Safely get or create the core implant node
+        implant_node = Neo4jImplantNode.get_or_create({"implant_uuid": implant_uuid})[0]
 
-        # Refresh the local object reference
-        self.implant_node = Neo4jImplantNode.nodes.get(implant_uuid=self.implant_uuid)
+        # Assign explicitly defined schema properties
+        implant_node.system_hostname = system_hostname
 
-        hostname = kwargs.get("system_hostname")
-        # the only auto linking/magic that happens here is linking our implant to a host, and linking our implant
-        # to a listener.
-        self.connect_implant_to_listener(self.listener_uuid)
-        self.connect_implant_to_host(hostname)
+        # dump any extra kwargs passed in, into the metadata field.
+        if kwargs:
+            current_meta = implant_node.metadata or {}
+            current_meta.update(kwargs)
+            implant_node.metadata = current_meta
 
-        # create NIC's and link to us
-        nics = kwargs.get("nics", {})
+        # Save the node with its updated properties and metadata
+        implant_node.save()
 
-        # data = {mac:{ip, cidr (ex,24), gateway},}
+        # hook up core rels
+        Neo4jImplantNodeService.connect_implant_to_listener(implant_uuid, listener_uuid)
+        Neo4jImplantNodeService.connect_implant_to_host(implant_uuid, system_hostname)
+
+        # Process and link NICs
         for nic_mac_address, data in nics.items():
-            # exclude NIC's that didn't return a mac for some reason.
             if not nic_mac_address:
-                neo4j_logger.debug("mac address missing from nic, skipping", data=data)
+                neo4j_logger.debug("MAC address missing from nic, skipping", data=data)
                 continue
 
-            # create our NIC
-            Neo4jNicNodeService.create_or_get_node(mac_address=nic_mac_address)
-
-            # link nic to our host
             nic_ip_address = data.get("ip")
-            Neo4jNicNodeService.connect_nic_to_host(hostname, mac_address=nic_mac_address, ip_address=nic_ip_address)
-
-            # link NIC to network, if we have data for it
             cidr = data.get("cidr")
             gateway = data.get("gateway")
+
+            # Create NIC and link to host
+            Neo4jNicNodeService.create_or_get_node(mac_address=nic_mac_address)
+            Neo4jNicNodeService.connect_nic_to_host(
+                system_hostname, mac_address=nic_mac_address, ip_address=nic_ip_address
+            )
+
+            # Link NIC to network segment if routing data exists
             if cidr and gateway:
                 network_segment = f"{gateway}/{cidr}"
                 Neo4jNicNodeService.connect_nic_to_network(network_segment, nic_mac_address)
 
-    # @staticmethod
-    # def create_or_get_node(implant_uuid):
-    #     """
-    #     Atomically creates or gets a node using Cypher MERGE to prevent
-    #     check-then-act race conditions that result in bare duplicate nodes.
-    #     """
-    #     query = """
-    #     MERGE (n:Neo4jImplantNode {implant_uuid: $implant_uuid})
-    #     RETURN n
-    #     """
-
-    #     # This guarantees only one node is created/fetched at the DB transaction level
-    #     db.cypher_query(query, {"implant_uuid": implant_uuid})
-
-    #     # Now it is safe to fetch the neomodel object reference
-    #     return Neo4jImplantNode.nodes.get(implant_uuid=implant_uuid)
+        return implant_node
 
     @staticmethod
     def create_or_get_node(implant_uuid):
@@ -303,7 +275,8 @@ class Neo4jImplantNodeService:
 
         return implant_node
 
-    def connect_implant_to_listener(self, listener_uuid):
+    @staticmethod
+    def connect_implant_to_listener(implant_uuid, listener_uuid):
         # connects this classes implant to a listener based on the listener UUID
 
         # 2 step process
@@ -317,44 +290,44 @@ class Neo4jImplantNodeService:
         # create or get channel node
         c2_channel_node = Neo4jC2ChannelNodeService.create_or_get_node(listener_uuid)
 
+        implant_node = Neo4jImplantNode.find_existing(implant_uuid)
+
         # 3: link implant -> c2 channel,
         # if we aren't already hooked up to the c2 channel, add us to it
-        if not self.implant_node.c2_established.is_connected(c2_channel_node):
-            self.implant_node.c2_established.connect(c2_channel_node)
+        if not implant_node.c2_established.is_connected(c2_channel_node):
+            implant_node.c2_established.connect(c2_channel_node)
 
         #  then c2 channel -> listener
         if not c2_channel_node.targets.is_connected(listener_node):
             c2_channel_node.targets.connect(listener_node)
 
-        neo4j_logger.info(
-            "Implant connected to listener", implant_uuid=self.implant_uuid, listener_uuid=self.listener_uuid
-        )
-
-    def _update_node(self, data: dict):
-        for key, value in data.items():
-            setattr(self.implant_node, key, value)
-        self.implant_node.save()
+        neo4j_logger.info("Implant connected to listener", implant_uuid=implant_uuid, listener_uuid=listener_uuid)
 
     # call these for various things related to enrichement.
     # basically, have caller handle this, not automatically
-    def connect_implant_to_host(self, hostname):
-        # connects this classes implant to the host based on ip address of that host
+    @staticmethod
+    def connect_implant_to_host(implant_uuid, hostname):
+        """Connects the provided implant to the host, based on ip address/hostname of that host
 
+        If a node for the host does not exist, one is created.
+
+        Args:
+            implant_uuid (_type_): uuid of implant
+            hostname (_type_): hostname of target host.
+        """
         # lookup host
         host_node = Neo4jHostNodeService.create_or_get_node(hostname=hostname)
-
+        implant_node = Neo4jImplantNode.find_existing(implant_uuid)
         # now that we have that new host, connect *us* to *it*. order very important here
-
         # if we aren't already running on this host
-        if not self.implant_node.running_on.is_connected(host_node):
+        if not implant_node.running_on.is_connected(host_node):
             # add us to it
-            self.implant_node.running_on.connect(host_node)
+            implant_node.running_on.connect(host_node)
 
-        neo4j_logger.info("Implant connected to host", implant_uuid=self.implant_uuid, hostname=hostname)
+        neo4j_logger.info("Implant connected to host", implant_uuid=implant_uuid, hostname=hostname)
 
-    # funcs to replicate api func
     @staticmethod
-    def get_all():
+    def get_all() -> list:
         """Gets all Neo4jImplantNode instances in the DB, returns their properties."""
         node_data, _ = db.cypher_query("MATCH (h:Neo4jImplantNode) RETURN properties(h)")
         return [row[0] for row in node_data]
@@ -362,7 +335,16 @@ class Neo4jImplantNodeService:
         # need to take that, then get .properties, and return just properties
 
     @staticmethod
-    def get_by_uuid(implant_uuid: str):
+    def get_by_uuid(implant_uuid: str) -> dict | None:
+        """Gets a single implant node's properties by its UUID.
+
+
+        Args:
+            implant_uuid (str): the uuid of the implant
+
+        Returns:
+            dict | None: Dict of properties if a node exists, None, if no node.
+        """
         node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
         if not node:
             return None
@@ -372,19 +354,59 @@ class Neo4jImplantNodeService:
 
     @staticmethod
     def update_by_uuid(implant_uuid: str, data: dict):
-        # direct query to allow addtl fields that don't exist
-        # to be added. Could change later for tightening it up
-        query = """
-        MATCH (n:Neo4jImplantNode {implant_uuid: $implant_uuid})
-        SET n += $props
-        RETURN properties(n)
         """
+        Updates a node via its UUID and provided data dict.
+        Smartly routes defined schema properties to the node directly,
+        and packs any unstructured data into the `metadata` JSON property.
 
-        results, _ = db.cypher_query(query, {"implant_uuid": implant_uuid, "props": data})
-        # no return to save some processing
+        Args:
+            implant_uuid (str): the uuid of the implant
+            data (dict): The data to add/update to the implant
+        """
+        node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
+        if not node:
+            neo4j_logger.warning("Update failed: Implant not found", implant_uuid=implant_uuid)
+            return
+
+        # Get the strictly defined schema properties for this node class
+        # (ex, returns keys like 'implant_uuid', 'system_hostname', 'metadata')
+        # we use this to tell if the data goes in the metadata dict, or in
+        # the defined properties
+        defined_props = node.__class__.defined_properties()
+
+        # Initialize current metadata so we update it rather than overwrite it
+        current_meta = node.metadata or {}
+
+        # Route the incoming data
+        for key, value in data.items():
+            # If the caller passes "metadata" directly, we merge it rather than replace it
+            if key == "metadata" and isinstance(value, dict):
+                current_meta.update(value)
+                continue
+
+            # If it's a known schema property, set it directly on the node
+            if key in defined_props:
+                setattr(node, key, value)
+            # If it's an arbitrary/unknown property, toss it in the metadata bucket
+            else:
+                current_meta[key] = value
+
+        # and save it back to the node
+        node.metadata = current_meta
+        node.save()
+
+        neo4j_logger.info("Implant updated successfully", implant_uuid=implant_uuid)
 
     @staticmethod
     def delete_by_uuid(implant_uuid: str) -> bool:
+        """Deletes a node by its UUID
+
+        Args:
+            implant_uuid (str): uuid of the implant node to delete
+
+        Returns:
+            bool: True: Successful deletion, False: Node failed to delete
+        """
         node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
         if not node:
             return False  # node doesn't exist
