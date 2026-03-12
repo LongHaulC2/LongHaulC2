@@ -2,11 +2,13 @@ from edwh_uuid7 import uuid7
 from neomodel import (
     BooleanProperty,
     IntegerProperty,
+    Q,
     RelationshipFrom,
     RelationshipTo,
     StringProperty,
     StructuredNode,
     StructuredRel,
+    db,
 )
 from neomodel.contrib import SemiStructuredNode
 
@@ -98,8 +100,8 @@ class Neo4jHostNode(StructuredNode):
     hostname = StringProperty(unique_index=True, required=True)
 
     # for addtl unique id if ever needed
-    # mac_address = StringProperty()
-    # hostname = StringProperty()
+    mac_address = StringProperty()
+    hostname = StringProperty()
 
     # Host -> Network
     on_subnet = RelationshipTo("Neo4jNetworkNode", "ON_SUBNET")
@@ -125,6 +127,68 @@ class Neo4jHostNode(StructuredNode):
             node = cls.nodes.get_or_none(hostname=hostname)
             if node:
                 return node
+
+        return None
+
+    # @classmethod
+    # def find_by_any_identifier(cls, hostname=None, ip_address=None, mac_address=None):
+    #     """
+    #     Finds a Host by its hostname, OR by the MAC/IP of any connected NIC.
+    #     """
+    #     # If we have absolutely no identifiers, bail out
+    #     if not hostname and not ip_address and not mac_address:
+    #         return None
+
+    #     # Cypher query to match the host directly, or via its connected NIC
+    #     # Replace :HAS_NIC with your actual relationship type!
+    #     query = """
+    #     MATCH (h:Neo4jHostNode)
+    #     OPTIONAL MATCH (h)-[:ATTACHED_TO]-(n:Neo4jNicNode)
+    #     WHERE
+    #         (h.hostname = $hostname AND $hostname IS NOT NULL) OR
+    #         (n.mac_address = $mac_address AND $mac_address IS NOT NULL) OR
+    #         (n.ip_address = $ip_address AND $ip_address IS NOT NULL)
+    #     RETURN h LIMIT 1
+    #     """
+
+    #     params = {"hostname": hostname, "mac_address": mac_address, "ip_address": ip_address}
+
+    #     # Execute the raw query
+    #     results, meta = db.cypher_query(query, params)
+
+    #     # If we got a result, we need to "inflate" the raw Neo4j node back into a Neomodel object
+    #     if results and results[0] and results[0][0]:
+    #         return cls.inflate(results[0][0])
+
+    #     return None
+
+    @classmethod
+    def find_by_any_identifier(cls, hostname=None, ip_address=None, mac_address=None):
+        """
+        Finds a Host, prioritizing MAC > IP > Hostname.
+        """
+        # Try finding by MAC (Relationship-based)
+        if mac_address:
+            query = "MATCH (h:Neo4jHostNode)-[:ATTACHED_TO]-(n:Neo4jNicNode {mac_address: $mac}) RETURN h LIMIT 1"
+            res, _ = db.cypher_query(query, {"mac": mac_address})
+            if res and res[0][0]:
+                return cls.inflate(res[0][0])
+
+        # Try finding by IP (Relationship-based)
+        if ip_address:
+            query = "MATCH (h:Neo4jHostNode)-[:ATTACHED_TO]-(n:Neo4jNicNode {ip_address: $ip}) RETURN h LIMIT 1"
+            res, _ = db.cypher_query(query, {"ip": ip_address})
+            if res and res[0][0]:
+                return cls.inflate(res[0][0])
+
+        #  Fallback to Hostname (Node property-based)
+        # We only do this if it's NOT a generic name like 'UNKNOWN'
+        # wihotuht this check, you get a double host entry problem
+        if hostname and hostname.upper() != "UNKNOWN":
+            query = "MATCH (h:Neo4jHostNode {hostname: $host}) RETURN h LIMIT 1"
+            res, _ = db.cypher_query(query, {"host": hostname})
+            if res and res[0][0]:
+                return cls.inflate(res[0][0])
 
         return None
 
@@ -243,16 +307,20 @@ class Neo4jC2ChannelNode(StructuredNode):
         return None
 
 
-class Neo4jNicNode(StructuredNode):
+class Neo4jNicNode(SemiStructuredNode):
     """A class for  NIC nodes."""
 
-    implant_uuid = StringProperty(unique_index=True, default=uuid7)
+    nic_uuid = StringProperty(unique_index=True, default=uuid7)
 
     mac_address = StringProperty()
     ip_address = StringProperty()
     # associating hostname with NIC, as it's possible for this NIC's ip to be a different DNS name
     # than another NIC's IP's
     dns_name = StringProperty()
+
+    # cidr
+    cidr = StringProperty()
+
     # nic -> host
     attached_to = RelationshipTo("Neo4jHostNode", "ATTACHED_TO")
     # nic -> network
@@ -266,6 +334,29 @@ class Neo4jNicNode(StructuredNode):
         if mac_address:
             return cls.nodes.get_or_none(mac_address=mac_address)
         return None
+
+    @classmethod
+    def find_by_any_identifier(cls, mac_address=None, ip_address=None):
+        """
+        Finds a NIC by MAC or IP using Neomodel Q objects for an OR lookup.
+        """
+        # Start with an empty query
+        query = Q()
+
+        # Append conditions dynamically if the data exists
+        if mac_address:
+            query |= Q(mac_address=mac_address)
+        if ip_address:
+            query |= Q(ip_address=ip_address)
+
+        # If no identifiers were provided at all, bail out
+        if not query:
+            return None
+
+        # Execute the filter. Neomodel returns a NodeSet, so we grab the first match.
+        results = cls.nodes.filter(query)
+
+        return results[0] if results else None
 
 
 class Neo4jMemstoreFileNode(StructuredNode):

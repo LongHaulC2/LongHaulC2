@@ -34,7 +34,9 @@ ModuleResult passive_arp_discovery() {
             MIB_IPNET_ROW2 row = pTable->Table[i];
 
             // Filter for Reachable only to avoid stale entries
-            if (row.State == NlnsReachable) {
+            //fuuuuck that full send with all. I'd rather have more data than less.
+            //could also put an arg in for this
+            if (row.State == NlnsReachable || row.State == NlnsStale || row.State == NlnsDelay) {
                 wchar_t ipStr[64];
                 WinApi::InetNtopW(row.Address.si_family, &row.Address.Ipv4.sin_addr, ipStr, 64);
 

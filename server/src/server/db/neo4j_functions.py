@@ -1,6 +1,7 @@
 # neo4j functions
 
 import structlog
+from edwh_uuid7 import uuid7
 from neomodel import db
 
 from ..schemas.listeners import ListenerCreate, ListenerUpdate
@@ -241,8 +242,15 @@ class Neo4jImplantNodeService:
         log.debug("Starting node registration")
 
         # grab data we need:
-        nics = kwargs.pop("nics", {})  # pop nics so it's not set in metadata dict
+        nics = kwargs.pop("nics", {})
         system_hostname = kwargs.get("system_hostname", "UNKNOWN")
+
+        # NEW: Extract primary IP and MAC to help uniquely identify the host
+        primary_mac = None
+        primary_ip = None
+        if nics:
+            primary_mac = list(nics.keys())[0]
+            primary_ip = nics[primary_mac].get("ip")
 
         # Safely get or create the core implant node
         log.debug("Retrieving or creating core implant node")
@@ -250,14 +258,16 @@ class Neo4jImplantNodeService:
 
         for key, value in kwargs.items():
             setattr(implant_node, key, value)
-
-        # Save the node with its updated properties
         implant_node.save()
 
         # hook up core rels
         log.debug("Hooking up core relationships")
         Neo4jImplantNodeService.connect_implant_to_listener(implant_uuid, listener_uuid)
-        Neo4jImplantNodeService.connect_implant_to_host(implant_uuid, system_hostname)
+
+        # NEW: Pass the strong identifiers down!
+        host_uuid = Neo4jImplantNodeService.connect_implant_to_host(
+            implant_uuid=implant_uuid, hostname=system_hostname, ip_address=primary_ip, mac_address=primary_mac
+        )
 
         # Process and link NICs
         for nic_mac_address, data in nics.items():
@@ -268,12 +278,12 @@ class Neo4jImplantNodeService:
             nic_ip_address = data.get("ip")
             cidr = data.get("cidr")
             gateway = data.get("gateway")
-
-            # Create NIC and link to host
+            #   Create NIC and link to host
             log.debug("Processing NIC", mac_address=nic_mac_address)
-            Neo4jNicNodeService.create_or_get_node(mac_address=nic_mac_address)
+            nic_node = Neo4jNicNodeService.create_or_get_node(mac_address=nic_mac_address)
+
             Neo4jNicNodeService.connect_nic_to_host(
-                system_hostname, mac_address=nic_mac_address, ip_address=nic_ip_address
+                host_uuid=host_uuid, mac_address=nic_mac_address, ip_address=nic_ip_address
             )
 
             # Link NIC to network segment if routing data exists
@@ -281,6 +291,10 @@ class Neo4jImplantNodeService:
                 network_segment = f"{gateway}/{cidr}"
                 log.debug("Linking NIC to network segment", network_segment=network_segment)
                 Neo4jNicNodeService.connect_nic_to_network(network_segment, nic_mac_address)
+
+                # toss cidr on nic too:
+                nic_node.cidr = network_segment
+                nic_node.save()
 
         log.info("Node registration complete")
         return implant_node
@@ -339,30 +353,24 @@ class Neo4jImplantNodeService:
     # call these for various things related to enrichement.
     # basically, have caller handle this, not automatically
     @staticmethod
-    def connect_implant_to_host(implant_uuid, hostname):
-        """Connects the provided implant to the host, based on ip address/hostname of that host
-
-        If a node for the host does not exist, one is created.
-
-        Args:
-            implant_uuid (_type_): uuid of implant
-            hostname (_type_): hostname of target host.
-        """
+    def connect_implant_to_host(implant_uuid, hostname, ip_address=None, mac_address=None) -> str:
+        """Connects the provided implant to the host..."""
         log = neo4j_logger.bind(method="connect_implant_to_host", implant_uuid=implant_uuid, hostname=hostname)
         log.debug("Initiating implant to host connection")
 
-        # lookup host
-        host_node = Neo4jHostNodeService.create_or_get_node(hostname=hostname)
+        # NEW: Pass all identifiers to the lookup
+        host_node = Neo4jHostNodeService.create_or_get_node(
+            hostname=hostname, ip_address=ip_address, mac_address=mac_address
+        )
         implant_node = Neo4jImplantNode.find_existing(implant_uuid)
 
-        # now that we have that new host, connect *us* to *it*. order very important here
         # if we aren't already running on this host
         if not implant_node.running_on.is_connected(host_node):
             log.debug("Adding RUNNING_ON relationship to host")
-            # add us to it
             implant_node.running_on.connect(host_node)
 
         log.debug("Implant connected to host")
+        return host_node.host_uuid
 
     @staticmethod
     def get_all() -> list:
@@ -502,15 +510,6 @@ class Neo4jImplantNodeService:
 
 
 class Neo4jHostNodeService:
-    def __init__(self, hostname):
-        log = neo4j_logger.bind(method="__init__", hostname=hostname)
-        log.debug("Initializing Neo4jHostNodeService")
-        self.hostname = hostname
-
-        # setup logging for all funcs here
-        structlog.contextvars.clear_contextvars()
-        structlog.contextvars.bind_contextvars(host=self.ip_address)
-
     """
     Host can have:
      - A network its connected to
@@ -519,42 +518,30 @@ class Neo4jHostNodeService:
     """
 
     @staticmethod
-    def create_or_get_node(hostname):
+    def create_or_get_node(hostname=None, ip_address=None, mac_address=None):
         """
-        Creates a node. Useful for getting a quick new node and letting this handle all
-        the node logic
+        Attempts to find a Host by hostname, IP, or MAC.
+        If nothing matches, creates a new Host with a UUIDv7.
         """
-        log = neo4j_logger.bind(method="create_or_get_node", hostname=hostname)
-        log.debug("Attempting to find existing host node")
+        log = neo4j_logger.bind(method="create_or_get_node", hostname=hostname, ip=ip_address, mac=mac_address)
+        log.debug("Attempting to find existing host node by available identifiers")
 
-        host_node = Neo4jHostNode.find_existing(hostname=hostname)
-        if not host_node:
-            log.debug("Host node not found, creating new")
-            host_node = Neo4jHostNode(hostname=hostname).save()
-            log.debug("New Host discovered", hostname=hostname)
+        # Look up the host using any available identifier
+        # need to add a custom func for this, or query.
+        host_node = Neo4jHostNode.find_by_any_identifier(
+            hostname=hostname, ip_address=ip_address, mac_address=mac_address
+        )
 
-        return host_node
+        # If we found a match, return it
+        if host_node:
+            log.debug("Found existing Host node.", host_uuid=host_node.host_uuid)
+            return host_node
 
-    def register_host(self):
-        log = neo4j_logger.bind(method="register_host", hostname=self.hostname)
-        log.debug("Checking if host exists to register")
+        # If no results, create a new node with a UUIDv7
+        new_uuid = str(uuid7())
+        log.debug("Host node not found. Creating new with UUIDv7", new_uuid=new_uuid)
 
-        # see if it exists
-        node = Neo4jHostNode.find_existing(self.hostname)
-
-        # if not, create it
-        if not node:
-            log.debug("Adding host to Neo4j")
-            node = Neo4jHostNode(hostname=self.hostname).save()
-
-        # nuke all.
-        log.debug("Clearing context vars")
-        structlog.contextvars.clear_contextvars()
-
-        return node
-
-        # idea. could check all networks in the db, and if our IP falls into the networks
-        # range, we could add ourselves to it.
+        return Neo4jHostNode(host_uuid=new_uuid, hostname=hostname).save()
 
 
 class Neo4jListenerNodeService:
@@ -720,68 +707,160 @@ class Neo4jListenerNodeService:
 
 class Neo4jNicNodeService:
     @staticmethod
-    def create_or_get_node(mac_address):
+    def create_or_get_node(mac_address: str = None, ip_address: str = None):
         """
-        Creates a node. Useful for getting a quick new node and letting this handle all
-        the node logic
+        Creates or retrieves a NIC node. Handles cases where MAC might be missing
+        (e.g., VPN adapters) by falling back to IP, and uses UUIDv7 for identity.
         """
-        log = neo4j_logger.bind(method="create_or_get_node", mac_address=mac_address)
+        log = neo4j_logger.bind(method="create_or_get_node", mac_address=mac_address, ip_address=ip_address)
         log.debug("Attempting to get or create NIC node")
 
-        listener_node = Neo4jNicNode.find_existing(mac_address=mac_address)
-        if not listener_node:
-            log.debug("NIC not found, creating new")
-            listener_node = Neo4jNicNode(mac_address=mac_address).save()
-            log.debug("New nic node created", mac_address=mac_address)
+        # 1. Sanity check: We need at least one piece of data to identify a NIC
+        if not mac_address and not ip_address:
+            log.warning("Cannot create or get NIC without a MAC or IP address.")
+            return None
 
-        return listener_node
+        # 2. Look up the NIC using either MAC or IP
+        # (Requires a custom method on Neo4jNicNode similar to the Host node's lookup)
+        nic_node = Neo4jNicNode.find_by_any_identifier(mac_address=mac_address, ip_address=ip_address)
+
+        # 3. If found, check if we need to fill in any newly discovered missing data
+        if nic_node:
+            log.debug("Found existing NIC node", nic_uuid=nic_node.nic_uuid)
+            needs_save = False
+
+            if mac_address and not nic_node.mac_address:
+                nic_node.mac_address = mac_address
+                needs_save = True
+
+            if ip_address and not nic_node.ip_address:
+                nic_node.ip_address = ip_address
+                needs_save = True
+
+            if needs_save:
+                log.debug("Updating existing NIC with newly discovered data")
+                nic_node.save()
+
+            return nic_node
+
+        # 4. If not found, create a brand new one with a UUIDv7
+        new_uuid = str(uuid7())
+        log.debug("NIC not found, creating new with UUIDv7", nic_uuid=new_uuid)
+
+        nic_node = Neo4jNicNode(nic_uuid=new_uuid, mac_address=mac_address, ip_address=ip_address).save()
+
+        log.debug("New NIC node created", nic_uuid=new_uuid)
+
+        return nic_node
+
+    # @staticmethod
+    # def connect_nic_to_host(hostname, mac_address: str, ip_address=""):
+    #     """
+    #     hostname: hostname of host to connect the nic to
+
+    #     mac_address: mac address of the NIC connecting to a host
+    #     ip_address (optional): ip_address of the NIC connecting to a host, if you have the IP for that nic
+    #     """
+    #     log = neo4j_logger.bind(method="connect_nic_to_host", hostname=hostname, mac_address=mac_address)
+    #     log.debug("Connecting NIC to host")
+
+    #     # create or get our NIC
+    #     nic_node = Neo4jNicNodeService.create_or_get_node(mac_address)
+    #     # add ip to it as well if we have it
+    #     nic_node.ip_address = ip_address
+    #     nic_node.save()
+
+    #     # create or get host node
+    #     host_node = Neo4jHostNodeService.create_or_get_node(hostname)
+
+    #     # 3: link nic to host
+    #     if not nic_node.attached_to.is_connected(host_node):
+    #         log.debug("Linking NIC to host node")
+    #         nic_node.attached_to.connect(host_node)
+
+    #     log.debug("Nic -> host successful")
 
     @staticmethod
-    def connect_nic_to_host(hostname, mac_address: str, ip_address=""):
+    def connect_nic_to_host(host_uuid: str, mac_address: str = None, ip_address: str = None):
         """
-        hostname: hostname of host to connect the nic to
-
-        mac_address: mac address of the NIC connecting to a host
-        ip_address (optional): ip_address of the NIC connecting to a host, if you have the IP for that nic
+        host_uuid: The UUID of the Host to connect the NIC to.
+        mac_address (optional): MAC address of the NIC.
+        ip_address (optional): IP address of the NIC.
         """
-        log = neo4j_logger.bind(method="connect_nic_to_host", hostname=hostname, mac_address=mac_address)
+        log = neo4j_logger.bind(
+            method="connect_nic_to_host", host_uuid=host_uuid, mac_address=mac_address, ip_address=ip_address
+        )
         log.debug("Connecting NIC to host")
 
+        # Sanity Check: Ensure we have enough data to make a NIC
+        if not mac_address and not ip_address:
+            log.warning("Skipping NIC connection: Both MAC and IP are missing.")
+            return
+
         # create or get our NIC
-        nic_node = Neo4jNicNodeService.create_or_get_node(mac_address)
-        # add ip to it as well if we have it
-        nic_node.ip_address = ip_address
-        nic_node.save()
+        nic_node = Neo4jNicNodeService.create_or_get_node(mac_address=mac_address, ip_address=ip_address)
 
-        # create or get host node
-        host_node = Neo4jHostNodeService.create_or_get_node(hostname)
+        # Retrieve the Host node strictly by its UUID
+        host_node = Neo4jHostNode.nodes.get_or_none(host_uuid=host_uuid)
 
-        # 3: link nic to host
+        if not host_node:
+            log.error("Failed to connect NIC: Host node not found.", host_uuid=host_uuid)
+            return
+
+        # Link NIC to Host
         if not nic_node.attached_to.is_connected(host_node):
             log.debug("Linking NIC to host node")
             nic_node.attached_to.connect(host_node)
 
-        log.debug("Nic -> host successful")
+        log.debug("Nic -> host connection successful")
 
     @staticmethod
-    def connect_nic_to_network(network_cidr, nic_mac_address: str):
-        """ """
+    def connect_nic_to_network(network_cidr: str, nic_mac_address: str):
+        """
+        Links a NIC node to a Network node based on the CIDR.
+        """
         log = neo4j_logger.bind(
             method="connect_nic_to_network", network_cidr=network_cidr, nic_mac_address=nic_mac_address
         )
         log.debug("Connecting NIC to network")
 
-        # create or get our NIC
+        # Retrieve the NIC (Should already exist from previous step in register_node)
         nic_node = Neo4jNicNodeService.create_or_get_node(nic_mac_address)
-        # create or get host node
+
+        # Retrieve or create the Network node
+        # Note: Ensure Neo4jNetworkNode uses 'cidr' or 'network_uuid' as defined in your model
         network_node = Neo4jNetworkNodeService.create_or_get_node(network_cidr)
 
-        # 3: link nic to host
+        if not network_node:
+            log.error("Failed to find or create network node", network_cidr=network_cidr)
+            return
+
+        # Link NIC to Network
         if not nic_node.in_network.is_connected(network_node):
             log.debug("Linking NIC to network node")
             nic_node.in_network.connect(network_node)
 
         log.debug("Nic -> network successful")
+
+    @staticmethod
+    def connect_nic_to_network_by_uuid(network_uuid: str, nic_uuid: str):
+        """
+        Links a NIC node to a Network node using their specific UUIDs.
+        """
+        log = neo4j_logger.bind(method="connect_nic_to_network_by_uuid", network_uuid=network_uuid, nic_uuid=nic_uuid)
+
+        # Lookup both nodes using the exact property names
+        nic_node = Neo4jNicNode.nodes.get_or_none(nic_uuid=nic_uuid)
+        network_node = Neo4jNetworkNode.nodes.get_or_none(network_uuid=network_uuid)
+
+        if not nic_node or not network_node:
+            log.error("Could not find nodes for linking", nic_exists=bool(nic_node), net_exists=bool(network_node))
+            return
+
+        # Create the relationship if it doesn't exist
+        if not nic_node.in_network.is_connected(network_node):
+            log.debug("Linking NIC and Network via UUID")
+            nic_node.in_network.connect(network_node)
 
 
 class Neo4jNetworkNodeService:

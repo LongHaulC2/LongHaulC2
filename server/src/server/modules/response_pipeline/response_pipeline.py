@@ -13,9 +13,7 @@ This includes:
 # note for performance metrics, the most "efficent" way may be dumping to redis, or using direct metric libs like
 # prometheus, isntead of doing a custom metrics system
 
-import base64
 import concurrent.futures
-import hashlib
 import threading
 import time
 
@@ -25,15 +23,11 @@ import structlog
 from ...db.mysql_connector import get_mysql_session
 from ...db.mysql_functions import MySQLImplantTaskService
 from ...db.neo4j_functions import (
-    Neo4jChainingService,
-    Neo4jFileNodeService,
-    Neo4jHostNodeService,
     Neo4jImplantNodeService,
-    Neo4jMemstoreFileNodeService,
-    Neo4jNicNodeService,
 )
 from ...db.redis_functions import RedisImplantTaskService
 from ...instance import active_threads
+from .neo4j_correlator import correlate_task_results
 
 response_pipeline_logger = structlog.getLogger("response_pipeline")
 server_logger = structlog.getLogger("server")
@@ -77,7 +71,7 @@ def _task_batch_job():
                 # Neo4j placeholder
                 if unpacked_responses_list:
                     for response in unpacked_responses_list:
-                        process_single_response_for_neo4j(response)
+                        correlate_task_results(response)
                     # _neo4j_placeholder(response_list=unpacked_responses_list)
 
                 time.sleep(1)
@@ -150,262 +144,3 @@ def _get_tasks_from_redis_and_write_to_mysql(implant) -> list:
             session.rollback()
             response_pipeline_logger.error("DB Write failed", implant_uuid=implant_uuid, error=e)
             return []
-
-
-def process_single_response_for_neo4j(task_response_dict: dict):
-    # response_pipeline_logger.critical("IT IS WORKING")
-    task_uuid = task_response_dict.get("task_uuid", "")
-    implant_uuid = task_response_dict.get("implant_uuid")
-
-    if not task_uuid:
-        response_pipeline_logger.warning("Task response did not have a task_uuid")
-        return
-
-    if not implant_uuid:
-        response_pipeline_logger.warning("Task response did not have a implant_uuid")
-        return
-
-    # need to look this up
-    # probably a major choke point if DB is slow. Threading may help
-    # task_name = task_dict.get("task_name")
-
-    task_request_dict = {}
-    with get_mysql_session() as session:
-        task = MySQLImplantTaskService(implant_uuid=implant_uuid, session=session)
-        # task_name = task.get(task_name)
-
-        # fyi - this returns the full task: task_request, task_response, implant_uuid, task_uuid.
-        # Need to pull out task request
-        task_dict = task.get_task_by_uuid(task_uuid)
-
-    if not task_dict:
-        response_pipeline_logger.warning("Task lookup did not yield any data")
-        return
-
-    # filter down to task_request
-    task_request_dict = task_dict.get("task_request", {})
-
-    task_name = task_request_dict.get("task", {}).get("task_name", {})
-
-    # response_pipeline_logger.critical(task_request_dict)
-
-    # check if task was successful. If not, return.
-    windows_error_code = task_response_dict.get("result", {}).get("windows_error_code", "")
-    if windows_error_code != 0:
-        response_pipeline_logger.warning(
-            "Task Result was not successful. Not updating Neo4j",
-            windows_error_code=windows_error_code,
-        )
-        return
-
-    # based off task name, do neo4j actions
-    match task_name:
-        case "discover neighbors":
-            """
-            Takes discovered neighbors, and plots them into Neo4j
-
-            """
-            discover_neighbors_logger = response_pipeline_logger.bind(task=task_name)
-            try:
-                neighbor_list = task_response_dict.get("result", {}).get("data", [])
-
-                if not neighbor_list:
-                    response_pipeline_logger.debug(
-                        "Neighbor list was empty, returning",
-                        neighbor_list=neighbor_list,
-                    )
-                    return
-
-                for neighbor in neighbor_list:
-                    neighbor_ip = neighbor.get("ip")
-                    neighbor_mac = neighbor.get("mac")
-                    # hostname is returned now.
-                    neighbor_host = neighbor.get("hostname")
-
-                    # create host
-                    Neo4jHostNodeService.create_or_get_node(
-                        hostname=neighbor_host,
-                    )
-
-                    # create nic
-                    Neo4jNicNodeService.create_or_get_node(mac_address=neighbor_mac)
-
-                    # create network - shit, need cidr, not just mac ip or hostname.
-                    # *could* assume that a host is apart of a network if the IP space matches, however
-                    # there's a chance for false positives.
-                    # new_network_node = Neo4jNetworkNodeService.create_or_get_node(
-                    #     mac_address=neighbor_mac
-                    # )
-
-                    # link nic to host
-                    Neo4jNicNodeService.connect_nic_to_host(
-                        hostname=neighbor_host,
-                        mac_address=neighbor_mac,
-                        ip_address=neighbor_ip,
-                    )
-            except Exception as e:
-                discover_neighbors_logger.error("An error occured", error=e)
-
-        case "memstore upload":
-            # try a local logger and bind to it for this scope
-            memstore_upload_logger = response_pipeline_logger.bind(task=task_name)
-            try:
-                file_name = task_request_dict.get("task", {}).get("args", {}).get("file_name", "")
-                if not file_name:
-                    memstore_upload_logger.info("file_name is empty", file_name=file_name)
-                    return
-
-                file_contents = (
-                    task_request_dict.get("task", {}).get("args", {}).get("file_contents", "")  # store as bytes in db
-                )
-                if not file_contents:
-                    memstore_upload_logger.info("file_contents are empty", file_contents=file_contents)
-                    return
-
-                decoded_bytes = base64.b64decode(file_contents)
-                hash = hashlib.md5(decoded_bytes).hexdigest()
-
-                Neo4jMemstoreFileNodeService.connect_memstore_file_to_implant(
-                    file_name=file_name, implant_uuid=implant_uuid, file_hash_md5=hash
-                )
-                # add addtl metadata
-                file_node = Neo4jMemstoreFileNodeService.create_or_get_node(file_name)
-
-                # only get first 20 chars
-                try:
-                    # add 0x for preivew/user knows it's hex
-                    file_node.file_preview = "0x" + decoded_bytes.hex()[:20]
-                except Exception as e:
-                    memstore_upload_logger.error("Error saving file_preview", error=e)
-
-                try:
-                    # add 0x for preivew/user knows it's hex
-                    file_node.file_size_kb = len(decoded_bytes) / 1000  # convert to kb
-                except Exception as e:
-                    memstore_upload_logger.error("Error saving file_size_kb", error=e)
-
-                file_node.save()
-            except Exception as e:
-                memstore_upload_logger.error("An error occurred", error=e)
-
-        # memstore clear and delete
-        case "memstore clear":
-            # remove all file from host
-            memstore_clear_logger = response_pipeline_logger.bind(task=task_name)
-            try:
-                # get all files connected to implant
-                connected_file_nodes = Neo4jMemstoreFileNodeService.get_all_files_nodes_for_implant(
-                    implant_uuid=implant_uuid
-                )
-                for node in connected_file_nodes:
-                    node.delete()
-
-            except Exception as e:
-                memstore_clear_logger.error("An error occurred", error=e)
-
-        case "memstore delete":
-            # remove a memstore file from host
-            memstore_delete_logger = response_pipeline_logger.bind(task=task_name)
-
-            try:
-                file_name = task_request_dict.get("task", {}).get("args", {}).get("file_name", "")
-
-                # the one file connected to the implant
-                # note - this might create it if it doesn't exist for some reason, just for it to be deleted.
-                file_node = Neo4jMemstoreFileNodeService.create_or_get_node(file_name=file_name)
-                # and delete it
-                if file_node:
-                    file_node.delete()
-
-            except Exception as e:
-                memstore_delete_logger.error("An error occured", error=e)
-
-        # file upload/download
-        case "file upload":
-            # get file name, contents, path
-            # add node
-            file_upload_logger = response_pipeline_logger.bind(task=task_name)
-
-            try:
-                file_path = task_request_dict.get("task", {}).get("args", {}).get("file_path", "")
-
-                file_contents = (
-                    task_request_dict.get("task", {}).get("args", {}).get("file_contents", "")  # store as bytes in db
-                )
-
-                host_node = Neo4jImplantNodeService.get_host_implant_is_connected_to(implant_uuid)
-
-                if not host_node:
-                    response_pipeline_logger.error("Could not find host that implant is connected to")
-                    return
-
-                hostname = host_node.hostname
-
-                decoded_bytes = base64.b64decode(file_contents)
-                hash = hashlib.md5(decoded_bytes).hexdigest()
-
-                Neo4jFileNodeService.connect_file_to_host(file_path=file_path, hostname=hostname, file_hash_md5=hash)
-
-                # addtl metadata
-                file_node = Neo4jFileNodeService.create_or_get_node(file_path)
-
-                try:
-                    # add 0x for preivew/user knows it's hex
-                    file_node.file_preview = "0x" + decoded_bytes.hex()[:20]
-                except Exception as e:
-                    response_pipeline_logger.error("Error saving file_preview", error=e)
-
-                try:
-                    # add 0x for preivew/user knows it's hex
-                    file_node.file_size_kb = len(decoded_bytes) / 1000  # convert to kb
-                except Exception as e:
-                    response_pipeline_logger.error("Error saving file_size_kb", error=e)
-
-                file_node.save()
-            except Exception as e:
-                file_upload_logger.error("An error occured", error=e)
-
-        # # I don't have a file delete, damn.
-        # case "file delete":
-        #     file_name = task_request_dict.get("task", {}).get("args", {}).get("file_name", "")
-
-        #     # the one file connected to the implant
-        #     # note - this might create it if it doesn't exist for some reason, just for it to be deleted.
-        #     file_node = Neo4jFileNodeService.create_or_get_node(file_name=file_name)
-        #     # and delete it
-        #     if file_node:
-        #         file_node.delete()
-
-        # could do a file clear, that attempts to nuke all files, which would use the get_all_files_nodes_for_host
-
-        case "link":
-            """
-            Link actions.
-
-            If our link is successful,
-            - create or get child node by child_uuid
-            - add relationship of CHILD_OF (to parent)
-
-            - create or get parent node by implant_uuid
-            - add relationship of PARENT_TO (child)
-
-            This should be enough for querying parent/child rel's
-            """
-            link_logger = response_pipeline_logger.bind(task=task_name)
-            try:
-                child_uuid = task_response_dict.get("result", {}).get("data", {}).get("child_uuid", "")
-                # parent_uuid = task_request_dict.get("task", {}).get("args", {}).get("implant_uuid", "")
-                parent_uuid = implant_uuid
-
-                if not child_uuid:
-                    link_logger.error("Child uuid empty")
-                    return
-
-                if not parent_uuid:
-                    link_logger.error("Parent uuid empty")
-                    return
-
-                # create parent -> child,
-                Neo4jChainingService.link_child_to_parent_node(child_uuid=child_uuid, parent_uuid=parent_uuid)
-            except Exception as e:
-                link_logger.error("An error occured", error=e)
