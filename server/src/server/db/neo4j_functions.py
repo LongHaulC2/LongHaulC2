@@ -240,25 +240,18 @@ class Neo4jImplantNodeService:
         log = neo4j_logger.bind(method="register_node", implant_uuid=implant_uuid, listener_uuid=listener_uuid)
         log.debug("Starting node registration")
 
-        # Grab known/defined fields out of the kwargs
-        system_hostname = kwargs.pop("system_hostname", "Unknown")
-        nics = kwargs.pop("nics", {})
+        # grab data we need:
+        nics = kwargs.pop("nics", {})  # pop nics so it's not set in metadata dict
+        system_hostname = kwargs.get("system_hostname", "UNKNOWN")
 
         # Safely get or create the core implant node
         log.debug("Retrieving or creating core implant node")
         implant_node = Neo4jImplantNode.get_or_create({"implant_uuid": implant_uuid})[0]
 
-        # Assign explicitly defined schema properties
-        implant_node.system_hostname = system_hostname
+        for key, value in kwargs.items():
+            setattr(implant_node, key, value)
 
-        # dump any extra kwargs passed in, into the metadata field.
-        if kwargs:
-            log.debug("Routing additional kwargs to metadata bucket")
-            current_meta = implant_node.metadata or {}
-            current_meta.update(kwargs)
-            implant_node.metadata = current_meta
-
-        # Save the node with its updated properties and metadata
+        # Save the node with its updated properties
         implant_node.save()
 
         # hook up core rels
@@ -410,8 +403,7 @@ class Neo4jImplantNodeService:
     def update_by_uuid(implant_uuid: str, data: dict):
         """
         Updates a node via its UUID and provided data dict.
-        Smartly routes defined schema properties to the node directly,
-        and packs any unstructured data into the `metadata` JSON property.
+        Applies all data as native properties on the SemiStructuredNode.
 
         Args:
             implant_uuid (str): the uuid of the implant
@@ -425,31 +417,12 @@ class Neo4jImplantNodeService:
             log.warning("Update failed: Implant not found")
             return
 
-        # Get the strictly defined schema properties for this node class
-        # (ex, returns keys like 'implant_uuid', 'system_hostname', 'metadata')
-        # we use this to tell if the data goes in the metadata dict, or in
-        # the defined properties
-        defined_props = node.__class__.defined_properties()
-
-        # Initialize current metadata so we update it rather than overwrite it
-        current_meta = node.metadata or {}
-
-        # Route the incoming data
+        # Iterate through the incoming data and set directly on the node.
+        # As a SemiStructuredNode, it accepts arbitrary properties natively.
         for key, value in data.items():
-            # If the caller passes "metadata" directly, we merge it rather than replace it
-            if key == "metadata" and isinstance(value, dict):
-                current_meta.update(value)
-                continue
+            setattr(node, key, value)
 
-            # If it's a known schema property, set it directly on the node
-            if key in defined_props:
-                setattr(node, key, value)
-            # If it's an arbitrary/unknown property, toss it in the metadata bucket
-            else:
-                current_meta[key] = value
-
-        # and save it back to the node
-        node.metadata = current_meta
+        # Save the updated properties directly to Neo4j
         node.save()
 
         log.debug("Implant updated successfully")

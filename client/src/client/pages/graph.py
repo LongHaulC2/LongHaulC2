@@ -237,7 +237,8 @@ def handle_click(e, nodes, sidebar_container):
         with ui.column().classes("p-4 w-full gap-4"):
             with ui.column().classes("w-full gap-1"):
                 for key, val in props.items():
-                    if key == "listener_profile_contents":
+                    # skip profile contents cuz it's huge, wait on metadata
+                    if key == "listener_profile_contents" or key == "metadata":
                         continue
                     with ui.row().classes("w-full justify-between border-b border-white/5 pb-1"):
                         ui.label(key).classes("text-[10px] text-zinc-500 font-mono uppercase")

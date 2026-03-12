@@ -2,13 +2,13 @@ from edwh_uuid7 import uuid7
 from neomodel import (
     BooleanProperty,
     IntegerProperty,
-    JSONProperty,
     RelationshipFrom,
     RelationshipTo,
     StringProperty,
     StructuredNode,
     StructuredRel,
 )
+from neomodel.contrib import SemiStructuredNode
 
 """
 Overview:
@@ -52,9 +52,13 @@ class DiscoveredViaRel(StructuredRel):
 
 
 # semi structured for addtl ad hoc fields
-class Neo4jImplantNode(StructuredNode):
+class Neo4jImplantNode(SemiStructuredNode):
     """
     Implant Node for Implants.
+
+    Note, this is built slightly different from the rest, it's a semistructured node that
+    allows for variable fields to be added to it. This allows for better flexibility going forward
+    with potentially not-guaranteed/unknown/new implant data/fields.
     """
 
     implant_uuid = StringProperty(unique_index=True, required=True)
@@ -71,9 +75,6 @@ class Neo4jImplantNode(StructuredNode):
     # later, involve c2 channel between these 2? could skip as well for simplicity...
     parent_to = RelationshipFrom("Neo4jImplantNode", "LINKED")
     child_of = RelationshipTo("Neo4jImplantNode", "LINKED")
-
-    # catchall metadata for addtl fields not defined here
-    metadata = JSONProperty(default=dict)
 
     @classmethod
     def find_existing(cls, implant_uuid=None) -> "Neo4jImplantNode | None":
@@ -154,32 +155,12 @@ class Neo4jNetworkNode(StructuredNode):
         return None
 
 
-# class Neo4jListenerNode(StructuredNode):
-#     """
-#     Listener Node for Listeners.
-#     """
-
-#     uuid = StringProperty(unique_index=True, required=True)
-
-#     # rest of fields are filled in by kwargs of register_listener
-#     # listeners also curerntly live in the mysql db, they need to be transfered over to Neo4j at some point
-
-#     # connected_to = RelationshipTo("Neo4jNetworkNode", "CONNECTED_TO")
-#     # host = RelationshipFrom("Neo4jNetworkNode", "EGRESS")
-
-#     @classmethod
-#     def find_existing(cls, uuid=None) -> "Neo4jListenerNode | None":
-#         """
-#         Lookup an implant by its unique UUID.
-#         """
-#         if uuid:
-#             return cls.nodes.get_or_none(uuid=uuid)
-#         return None
-
-
 class Neo4jListenerNode(StructuredNode):
     """
     Listener Node for Listeners. Strictly typed to mirror the MySQL schema.
+
+    DevNote: No metadata field here, we control the listeners completely,
+        so no need for metadata
     """
 
     listener_uuid = StringProperty(unique_index=True, required=True)
