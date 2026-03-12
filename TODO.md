@@ -42,9 +42,14 @@ Find a place for:
 - [x] gui terminal index fix
 
 ### Day 3: March 12 - Core Service & Thread Management
+
+this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn workers
+
 - [ ] Implement the singleton pattern for threads (`start_thread_once`) to prevent worker chaos.
-- [ ] Fix the active flag in the database (ensure listeners auto-start on boot if marked active).
+- [X] Fix the active flag in the database (ensure listeners auto-start on boot if marked active).
+   > should be fixed & good to go
 - [ ] Move tasks/watchdogs to a dedicated service folder and wrap them in health monitors.
+   > kinda done - double check
 
 ---
 

@@ -8,7 +8,6 @@ from neomodel import (
     StructuredNode,
     StructuredRel,
 )
-from neomodel.contrib import SemiStructuredNode
 
 """
 Overview:
@@ -52,7 +51,7 @@ class DiscoveredViaRel(StructuredRel):
 
 
 # semi structured for addtl ad hoc fields
-class Neo4jImplantNode(SemiStructuredNode):
+class Neo4jImplantNode(StructuredNode):
     """
     Implant Node for Implants.
     """
@@ -82,7 +81,7 @@ class Neo4jImplantNode(SemiStructuredNode):
         return None
 
 
-class Neo4jHostNode(SemiStructuredNode):
+class Neo4jHostNode(StructuredNode):
     """
     Implant Node for Implants.
     """
@@ -125,7 +124,7 @@ class Neo4jHostNode(SemiStructuredNode):
         return None
 
 
-class Neo4jNetworkNode(SemiStructuredNode):
+class Neo4jNetworkNode(StructuredNode):
     """
     Represents a Layer 3 network segment (subnet/VLAN).
     """
@@ -151,7 +150,7 @@ class Neo4jNetworkNode(SemiStructuredNode):
         return None
 
 
-# class Neo4jListenerNode(SemiStructuredNode):
+# class Neo4jListenerNode(StructuredNode):
 #     """
 #     Listener Node for Listeners.
 #     """
@@ -229,7 +228,7 @@ class Neo4jListenerNode(StructuredNode):
         }
 
 
-class Neo4jC2ChannelNode(SemiStructuredNode):
+class Neo4jC2ChannelNode(StructuredNode):
     """
     Intermediate node representing the communication path.
     """
@@ -259,7 +258,7 @@ class Neo4jC2ChannelNode(SemiStructuredNode):
         return None
 
 
-class Neo4jNicNode(SemiStructuredNode):
+class Neo4jNicNode(StructuredNode):
     implant_uuid = StringProperty(unique_index=True, default=uuid7)
 
     mac_address = StringProperty()
@@ -282,7 +281,7 @@ class Neo4jNicNode(SemiStructuredNode):
         return None
 
 
-class Neo4jMemstoreFileNode(SemiStructuredNode):
+class Neo4jMemstoreFileNode(StructuredNode):
     memstore_file_uuid = StringProperty(unique_index=True, default=uuid7)
 
     file_name = StringProperty(unique_index=True, required=True)
@@ -305,7 +304,7 @@ class Neo4jMemstoreFileNode(SemiStructuredNode):
         return None
 
 
-class Neo4jFileNode(SemiStructuredNode):
+class Neo4jFileNode(StructuredNode):
     file_uuid = StringProperty(unique_index=True, default=uuid7)
 
     file_path = StringProperty(unique_index=True, required=True)

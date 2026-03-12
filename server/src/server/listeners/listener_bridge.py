@@ -1,7 +1,7 @@
 import msgpack
 import structlog
 
-from ..db.neo4j_functions import Neo4jImplantNodeService
+from ..db.neo4j_functions import Neo4jChainingService, Neo4jImplantNodeService
 from ..db.redis_functions import RedisImplantTaskService
 
 core_logger = structlog.get_logger("core_handler")
@@ -64,10 +64,10 @@ def handle_beacon(data_from_implant: bytes, external_ip: str, listener_uuid: str
 
     # find the egress node of one of the implant UUID's
     one_of_the_uuids_from_checkin = implant_get_request_array[0].get("implant_uuid")
-    egress_uuid = Neo4jImplantNodeService.get_egress_of_node(one_of_the_uuids_from_checkin)
+    egress_uuid = Neo4jChainingService.find_egress_node_in_chain(one_of_the_uuids_from_checkin)
 
     # get the list of all children attached to egress
-    children = Neo4jImplantNodeService.get_children_for_parent(parent_uuid=egress_uuid)
+    children = Neo4jChainingService.get_children_of_parent(parent_uuid=egress_uuid)
 
     # get tasks for all children
     for child in children:

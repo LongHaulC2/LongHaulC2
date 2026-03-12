@@ -129,6 +129,84 @@ class Neo4jCoreService:
         return results[0][0] if results else {"categories": [], "nodes": [], "links": []}
 
 
+class Neo4jChainingService:
+    """
+    A class meant to hold chaining functions
+
+    Everything here should be a static method
+    """
+
+    @staticmethod
+    def link_child_to_parent_node(child_uuid, parent_uuid):
+        """Links a child node, to a parent node, for Chaining purposes.
+
+        Uses the relationship "Linked"
+
+        Args:
+            child_uuid (_type_): uuid of child node
+            parent_uuid (_type_): uuid of parent node
+        """
+        neo4j_logger.debug("Attempting to link child to parent", parent_uuid=parent_uuid, child_uuid=child_uuid)
+
+        child_node = Neo4jImplantNodeService.create_or_get_node(
+            implant_uuid=child_uuid,
+        )
+
+        # parent should already exist, so we get by uuid
+        parent_node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=parent_uuid)
+
+        # if we aren't already parent of this implant
+        if not parent_node.parent_to.is_connected(child_node):
+            # add us to it
+            parent_node.parent_to.connect(child_node)
+
+        neo4j_logger.info("Link successful", parent_uuid=parent_uuid, child_uuid=child_uuid)
+
+    @staticmethod
+    def get_children_of_parent(parent_uuid: str) -> list[dict]:
+        """
+        Finds all child implants linked TO the specified parent UUID.
+        Follows the (Child)-[:LINKED]->(Parent) relationship backwards.
+        """
+        # Get the parent node (don't create it if it doesn't exist here)
+        parent_node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=parent_uuid)
+
+        if not parent_node:
+            neo4j_logger.warning("Attempted to get children for non-existent parent", parent_uuid=parent_uuid)
+            return []
+
+        # neomodel handles the traversal. .all() returns a list of Neo4jImplantNode objects
+        child_nodes = parent_node.parent_to.all()
+
+        #  Return just the properties dictionaries, matching get_all() and get_by_uuid()
+        return [child.__properties__ for child in child_nodes]
+
+    @staticmethod
+    def find_egress_node_in_chain(target_uuid):
+        """
+        Finds the specific egress (root) node for a given implant's chain.
+        If the UUID passed in is the egress, it returns that.
+
+        maybe move me to a pathfinding or chaining class?
+        """
+        query = """
+        MATCH (target:Neo4jImplantNode {implant_uuid: $target_uuid})-[:LINKED*0..]->(egress:Neo4jImplantNode)
+        WHERE NOT (egress)-[:LINKED]->(:Neo4jImplantNode)
+        RETURN egress.implant_uuid AS egress_uuid
+        """
+
+        results, _ = db.cypher_query(query, {"target_uuid": target_uuid})
+
+        # Extract the string from the list of lists
+        if results and len(results) > 0:
+            # results[0] is the first row, [0] is the first column
+            # should just return uuid of implant
+            return results[0][0]
+
+        # Return None if the target doesn't exist or has no path
+        return None
+
+
 # NEW APPROACH, provide methods to hook things together, AVOID auto hooking, it makes things weird and not scalable
 class Neo4jImplantNodeService:
     def __init__(self, implant_uuid, listener_uuid):
@@ -273,68 +351,6 @@ class Neo4jImplantNodeService:
             self.implant_node.running_on.connect(host_node)
 
         neo4j_logger.info("Implant connected to host", implant_uuid=self.implant_uuid, hostname=hostname)
-
-    # NOte: explicit one of each, connect_parent_to_child and connect_child_to_parent, for
-    # allowance of split c2.
-    @staticmethod
-    def connect_parent_to_child(child_uuid, parent_uuid):
-        child_node = Neo4jImplantNodeService.create_or_get_node(
-            implant_uuid=child_uuid,
-        )
-
-        # parent should already exist, so we get by uuid
-        parent_node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=parent_uuid)
-
-        # if we aren't already parent of this implant
-        if not parent_node.parent_to.is_connected(child_node):
-            # add us to it
-            parent_node.parent_to.connect(child_node)
-
-        neo4j_logger.info("Parent connected to child", parent_uuid=parent_uuid, child_uuid=child_uuid)
-
-    @staticmethod
-    def get_children_for_parent(parent_uuid: str) -> list[dict]:
-        """
-        Finds all child implants linked TO the specified parent UUID.
-        Follows the (Child)-[:LINKED]->(Parent) relationship backwards.
-        """
-        # Get the parent node (don't create it if it doesn't exist here)
-        parent_node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=parent_uuid)
-
-        if not parent_node:
-            neo4j_logger.warning("Attempted to get children for non-existent parent", parent_uuid=parent_uuid)
-            return []
-
-        # neomodel handles the traversal. .all() returns a list of Neo4jImplantNode objects
-        child_nodes = parent_node.parent_to.all()
-
-        #  Return just the properties dictionaries, matching get_all() and get_by_uuid()
-        return [child.__properties__ for child in child_nodes]
-
-    @staticmethod
-    def get_egress_of_node(target_uuid):
-        """
-        Finds the specific egress (root) node for a given implant's chain.
-        If the UUID passed in is the egress, it returns that.
-
-        maybe move me to a pathfinding or chaining class?
-        """
-        query = """
-        MATCH (target:Neo4jImplantNode {implant_uuid: $target_uuid})-[:LINKED*0..]->(egress:Neo4jImplantNode)
-        WHERE NOT (egress)-[:LINKED]->(:Neo4jImplantNode)
-        RETURN egress.implant_uuid AS egress_uuid
-        """
-
-        results, _ = db.cypher_query(query, {"target_uuid": target_uuid})
-
-        # Extract the string from the list of lists
-        if results and len(results) > 0:
-            # results[0] is the first row, [0] is the first column
-            # should just return uuid of implant
-            return results[0][0]
-
-        # Return None if the target doesn't exist or has no path
-        return None
 
     # funcs to replicate api func
     @staticmethod
