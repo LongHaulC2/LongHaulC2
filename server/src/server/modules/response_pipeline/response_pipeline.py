@@ -407,11 +407,5 @@ def process_single_response_for_neo4j(task_response_dict: dict):
 
                 # create parent -> child,
                 Neo4jChainingService.link_child_to_parent_node(child_uuid=child_uuid, parent_uuid=parent_uuid)
-
-                # access child node - hey, merge this otherwise it overwrites the node
-                # child_node = Neo4jImplantNodeService.create_or_get_node(implant_uuid=child_uuid)
-                # child_node.listener = f"LINKED TO {parent_uuid}"
-                # child_node.save()
-
             except Exception as e:
                 link_logger.error("An error occured", error=e)
