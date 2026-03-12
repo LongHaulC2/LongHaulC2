@@ -2,10 +2,11 @@ import structlog
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restx import Namespace, Resource
-from neomodel import db
 
 from ...api_models.error import COMMON_ERRORS
+from ...api_models.graph import GRAPH_SEARCH_POST_INPUT, GRAPH_SEARCH_POST_RESPONSE
 from ...api_models.listener import LISTENER_GET_RESPONSE
+from ...db.neo4j_functions import Neo4jCoreService
 from ...instance import api
 from ...utils.response import APIResponse
 
@@ -32,55 +33,7 @@ class Graph(Resource):
 
         api_logger.info("Getting graph data", caller_ip=ip)
 
-        query = """
-            // 1. Fetch Categories
-            CALL {
-                MATCH (n)
-                WITH DISTINCT labels(n)[0] AS label
-                RETURN collect({name: label}) AS categories
-            }
-
-            // 2. Fetch Nodes
-            CALL {
-                MATCH (n)
-                RETURN collect({
-                    id: toString(elementId(n)),
-                    name: CASE
-                        WHEN "Neo4jImplantNode" IN labels(n) THEN coalesce(n.implant_uuid, "Unknown")
-                        WHEN "Neo4jNetworkNode" IN labels(n) THEN coalesce(n.cidr, "Unknown")
-                        WHEN "Neo4jNetworkGatewayNode" IN labels(n) THEN coalesce(n.host, "Unknown")
-                        WHEN "Neo4jHostNode" IN labels(n) THEN coalesce(n.address, "Unknown")
-                        ELSE coalesce(n.ip_address, n.hostname, n.process, "Unknown_" + toString(elementId(n)))
-                    END,
-                    category: labels(n)[0],
-                    props: properties(n)
-                }) AS nodes
-            }
-
-            // 3. Fetch Links
-            CALL {
-                MATCH (a)-[r]->(b)
-                RETURN collect({
-                    source: toString(elementId(a)),
-                    target: toString(elementId(b)),
-                    value: type(r),
-                    props: properties(r)
-                }) AS links
-            }
-
-            // 4. Return as a single structured dictionary
-            RETURN {
-                categories: categories,
-                nodes: nodes,
-                links: links
-            } AS graph_data;
-        """
-
-        # Run the query
-        results, _ = db.cypher_query(query)
-
-        # results[0][0] contains our beautifully formatted dictionary straight from Neo4j
-        graph_dict = results[0][0] if results and results[0] else {"categories": [], "nodes": [], "links": []}
+        graph_dict = Neo4jCoreService.search_graph_structured(search_term="*")
 
         api_response = APIResponse(
             status="200",
@@ -90,6 +43,31 @@ class Graph(Resource):
         return api_response.jsonify()
 
 
+class GraphSearch(Resource):
+    @graph_ns.doc(
+        summary="Search for an implant",
+        description="Search for an implant with fields that match the supplied term.",
+        responses=COMMON_ERRORS,
+        security="Bearer Auth",
+    )
+    @graph_ns.expect(GRAPH_SEARCH_POST_INPUT)
+    @graph_ns.response(200, "A list of all found nodes", GRAPH_SEARCH_POST_RESPONSE)
+    @graph_ns.marshal_with(GRAPH_SEARCH_POST_RESPONSE)
+    # @jwt_required()
+    def post(self):
+        """
+        Search for an implant
+        """
+        ip = request.remote_addr
+        search_term = request.json.get("search_term")
+        api_logger.info("Searching graph", search_term=search_term, caller_ip=ip)
+
+        graph_dict = Neo4jCoreService.search_graph_structured(search_term=search_term)
+
+        return APIResponse(status="200", message="Success", data=graph_dict)
+
+
 graph_ns.add_resource(Graph, "/")
+graph_ns.add_resource(GraphSearch, "/search")
 
 api.add_namespace(graph_ns)

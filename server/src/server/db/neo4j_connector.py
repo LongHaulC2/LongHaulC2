@@ -43,6 +43,7 @@ PARENT_TO and CHILD_OF for chains?
 Example query:
 
 """
+
 import structlog
 from neo4j.exceptions import AuthError, ServiceUnavailable
 from neomodel import config, db
@@ -73,6 +74,39 @@ def ensure_fulltext_index():
         db.cypher_query(create_query)
 
 
+def ensure_global_fulltext_index():
+    """
+    Ensures a global Lucene full-text index exists across all critical C2 entities.
+    This allows 'Search Everything' functionality from a single input.
+    """
+    index_name = "global_search_index"
+
+    # Check if it exists
+    check_query = f"SHOW INDEXES YIELD name WHERE name = '{index_name}' RETURN count(*) > 0"
+    results, _ = db.cypher_query(check_query)
+    exists = results[0][0]
+
+    if not exists:
+        logger.info("Creating Neo4j Full-Text Index", index=index_name)
+
+        # We include all node labels and all potentially searchable properties.
+        # Neo4j handles it gracefully if a specific node doesn't have one of these properties.
+        create_query = f"""
+        CREATE FULLTEXT INDEX {index_name} FOR (n:Neo4jImplantNode|Neo4jHostNode|Neo4jNetworkNode|Neo4jListenerNode|Neo4jFileNode|Neo4jNicNode)
+        ON EACH [
+            n.implant_uuid, n.host_uuid, n.listener_uuid, n.network_uuid, n.file_uuid,
+            n.system_hostname, n.hostname, n.user, n.process, n.notes,
+            n.internal_ip, n.external_ip, n.address, n.ip_address, n.cidr,
+            n.file_name, n.file_path, n.protocol, n.arch
+        ]
+        """  # noqa
+        try:
+            db.cypher_query(create_query)
+            logger.info("Global index created successfully.")
+        except Exception as e:
+            logger.error("Failed to create global index", error=e)
+
+
 def init_neo4j():
     logger.info("Initializing neo4j connection")
     host = env_config.get("NEO4J_HOST")
@@ -96,6 +130,7 @@ def init_neo4j():
 
     # setup indexs, unable to do via neomodel yet on semistructured
     ensure_fulltext_index()
+    ensure_global_fulltext_index()
 
     # clear vars after this
     structlog.contextvars.clear_contextvars()

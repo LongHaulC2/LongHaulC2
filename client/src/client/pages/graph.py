@@ -1,13 +1,17 @@
+import asyncio
+import contextlib
 import urllib.parse
 from datetime import UTC, datetime
 
+import orjson
 import structlog
 from nicegui import app, ui
 
 # Imports
-from client.src.client.modules.api_calls import get_all_graph_data
+from client.src.client.modules.api_calls import get_all_graph_data, search_server
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
+from client.src.client.pages.syntax_sidebar import build_syntax_sidebar
 from client.src.client.utils.helpers import get_time_ago, get_timestamp_from_uuid7
 
 server_log = structlog.getLogger("server")
@@ -30,45 +34,29 @@ PATH_LISTENER = "M3 7C3 4.23858 5.23858 2 8 2C10.7614 2 13 4.23858 13 7V8H10V15H
 PATH_FILE = "M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.51984 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3"  # noqa: E501 - SVG image
 PATH_C2_CHANNEL = "M18 5C17.4477 5 17 5.44772 17 6C17 6.27642 17.1108 6.52505 17.2929 6.70711C17.475 6.88917 17.7236 7 18 7C18.5523 7 19 6.55228 19 6C19 5.44772 18.5523 5 18 5ZM15 6C15 4.34315 16.3431 3 18 3C19.6569 3 21 4.34315 21 6C21 7.65685 19.6569 9 18 9C17.5372 9 17.0984 8.8948 16.7068 8.70744L8.70744 16.7068C8.8948 17.0984 9 17.5372 9 18C9 19.6569 7.65685 21 6 21C4.34315 21 3 19.6569 3 18C3 16.3431 4.34315 15 6 15C6.46278 15 6.90157 15.1052 7.29323 15.2926L15.2926 7.29323C15.1052 6.90157 15 6.46278 15 6ZM6 17C5.44772 17 5 17.4477 5 18C5 18.5523 5.44772 19 6 19C6.55228 19 7 18.5523 7 18C7 17.7236 6.88917 17.475 6.70711 17.2929C6.52505 17.1108 6.27642 17 6 17Z"  # noqa: E501 - SVG image
 
-CHART_COLORS = [
-    "#10b981",  # implant
-    "#3b82f6",  # network
-    "#a855f7",  # gateway
-    "#d3eb00",  # host
-]
+CHART_COLORS = ["#10b981", "#3b82f6", "#a855f7", "#d3eb00"]
 
 
 @ui.refreshable
 def render_chart(nodes, links, categories, sidebar_container):
-    # check cookie value of wiggle
     nodes_frozen = app.storage.user.get("nodes_frozen", True)
 
     if nodes_frozen:
-        # add positioning to nodes
-        for i, node in enumerate(nodes):
-            # If you don't have real coordinates, even a simple grid or circle
-            # math is better than nothing to prevent the 0,0 stack.
-            import math
+        import math
 
-            # only calculate x/y if it hasn't been set yet to prevent teleporting
+        for i, node in enumerate(nodes):
             if "x" not in node:
                 angle = i * (2 * math.pi / len(nodes))
                 node["x"] = 500 + 300 * math.cos(angle)
                 node["y"] = 500 + 300 * math.sin(angle)
-            node["fixed"] = True  # This ensures they stay put during drags
-
+            node["fixed"] = True
     else:
-        # render dom with force physics
         for node in nodes:
             node["fixed"] = False
 
     options = build_chart_options(nodes, links, categories, not nodes_frozen)
-
-    # Use canvas renderer for better perf with many nodes
     chart = ui.echart(options).classes("w-full h-full")
     chart.on("chart:selectchanged", lambda e: handle_click(e, nodes, sidebar_container))
-
-    # ensure we can still lock them in place manually even if wiggle mode is active
     chart.on("dragend", "(params) => { if (params.dataType === 'node') params.data.fixed = true; }")
 
 
@@ -79,13 +67,7 @@ async def graph():
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
     )
 
-    # graph prefs
-    # if this cookie doesn't exist, create it for this user
-    nodes_frozen = app.storage.user.get("nodes_frozen", None)
-    # explicit check of none, isntead of bool, as it's stored as a bool, and will
-    # default to whatever value that bool is set to
-    if nodes_frozen is None:
-        # set nodes to be wiggly by default, cuz it looks cooler
+    if app.storage.user.get("nodes_frozen") is None:
         app.storage.user["nodes_frozen"] = True
 
     setup_menu("Network")
@@ -94,234 +76,186 @@ async def graph():
 
 
 async def graph_view():
-    graph_data_response = await get_all_graph_data()
-    graph_data = graph_data_response.get("data", {})
+    running_query: asyncio.Task | None = None
+    syntax_drawer = await build_syntax_sidebar()
 
-    nodes = graph_data.get("nodes", [])
-    links = graph_data.get("links", [])
-    categories = graph_data.get("categories", [])
+    inspector_sidebar = ui.right_drawer(value=False).classes("bg-[#0a0a0a] border-l border-white/5 p-0")
 
     category_styles = {
-        "Implant": {"symbol": wrap_svg(PATH_IMPLANT, "#CF2525"), "symbolSize": 45},
-        "Listener": {"symbol": wrap_svg(PATH_LISTENER, "#ffcc00"), "symbolSize": 40},
-        "Host": {"symbol": wrap_svg(PATH_HOST, "#024FF5"), "symbolSize": 35},
-        "Network": {"symbol": wrap_svg(PATH_NETWORK, "#5BE2A3"), "symbolSize": 45},
-        "Nic": {"symbol": wrap_svg(PATH_NETWORK, "#22573E"), "symbolSize": 45},
-        "C2Channel": {"symbol": wrap_svg(PATH_C2_CHANNEL, "#A01DA5"), "symbolSize": 45},
-        "File": {"symbol": wrap_svg(PATH_FILE, "#969696"), "symbolSize": 30},
+        "Neo4jImplantNode": {"symbol": wrap_svg(PATH_IMPLANT, "#CF2525"), "symbolSize": 45},
+        "Neo4jListenerNode": {"symbol": wrap_svg(PATH_LISTENER, "#ffcc00"), "symbolSize": 40},
+        "Neo4jHostNode": {"symbol": wrap_svg(PATH_HOST, "#024FF5"), "symbolSize": 35},
+        "Neo4jNetworkNode": {"symbol": wrap_svg(PATH_NETWORK, "#5BE2A3"), "symbolSize": 45},
+        "Neo4jNicNode": {"symbol": wrap_svg(PATH_NETWORK, "#22573E"), "symbolSize": 45},
+        "Neo4jC2ChannelNode": {"symbol": wrap_svg(PATH_C2_CHANNEL, "#A01DA5"), "symbolSize": 45},
+        "Neo4jFileNode": {"symbol": wrap_svg(PATH_FILE, "#969696"), "symbolSize": 30},
         "MemstoreFile": {"symbol": wrap_svg(PATH_FILE, "#10BB00"), "symbolSize": 30},
     }
 
-    # Clean categories and inject symbols
-    for cat in categories:
-        cat["name"] = cat["name"].replace("Neo4j", "").replace("Node", "")
-        cat.update(category_styles.get(cat["name"], {}))
+    async def process_graph_data(raw_data):
+        nodes = raw_data.get("nodes") or []
+        links = raw_data.get("links") or []
+        categories = raw_data.get("categories") or []
 
-    # Name mapping stays in Python, but we use a more efficient lookup
-    # Only perform node processing that ECharts can't do natively
-    for node in nodes:
-        node.setdefault("value", 1)  # Prevents ECharts re-calc errors
-        node["category"] = node["category"].replace("Neo4j", "").replace("Node", "")
+        name_mappers = {
+            "Neo4jImplantNode": get_implant_name,
+            "Neo4jListenerNode": lambda p: p.get("name") or p.get("listener_uuid", "Unknown Listener"),
+            "Neo4jHostNode": lambda p: (
+                p.get("hostname") or p.get("system_hostname") or p.get("address", "Unknown Host")
+            ),
+            "Neo4jNetworkNode": lambda p: p.get("cidr") or "Unknown Network",
+            "Neo4jNicNode": lambda p: p.get("ip_address") or p.get("mac_address") or "Unknown NIC",
+            "Neo4jC2ChannelNode": lambda p: f"{p.get('protocol', 'C2').upper()} Channel",
+            "Neo4jFileNode": get_file_path_name,
+            "MemstoreFile": get_file_path_name,
+        }
 
-        # Identity Mapping
-        props = node.get("props", {})
-        if node["category"] == "Implant":
-            node["name"] = (props.get("process") or "Unknown").split("\\")[-1].split("/")[-1]
-        elif node["category"] == "Host":
-            node["name"] = props.get("hostname") or props.get("address", "Unknown")
-        else:
-            node["name"] = props.get("file_name") or props.get("ip_address") or node.get("name")
+        for cat in categories:
+            cat_name = cat["name"]
+            cat.update(category_styles.get(cat_name, {}))
+            cat["name"] = cat_name.replace("Neo4j", "").replace("Node", "")
 
-    name_mappers = {
-        "Implant": get_implant_name,
-        "Listener": lambda p: p.get("name") or p.get("listener_uuid", "Unknown Listener"),
-        "Host": lambda p: p.get("hostname") or p.get("system_hostname") or p.get("address", "Unknown Host"),
-        "Network": lambda p: p.get("cidr", "Unknown Network"),
-        "Nic": lambda p: p.get("ip_address") or p.get("mac_address", "Unknown NIC"),
-        "C2Channel": lambda p: f"{p.get('protocol', 'C2').upper()} Channel",
-        "File": get_file_path_name,
-        "MemstoreFile": get_file_path_name,
-    }
+        for node in nodes:
+            node.setdefault("value", 1)
+            cat_label = node.get("category", "")
+            node["category"] = cat_label.replace("Neo4j", "").replace("Node", "")
+            props = node.get("props", {})
+            naming_func = name_mappers.get(cat_label, lambda p: "Unknown Node")  # noqa
+            node["name"] = naming_func(props)
 
-    # correlate nodes and dynamically assign their mapped names
-    for node in nodes:
-        # Correlate the nodes category to the newly cleaned legend strings
-        old_cat = node.get("category", "")
-        new_cat = old_cat.replace("Neo4j", "").replace("Node", "")
-        node["category"] = new_cat
-
-        # Look up the specific naming logic for this exact type, fallback to a generic name
-        props = node.get("props", {})
-        naming_func = name_mappers.get(new_cat, lambda: "Unknown Node")
-
-        # Apply the explicit naming logic to the node
-        node["name"] = naming_func(props)
+        return nodes, links, categories
 
     with ui.column().classes("tech-glass-panel w-full h-full"):
-        build_header_bar()
-        with ui.row().classes("w-full flex-grow overflow-hidden flex-nowrap p-2"):
-            # Use fixed width for sidebar to prevent layout thrashing
-            inspector_sidebar = ui.column().classes("w-80 h-full bg-[#0a0a0a] border-r border-white/5 p-4")
+        with ui.row().classes("w-full items-center justify-between tech-header-bar"):
+            with ui.row().classes("items-center gap-3"):
+                search_input = (
+                    ui.input(placeholder="Lucene query...")
+                    .props("dense dark border color=emerald input-class=text-emerald-400 hide-bottom-space")
+                    .classes("w-150 tech-input items-center")
+                )
+                with search_input.add_slot("prepend"):
+                    ui.icon("arrow_forward_ios", size="xs", color="emerald-500")
+                with search_input.add_slot("append"):
+                    search_spinner = ui.spinner(size="xs", color="emerald-500").classes("opacity-0 transition-opacity")
 
+                ui.button(icon="help_outline", on_click=syntax_drawer.toggle).props("flat round color=emerald").classes(
+                    "opacity-70 hover:opacity-100 tech-btn-ghost"
+                )
+
+            with ui.row().classes("items-center gap-4"):
+                ui.label(f"UTC: {datetime.now(UTC).strftime('%H:%M:%S')}").classes("tech-label-sub")
+
+                with ui.row().classes("items-center gap-2 px-3 py-1 border-l border-white/10"):
+                    ui.label("Freeze Nodes").classes("text-[10px] text-zinc-500 font-mono")
+                    nodes_frozen = app.storage.user.get("nodes_frozen", False)
+                    ui.switch(
+                        value=nodes_frozen,
+                        on_change=lambda e: (
+                            app.storage.user.update({"nodes_frozen": e.value}),
+                            render_chart.refresh(),
+                        ),
+                    ).props("dark dense size=sm")
+
+                ui.button(icon="refresh", on_click=lambda: refresh_graph()).props("dense flat size=sm").classes(
+                    "tech-btn-action-2"
+                )
+
+        with ui.row().classes("w-full flex-grow overflow-hidden flex-nowrap p-2"):  # noqa - nicegui
             with ui.column().classes("flex-grow h-full relative"):
-                # Call the refreshable function to draw the chart initially
-                render_chart(nodes, links, categories, inspector_sidebar)
+                init_resp = await get_all_graph_data()
+                n, l, c = await process_graph_data(init_resp.get("data", {}))  # noqa - node, link, category
+                render_chart(n, l, c, inspector_sidebar)
 
+    client = ui.context.client
 
-def build_header_bar():
-    def toggle_wiggle(e):
-        # e.value will be True or False based on the switch position
-        app.storage.user["nodes_frozen"] = e.value
-        # Refresh to apply the new build_chart_options logic (only rebuilds chart element)
-        render_chart.refresh()
+    async def refresh_graph():
+        nonlocal running_query
+        with client:
+            query = search_input.value.strip() if search_input.value else ""
+            search_spinner.classes(remove="opacity-0")
+            try:
+                if query:
+                    resp = await search_server(query=query, search_for="graph")
+                else:
+                    # force a * in there if no data. for some reason, this was bugging out with
+                    # the normal "get all data of graph"
+                    resp = await search_server(query="*", search_for="graph")
 
-    with ui.row().classes("w-full items-center justify-between tech-header-bar"):
-        with ui.row().classes("items-center gap-3"):
-            # ui.icon("device_hub", color="emerald-500").classes("text-xl")
-            # ui.label("NETWORK_TOPOLOGY //").classes("tech-label-header-section")
-            search = (
-                ui.input(placeholder="Search... [placeholder]")
-                .props("dense dark border color=emerald input-class=text-emerald-400 hide-bottom-space")
-                .classes("w-150 tech-input items-center")
-            )
-            with search.add_slot("prepend"):
-                ui.icon("arrow_forward_ios", size="xs", color="emerald-500")
+                if resp.status_code == 200:
+                    payload = orjson.loads(resp.content)
+                    raw_data = payload.get("data", {}) if isinstance(payload, dict) else payload
 
-        with ui.row().classes("items-center gap-4"):
-            # data available
-            new_data_label = ui.label("New data available, refresh to update chart").classes(
-                "!text-yellow-500 tech-label-sub whitespace-nowrap "
-            )
-            new_data_label.set_visibility(False)
-            # Timestamp
-            ui.label(f"UTC: {datetime.now(UTC).strftime('%H:%M:%S')}").classes("tech-label-sub whitespace-nowrap")
+                    if not isinstance(raw_data, dict):
+                        raw_data = {"nodes": [], "links": [], "categories": []}
 
-            # The Slide Toggle Container
-            with ui.row().classes("items-center gap-2 px-3 py-1 border-l border-white/10"):
-                ui.label("Freeze Nodes").classes("text-[10px] text-zinc-500 font-mono")
+                    n, l, c = await process_graph_data(raw_data)  # noqa - node, link, category
+                    render_chart.refresh(n, l, c, inspector_sidebar)
+            except Exception as e:
+                server_log.error(f"Graph refresh failed: {e}")
+            finally:
+                search_spinner.classes(add="opacity-0")
 
-                # The Slide Toggle (Switch)
-                nodes_frozen = app.storage.user.get("nodes_frozen", False)
-                ui.switch(value=nodes_frozen, on_change=toggle_wiggle).props("dark dense size=sm")
+    async def trigger_refresh():
+        nonlocal running_query
+        if running_query:
+            running_query.cancel()
+        running_query = asyncio.create_task(refresh_graph())
+        with contextlib.suppress(asyncio.CancelledError):
+            await running_query
 
-            # Standard Refresh
-            ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/graph")).props("dense flat size=sm").classes(
-                "tech-btn-action-2"
-            )
-
-    previous_data = None
-
-    async def check_if_new_data():
-        """
-        Checks if new data is available for the graph. Notifies user if so
-        """
-        nonlocal previous_data
-        graph_data_response = await get_all_graph_data()
-        new_data = graph_data_response.get("data", {})
-
-        if previous_data is None:
-            previous_data = new_data
-            return
-
-        if previous_data != new_data:
-            new_data_label.set_visibility(True)
-            # don't sent previous data to new data, the warning will only go away on refresh, which is intentional
-
-    update_time = app.storage.user.get("auto_refresh_rate", 5)
-    ui.timer(update_time, check_if_new_data)
+    search_input.on_value_change(trigger_refresh)
 
 
 def handle_click(e, nodes, sidebar_container):
-    # Dig into the payload to find which index was selected
     payload = e.args.get("fromActionPayload", {})
     data_index = payload.get("dataIndexInside")
-
     if data_index is None:
         return
 
-    # Grab the actual node object using the index
+    sidebar_container.show()
     selected_node = nodes[data_index]
     props = selected_node.get("props", {})
     node_name = selected_node.get("name", "Unknown")
     node_type = selected_node.get("category")
 
-    # add some metadata based on UUID 7
     for key, value in props.items():
         if key.endswith("_uuid") and value:
-            first_seen = get_timestamp_from_uuid7(value)
-            props["first_seen"] = first_seen
-            props["time_since_first_seen"] = get_time_ago(first_seen)
+            props["first_seen"] = get_timestamp_from_uuid7(value)
+            props["age"] = get_time_ago(props["first_seen"])
+            break
 
-            break  # break cuz 1 uuidper object
-
-    # nuke listener_profile_contents if present, too big to display
-    if props.get("listener_profile_contents", ""):
-        # del props["listener_profile_contents"]
-        props["listener_profile_contents"] = "Too big to display"
-
-    # Clear and Redraw the sidebar
     sidebar_container.clear()
     with sidebar_container:
-        ui.label(f"DETAILS: {node_name}").classes("tech-label-sub")
-        ui.separator().classes("bg-white/10 mb-4")
+        with ui.row().classes("w-full items-center justify-between bg-white/5 p-4 border-b border-white/10"):
+            ui.label(f"DETAILS: {node_name}").classes("tech-label-sub")
+            ui.button(icon="close", on_click=sidebar_container.hide).props("flat round dense size=sm").classes(
+                "text-neutral-500 hover:text-white"
+            )
 
-        # Loop through props and make a clean key-value list
-        with ui.column().classes("gap-1"):
-            for key, val in props.items():
-                with ui.row().classes("w-full justify-between border-b border-white/5 pb-1"):
-                    ui.label(key).classes("tech-label-sub")
-                    ui.label(str(val)).classes("tech-label-sub")
+        with ui.column().classes("p-4 w-full gap-4"):
+            with ui.column().classes("w-full gap-1"):
+                for key, val in props.items():
+                    if key == "listener_profile_contents":
+                        continue
+                    with ui.row().classes("w-full justify-between border-b border-white/5 pb-1"):
+                        ui.label(key).classes("text-[10px] text-zinc-500 font-mono uppercase")
+                        ui.label(str(val)).classes("text-[11px] text-emerald-400/80 font-mono text-right break-all")
 
-        # note, need to pull notes as well for implants/listeners
-        ui.separator()
-        ui.label("notes placeholder")
+            ui.separator().classes("bg-white/5")
 
-        # update options here would be nice as well
-        ui.separator()
+            uuid_key = f"{node_type.lower()}_uuid"
+            target_uuid = props.get(uuid_key) or props.get("implant_uuid") or props.get("host_uuid")
 
-        if node_type == "Implant":
-            with ui.column().classes("w-full"):
-                implant_uuid = props.get("implant_uuid")
-                ui.button("Implant Page", on_click=lambda: ui.navigate.to(f"/implant/{implant_uuid}")).classes("w-full")
-                ui.button("Implant ...").classes("w-full !tech-btn-action")
+            if target_uuid:
+                ui.button(
+                    f"OPEN {node_type.upper()} PAGE",
+                    on_click=lambda: ui.navigate.to(f"/{node_type.lower()}/{target_uuid}"),
+                ).classes("w-full tech-btn-action")
 
-        elif node_type == "Host":
-            with ui.column().classes("w-full"):
-                host_uuid = props.get("host_uuid")
-                ui.button("Host Page", on_click=lambda: ui.navigate.to(f"/host/{host_uuid}")).classes("w-full")
-                ui.button("something else").classes("w-full !tech-btn-action")
-
-        elif node_type == "Listener":
-            with ui.column().classes("w-full"):
-                listener_uuid = props.get("listener_uuid")
-                ui.button("Listener Page", on_click=lambda: ui.navigate.to(f"/listener/{listener_uuid}")).classes(
-                    "!tech-btn-action w-full "
-                )
-
-        elif node_type == "Nic":
-            with ui.column().classes("w-full"):
-                nic_uuid = props.get("nic_uuid")
-                ui.button("Nic Page", on_click=lambda: ui.navigate.to(f"/nic/{nic_uuid}")).classes(
-                    "!tech-btn-action w-full "
-                )
-
-        elif node_type == "Network":
-            with ui.column().classes("w-full"):
-                network_uuid = props.get("network_uuid")
-                ui.button("Network Page", on_click=lambda: ui.navigate.to(f"/network/{network_uuid}")).classes(
-                    "!tech-btn-action w-full "
-                )
-
-        elif node_type == "File" or node_type == "MemstoreFile":
-            with ui.column().classes("w-full"):
-                file_uuid = props.get("file_uuid")
-                ui.button("File Page", on_click=lambda: ui.navigate.to(f"/file/{file_uuid}")).classes(
-                    "!tech-btn-action w-full "
-                )
-                ui.button("Download").classes("w-full !tech-btn-action")
-                ui.button("Delete", color="red").classes("w-full !tech-btn-action")
-        else:
-            ui.label("No actions for this type of node").classes("tech-label-sub")
+            if node_type in ["File", "MemstoreFile"]:
+                with ui.row().classes("w-full gap-2"):
+                    ui.button("DL").classes("flex-grow tech-btn-action")
+                    ui.button("DEL", color="red").classes("flex-grow tech-btn-action")
 
 
 def build_chart_options(nodes, links, categories, node_wiggle_wiggle: bool):
@@ -333,70 +267,62 @@ def build_chart_options(nodes, links, categories, node_wiggle_wiggle: bool):
         "legend": [
             {
                 "data": [c["name"] for c in categories],
-                "textStyle": {
-                    "color": "#a3a3a3",
-                    "fontFamily": "monospace",
-                    "fontSize": 11,
-                },
+                "textStyle": {"color": "#a3a3a3", "fontFamily": "monospace", "fontSize": 11},
                 "bottom": 10,
             }
         ],
         "series": [
             {
+                "edgeLabel": {
+                    "show": True,
+                    "formatter": "[{c}]",  # grab link val
+                    "fontSize": 10,
+                    "color": "#e6e6e6",
+                    "fontFamily": "monospace",
+                },
+                "edgeSymbol": ["none", "arrow"],  # "none" for source, "arrow" for target
+                "edgeSymbolSize": [0, 10],  # 0 size for source, 8px for the arrow head
+                "lineStyle": {
+                    "color": "#3f3f46",
+                    "curveness": 0.1,  # Adding slight curveness helps arrows stay visible
+                    "width": 1.5,
+                    "type": "solid",
+                },
+                "emphasis": {
+                    "scale": 1.1,
+                    "focus": "adjacency",  # Highlights connected lines on hover
+                    "lineStyle": {"width": 3, "color": "#10b981"},
+                },
                 "type": "graph",
-                # If True, use 'force' physics. If False, use None (static).
                 "layout": "force" if node_wiggle_wiggle else None,
                 "data": nodes,
                 "links": links,
                 "categories": categories,
                 "roam": True,
                 "draggable": True,
-                "useWorker": True,  # use webworker if available
+                "useWorker": True,
                 "force": {
                     "initLayout": None,
                     "repulsion": 400,
                     "gravity": 0.05,
                     "edgeLength": 100,
-                    # Disable animation if we don't want the wiggle
                     "layoutAnimation": node_wiggle_wiggle,
                 },
                 "label": {"show": True, "position": "bottom", "formatter": "{b}", "fontSize": 9, "color": "#71717a"},
-                "lineStyle": {
-                    "color": "#52525b",
-                    "curveness": 0.05,
-                    "width": 1.5,
-                    "type": "dashed",  # <------> style
-                },
-                "emphasis": {
-                    "scale": 1.2,
-                    "focus": "none",
-                },
             }
         ],
     }
 
 
-# hack to allow for a "background" around the svg images so you can click anywhere on them, not just on drawn lines
 def wrap_svg(path_d, color):
-    """
-    Wraps SVG in html that allows it to be clicked where the SVG is not drawn. It places a shape *under* the image,
-    then draws svg on top
-    """
-    # fill="#0f0f0f"
-    svg_string = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48">
-        <circle cx="12" cy="12" r="11" stroke="{color}" stroke-width="0" />
-        <path d="{path_d}" fill="{color}" />
-    </svg>"""
+    svg_string = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48"><circle cx="12" cy="12" r="11" stroke="{color}" stroke-width="0" /><path d="{path_d}" fill="{color}" /></svg>'  # noqa
     return "image://data:image/svg+xml;charset=UTF-8," + urllib.parse.quote(svg_string)
 
 
 def get_implant_name(props: dict) -> str:
-    """Extracts a clean process name from a full path"""
     path = props.get("process") or props.get("implant_uuid", "Unknown")
-    # Splits on both Windows and Linux separators
     return path.split("\\")[-1].split("/")[-1][:20]
 
 
 def get_file_path_name(props: dict) -> str:
-    """Returns the path if available, otherwise falls back to name"""
     return props.get("file_path") or props.get("file_name") or "Unknown File"

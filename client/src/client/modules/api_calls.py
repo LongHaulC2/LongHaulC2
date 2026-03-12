@@ -251,7 +251,7 @@ async def delete_implant(implant_uuid=str) -> None:
     )
 
 
-async def search_server(query: str, search_for: Literal["implant", "task"] | None) -> httpx.Response | None:
+async def search_server(query: str, search_for: Literal["implant", "task", "graph"] | None) -> httpx.Response | None:
     """
     Search the server
 
@@ -272,8 +272,15 @@ async def search_server(query: str, search_for: Literal["implant", "task"] | Non
     if search_for == "implant":
         url = "/api/v1/implants/search"
 
-    if search_for == "task":
+    elif search_for == "task":
         url = "/api/v1/implants/history/search"
+
+    elif search_for == "graph":
+        url = "/api/v1/graph/search"
+
+    else:
+        api_log.warning("Invalid search type for search_server")
+        return None
 
     request_body = {"search_term": str(query)}
 

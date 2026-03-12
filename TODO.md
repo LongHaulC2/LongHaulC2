@@ -35,6 +35,9 @@ Find a place for:
 - [X] Fix the broken search endpoints (`POST /api/v1/search/implants` and history).
    > was client side
    > touching up searching in gui
+   - [ ] Search w/ Lucene: Graph (ALL)
+   - [ ] Search w/ Lucene: Listeners
+   - [ ] Search w/ Lucene: Payload
 
 ### Day 3: March 12 - Core Service & Thread Management
 - [ ] Implement the singleton pattern for threads (`start_thread_once`) to prevent worker chaos.

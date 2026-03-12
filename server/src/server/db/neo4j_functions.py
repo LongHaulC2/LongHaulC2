@@ -31,6 +31,104 @@ but every bit of data that can be pulled out of these implants is important, hen
 """
 
 
+class Neo4jCoreService:
+    """
+    Core/AllGraph operations
+    """
+
+    @staticmethod
+    def search_everything(search_term: str, inlcude_rels: bool = False) -> list[dict]:
+        """
+        Global Lucene search across all mapped entities in Neo4j.
+        """
+        # Pro-tip: Only add '*' if the user hasn't provided their own wildcards
+        # This allows complex Lucene like: hostname:ws* AND user:admin
+        formatted_term = search_term if "*" in search_term or ":" in search_term else f"{search_term}*"
+
+        if inlcude_rels:
+            query = """
+                CALL db.index.fulltext.queryNodes("global_search_index", $term)
+                YIELD node
+                MATCH (node)-[r]-(neighbor)
+                RETURN node, r, neighbor
+                """
+        else:
+            query = """
+            CALL db.index.fulltext.queryNodes("global_search_index", $term)
+            YIELD node, score
+            RETURN
+                properties(node) AS props,
+                labels(node)[0] AS category,
+                score
+            ORDER BY score DESC
+            """
+
+        results, _ = db.cypher_query(query, {"term": formatted_term})
+
+        # Combine props and category into a single dict for the frontend
+        formatted_results = []
+        for props, category, score in results:
+            combined = props.copy()
+            combined["category"] = category
+            combined["search_score"] = score
+            formatted_results.append(combined)
+
+        return formatted_results
+
+    @staticmethod
+    def search_graph_structured(search_term: str) -> dict:
+        """
+        Search the graph, and return it in a structured format for echarts, etc.
+        """
+        # Handle wildcards
+        formatted_term = search_term if "*" in search_term or ":" in search_term else f"{search_term}*"
+
+        query = """
+        // Find the "Hits" via Lucene
+        CALL db.index.fulltext.queryNodes("global_search_index", $term)
+        YIELD node
+        WITH collect(node) AS searchHits
+
+        // 2. Map Categories
+        CALL {
+            WITH searchHits
+            UNWIND searchHits AS n
+            WITH DISTINCT labels(n)[0] AS labelName
+            RETURN collect({name: labelName}) AS categories
+        }
+
+        // Format Nodes
+        WITH searchHits, categories, [n IN searchHits | {
+            id: toString(elementId(n)),
+            name: CASE
+                WHEN "Neo4jImplantNode" IN labels(n) THEN coalesce(n.implant_uuid, "Unknown")
+                WHEN "Neo4jNetworkNode" IN labels(n) THEN coalesce(n.cidr, "Unknown")
+                ELSE coalesce(n.ip_address, n.hostname, n.process, "Unknown")
+            END,
+            category: labels(n)[0],
+            props: properties(n)
+        }] AS nodes
+
+        // Find Links ONLY between the search hits
+        OPTIONAL MATCH (a)-[r]->(b)
+        WHERE a IN searchHits AND b IN searchHits
+        WITH nodes, categories, collect(DISTINCT {
+            source: toString(elementId(a)),
+            target: toString(elementId(b)),
+            value: type(r),
+            props: properties(r)
+        }) AS links
+
+        RETURN {
+            categories: categories,
+            nodes: nodes,
+            links: links
+        } AS graph_data
+        """
+        results, _ = db.cypher_query(query, {"term": formatted_term})
+        return results[0][0] if results else {"categories": [], "nodes": [], "links": []}
+
+
 # NEW APPROACH, provide methods to hook things together, AVOID auto hooking, it makes things weird and not scalable
 class Neo4jImplantNodeService:
     def __init__(self, implant_uuid, listener_uuid):
