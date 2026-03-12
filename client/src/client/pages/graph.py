@@ -1,7 +1,6 @@
 import asyncio
 import contextlib
 import urllib.parse
-from datetime import UTC, datetime
 
 import orjson
 import structlog
@@ -146,7 +145,7 @@ async def graph_view():
                 )
 
             with ui.row().classes("items-center gap-4"):
-                ui.label(f"UTC: {datetime.now(UTC).strftime('%H:%M:%S')}").classes("tech-label-sub")
+                # ui.label(f"UTC: {datetime.now(UTC).strftime('%H:%M:%S')}").classes("tech-label-sub")
 
                 with ui.row().classes("items-center gap-2 px-3 py-1 border-l border-white/10"):
                     ui.label("Freeze Nodes").classes("text-[10px] text-zinc-500 font-mono")

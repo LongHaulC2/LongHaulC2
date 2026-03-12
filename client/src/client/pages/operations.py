@@ -526,7 +526,9 @@ async def terminal(implant_uuid: str):
 
     async def update_terminal():
         nonlocal last_uuid
+        # Fetch only tasks that have happened since our last seen UUID
         task_history = await get_implant_task_history_since_uuid(implant_uuid, since_task_uuid=last_uuid)
+
         if not task_history:
             return
 
@@ -534,25 +536,34 @@ async def terminal(implant_uuid: str):
         if not tasks:
             return
 
-        new_last_uuid = last_uuid
         for task in tasks:
             if not isinstance(task, dict):
                 continue
-            # print(task)
+
+            task_uuid = task.get("task_uuid")
+            task_request = task.get("task_request") or {}
             task_response = task.get("task_response") or {}
+
+            # If we see a request we haven't logged yet, log it
+            # This ensures even "pending" tasks show up as [Task Name]
+            if task_request and task_uuid != last_uuid:
+                task_name = task_request.get("task", {}).get("task_name", "?")  # noqa
+
+            #  Process Response
             if task_response:
                 for key, value in task_response.items():
-                    # error is a special case, push to error stream
                     if key == "error":
                         await push_error_to_terminal(value)
-                        continue
+                    else:
+                        await push_output_to_terminal(f"--- {key} ---")
+                        await push_output_to_terminal(value)
 
-                    await push_output_to_terminal(f"--- {key} ---")
-                    await push_output_to_terminal(value)
+                # Update our pointer only once we've actually processed a response
+                # to ensure we don't miss a response that arrives late
+                last_uuid = task_uuid
 
-            new_last_uuid = task.get("task_uuid")
-
-        last_uuid = new_last_uuid
+            # Auto-scroll on new data
+            ui.run_javascript("window.scrollTo(0, document.body.scrollHeight);")
 
     # command history
     # Initialize history for this session if missing
