@@ -80,12 +80,14 @@ async def render_listeners_table():
     # searchbar
     with ui.row().classes("w-full items-center px-2 py-1 bg-white/2"):
         filter_text = (
-            ui.input(placeholder="FILTER...")
+            ui.input(placeholder="Filter...")
             .props("dense dark border color=emerald input-class=text-emerald-400 hide-bottom-space")
             .classes("w-150 tech-input items-center")
         )
         with filter_text.add_slot("prepend"):
             ui.icon("arrow_forward_ios", size="xs", color="emerald-500")
+        with filter_text:
+            formatted_tooltip("Filter artifacts", "A simple text based filter search. Not Lucene, sorry.")
 
     columns = [
         {"name": "status", "label": "STATUS", "field": "status", "align": "left", "sortable": True},

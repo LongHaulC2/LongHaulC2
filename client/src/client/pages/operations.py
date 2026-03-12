@@ -107,6 +107,9 @@ async def implant_view(syntax_drawer):
                 )
                 with search_input.add_slot("prepend"):
                     ui.icon("arrow_forward_ios", size="xs", color="emerald-500")
+                with search_input:
+                    formatted_tooltip("Search Implants", "Searches implants, accepts Lucene syntax!")
+
                 with (
                     ui.button(icon="help_outline", on_click=syntax_drawer.toggle)
                     .props("flat round color=emerald")

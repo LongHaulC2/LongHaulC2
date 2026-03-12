@@ -10,6 +10,7 @@ from nicegui import app, ui
 # Imports
 from client.src.client.modules.api_calls import get_all_graph_data, search_server
 from client.src.client.pages.footer import build_footer
+from client.src.client.pages.formatted_tooltip import formatted_tooltip
 from client.src.client.pages.menu import setup_menu
 from client.src.client.pages.syntax_sidebar import build_syntax_sidebar
 from client.src.client.utils.helpers import get_time_ago, get_timestamp_from_uuid7
@@ -137,6 +138,8 @@ async def graph_view():
                     ui.icon("arrow_forward_ios", size="xs", color="emerald-500")
                 with search_input.add_slot("append"):
                     search_spinner = ui.spinner(size="xs", color="emerald-500").classes("opacity-0 transition-opacity")
+                with search_input:
+                    formatted_tooltip("Search Nodes", "Searches nodes, accepts Lucene syntax!")
 
                 ui.button(icon="help_outline", on_click=syntax_drawer.toggle).props("flat round color=emerald").classes(
                     "opacity-70 hover:opacity-100 tech-btn-ghost"
@@ -286,7 +289,7 @@ def build_chart_options(nodes, links, categories, node_wiggle_wiggle: bool):
                     "color": "#3f3f46",
                     "curveness": 0.1,  # Adding slight curveness helps arrows stay visible
                     "width": 1.5,
-                    "type": "solid",
+                    "type": "dashed",
                 },
                 "emphasis": {
                     "scale": 1.1,
