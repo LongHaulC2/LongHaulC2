@@ -86,13 +86,13 @@ body::before {
     overflow: hidden;
 }
 
+
 /* Primary navigation or section header bars */
 .tech-header-bar {
     background-color: rgba(255, 255, 255, 0.05);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 16px 24px;
+    padding: 8px 24px; 
 }
-
 /* Small mono labels for metadata and headers */
 .tech-label-sub {
     /*10 is too small, 12 seems to be fine*/
@@ -134,21 +134,28 @@ body::before {
 
 /* Call-to-action buttons with emerald accent */
 .tech-btn-action {
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    background-color: rgba(16, 185, 129, 0.1);
-    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    color: #a1a1aa !important; /* Forces the cool gray text, overriding default blue/green */
     font-weight: 500;
-
     transition: all 0.2s ease;
 }
-.tech-btn-action:hover { background-color: rgba(16, 185, 129, 0.2); }
+
+.tech-btn-action:hover { 
+    background-color: rgba(16, 185, 129, 0.2) !important; 
+    color: #e4e4e7 !important; /* Brighter gray on hover */
+}
 
 .tech-btn-action-2 {
-    border: 1px solid rgba(48, 63, 59, 0.3);
-    border-radius: 4px;
-    background-color: rgba(16, 185, 129, 0.1);
-    color: #34d399;
+    border: 1px solid rgba(48, 63, 59, 0.3) !important;
+    border-radius: 4px !important;
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    color: #a1a1aa !important; /* Forces the cool gray text */
     transition: all 0.2s ease;
+}
+
+.tech-btn-action-2:hover { 
+    color: #e4e4e7 !important; 
 }
 
 /* Dimmed secondary buttons */
@@ -274,6 +281,8 @@ body::before {
     background: rgba(16, 185, 129, 0.04) !important;
     transition: background 0.2s ease;
 }
+
+
 
 /* --- TECH ui.switch --- */
 .tech-switch {

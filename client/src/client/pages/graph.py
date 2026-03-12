@@ -177,8 +177,15 @@ def build_header_bar():
 
     with ui.row().classes("w-full items-center justify-between tech-header-bar"):
         with ui.row().classes("items-center gap-3"):
-            ui.icon("device_hub", color="emerald-500").classes("text-xl")
-            ui.label("NETWORK_TOPOLOGY //").classes("tech-label-header-section")
+            # ui.icon("device_hub", color="emerald-500").classes("text-xl")
+            # ui.label("NETWORK_TOPOLOGY //").classes("tech-label-header-section")
+            search = (
+                ui.input(placeholder="Search... [placeholder]")
+                .props("dense dark border color=emerald input-class=text-emerald-400 hide-bottom-space")
+                .classes("w-150 tech-input items-center")
+            )
+            with search.add_slot("prepend"):
+                ui.icon("arrow_forward_ios", size="xs", color="emerald-500")
 
         with ui.row().classes("items-center gap-4"):
             # data available

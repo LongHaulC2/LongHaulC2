@@ -75,10 +75,12 @@ async def render_payloads_table():
     # Header Search Strip
     with ui.row().classes("w-full items-center px-2 py-1 bg-white/2"):
         filter_text = (
-            ui.input(placeholder="FILTER ARTIFACTS...")
-            .props("outlined dense dark color=emerald input-class=text-[10px] autofocus")
-            .classes("w-64 tech-input")
+            ui.input(placeholder="FILTER Artifacts")
+            .props("dense dark border color=emerald input-class=text-emerald-400 hide-bottom-space")
+            .classes("w-150 tech-input items-center")
         )
+        with filter_text.add_slot("prepend"):
+            ui.icon("arrow_forward_ios", size="xs", color="emerald-500")
 
     # Column Mapping
     columns = [

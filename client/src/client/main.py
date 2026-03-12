@@ -27,7 +27,6 @@ import client.src.client.pages.node.nic  # noqa: F401
 import client.src.client.pages.operations  # noqa: F401
 import client.src.client.pages.payloads  # noqa: F401
 import client.src.client.pages.scripts  # noqa: F401
-import client.src.client.pages.search  # noqa: F401
 import client.src.client.pages.status  # noqa: F401
 import client.src.client.pages.user_settings  # noqa: F401
 

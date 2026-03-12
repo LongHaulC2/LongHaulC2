@@ -1,3 +1,4 @@
+import orjson
 import structlog
 from nicegui import app, ui
 
@@ -8,6 +9,7 @@ from client.src.client.modules.api_calls import (
     get_implant_task_history,
     get_implant_task_history_since_uuid,
     queue_task,
+    search_server,
     update_implant,
 )
 from client.src.client.modules.task_parser import ResultType, build_cli_parser, get_all_command_names, task_tree
@@ -18,6 +20,7 @@ from client.src.client.pages.listeners import start_listener_dialogue
 from client.src.client.pages.menu import setup_menu
 from client.src.client.pages.notes import open_notes_dialog
 from client.src.client.pages.payloads import start_payload_dialogue
+from client.src.client.pages.syntax_sidebar import build_syntax_sidebar
 
 from ..utils.checks import check_type
 
@@ -55,6 +58,8 @@ async def operations():
     clear_state()
     setup_menu("Operations")
 
+    syntax_drawer = await build_syntax_sidebar()
+
     # Main Layout (Splitter)
     # Using a container that matches the background
     with ui.element().classes("w-full h-full gap-0"):  # noqa: SIM117
@@ -63,7 +68,7 @@ async def operations():
             "separator-class=bg-white/10"
         ) as splitter:
             with splitter.before:
-                await implant_view()
+                await implant_view(syntax_drawer)
 
             with splitter.after:
                 await terminal_view()
@@ -77,18 +82,37 @@ async def operations():
 # -------------------------------
 # IMPLANT VIEW (LEFT PANEL)
 # -------------------------------
-async def implant_view():
+async def implant_view(syntax_drawer):
+    """
+    Renders implant view
+
+    syntax_drawer: syntax drawer object to render.
+        TLDR: Easier to pass it in through this function, as drawer throws a fit
+        if not declared outside of an element with nicegui
+    """
     previous_ids = set()
     table_initialized = False
 
     # Glass Panel Container
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel rounded-none border-0 border-r border-white/5"):
         # Header Bar
-        with ui.row().classes("w-full items-center justify-between tech-header-bar h-14"):
+        with ui.row().classes("w-full items-center justify-between tech-header-bar"):
             # Title
             with ui.row().classes("items-center gap-2"):
-                ui.icon("terminal", color="emerald-500").classes("text-xl")
-                ui.label("ACTIVE_SESSIONS // [todo: give table a search]").classes("tech-label-header-section")
+                # Moved search bar here, it fits better
+                search_input = (
+                    ui.input(placeholder="Lucene query...")
+                    .props("dense dark border color=emerald input-class=text-emerald-400 hide-bottom-space")
+                    .classes("w-150 tech-input items-center")
+                )
+                with search_input.add_slot("prepend"):
+                    ui.icon("arrow_forward_ios", size="xs", color="emerald-500")
+                with (
+                    ui.button(icon="help_outline", on_click=syntax_drawer.toggle)
+                    .props("flat round color=emerald")
+                    .classes("opacity-70 hover:opacity-100 tech-btn-ghost")
+                ):
+                    formatted_tooltip("Syntax Cheatsheet")
 
             # Toolbar
             with ui.row().classes("items-center gap-1"):
@@ -121,17 +145,6 @@ async def implant_view():
                 ):
                     formatted_tooltip("Open Terminal for Selected")
 
-                # God Shell
-                # ui.button(
-                #     icon="present_to_all", on_click=lambda: action_open_terminal()
-                # ).classes(
-                #     "text-orange-400 hover:text-orange-200 transition-colors"
-                # ).props(
-                #     "dense flat size=sm square disabled"
-                # ).tooltip(
-                #     "God Shell (Coming Soon)"
-                # )
-
                 with (
                     ui.button(
                         # get all selected to upload to
@@ -142,7 +155,12 @@ async def implant_view():
                     .props("dense flat size=sm square")
                 ):
                     formatted_tooltip("Upload File")
-
+                with (
+                    ui.button(icon="open_in_new", on_click=lambda: action_open_implant_page())
+                    .classes("tech-btn-action-2 tech-btn-action-2")
+                    .props("dense flat size=sm square")
+                ):
+                    formatted_tooltip("Open Page for Selected")
                 # Notes
                 with (
                     ui.button(icon="notes", on_click=lambda: handle_notes())
@@ -168,7 +186,6 @@ async def implant_view():
                     .props("dense flat size=sm square")
                 ):
                     formatted_tooltip("Nuke Selected")
-
         # Table Container
         with ui.column().classes(" w-full flex-grow relative overflow-hidden bg-transparent"):
             table = (
@@ -182,19 +199,38 @@ async def implant_view():
                 .classes("w-full h-full tech-table-base tech-table-head tech-table-body tech-table-row-hover")
                 .props("dense flat virtual-scroll square")
             )
+            # pops terminal on double click
+            table.on(
+                "row-dblclick", lambda e: ui.timer(0.1, lambda: terminal_add_tab(e.args[1]["implant_uuid"]), once=True)
+            )
 
     # --- LOGIC ---
     async def refresh():
         nonlocal previous_ids, table_initialized
 
-        data = await get_all_implant_data()
-        data = data.get("data")
+        query = search_input.value.strip() if search_input.value else ""
+        if query:
+            try:
+                resp = await search_server(query=query, search_for="implant")
+                # if resp.status_code == 200:
+                data = orjson.loads(resp.content).get("data", [])
+
+            except Exception as err:
+                server_log.error(f"Search error: {err}")
+                data = []
+        else:
+            raw_data = await get_all_implant_data()
+            data = raw_data.get("data") if raw_data else []
+
         if not data:
+            if table_initialized:
+                table.rows = []
+                table.update()
             return
 
         if not table_initialized:
             keys = tuple(data[0].keys())
-            table.columns = [
+            cols = [
                 {
                     "name": key,
                     "label": key.replace("_", " ").title(),
@@ -204,6 +240,7 @@ async def implant_view():
                 }
                 for key in keys
             ]
+            table.columns = cols
 
             # HTML Notes Slot
             table.add_slot(
@@ -237,6 +274,8 @@ async def implant_view():
         table.rows = data
         table.update()
 
+    search_input.on_value_change(refresh)
+
     async def action_delete_rows():
         ids = [row["implant_uuid"] for row in table.selected]
 
@@ -253,6 +292,11 @@ async def implant_view():
             await delete_implant(implant_uuid=implant_uuid)
 
         await refresh()
+
+    async def action_open_implant_page():
+        ids = [row["implant_uuid"] for row in table.selected]
+        for implant_uuid in ids:
+            ui.run_javascript(f"window.open('/implant/{implant_uuid}', '_blank')")
 
     async def action_open_terminal():
         ids = [row["implant_uuid"] for row in table.selected]
@@ -309,27 +353,6 @@ async def terminal_view():
 
         # The Panel Container
         panels = ui.tab_panels(tabs).classes("w-full h-full bg-neutral-900/40").props("dense transition-duration=0")
-    # Inside your terminal_view header or tab label
-    # label_checkin = ui.label("..").classes("tech-label-sub")
-
-    # async def update_timer():
-    #     # Fetch latest data for this implant
-    #     data = await get_implant_data(implant_uuid)
-    #     last_seen = data.get('last_seen') # timestamp
-    #     sleep = data.get('sleep', 5)      # seconds
-
-    #     # Calc logic (pseudo-code)
-    #     # seconds_ago = now - last_seen
-    #     # next_in = sleep - seconds_ago
-
-    #     if next_in > 0:
-    #         label_checkin.text = f"NEXT: {next_in}s"
-    #         label_checkin.classes(remove="text-red-500", add="text-neutral-500")
-    #     else:
-    #         label_checkin.text = f"LATE: {abs(next_in)}s"
-    #         label_checkin.classes(remove="text-neutral-500", add="text-red-500")
-
-    # ui.timer(1, update_timer)
 
 
 async def terminal_add_tab(implant_uuid: str):
@@ -376,10 +399,6 @@ async def terminal_close_tab(implant_uuid: str):
         # If we just closed the active tab, or any tab, we need to decide what to focus
         if not open_tabs:
             panels.set_value(None)
-        # Optional: Else switch to the last opened tab
-        # else:
-        #    last_uuid = list(open_tabs.keys())[-1]
-        #    panels.set_value(last_uuid)
 
     except Exception as e:
         server_log.error(f"Error closing tab: {e}")
@@ -454,12 +473,6 @@ async def terminal(implant_uuid: str):
         # reset contents of cli bar to nothing
         ui_user_input.value = ""
 
-        # We know parts has at least one item because of the .strip() check above that
-        # checks for nothing in the cli bar
-        # parts = user_input.split()
-        # command = parts[0]
-        # args = " ".join(parts[1:])
-
         result_type, result_data = await task_tree(user_input=user_input, implant_uuid=implant_uuid)
 
         if result_type == ResultType.TASK:
@@ -480,6 +493,10 @@ async def terminal(implant_uuid: str):
 
     async def add_tasks_to_terminal(task_list: list[dict]):
         nonlocal last_uuid
+
+        if not task_list:
+            return
+
         for task in task_list:
             if not isinstance(task, dict):
                 continue
@@ -497,6 +514,9 @@ async def terminal(implant_uuid: str):
                 await push_output_to_terminal(task_response.get("data", ""))
             else:
                 pass  # Awaiting...
+
+        last_item = task_list[-1]
+        last_uuid = last_item.get("task_uuid")
 
         last_item = task_list[-1]
         last_uuid = last_item.get("task_uuid")
@@ -519,12 +539,6 @@ async def terminal(implant_uuid: str):
             task_response = task.get("task_response") or {}
             if task_response:
                 for key, value in task_response.items():
-                    # output = f"{key}:\n{'-'*10}\n {value}"
-                    # await push_output_to_terminal(task_response.get("data", ""))
-                    # temp push dict to terminal for debugging
-                    # data_type = value.get("type")
-                    # data_value = value.get("value")
-
                     # error is a special case, push to error stream
                     if key == "error":
                         await push_error_to_terminal(value)
@@ -532,17 +546,8 @@ async def terminal(implant_uuid: str):
 
                     await push_output_to_terminal(f"--- {key} ---")
                     await push_output_to_terminal(value)
-                    # # then, print out the rest as needed.
-                    # if data_type == "text":
-                    #     await push_output_to_terminal(f"--- {key} ---")
 
-                    #     await push_output_to_terminal(value)
-
-                    # if data_type == "bytes":
-                    #     await push_output_to_terminal(value)
-                    # change to push_hex_output to term or something
-
-                new_last_uuid = task.get("task_uuid")
+            new_last_uuid = task.get("task_uuid")
 
         last_uuid = new_last_uuid
 

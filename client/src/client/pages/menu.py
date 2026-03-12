@@ -94,10 +94,6 @@ def setup_menu(title: str):
             nav_btn("LISTENERS", "headphones", "/listeners")
 
             ui.separator().classes("bg-white/5 mt-4 mb-2")
-            ui.label("SEARCHING").classes("tech-label-sub")
-            nav_btn("SEARCH", "manage_search", "/search")
-
-            ui.separator().classes("bg-white/5 mt-4 mb-2")
             ui.label("AUTOMATION").classes("tech-label-sub")
             nav_btn("SCRIPTS", "code", "/scripts")
             nav_btn("DOCS", "info", "/docs")

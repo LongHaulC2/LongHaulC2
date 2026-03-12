@@ -13,7 +13,7 @@ Find a place for:
 ## Phase 1: Security & API Stabilization 
 *Goal: Lock down the API and fix tests before adding more features.*
 
-### Day 1: March 10 - Authentication & API Hardening
+### [X] Day 1: March 10 - Authentication & API Hardening
 - [ ] Implement API Auth via JWT.
    - [X] DB table of users
    - JWT: https://blog.appsignal.com/2025/04/30/using-jwts-in-python-flask-rest-framework.html
@@ -27,11 +27,14 @@ Find a place for:
 - [X] add a default user to db... 
   
 
-### Day 2: March 11 - Schemathesis & Test Driven Fixes
-- [ ] Fix the API to pass Schemathesis (squash NULL data issues).
-   > ONLY expected response codes here, nothing crazy. BASIC validation. 
-- [ ] Implement proper Werkzeug error handling across API endpoints.
-- [ ] Fix the broken search endpoints (`POST /api/v1/search/implants` and history).
+### [ ] Day 2: March 11 - Schemathesis & Test Driven Fixes
+<!-- - [ ] Fix the API to pass Schemathesis (squash NULL data issues).
+   > ONLY expected response codes here, nothing crazy. BASIC validation.  -->
+- [X] Implement proper Werkzeug error handling across API endpoints.
+   > global level error handler
+- [X] Fix the broken search endpoints (`POST /api/v1/search/implants` and history).
+   > was client side
+   > touching up searching in gui
 
 ### Day 3: March 12 - Core Service & Thread Management
 - [ ] Implement the singleton pattern for threads (`start_thread_once`) to prevent worker chaos.

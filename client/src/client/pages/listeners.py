@@ -81,9 +81,11 @@ async def render_listeners_table():
     with ui.row().classes("w-full items-center px-2 py-1 bg-white/2"):
         filter_text = (
             ui.input(placeholder="FILTER...")
-            .props("outlined dense dark color=emerald input-class=text-[10px] autofocus")
-            .classes("w-64 tech-input")
+            .props("dense dark border color=emerald input-class=text-emerald-400 hide-bottom-space")
+            .classes("w-150 tech-input items-center")
         )
+        with filter_text.add_slot("prepend"):
+            ui.icon("arrow_forward_ios", size="xs", color="emerald-500")
 
     columns = [
         {"name": "status", "label": "STATUS", "field": "status", "align": "left", "sortable": True},

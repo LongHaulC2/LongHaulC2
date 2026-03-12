@@ -11,21 +11,21 @@ server_logger = structlog.get_logger("server")
 
 # Catch missing headers or completely malformed requests
 @api.errorhandler(NoAuthorizationError)
-def handle_auth_error():
+def handle_auth_error(e):  # noqa - e is needed
     server_logger.warning("Unauthorized access attempt: Missing Authorization Header")
     return {"status": "401", "message": "Unauthorized: Missing or invalid Authorization header", "data": None}, 401
 
 
 # Catch expired tokens
 @api.errorhandler(ExpiredSignatureError)
-def handle_expired_error():
+def handle_expired_error(e):  # noqa - e is needed
     server_logger.warning("Unauthorized access attempt: Token expired")
     return {"status": "401", "message": "Unauthorized: The token has expired", "data": None}, 401
 
 
 # Catch invalid signatures (like the one you got earlier)
 @api.errorhandler(InvalidSignatureError)
-def handle_invalid_signature_error():
+def handle_invalid_signature_error(e):  # noqa - e is needed
     server_logger.warning("Unauthorized access attempt: Invalid signature")
     return {"status": "401", "message": "Unauthorized: Invalid token signature", "data": None}, 401
 

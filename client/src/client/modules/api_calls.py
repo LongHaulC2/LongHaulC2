@@ -1,5 +1,5 @@
 import time
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 import msgpack
@@ -248,6 +248,40 @@ async def delete_implant(implant_uuid=str) -> None:
         endpoint=f"/api/v1/implants/{implant_uuid}",
         return_type="response",
         log_context={"implant_uuid": implant_uuid},
+    )
+
+
+async def search_server(query: str, search_for: Literal["implant", "task"] | None) -> httpx.Response | None:
+    """
+    Search the server
+
+    Args:
+        query: The string to search for
+
+    Returns:
+        httpx.Response: The HTTP response object.
+        Example return data structure (200 OK):
+        {
+            "status": "success",
+            "message": "Implant updated"
+        }
+    """
+    check_type(query, str, "query")
+
+    # api set up to have 2 search endpoints, relevant to each item.
+    if search_for == "implant":
+        url = "/api/v1/implants/search"
+
+    if search_for == "task":
+        url = "/api/v1/implants/history/search"
+
+    request_body = {"search_term": str(query)}
+
+    return await safe_api_request(
+        method="POST",
+        endpoint=url,
+        return_type="response",
+        json=request_body,
     )
 
 

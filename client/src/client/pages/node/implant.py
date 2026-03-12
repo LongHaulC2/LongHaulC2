@@ -110,12 +110,14 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
                         ):
                             search = (
                                 ui.input(placeholder="Search history...")
-                                .props("dense dark outlined borderless")
-                                .classes("tech-input w-64")
+                                .props("dense dark border color=emerald input-class=text-emerald-400 hide-bottom-space")
+                                .classes("w-150 tech-input items-center")
                             )
                             ui.button(icon="refresh", on_click=lambda: load_history()).props(
                                 "flat dense square size=sm"
                             ).classes("tech-btn-ghost")
+                            with search.add_slot("prepend"):
+                                ui.icon("arrow_forward_ios", size="xs", color="emerald-500")
 
                         columns = [
                             {"name": "status", "label": "STATUS", "field": "status", "align": "left"},

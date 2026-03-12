@@ -282,6 +282,8 @@ class Neo4jImplantNodeService:
     def search_implants(search_term: str) -> list[dict]:
         """
         Search implants using a Full-Text Index.
+
+        Allows for lucene searching, ex `user:...`
         """
         # Use Lucene syntax. Adding '*' allows for partial matches if the term is incomplete.
         # Example: '192.168' becomes '192.168*'
