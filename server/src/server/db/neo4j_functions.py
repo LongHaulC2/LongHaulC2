@@ -41,6 +41,9 @@ class Neo4jCoreService:
         """
         Global Lucene search across all mapped entities in Neo4j.
         """
+        log = neo4j_logger.bind(method="search_everything", search_term=search_term, include_rels=inlcude_rels)
+        log.debug("Executing global search")
+
         # Pro-tip: Only add '*' if the user hasn't provided their own wildcards
         # This allows complex Lucene like: hostname:ws* AND user:admin
         formatted_term = search_term if "*" in search_term or ":" in search_term else f"{search_term}*"
@@ -63,6 +66,7 @@ class Neo4jCoreService:
             ORDER BY score DESC
             """
 
+        log.debug("Running Cypher query for global search")
         results, _ = db.cypher_query(query, {"term": formatted_term})
 
         # Combine props and category into a single dict for the frontend
@@ -73,6 +77,7 @@ class Neo4jCoreService:
             combined["search_score"] = score
             formatted_results.append(combined)
 
+        log.debug("Global search complete", result_count=len(formatted_results))
         return formatted_results
 
     @staticmethod
@@ -80,6 +85,9 @@ class Neo4jCoreService:
         """
         Search the graph, and return it in a structured format for echarts, etc.
         """
+        log = neo4j_logger.bind(method="search_graph_structured", search_term=search_term)
+        log.debug("Executing structured graph search")
+
         # Handle wildcards
         formatted_term = search_term if "*" in search_term or ":" in search_term else f"{search_term}*"
 
@@ -125,7 +133,10 @@ class Neo4jCoreService:
             links: links
         } AS graph_data
         """
+        log.debug("Running Cypher query for structured graph search")
         results, _ = db.cypher_query(query, {"term": formatted_term})
+
+        log.debug("Structured graph search complete")
         return results[0][0] if results else {"categories": [], "nodes": [], "links": []}
 
 
@@ -146,7 +157,8 @@ class Neo4jChainingService:
             child_uuid (_type_): uuid of child node
             parent_uuid (_type_): uuid of parent node
         """
-        neo4j_logger.debug("Attempting to link child to parent", parent_uuid=parent_uuid, child_uuid=child_uuid)
+        log = neo4j_logger.bind(method="link_child_to_parent_node", child_uuid=child_uuid, parent_uuid=parent_uuid)
+        log.debug("Attempting to link child to parent")
 
         child_node = Neo4jImplantNodeService.create_or_get_node(
             implant_uuid=child_uuid,
@@ -157,10 +169,11 @@ class Neo4jChainingService:
 
         # if we aren't already parent of this implant
         if not parent_node.parent_to.is_connected(child_node):
+            log.debug("Connecting child to parent")
             # add us to it
             parent_node.parent_to.connect(child_node)
 
-        neo4j_logger.info("Link successful", parent_uuid=parent_uuid, child_uuid=child_uuid)
+        log.debug("Link successful")
 
     @staticmethod
     def get_children_of_parent(parent_uuid: str) -> list[dict]:
@@ -168,15 +181,19 @@ class Neo4jChainingService:
         Finds all child implants linked TO the specified parent UUID.
         Follows the (Child)-[:LINKED]->(Parent) relationship backwards.
         """
+        log = neo4j_logger.bind(method="get_children_of_parent", parent_uuid=parent_uuid)
+        log.debug("Retrieving children of parent")
+
         # Get the parent node (don't create it if it doesn't exist here)
         parent_node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=parent_uuid)
 
         if not parent_node:
-            neo4j_logger.warning("Attempted to get children for non-existent parent", parent_uuid=parent_uuid)
+            log.warning("Attempted to get children for non-existent parent")
             return []
 
         # neomodel handles the traversal. .all() returns a list of Neo4jImplantNode objects
         child_nodes = parent_node.parent_to.all()
+        log.debug("Successfully retrieved children", count=len(child_nodes))
 
         #  Return just the properties dictionaries, matching get_all() and get_by_uuid()
         return [child.__properties__ for child in child_nodes]
@@ -189,6 +206,9 @@ class Neo4jChainingService:
 
         maybe move me to a pathfinding or chaining class?
         """
+        log = neo4j_logger.bind(method="find_egress_node_in_chain", target_uuid=target_uuid)
+        log.debug("Attempting to find egress node in chain")
+
         query = """
         MATCH (target:Neo4jImplantNode {implant_uuid: $target_uuid})-[:LINKED*0..]->(egress:Neo4jImplantNode)
         WHERE NOT (egress)-[:LINKED]->(:Neo4jImplantNode)
@@ -199,10 +219,12 @@ class Neo4jChainingService:
 
         # Extract the string from the list of lists
         if results and len(results) > 0:
+            log.debug("Egress node found in chain")
             # results[0] is the first row, [0] is the first column
             # should just return uuid of implant
             return results[0][0]
 
+        log.debug("No egress node found for target")
         # Return None if the target doesn't exist or has no path
         return None
 
@@ -283,7 +305,7 @@ class Neo4jImplantNodeService:
         # We append [0] to grab the actual node object out of the list.
         implant_node = Neo4jImplantNode.get_or_create({"implant_uuid": implant_uuid})[0]
 
-        log.info("Node fetched or created via get_or_create")
+        log.debug("Node fetched or created via get_or_create")
         return implant_node
 
     @staticmethod
@@ -319,7 +341,7 @@ class Neo4jImplantNodeService:
             log.debug("Connecting C2 channel to listener")
             c2_channel_node.targets.connect(listener_node)
 
-        log.info("Implant connected to listener")
+        log.debug("Implant connected to listener")
 
     # call these for various things related to enrichement.
     # basically, have caller handle this, not automatically
@@ -347,7 +369,7 @@ class Neo4jImplantNodeService:
             # add us to it
             implant_node.running_on.connect(host_node)
 
-        log.info("Implant connected to host")
+        log.debug("Implant connected to host")
 
     @staticmethod
     def get_all() -> list:
@@ -430,7 +452,7 @@ class Neo4jImplantNodeService:
         node.metadata = current_meta
         node.save()
 
-        log.info("Implant updated successfully")
+        log.debug("Implant updated successfully")
 
     @staticmethod
     def delete_by_uuid(implant_uuid: str) -> bool:
@@ -451,7 +473,7 @@ class Neo4jImplantNodeService:
             return False  # node doesn't exist
 
         node.delete()
-        log.info("Implant deleted successfully")
+        log.debug("Implant deleted successfully")
         return True
 
     @staticmethod
@@ -508,6 +530,8 @@ class Neo4jImplantNodeService:
 
 class Neo4jHostNodeService:
     def __init__(self, hostname):
+        log = neo4j_logger.bind(method="__init__", hostname=hostname)
+        log.debug("Initializing Neo4jHostNodeService")
         self.hostname = hostname
 
         # setup logging for all funcs here
@@ -527,23 +551,31 @@ class Neo4jHostNodeService:
         Creates a node. Useful for getting a quick new node and letting this handle all
         the node logic
         """
+        log = neo4j_logger.bind(method="create_or_get_node", hostname=hostname)
+        log.debug("Attempting to find existing host node")
+
         host_node = Neo4jHostNode.find_existing(hostname=hostname)
         if not host_node:
+            log.debug("Host node not found, creating new")
             host_node = Neo4jHostNode(hostname=hostname).save()
-            neo4j_logger.info("New Host discovered", hostname=hostname)
+            log.debug("New Host discovered", hostname=hostname)
 
         return host_node
 
     def register_host(self):
+        log = neo4j_logger.bind(method="register_host", hostname=self.hostname)
+        log.debug("Checking if host exists to register")
+
         # see if it exists
         node = Neo4jHostNode.find_existing(self.hostname)
 
         # if not, create it
         if not node:
-            neo4j_logger.info("Adding host to Neo4j")
+            log.debug("Adding host to Neo4j")
             node = Neo4jHostNode(hostname=self.hostname).save()
 
         # nuke all.
+        log.debug("Clearing context vars")
         structlog.contextvars.clear_contextvars()
 
         return node
@@ -563,7 +595,8 @@ class Neo4jListenerNodeService:
         """
         Create a new listener node.
         """
-        server_logger.debug("Creating new listener node")
+        log = server_logger.bind(method="create")
+        log.debug("Creating new listener node")
         check_type(data, ListenerCreate, "data")
 
         try:
@@ -572,56 +605,63 @@ class Neo4jListenerNodeService:
 
             # Check composite uniqueness manually (Neo4j doesn't do multi-property unique constraints
             # natively on SemiStructured nodes)
+            log.debug("Enforcing composite unique constraints")
             self._enforce_composite_unique(
                 host=props.get("listener_host"), port=props.get("listener_port"), active=props.get("listener_active")
             )
 
+            log.debug("Successfully created listener node")
             return Neo4jListenerNode(**props).save()
 
         except Exception as e:
-            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
+            log.error("Error", class_name=self.__class__.__name__, error=e)
             raise
 
     def get_by_id(self, listener_id: str) -> "Neo4jListenerNode | None":
         """
         Retrieve a listener node by primary key (uuid).
         """
+        log = server_logger.bind(method="get_by_id", listener_id=listener_id)
         check_type(listener_id, str, "listener_id")
 
         try:
-            server_logger.debug("Retrieving listener from Neo4j Database", listener_uuid=listener_id)
+            log.debug("Retrieving listener from Neo4j Database")
             return Neo4jListenerNode.find_existing(listener_uuid=listener_id)
 
         except Exception as e:
-            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
+            log.error("Error", class_name=self.__class__.__name__, error=e)
             raise
 
     def get_all(self):
         """
         Gets all listener nodes.
         """
+        log = server_logger.bind(method="get_all")
         try:
-            server_logger.debug("Retrieving all listeners from Neo4j Database")
+            log.debug("Retrieving all listeners from Neo4j Database")
             return Neo4jListenerNode.nodes.all()
 
         except Exception as e:
-            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
+            log.error("Error", class_name=self.__class__.__name__, error=e)
             raise
 
     def update(self, listener_id: str, data: ListenerUpdate) -> "Neo4jListenerNode | None":
         """
         Update a listener node by uuid.
         """
-        server_logger.debug("Updating listener in Neo4j Database", listener_uuid=listener_id, data=data)
+        log = server_logger.bind(method="update", listener_uuid=listener_id, data=data)
+        log.debug("Updating listener in Neo4j Database")
         check_type(listener_id, str, "listener_id")
         check_type(data, ListenerUpdate, "data")
 
         try:
             listener = self.get_by_id(listener_id)
             if not listener:
+                log.debug("Listener not found for update")
                 return None
 
             # Re-check uniqueness before saving if host/port/active changed
+            log.debug("Enforcing composite constraints before save")
             self._enforce_composite_unique(
                 host=getattr(listener, "listener_host", None),
                 port=getattr(listener, "listener_port", None),
@@ -630,24 +670,28 @@ class Neo4jListenerNodeService:
             )
 
             listener.save()
+            log.debug("Successfully updated listener node")
             return listener
 
         except Exception as e:
-            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
+            log.error("Error", class_name=self.__class__.__name__, error=e)
             raise
 
     def set_active(self, listener_id: str, active: bool):
-        server_logger.debug("Setting listener state Neo4j Database", listener_uuid=listener_id, state=active)
+        log = server_logger.bind(method="set_active", listener_uuid=listener_id, state=active)
+        log.debug("Setting listener state Neo4j Database")
         check_type(listener_id, str, "listener_id")
         check_type(active, bool, "active")
 
         listener = self.get_by_id(listener_id)
         if not listener:
+            log.debug("Listener not found for state update")
             return
 
         listener.listener_active = active
 
         # Enforce constraints
+        log.debug("Checking constraints for state update")
         self._enforce_composite_unique(
             host=getattr(listener, "listener_host", None),
             port=getattr(listener, "listener_port", None),
@@ -656,37 +700,46 @@ class Neo4jListenerNodeService:
         )
 
         listener.save()
+        log.debug("Listener state updated successfully")
 
     def delete(self, listener_id: str) -> bool:
         """
         Delete a listener node by uuid.
         """
-        server_logger.debug("Deleting listener in Neo4j Database", listener_uuid=listener_id)
+        log = server_logger.bind(method="delete", listener_uuid=listener_id)
+        log.debug("Deleting listener in Neo4j Database")
         check_type(listener_id, str, "listener_id")
 
         try:
             listener = self.get_by_id(listener_id)
             if not listener:
+                log.debug("Listener not found to delete")
                 return None
 
             listener.delete()
+            log.debug("Listener deleted successfully")
             return True
 
         except Exception as e:
-            server_logger.error("Error", class_name=self.__class__.__name__, error=e)
+            log.error("Error", class_name=self.__class__.__name__, error=e)
             raise
 
     def _enforce_composite_unique(self, host, port, active, exclude_uuid=None):
         """
         Helper to simulate MySQL's UniqueConstraint("listener_host", "listener_port", "listener_active").
         """
+        log = server_logger.bind(method="_enforce_composite_unique", host=host, port=port, active=active)
+        log.debug("Validating composite constraint")
+
         if host is None or port is None or active is None:
+            log.debug("Missing composite key parts, skipping check")
             return  # Skip check if we don't have all parts of the composite key
 
         existing = Neo4jListenerNode.nodes.filter(listener_host=host, listener_port=port, listener_active=active)
 
         for node in existing:
             if node.listener_uuid != exclude_uuid:
+                log.warning("UniqueConstraint violated")
                 raise ValueError(
                     "UniqueConstraint violated: listener_host, listener_port, listener_active must be unique."
                 )
@@ -699,10 +752,14 @@ class Neo4jNicNodeService:
         Creates a node. Useful for getting a quick new node and letting this handle all
         the node logic
         """
+        log = neo4j_logger.bind(method="create_or_get_node", mac_address=mac_address)
+        log.debug("Attempting to get or create NIC node")
+
         listener_node = Neo4jNicNode.find_existing(mac_address=mac_address)
         if not listener_node:
+            log.debug("NIC not found, creating new")
             listener_node = Neo4jNicNode(mac_address=mac_address).save()
-            neo4j_logger.info("New nic node created", mac_address=mac_address)
+            log.debug("New nic node created", mac_address=mac_address)
 
         return listener_node
 
@@ -714,6 +771,8 @@ class Neo4jNicNodeService:
         mac_address: mac address of the NIC connecting to a host
         ip_address (optional): ip_address of the NIC connecting to a host, if you have the IP for that nic
         """
+        log = neo4j_logger.bind(method="connect_nic_to_host", hostname=hostname, mac_address=mac_address)
+        log.debug("Connecting NIC to host")
 
         # create or get our NIC
         nic_node = Neo4jNicNodeService.create_or_get_node(mac_address)
@@ -726,13 +785,18 @@ class Neo4jNicNodeService:
 
         # 3: link nic to host
         if not nic_node.attached_to.is_connected(host_node):
+            log.debug("Linking NIC to host node")
             nic_node.attached_to.connect(host_node)
 
-        neo4j_logger.info("Nic -> host successful")
+        log.debug("Nic -> host successful")
 
     @staticmethod
     def connect_nic_to_network(network_cidr, nic_mac_address: str):
-        """"""
+        """ """
+        log = neo4j_logger.bind(
+            method="connect_nic_to_network", network_cidr=network_cidr, nic_mac_address=nic_mac_address
+        )
+        log.debug("Connecting NIC to network")
 
         # create or get our NIC
         nic_node = Neo4jNicNodeService.create_or_get_node(nic_mac_address)
@@ -741,9 +805,10 @@ class Neo4jNicNodeService:
 
         # 3: link nic to host
         if not nic_node.in_network.is_connected(network_node):
+            log.debug("Linking NIC to network node")
             nic_node.in_network.connect(network_node)
 
-        neo4j_logger.info("Nic -> network successful")
+        log.debug("Nic -> network successful")
 
 
 class Neo4jNetworkNodeService:
@@ -753,10 +818,14 @@ class Neo4jNetworkNodeService:
         Creates a node. Useful for getting a quick new node and letting this handle all
         the node logic
         """
+        log = neo4j_logger.bind(method="create_or_get_node", network_cidr=network_cidr)
+        log.debug("Attempting to get or create network node")
+
         listener_node = Neo4jNetworkNode.find_existing(cidr=network_cidr)
         if not listener_node:
+            log.debug("Network node not found, creating new")
             listener_node = Neo4jNetworkNode(cidr=network_cidr).save()
-            neo4j_logger.info("New network created", network_cidr=network_cidr)
+            log.debug("New network created", network_cidr=network_cidr)
 
         return listener_node
 
@@ -768,6 +837,8 @@ class Neo4jC2ChannelNodeService:
         Creates a node. This is a handy way to creat the nodes, especially if they have
         addtl logic that may require addtl lookups for their data
         """
+        log = neo4j_logger.bind(method="create_or_get_node", listener_uuid=listener_uuid)
+        log.debug("Attempting to get or create C2 channel node")
 
         channel_id = Neo4jC2ChannelNodeService._get_channel_id(listener_uuid)
 
@@ -777,8 +848,9 @@ class Neo4jC2ChannelNodeService:
 
         channel_node = Neo4jC2ChannelNode.find_existing(channel_id=channel_id)
         if not channel_node:
+            log.debug("Channel node not found, creating new")
             channel_node = Neo4jC2ChannelNode(channel_id=channel_id, protocol=listener_type).save()
-            neo4j_logger.info("New c2 channel node created", channel_id=channel_id)
+            log.debug("New c2 channel node created", channel_id=channel_id)
 
         return channel_node
 
@@ -787,6 +859,9 @@ class Neo4jC2ChannelNodeService:
         """
         Create a unique key for the channel id in neo4j.
         """
+        log = neo4j_logger.bind(method="_get_channel_id", listener_uuid=listener_uuid)
+        log.debug("Generating channel ID for listener")
+
         listener_class = Neo4jListenerNodeService()
         listener_object = listener_class.get_by_id(listener_uuid)
 
@@ -800,10 +875,14 @@ class Neo4jMemstoreFileNodeService:
         Creates a node. Useful for getting a quick new node and letting this handle all
         the node logic
         """
+        log = neo4j_logger.bind(method="create_or_get_node", file_name=file_name)
+        log.debug("Attempting to get or create memstore file node")
+
         listener_node = Neo4jMemstoreFileNode.find_existing(file_name=file_name)
         if not listener_node:
+            log.debug("Memstore file node not found, creating new")
             listener_node = Neo4jMemstoreFileNode(file_name=file_name).save()
-            neo4j_logger.info("New memstore file node created", file_name=file_name)
+            log.debug("New memstore file node created", file_name=file_name)
 
         return listener_node
 
@@ -817,6 +896,10 @@ class Neo4jMemstoreFileNodeService:
 
         file_hash_md5: (optional) md5 of file
         """
+        log = neo4j_logger.bind(
+            method="connect_memstore_file_to_implant", file_name=file_name, implant_uuid=implant_uuid
+        )
+        log.debug("Connecting memstore file to implant")
 
         # create or get our implant
         implant_node = Neo4jImplantNodeService.create_or_get_node(implant_uuid)
@@ -830,20 +913,26 @@ class Neo4jMemstoreFileNodeService:
 
         # 3: link file to implant
         if not memstore_file_node.stored_in.is_connected(implant_node):
+            log.debug("Linking memstore file to implant node")
             memstore_file_node.stored_in.connect(implant_node)
 
-        neo4j_logger.info("Memstore file -> Implant successful")
+        log.debug("Memstore file -> Implant successful")
 
     @staticmethod
     def get_all_files_nodes_for_implant(
         implant_uuid: str,
     ) -> list[Neo4jMemstoreFileNode]:
+        log = neo4j_logger.bind(method="get_all_files_nodes_for_implant", implant_uuid=implant_uuid)
+        log.debug("Retrieving all file nodes for implant")
+
         implant_node = Neo4jImplantNode.nodes.get_or_none(implant_uuid=implant_uuid)
 
         if not implant_node:
+            log.warning("Implant not found, returning empty list")
             return []
 
         # note, the reverse rel allwos us jsut to do this
+        log.debug("Returning linked memstore files")
         return list(implant_node.memstore_files.all())
 
 
@@ -858,10 +947,14 @@ class Neo4jFileNodeService:
         Creates a node. Useful for getting a quick new node and letting this handle all
         the node logic
         """
+        log = neo4j_logger.bind(method="create_or_get_node", file_path=file_path)
+        log.debug("Attempting to get or create file node")
+
         listener_node = Neo4jFileNode.find_existing(file_path=file_path)
         if not listener_node:
+            log.debug("File node not found, creating new")
             listener_node = Neo4jFileNode(file_path=file_path).save()
-            neo4j_logger.info("New file node created", file_path=file_path)
+            log.debug("New file node created", file_path=file_path)
 
         return listener_node
 
@@ -872,6 +965,8 @@ class Neo4jFileNodeService:
         hostname: hostname of host to connect the file to
         file_hash_md5: (optional) md5 of file
         """
+        log = neo4j_logger.bind(method="connect_file_to_host", file_path=file_path, hostname=hostname)
+        log.debug("Connecting file to host")
 
         # create or get our implant
         host_node = Neo4jHostNodeService.create_or_get_node(hostname)
@@ -886,9 +981,10 @@ class Neo4jFileNodeService:
 
         # 3: link file to implant
         if not file_node.stored_on.is_connected(host_node):
+            log.debug("Linking file to host node")
             file_node.stored_on.connect(host_node)
 
-        neo4j_logger.info("Disk File -> Implant successful")
+        log.debug("Disk File -> Implant successful")
 
     # @staticmethod
     # def get_all_files_nodes_for_host(
