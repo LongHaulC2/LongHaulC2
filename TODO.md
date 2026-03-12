@@ -39,6 +39,8 @@ Find a place for:
    - [X] Search (basic text): listener
    - [X] Search (basic text): Payload
 
+- [x] gui terminal index fix
+
 ### Day 3: March 12 - Core Service & Thread Management
 - [ ] Implement the singleton pattern for threads (`start_thread_once`) to prevent worker chaos.
 - [ ] Fix the active flag in the database (ensure listeners auto-start on boot if marked active).
