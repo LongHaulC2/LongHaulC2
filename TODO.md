@@ -87,7 +87,7 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 - [ ] Strip out `#pragma` includes that map directly to used functions.
 
 ### Day 8: March 17 - Logging & Stability
-- [ ] Move all standard `stdout` to a `DEBUG_LOG` macro that compiles out completely in release builds.
+- [X] Move all standard `stdout` to a `DEBUG_LOG` macro that compiles out completely in release builds.
 - [ ] Fix the fatal crash when the implant starts but there is no listener to connect to (implement a robust backoff/retry loop).
 
 ### Day 9: March 18 - Memory & Payload Ops

