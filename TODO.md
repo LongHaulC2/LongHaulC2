@@ -82,9 +82,11 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 *Goal: Making the C++ payload stealthy, stable, and decoupled from standard stdout.*
 
 ### Day 7: March 16 - Evasion & API Hiding
-- [ ] Convert the rest of the project to `WinApi::FUNC` (target `c2.cpp`, HTTP calls, and Socket calls in the IAT).
+- [X] Convert the rest of the project to `WinApi::FUNC` (target `c2.cpp`, HTTP calls, and Socket calls in the IAT).
 - [ ] Implement String Encryption (skCrypter) at compile time.
-- [ ] Strip out `#pragma` includes that map directly to used functions.
+ > https://github.com/skadro-official/skCrypter
+- [X] Strip out `#pragma` includes that map directly to used functions.
+- [ ] properly get a strip call going for when the bin is not in debug mode (goes from 4mb -> 1.5mb)
 
 ### Day 8: March 17 - Logging & Stability
 - [X] Move all standard `stdout` to a `DEBUG_LOG` macro that compiles out completely in release builds.

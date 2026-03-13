@@ -221,15 +221,6 @@ if(WIN32)
             -fuse-ld=lld
         )
 
-        # 2. Link System Libraries
-        # MinGW needs explicit linking for WinINet and Winsock
-        #target_link_libraries(Implant_v01 PRIVATE 
-        #    wininet 
-        #    ws2_32 
-        #    crypt32
-        #    BofRunner
-        #)
-
         # set some stuff for optimizations
         set(CMAKE_CXX_FLAGS_RELEASE "-Os")
         set(CMAKE_C_FLAGS_RELEASE "-Os")
@@ -246,6 +237,21 @@ if(WIN32)
 
     endif()
 
+# ==========================================
+# Post-Build Steps
+# ==========================================
+# Strip the bins if strip command exists
+if(CMAKE_STRIP)
+    add_custom_command(TARGET Implant_v01_exe POST_BUILD
+        COMMAND ${CMAKE_STRIP} $<TARGET_FILE:Implant_v01_exe>
+        COMMENT "Stripping executable..."
+    )
+    
+    add_custom_command(TARGET Implant_v01_dll POST_BUILD
+        COMMAND ${CMAKE_STRIP} $<TARGET_FILE:Implant_v01_dll>
+        COMMENT "Stripping DLL..."
+    )
+endif()
 
 # ==========================================
 # 4. Standard Config
