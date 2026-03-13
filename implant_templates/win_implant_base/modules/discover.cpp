@@ -12,8 +12,9 @@
 #include <stdio.h>
 #include <iostream>
 
-#pragma comment(lib, "iphlpapi.lib")
-#pragma comment(lib, "ws2_32.lib")
+//imports into iat, no go
+// #pragma comment(lib, "iphlpapi.lib")
+// #pragma comment(lib, "ws2_32.lib")
 
 #include "protocols/json/json.h"
 #include "data/structs.h"
