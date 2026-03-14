@@ -301,7 +301,7 @@ async def start_listener_dialogue():
                 )
 
                 listener_type_field = (
-                    ui.select(["http", "ntp"], label="PROTOCOL", value="http")
+                    ui.select(["http", "smb", "ntp"], label="PROTOCOL", value="http")
                     .props("outlined dense dark color=emerald options-dense")
                     .classes("w-1/3 tech-select")
                 )

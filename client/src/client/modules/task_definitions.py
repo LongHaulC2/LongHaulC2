@@ -304,9 +304,9 @@ class Link:
     target_host: str | bytes
 
     # temp hardcoded
-    inbox_pipe = "inbox2"
-    outbox_pipe = "outbox2"
-    child_uuid: str | None = None
+    inbox_pipe: str  # = "inbox2"
+    outbox_pipe: str  # = "outbox2"
+    # child_uuid: str | None = None
 
     async def to_task(self) -> dict:
         # get new impalnt uuid for linked implant

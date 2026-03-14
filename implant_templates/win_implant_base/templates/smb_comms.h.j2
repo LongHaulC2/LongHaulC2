@@ -1,8 +1,8 @@
-# So all we need for protocol specific, is tentatively register pipe.
-# UNLESS, we want to control chunk size, which idrc about
-# okay, just have pipe name for now, and keep geenric SMB logic
+// So all we need for protocol specific, is tentatively register pipe.
+// UNLESS, we want to control chunk size, which idrc about
+//okay, just have pipe name for now, and keep geenric SMB logic
 
-# remeber, this is added to comms list of funcs, so we are good to not loop in here
+//remeber, this is added to comms list of funcs, so we are good to not loop in here
 
 #include <windows.h>
 #include <iostream>
@@ -54,8 +54,8 @@ namespace [[ smb_profile_namespace ]] {
         // deadlocks, etc). It also makes scaling to lots of child workers
         // easier since the direction of communication stays obvious and the
         // overall model is less complicated.
-    std::wstring wstr_inbox_pipe_name = L"\\\\.\\pipe\\[[ inbox_pipe_name ]]";
-    std::wstring wstr_outbox_pipe_name = L"\\\\.\\pipe\\[[ outbox_pipe_name ]]";
+    inline std::wstring wstr_inbox_pipe_name = L"\\\\.\\pipe\\[[ inbox_pipe_name ]]";
+    inline std::wstring wstr_outbox_pipe_name = L"\\\\.\\pipe\\[[ outbox_pipe_name ]]";
 
     // Store the handles inside the namespace for this specific profile
     inline HANDLE h_inbox_pipe = INVALID_HANDLE_VALUE;

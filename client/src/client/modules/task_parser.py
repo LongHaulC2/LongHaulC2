@@ -194,10 +194,18 @@ def build_cli_parser(implant_uuid: str):
     link = subparsers.add_parser("link")
     link.add_argument("protocol")
     link.add_argument("target")
+    link.add_argument("inbox")
+    link.add_argument("outbox")
     link.set_defaults(
         func=lambda args: (
             ResultType.TASK,
-            Link(implant_uuid=implant_uuid, protocol=args.protocol, target_host=args.target).to_task(),
+            Link(
+                implant_uuid=implant_uuid,
+                protocol=args.protocol,
+                target_host=args.target,
+                inbox_pipe=args.inbox,
+                outbox_pipe=args.outbox,
+            ).to_task(),
         )
     )
 

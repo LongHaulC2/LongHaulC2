@@ -107,7 +107,32 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
       > [X] need to edit c2.cpp. The strat for register pipe. needs to pass in pipe name. Allows for multiple pipe strats
    > [X] create templates for the needeed SMB items
    > [X] Create server side options/logic for templated items
-   > Add "smb" as a valid listener.  < here
+   > [X] Add "smb" as a valid listener.  < here
+      > make bind address say PIVOT instead of an addr
+      > BIG ONE: make sure link command goes to the right pipe. 
+         > we have no good way of knowing what pipe a host may be listening on,
+         > so we can either 1: let user specify the pipes (clunky)
+         > or 2, specify a listener that the child is config'd with and connect to that?
+         > both are clunky
+      > currently set to
+         link smb <addr> <inbox> <outbox>
+      Another bug: 
+         Gets tedius to swtich both strats individually,
+            child = strat get -> smb
+            parent = link -> child
+            child = strat post -> smb
+            to hook correctly. Need a one shot for both
+            `strat set` ?
+      Another bug:
+         2026-03-14T21:18:44.288037Z [error    ] DB Write failed                [response_pipeline] error=KeyError('task_uuid') implant_uuid=019cee34-843f-7246-9e9e-b24826aa35cb
+
+         looks like duplicated/not included task UUID? not sure what's up here. This is post link with the above way
+
+      normal "start as smb and link to" works fine.
+      Start as other protocol then switch to SMB has that task uuid bug
+
+- [ ] move strat command to `strat set <get|post|both> name`
+
 - [ ] Fix the deadlock issue where a child is stuck waiting for data in a task (ensure empty messages flow to keep the pipe alive).
 
 ### Day 11: March 20 - Task Routing for Chains

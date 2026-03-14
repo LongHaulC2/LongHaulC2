@@ -68,7 +68,7 @@ def generate_toml_smb_context(profile_toml: str, profile_name: str) -> dict:
     smb_get_block = data.get("smb", {}).get("get", {})
     smb_post_block = data.get("smb", {}).get("post", {})
 
-    inbox_pipe_name = (smb_get_block.get("pipe_name", "inbox"),)
+    inbox_pipe_name = smb_get_block.get("pipe_name", "inbox")
     outbox_pipe_name = smb_post_block.get("pipe_name", "outbox")
     return {
         "inbox_pipe_name": inbox_pipe_name,

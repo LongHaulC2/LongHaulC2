@@ -58,18 +58,13 @@ def render_implant(
             # profile_mappings[listener["listener_profile_name"]] = ns_name
 
             # Store it as a dict so Jinja can access .ns and .type
+            # the .type is for some implant based setup logic, around the classes in
+            # transport.h
             profile_mappings[listener["listener_profile_name"]] = {"ns": ns_name, "type": listener["listener_type"]}
 
         except Exception as e:
             server_logger.error("Failed to render listener", listener_uuid=uuid, error=e)
             raise e
-
-    # Retrieve initial namespace names
-    # init_get_name = listeners_data_dict[initial_get_profile_listener_uuid]["listener_profile_name"]
-    # init_post_name = listeners_data_dict[initial_post_profile_listener_uuid]["listener_profile_name"]
-
-    # init_get_namespace = profile_mappings.get(init_get_name)
-    # init_post_namespace = profile_mappings.get(init_post_name)
 
     # Retrieve initial namespace names
     init_get_name = listeners_data_dict[initial_get_profile_listener_uuid]["listener_profile_name"]
