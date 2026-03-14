@@ -119,8 +119,10 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 - [X] move strat command to `strat set <get|post|both> name`
    > add proper args, etc
 - [X] smb compile bug, something name of namespace not right with smb_piv
+- [ ] make sure those await_client_connection calls aren't hardcoded (the inbox outbox arg...)
 - [ ] add proper args/desc to smb link options on gui
-- [ ] Fix the deadlock issue where a child is stuck waiting for data in a task (ensure empty messages flow to keep the pipe alive).
+
+- [ ] store source before compile, so debugging is easier
 
 ### Day 11: March 20 - Task Routing for Chains
 - [X] Ensure the server correctly identifies linked implants in Neo4j.

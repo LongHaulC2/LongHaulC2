@@ -92,9 +92,14 @@ namespace [[ smb_profile_namespace ]] {
         }
 
         // Await connection for both pipes
-        // (Assuming await_client_connection is defined in your SMB::Child namespace)
-        if (!SMB::Child::await_client_connection(h_inbox_pipe, "INBOX")) return 1;
-        if (!SMB::Child::await_client_connection(h_outbox_pipe, "OUTBOX")) return 1;
+        //note, pipe name is onyl used for debugging here. Can strip it out if needed.
+        if (!SMB::Child::await_client_connection(h_inbox_pipe, "[[ inbox_pipe_name ]]")) {
+            return 1;
+        }
+
+        if (!SMB::Child::await_client_connection(h_outbox_pipe, "[[ outbox_pipe_name ]]")) {
+            return 1;
+        }
 
         return 0;
     }
