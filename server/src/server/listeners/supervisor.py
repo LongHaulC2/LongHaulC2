@@ -72,7 +72,7 @@ def start_listener(
                     listeners[listener_data.listener_uuid] = p
                 server_logger.info("Listener started", listener_uuid=listener_data.listener_uuid, pid=p.pid)
 
-            case "smb":
+            case "pivot_smb":
                 # smb is a pivot listener, so we don't need to actually start one.
                 # it's used for a placeholder/interal for templating.
                 server_logger.info("SMB listener - not actually starting, but registered.")

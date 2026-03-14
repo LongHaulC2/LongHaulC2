@@ -138,7 +138,7 @@ def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dic
         # Return just the one unified namespace
         return {"namespace": unified_namespace}
 
-    if listener_type == "smb":
+    if listener_type == "pivot_smb":
         # grab specific items for this listener
         # host = listener.get("listener_host")
         # port = listener.get("listener_port")
@@ -186,7 +186,7 @@ def _get_listener_context(listener: ListenerProfile) -> dict:
             profile_name=listener.get("listener_profile_name"),
         )
 
-    if listener_type == "smb":
+    if listener_type == "pivot_smb":
         return generate_toml_smb_context(
             profile_toml=listener.get("listener_profile_contents"),
             profile_name=listener.get("listener_profile_name"),

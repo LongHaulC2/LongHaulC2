@@ -132,6 +132,8 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
       Start as other protocol then switch to SMB has that task uuid bug
 
 - [ ] move strat command to `strat set <get|post|both> name`
+   > add proper args, etc
+- [ ] add proper args/desc to smb link options
 
 - [ ] Fix the deadlock issue where a child is stuck waiting for data in a task (ensure empty messages flow to keep the pipe alive).
 

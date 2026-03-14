@@ -249,13 +249,15 @@ async def render_listeners_table():
 # ====================
 async def start_listener_dialogue():
     async def _start_listener():
-        if not all(
-            [
-                listener_host_field.value,
-                listener_port_field.value,
-                listener_name_field.value,
-            ]
-        ):
+        # Define what protocols don't need network binding
+        is_pivot = listener_type_field.value == "pivot_smb"
+
+        # only check host/port if NOT a pivot
+        required_fields = [listener_name_field.value]
+        if not is_pivot:
+            required_fields.extend([listener_host_field.value, listener_port_field.value])
+
+        if not all(required_fields):
             ui.notify("Missing required fields", type="warning", color="orange-9")
             return
 
@@ -265,11 +267,16 @@ async def start_listener_dialogue():
             ui.notify(f"Profile not found: {file_path.name}", type="warning")
             return
 
+        # set defaults if not host or port
+        # this is important if we are a pivot listener.
+        final_host = "localhost" if is_pivot else listener_host_field.value
+        final_port = 0 if is_pivot else int(listener_port_field.value)
+
         dialog_spinner.visible = True
 
         result = await start_listener(
-            listener_host=listener_host_field.value,
-            listener_port=int(listener_port_field.value),
+            listener_host=final_host,
+            listener_port=int(final_port),
             listener_type=listener_type_field.value,
             listener_name=listener_name_field.value,
             listener_notes=listener_notes_field.value,
@@ -301,7 +308,7 @@ async def start_listener_dialogue():
                 )
 
                 listener_type_field = (
-                    ui.select(["http", "smb", "ntp"], label="PROTOCOL", value="http")
+                    ui.select(["http", "pivot_smb", "ntp"], label="PROTOCOL", value="http")
                     .props("outlined dense dark color=emerald options-dense")
                     .classes("w-1/3 tech-select")
                 )
@@ -318,14 +325,29 @@ async def start_listener_dialogue():
                         footer="DO NOT put 0.0.0.0, the listener must bind to an IP/Hostname",
                     )
 
+                # Bind visibility: Show only if type is NOT 'pivot_smb'
+                listener_host_field.bind_visibility_from(
+                    listener_type_field, "value", backward=lambda v: v != "pivot_smb"
+                )
+
                 listener_port_field = (
                     ui.input(
                         label="PORT",
                         placeholder="80",
-                        validation={"Invalid": lambda v: v.isdigit() and 1 <= int(v) <= 65535},
+                        validation={
+                            "Invalid": lambda v: (
+                                True  # exclude pivot_smb from this check cuz it doesn't ahve a port
+                                if listener_type_field.value == "pivot_smb"
+                                else (v.isdigit() and 1 <= int(v) <= 65535)
+                            )
+                        },
                     )
                     .props("outlined dense dark type=number color=emerald")
                     .classes("w-32")
+                )
+                #  Bind visibility for port as well
+                listener_port_field.bind_visibility_from(
+                    listener_type_field, "value", backward=lambda v: v != "pivot_smb"
                 )
 
             listener_profile_field = (
