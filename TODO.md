@@ -103,6 +103,11 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 
 ### Day 10: March 19 - SMB Integration
 - [ ] Clean up SMB logic and integrate it as a standard, selectable listener type.
+   > move all variable that can be templated into transport.h (i.e., pipe names)
+      > need to edit c2.cpp. The strat for register pipe. needs to pass in pipe name. Allows for multiple pipe strats
+   > create templates for the needeed SMB items
+   > Create server side options/logic for templated items
+   > Add "smb" as a valid listener. 
 - [ ] Fix the deadlock issue where a child is stuck waiting for data in a task (ensure empty messages flow to keep the pipe alive).
 
 ### Day 11: March 20 - Task Routing for Chains

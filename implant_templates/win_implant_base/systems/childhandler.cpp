@@ -12,7 +12,7 @@ this implant has linked to it.
 #include "protocols/json/json.h"
 #include <iostream>
 #include <windows.h>
-#include "comms/smb.h"
+#include "protocols/smb/smb.h"
 #include "_debug/debug.h"
 
 //singleton for this

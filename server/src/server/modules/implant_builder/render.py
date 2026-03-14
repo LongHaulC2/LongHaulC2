@@ -6,6 +6,7 @@ from pathlib import Path
 import structlog
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
+from .context_generators.context_toml import generate_toml_http_context, generate_toml_smb_context
 from .types import ListenerProfile  # Import your types
 
 server_logger = structlog.getLogger("server")
@@ -53,18 +54,30 @@ def render_implant(
             ns_name = mappings["namespace"]
 
             # Store it: e.g., profile_mappings["a"] = "http_10_0_0_30_9090_a"
-            profile_mappings[listener["listener_profile_name"]] = ns_name
+            # need to store a type here, so it knows what type this is
+            # profile_mappings[listener["listener_profile_name"]] = ns_name
+
+            # Store it as a dict so Jinja can access .ns and .type
+            profile_mappings[listener["listener_profile_name"]] = {"ns": ns_name, "type": listener["listener_type"]}
 
         except Exception as e:
             server_logger.error("Failed to render listener", listener_uuid=uuid, error=e)
             raise e
 
     # Retrieve initial namespace names
+    # init_get_name = listeners_data_dict[initial_get_profile_listener_uuid]["listener_profile_name"]
+    # init_post_name = listeners_data_dict[initial_post_profile_listener_uuid]["listener_profile_name"]
+
+    # init_get_namespace = profile_mappings.get(init_get_name)
+    # init_post_namespace = profile_mappings.get(init_post_name)
+
+    # Retrieve initial namespace names
     init_get_name = listeners_data_dict[initial_get_profile_listener_uuid]["listener_profile_name"]
     init_post_name = listeners_data_dict[initial_post_profile_listener_uuid]["listener_profile_name"]
 
-    init_get_namespace = profile_mappings.get(init_get_name)
-    init_post_namespace = profile_mappings.get(init_post_name)
+    # Grab the 'ns' string out of the dictionary, defaulting to None if it fails
+    init_get_namespace = profile_mappings.get(init_get_name, {}).get("ns")
+    init_post_namespace = profile_mappings.get(init_post_name, {}).get("ns")
 
     _render_file(
         output_dir / "core/c2.cpp",
@@ -101,27 +114,56 @@ def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dic
     Renders the comms code and returns the UNIFIED function/namespace name.
     """
     listener_type = listener.get("listener_type")
-    host = listener.get("listener_host")
-    port = listener.get("listener_port")
-    prof_name = listener.get("listener_profile_name")
-
-    # Generate ONE unified name. No more "get" or "post" here.
-    base_name = f"{host}_{port}_{prof_name}"
-    unified_namespace = sanitize_cpp_name(f"http_{base_name}")
-
-    # Generate Context
-    context = _get_listener_context(listener)
-
-    # Inject the unified name into the context so the comms.cpp template knows its name
-    context["http_function_name"] = unified_namespace
 
     # Render based on type
     if listener_type == "http":
+        # grab specific items for this listener
+        host = listener.get("listener_host")
+        port = listener.get("listener_port")
+        prof_name = listener.get("listener_profile_name")
+
+        # Generate ONE unified name for the namespace
+        base_name = f"{host}_{port}_{prof_name}"
+        unified_namespace = sanitize_cpp_name(f"http_{base_name}")
+
+        # Generate Context (all the vars to fill in via the template)
+        context = _get_listener_context(listener)
+
+        # Inject the unified name into the context so the comms.cpp jinja template knows its name
+        context["http_profile_namespace"] = unified_namespace
+
+        # render the file
         _render_file(
             output_dir / "comms/comms.h",
             "wininet_comms_http.h.j2",
             context,
-            mode="a",
+            mode="a",  # append to comms.h if it exists, allows for cascading adds of profiles
+        )
+
+        # Return just the one unified namespace
+        return {"namespace": unified_namespace}
+
+    if listener_type == "smb":
+        # grab specific items for this listener
+        # host = listener.get("listener_host")
+        # port = listener.get("listener_port")
+        prof_name = listener.get("listener_profile_name")
+
+        # Generate ONE unified name for the namespace
+        unified_namespace = sanitize_cpp_name(f"smb_{prof_name}")
+
+        # Generate Context (all the vars to fill in via the template)
+        context = _get_listener_context(listener)
+
+        # Inject the unified name into the context so the comms.cpp jinja template knows its name
+        context["smb_profile_namespace"] = unified_namespace
+
+        # render the file
+        _render_file(
+            output_dir / "comms/comms.h",
+            "smb_comms.h.j2",
+            context,
+            mode="a",  # append to comms.h if it exists, allows for cascading adds of profiles
         )
 
         # Return just the one unified namespace
@@ -141,12 +183,17 @@ def _get_listener_context(listener: ListenerProfile) -> dict:
         #     listener.get("listener_port"),
         #     listener.get("listener_profile_name"),
         # )
-        from .context_generators.context_toml import generate_toml_context
 
-        return generate_toml_context(
+        return generate_toml_http_context(
             profile_toml=listener.get("listener_profile_contents"),
             host=listener.get("listener_host"),
             port=listener.get("listener_port"),
+            profile_name=listener.get("listener_profile_name"),
+        )
+
+    if listener_type == "smb":
+        return generate_toml_smb_context(
+            profile_toml=listener.get("listener_profile_contents"),
             profile_name=listener.get("listener_profile_name"),
         )
 
