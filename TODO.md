@@ -86,11 +86,11 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 - [ ] Implement String Encryption (skCrypter) at compile time.
  > https://github.com/skadro-official/skCrypter
 - [X] Strip out `#pragma` includes that map directly to used functions.
-- [ ] properly get a strip call going for when the bin is not in debug mode (goes from 4mb -> 1.5mb)
+- [X] properly get a strip call going for when the bin is not in debug mode (goes from 4mb -> 1.5mb)
 
 ### Day 8: March 17 - Logging & Stability
 - [X] Move all standard `stdout` to a `DEBUG_LOG` macro that compiles out completely in release builds.
-- [ ] Fix the fatal crash when the implant starts but there is no listener to connect to (implement a robust backoff/retry loop).
+- [X] Fix the fatal crash when the implant starts but there is no listener to connect to (implement a robust backoff/retry loop).
 
 ### Day 9: March 18 - Memory & Payload Ops
 - [ ] Implement the Memstore output-to-pipe feature (take CLI output, write to named pipe, store in memstore).
@@ -106,12 +106,12 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 - [ ] Fix the deadlock issue where a child is stuck waiting for data in a task (ensure empty messages flow to keep the pipe alive).
 
 ### Day 11: March 20 - Task Routing for Chains
-- [ ] Ensure the server correctly identifies linked implants in Neo4j.
-- [ ] Update the task fetcher: when a parent checks in, bundle all tasks for the parent *and* its linked children into the MSGPack array.
+- [X] Ensure the server correctly identifies linked implants in Neo4j.
+- [X] Update the task fetcher: when a parent checks in, bundle all tasks for the parent *and* its linked children into the MSGPack array.
 
 ### Day 12: March 21 - Malleable C2 & Profiles
 - [ ] Fix the Mask issue (decide to omit or use the implant ID as the key).
-- [ ] Add a global User-Agent option to the rendering process and set up global options handling.
+- [X] Add a global User-Agent option to the rendering process and set up global options handling.
 
 ### Day 13: March 22 - The Templating Engine (Part 1)
 - [ ] Build the Python logic to select options and files dynamically.
@@ -132,13 +132,13 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 - [ ] Clean up terminal spacing, auto-focus, and add the "Enter to send" keybind.
 
 ### Day 16: March 25 - GUI Context & Workflows
-- [ ] Add relationship names to the GUI visualizer.
+- [X] Add relationship names to the GUI visualizer.
 - [ ] Create context menus/buttons for selected items in the graph (e.g., right-click to "Open Implant Page" or "Pop Shell").
 - [ ] Split the Implant and Host pages logically (Implant = binary info; Host = OS info, all implants on it).
 
 ### Day 17: March 26 - Performance Throttling
-- [ ] Implement pagination *everywhere* a list is returned.
-- [ ] Add user-specified refresh intervals (1-60s) on the operations table to stop the client from choking on updates.
+- [X] Implement pagination *everywhere* a list is returned.
+- [X] Add user-specified refresh intervals (1-60s) on the operations table to stop the client from choking on updates.
 - [ ] Rip out spammy `ui.notify` calls for high-frequency events.
 
 ### Day 18: March 27 - New Operations Commands
