@@ -21,6 +21,7 @@ from client.src.client.modules.task_definitions import (
     ParseError,
     Sleep,
     StratActive,
+    StratBoth,
     StratGet,
     StratList,
     StratPost,
@@ -110,16 +111,40 @@ def build_cli_parser(implant_uuid: str):
     )
 
     # Strat Nested
+    # strat_p = subparsers.add_parser("strat").add_subparsers(dest="strat_cmd", parser_class=C2Parser)
+    # strat_p.add_parser("list").set_defaults(
+    #     func=lambda args: (ResultType.TASK, StratList(implant_uuid=implant_uuid).to_task())  # noqa - args needed for return
+    # )
+    # strat_p.add_parser("active").set_defaults(
+    #     func=lambda args: (ResultType.TASK, StratActive(implant_uuid=implant_uuid).to_task())  # noqa - args needed for return
+    # )
+
+    # for mode, cls in [("post", StratPost), ("get", StratGet)]:
+    #     sp = strat_p.add_parser(mode)
+    #     sp.add_argument("strategy_name")
+    #     sp.set_defaults(
+    #         func=lambda args, c=cls: (
+    #             ResultType.TASK,
+    #             c(implant_uuid=implant_uuid, strategy_name=args.strategy_name).to_task(),
+    #         )
+    #     )
+
     strat_p = subparsers.add_parser("strat").add_subparsers(dest="strat_cmd", parser_class=C2Parser)
+
+    # Standard commands
     strat_p.add_parser("list").set_defaults(
-        func=lambda args: (ResultType.TASK, StratList(implant_uuid=implant_uuid).to_task())  # noqa - args needed for return
+        func=lambda args: (ResultType.TASK, StratList(implant_uuid=implant_uuid).to_task())  # noqa
     )
     strat_p.add_parser("active").set_defaults(
-        func=lambda args: (ResultType.TASK, StratActive(implant_uuid=implant_uuid).to_task())  # noqa - args needed for return
+        func=lambda args: (ResultType.TASK, StratActive(implant_uuid=implant_uuid).to_task())  # noqa
     )
 
+    # strat
+    strat_set_p = strat_p.add_parser("set").add_subparsers(dest="set_cmd", parser_class=C2Parser)
+
+    # 2. handle individual get post commands
     for mode, cls in [("post", StratPost), ("get", StratGet)]:
-        sp = strat_p.add_parser(mode)
+        sp = strat_set_p.add_parser(mode)
         sp.add_argument("strategy_name")
         sp.set_defaults(
             func=lambda args, c=cls: (
@@ -127,6 +152,30 @@ def build_cli_parser(implant_uuid: str):
                 c(implant_uuid=implant_uuid, strategy_name=args.strategy_name).to_task(),
             )
         )
+
+    # Handle BOTH, either both as one profile, or one profile for get and post
+
+    def handle_both_logic(args):
+        # Determine GET and POST names based on argument count
+        if len(args.strategies) == 1:
+            g_name = p_name = args.strategies[0]
+        else:
+            g_name = args.strategies[0]
+            p_name = args.strategies[1]
+
+        return ResultType.TASK, StratBoth(
+            implant_uuid=implant_uuid, get_strategy_name=g_name, post_strategy_name=p_name
+        ).to_task()
+
+    both_p = strat_set_p.add_parser("both")
+    # nargs='+' allows 1 OR 2 arguments (or more, but we'll cap it)
+    both_p.add_argument(
+        "strategies",
+        nargs="+",
+        help="Provide 1 name for both (set GET and POST to this strat), or set individually, for a profile split,"
+        " in one shot with: 'get_name post_name'",
+    )
+    both_p.set_defaults(func=handle_both_logic)
 
     # File Nested
     file_p = subparsers.add_parser("file").add_subparsers(dest="file_cmd", parser_class=C2Parser)

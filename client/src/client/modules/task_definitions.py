@@ -96,8 +96,8 @@ class Sleep:
 class StratPost:
     """Set the post strategy for the implant."""
 
-    command_name = "strat post"
-    command_structure = ["strat post <post_strat_name>"]
+    command_name = "strat set post"
+    command_structure = ["strat set post <post_strat_name>"]
     implant_uuid: str
     strategy_name: str
 
@@ -114,8 +114,8 @@ class StratPost:
 class StratGet:
     """Set the get strategy for the implant."""
 
-    command_name = "strat get"
-    command_structure = ["strat get <get_strat_name>"]
+    command_name = "strat set get"
+    command_structure = ["strat set get <get_strat_name>"]
     implant_uuid: str
     strategy_name: str
 
@@ -125,6 +125,29 @@ class StratGet:
 
     def to_task(self) -> dict:
         task_detail = TaskDetail(task_name=self.command_name, args={"strategy_name": self.strategy_name})
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
+
+
+@dataclass(frozen=True)
+class StratBoth:
+    """Sets both the GET and POST strategy for the implant"""
+
+    implant_uuid: str
+    get_strategy_name: str
+    post_strategy_name: str
+    command_name: str = "strat set both"
+
+    def __post_init__(self):
+        # Validate that both fields have content
+        if not self.get_strategy_name or not self.post_strategy_name:
+            raise ParseError("Both GET and POST strategy names must be provided.")
+
+    def to_task(self) -> dict:
+        # Map the args to the keys the C++ implant expects
+        task_detail = TaskDetail(
+            task_name=self.command_name,
+            args={"get_strategy_name": self.get_strategy_name, "post_strategy_name": self.post_strategy_name},
+        )
         return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
 
 

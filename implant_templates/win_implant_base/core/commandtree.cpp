@@ -115,6 +115,15 @@ std::vector<uint8_t> determine_if_argument_is_data_or_memstore_pointer(const nlo
     //return blank vector if nothing?
     return {};
 }
+
+bool IsStrategyValid(const std::string& strategy, const std::string& setting_key) {
+    auto allowed = SettingsManager::instance().get<std::vector<std::string>>(setting_key, {});
+    for (const auto& s : allowed) {
+        if (s == strategy) return true;
+    }
+    return false;
+}
+
 // ==
 
 //take in the mapped object, after converted from msgpack
@@ -135,65 +144,87 @@ nlohmann::json command_tree(nlohmann::json task_data) {
     /*
     Strat commands
     */
-    if (task_name == "strat get") {
-
+    if (task_name == "strat set get") {
         nlohmann::json result;
         std::string target_strat = task_data["task"]["args"]["strategy_name"];
 
-        // Fetch allowed strategies
         auto allowed_strats = SettingsManager::instance().get<std::vector<std::string>>("comms_get_strats", {});
 
-        // Validate user input against the available list - if invalid strat passd, implant could crash
         bool found = false;
         for (const auto& strat : allowed_strats) {
             if (strat == target_strat) {
-                found = true; break;
+                found = true; 
+                break;
             }
         }
 
         if (found) {
             SettingsManager::instance().set("comms_get_function", target_strat);
             result["data"] = "Ingress strategy successfully updated to: " + target_strat;
-            result["windows_error_code"] = ERROR_SUCCESS;
+            result["windows_error_code"] = 0; // ERROR_SUCCESS
         }
         else {
             result["data"] = "Error: Strategy '" + target_strat + "' not found. Run 'strat list' to see valid options.";
-            result["windows_error_code"] = ERROR_NOT_FOUND;
+            result["windows_error_code"] = 2; // ERROR_FILE_NOT_FOUND
         }
 
         result["message"] = GetErrorMessage(result["windows_error_code"]);
         return result;
     }
-    //need to udpate
-    else if (task_name == "strat post") {
 
+    else if (task_name == "strat set post") {
         nlohmann::json result;
         std::string target_strat = task_data["task"]["args"]["strategy_name"];
 
-        // Fetch allowed strategies
         auto allowed_strats = SettingsManager::instance().get<std::vector<std::string>>("comms_post_strats", {});
 
-        // Validate user input - otherwise with no correct strat, implant could crash
         bool found = false;
         for (const auto& strat : allowed_strats) {
             if (strat == target_strat) {
-                found = true; break;
+                found = true; 
+                break;
             }
         }
 
         if (found) {
             SettingsManager::instance().set("comms_post_function", target_strat);
             result["data"] = "Egress strategy successfully updated to: " + target_strat;
-            result["windows_error_code"] = ERROR_SUCCESS;
+            result["windows_error_code"] = 0;
         }
         else {
             result["data"] = "Error: Strategy '" + target_strat + "' not found. Run 'strat list' to see valid options.";
+            result["windows_error_code"] = 2;
+        }
+
+        result["message"] = GetErrorMessage(result["windows_error_code"]);
+        return result;
+    }
+
+    // --- BOTH Handler ---
+    else if (task_name == "strat set both") {
+        nlohmann::json result;
+        std::string get_strat = task_data["task"]["args"]["get_strategy_name"];
+        std::string post_strat = task_data["task"]["args"]["post_strategy_name"];
+
+        bool get_valid = IsStrategyValid(get_strat, "comms_get_strats");
+        bool post_valid = IsStrategyValid(post_strat, "comms_post_strats");
+
+        if (get_valid && post_valid) {
+            SettingsManager::instance().set("comms_get_function", get_strat);
+            SettingsManager::instance().set("comms_post_function", post_strat);
+            
+            result["data"] = "Symmetry updated. Ingress: " + get_strat + " | Egress: " + post_strat;
+            result["windows_error_code"] = ERROR_SUCCESS;
+        } 
+        else {
+            result["data"] = "Error: Update failed. One or more strategies invalid.";
             result["windows_error_code"] = ERROR_NOT_FOUND;
         }
 
         result["message"] = GetErrorMessage(result["windows_error_code"]);
         return result;
     }
+
     else if (task_name == "strat list") {
         nlohmann::json result;
         std::string output = "--- Ingress (GET) ---\n";
