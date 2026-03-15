@@ -11,7 +11,7 @@ from client.src.client.modules.task_definitions import (
     Exit,
     FileDownload,
     FileUpload,
-    Link,
+    LinkSmb,
     Ls,
     MemStoreClear,
     MemStoreDelete,
@@ -25,7 +25,7 @@ from client.src.client.modules.task_definitions import (
     StratGet,
     StratList,
     StratPost,
-    Unlink,
+    UnlinkSmb,
     discover_cmds,
     execution_cmds,
     fs_cmds,
@@ -240,17 +240,27 @@ def build_cli_parser(implant_uuid: str):
     )
 
     # link
-    link = subparsers.add_parser("link")
-    link.add_argument("protocol")
-    link.add_argument("target")
-    link.add_argument("inbox")
-    link.add_argument("outbox")
-    link.set_defaults(
+    link_parser = subparsers.add_parser("link", help="Link to a downstream implant")
+
+    # Create subparsers for the link command (dest="protocol" makes args.protocol equal the subcommand name)
+    link_subparsers = link_parser.add_subparsers(dest="protocol", required=True)
+
+    # link smb
+    link_smb = link_subparsers.add_parser("smb", help="Link via SMB named pipes")
+    link_smb.add_argument("target", help="The target host to connect to (IP Addr, or Hostname)")
+    link_smb.add_argument(
+        "inbox", help="The inbox pipe of the implant to connect to. \\\\.\\ is appended for you, just do 'pipename'"
+    )
+    link_smb.add_argument(
+        "outbox", help="The outbox pipe of the implant to connect to. \\\\.\\ is appended for you, just do 'pipename'"
+    )
+
+    link_smb.set_defaults(
         func=lambda args: (
             ResultType.TASK,
-            Link(
+            LinkSmb(
                 implant_uuid=implant_uuid,
-                protocol=args.protocol,
+                protocol=args.protocol,  # this will be SMB based off of sub cmd name
                 target_host=args.target,
                 inbox_pipe=args.inbox,
                 outbox_pipe=args.outbox,
@@ -258,13 +268,17 @@ def build_cli_parser(implant_uuid: str):
         )
     )
 
-    unlink = subparsers.add_parser("unlink")
-    unlink.add_argument("protocol")
-    unlink.add_argument("target")
-    unlink.set_defaults(
+    unlink_parser = subparsers.add_parser("unlink")
+    # Create subparsers for the link command (dest="protocol" makes args.protocol equal the subcommand name)
+    unlink_subparsers = unlink_parser.add_subparsers(dest="protocol", required=True)
+
+    unlink_smb = unlink_subparsers.add_parser("smb", help="Unlink an implant via SMB named pipes")
+
+    unlink_smb.add_argument("child_uuid", help="The UUID of the child to unlink from")
+    unlink_smb.set_defaults(
         func=lambda args: (
             ResultType.TASK,
-            Unlink(implant_uuid=implant_uuid, protocol=args.protocol, target_host=args.target).to_task(),
+            UnlinkSmb(implant_uuid=implant_uuid, child_uuid=args.child_uuid).to_task(),
         )
     )
 

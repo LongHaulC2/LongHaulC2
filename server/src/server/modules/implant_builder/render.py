@@ -172,13 +172,6 @@ def _get_listener_context(listener: ListenerProfile) -> dict:
     listener_type = listener.get("listener_type")
 
     if listener_type == "http":
-        # return generate_http_wininet_context(
-        #     listener.get("listener_profile_contents"),
-        #     listener.get("listener_host"),
-        #     listener.get("listener_port"),
-        #     listener.get("listener_profile_name"),
-        # )
-
         return generate_toml_http_context(
             profile_toml=listener.get("listener_profile_contents"),
             host=listener.get("listener_host"),

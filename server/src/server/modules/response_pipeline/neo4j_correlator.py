@@ -241,7 +241,7 @@ def _handle_file_upload(task_request_dict: dict, task_response_dict: dict, impla
     # could do a file clear, that attempts to nuke all files, which would use the get_all_files_nodes_for_host
 
 
-def _handle_link(task_request_dict: dict, task_response_dict: dict, implant_uuid: str):  # noqa
+def _handle_smb_link(task_request_dict: dict, task_response_dict: dict, implant_uuid: str):  # noqa
     """
     Link actions.
 
@@ -280,7 +280,7 @@ TASK_HANDLERS = {
     "memstore clear": _handle_memstore_clear,
     "memstore delete": _handle_memstore_delete,
     "file upload": _handle_file_upload,
-    "link": _handle_link,
+    "link smb": _handle_smb_link,
 }
 
 

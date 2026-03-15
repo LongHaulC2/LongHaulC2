@@ -119,10 +119,21 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 - [X] move strat command to `strat set <get|post|both> name`
    > add proper args, etc
 - [X] smb compile bug, something name of namespace not right with smb_piv
-- [ ] make sure those await_client_connection calls aren't hardcoded (the inbox outbox arg...)
-- [ ] add proper args/desc to smb link options on gui
+- [X] make sure those await_client_connection calls aren't hardcoded (the inbox outbox arg...)
+- [ ] add proper args/desc to smb link options on gui 
+- [X] move link to link<method> for args, so it's not as brittle in the future
+   > [X] rename in command tree to `link smb`, not just link
+   > [ ] do Unlink 
+      > [ ] parser side
+      > [ ] client side
+
+- [X] SMB broke somewhere. GET's are recieved, but POST's are seemignly not.
+   > Child is stuck on readfile, so I wonder if it's not getting next task data.
+   > Go check all logic, etc. and watch logs. Have 1 smb from the getgo, and one dedicated http
+   > Fixed SMB bug. TLDR, response pipeline was not picking up the link, and registering the child under the parent, so no tasks got to it. 
 
 - [ ] store source before compile, so debugging is easier
+   > will take a few min to reworks to save first, then compile. 
 
 ### Day 11: March 20 - Task Routing for Chains
 - [X] Ensure the server correctly identifies linked implants in Neo4j.
@@ -137,8 +148,8 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 - [ ] Format code blocks with injected data (callbacks, transforms).
 
 ### Day 14: March 23 - The Templating Engine (Part 2)
-- [ ] Finish pasting templated blocks into build files.
-- [ ] Template the SMB code (allowing for malleable pipe names).
+- [X] Finish pasting templated blocks into build files.
+- [X] Template the SMB code (allowing for malleable pipe names).
 
 ---
 
