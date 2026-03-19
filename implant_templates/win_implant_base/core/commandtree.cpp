@@ -458,7 +458,7 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         //init route stuff
         ChildRouteInfo cri;
 
-        if (!ChildHandler::instance().get_child(child_uuid, cri) == 0) {
+        if (ChildHandler::instance().get_child(child_uuid, cri) == false) {
             result["error"] = "Could not find child";
             return result;
         }

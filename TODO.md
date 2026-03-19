@@ -123,24 +123,33 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 - [ ] add proper args/desc to smb link options on gui 
 - [X] move link to link<method> for args, so it's not as brittle in the future
    > [X] rename in command tree to `link smb`, not just link
+   
    > [ ] do Unlink 
-      > [ ] parser side
-      > [ ] client side
+      > [x] getting "could not find child". Check that it's actually added in link.
+         > stupid logic bug. Fixed.
+         - [ ]BUG - on unlink, if you tr to relink - you get a "231 pipes busy"
+         Need to make sure pipes are properly closed/reset.
+
+      > [ ] verify parser side
+      > [ ] very client side
 
 - [X] SMB broke somewhere. GET's are recieved, but POST's are seemignly not.
    > Child is stuck on readfile, so I wonder if it's not getting next task data.
    > Go check all logic, etc. and watch logs. Have 1 smb from the getgo, and one dedicated http
    > Fixed SMB bug. TLDR, response pipeline was not picking up the link, and registering the child under the parent, so no tasks got to it. 
 
+- [ ] SMB profile, size of chunk read setting (just under SMB, as a global SMB setting)
+
 - [ ] store source before compile, so debugging is easier
    > will take a few min to reworks to save first, then compile. 
+
+- [ ] Link list child functions that lists all children
 
 ### Day 11: March 20 - Task Routing for Chains
 - [X] Ensure the server correctly identifies linked implants in Neo4j.
 - [X] Update the task fetcher: when a parent checks in, bundle all tasks for the parent *and* its linked children into the MSGPack array.
 
 ### Day 12: March 21 - Malleable C2 & Profiles
-- [ ] Fix the Mask issue (decide to omit or use the implant ID as the key).
 - [X] Add a global User-Agent option to the rendering process and set up global options handling.
 
 ### Day 13: March 22 - The Templating Engine (Part 1)
@@ -153,7 +162,16 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 
 ---
 
-## Phase 5: GUI Polish & Performance
+
+## Phase 5: Auth & Context
+*Goal: Adding core authentication mechanisms for user switching, etc.*
+ - Login via user/pass
+ - Token stuff
+ - Kerb stuff
+ - (server) Cred Store
+
+
+## Phase 6: GUI Polish & Performance
 *Goal: Making the operator experience snappy and intuitive.*
 
 ### Day 15: March 24 - Terminal & Task Display
@@ -177,7 +195,7 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 
 ---
 
-## Phase 6: Deployment & Launch Prep
+## Phase 7: Deployment & Launch Prep
 *Goal: If it isn't documented, it doesn't exist. Final run-throughs.*
 
 ### Day 19: March 28 - Deployment Architecture
