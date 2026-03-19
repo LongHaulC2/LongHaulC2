@@ -58,6 +58,30 @@ struct ChildRouteInfo {
     // int port;
 };
 
+// serializer (nlohmann::json will find this automatically)
+inline void to_json(nlohmann::json& j, const ChildRouteInfo& cri) {
+    j = nlohmann::json{
+        {"child_uuid", cri.child_uuid},
+        {"host_address", cri.host_address}
+        //{"route_type", cri.route_type} //excluding route type for now.
+    };
+
+    //addtl optional info
+    if (!cri.pipe_inbox.empty()) {
+        //simple cast from w to ascii as nlohman doesn't support wstring
+        std::string pipename = std::string(cri.pipe_inbox.begin(), cri.pipe_inbox.end());
+        j["pipe_inbox"] = pipename;
+    }
+    
+    if (!cri.pipe_outbox.empty()) {
+        //simple cast from w to ascii as nlohman doesn't support wstring
+        std::string pipename = std::string(cri.pipe_outbox.begin(), cri.pipe_outbox.end());
+        j["pipe_outbox"] = pipename;
+    }
+
+
+}
+
 // Singleton class to manage the thread-safe routing mesh
 class ChildHandler {
 private:

@@ -502,6 +502,17 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         result["windows_error_code"] = 0;
         return result;
     }
+
+    else if (task_name == "link list"){
+        nlohmann::json result;
+        nlohmann::json child_info = ChildHandler::instance().get_all_children();
+        //get_all_children -> unordered map, which we can convert to json easily
+        result["data"] = child_info;
+        result["windows_error_code"] = ERROR_SUCCESS;
+        result["message"] = GetErrorMessage(ERROR_SUCCESS);
+        return result;
+    }
+
     /*
     Memstore commands
     */

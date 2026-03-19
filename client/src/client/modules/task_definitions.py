@@ -369,6 +369,31 @@ class UnlinkSmb:
 
 
 @dataclass(frozen=True)
+class LinkList:
+    """Lists all the linked children to an implant"""
+
+    command_name = "link list"
+    implant_uuid: str
+
+    async def to_task(self) -> dict:
+        # get new impalnt uuid for linked implant
+        # data_dict = await create_implant_entry(self.implant_uuid)
+
+        # if not data_dict:
+        #    raise RuntimeError(f"API request failed: Could not create child implant for {self.implant_uuid}")
+
+        # child_uuid = data_dict.get("data", {}).get("uuid", {})
+        # force set despite being frozen
+        # object.__setattr__(self, "child_uuid", child_uuid)
+
+        task_detail = TaskDetail(
+            task_name=self.command_name,
+            args={},
+        )
+        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
+
+
+@dataclass(frozen=True)
 class Exit:
     """Exit the implant and kill the process."""
 
@@ -411,6 +436,6 @@ fs_cmds = [Cd, Ls, FileDownload, FileUpload]
 mem_cmds = [MemStoreList, MemStoreUpload, MemStoreDownload, MemStoreDelete, MemStoreClear]
 strat_cmds = [StratActive, StratList, StratPost, StratGet]
 execution_cmds = [BofRunner]
-link_cmds = [LinkSmb, UnlinkSmb]
+link_cmds = [LinkList, LinkSmb, UnlinkSmb]
 discover_cmds = [DiscoverNeighbors]
 terminal_helper_cmds = [Help, Cheatsheet]

@@ -124,10 +124,10 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 - [X] move link to link<method> for args, so it's not as brittle in the future
    > [X] rename in command tree to `link smb`, not just link
    
-   > [ ] do Unlink 
+   > [X] do Unlink 
       > [x] getting "could not find child". Check that it's actually added in link.
          > stupid logic bug. Fixed.
-         - [ ] BUG - on unlink, if you tr to relink - you get a "231 pipes busy"
+         - [X] BUG - on unlink, if you tr to relink - you get a "231 pipes busy"
          Need to make sure pipes are properly closed/reset.
 
       > [ ] verify parser side
@@ -138,13 +138,11 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
    > Go check all logic, etc. and watch logs. Have 1 smb from the getgo, and one dedicated http
    > Fixed SMB bug. TLDR, response pipeline was not picking up the link, and registering the child under the parent, so no tasks got to it. 
 
-- [ ] SMB profile, size of chunk read setting (just under SMB, as a global SMB setting)
-
-- [ ] store source before compile, so debugging is easier
-   > will take a few min to reworks to save first, then compile. 
+~~- [ ] SMB profile, size of chunk read setting (just under SMB, as a global SMB setting)~~
+   > not for beta - later
 
 - [ ] Link list child functions that lists all children
-
+ > option to expand JSON in the gui? for better & more visible reults
 ### Day 11: March 20 - Task Routing for Chains
 - [X] Ensure the server correctly identifies linked implants in Neo4j.
 - [X] Update the task fetcher: when a parent checks in, bundle all tasks for the parent *and* its linked children into the MSGPack array.
@@ -155,6 +153,8 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 ### Day 13: March 22 - The Templating Engine (Part 1)
 - [ ] Build the Python logic to select options and files dynamically.
 - [ ] Format code blocks with injected data (callbacks, transforms).
+- [ ] store source before compile, so debugging is easier
+   > will take a few min to reworks to save first, then compile. 
 
 ### Day 14: March 23 - The Templating Engine (Part 2)
 - [X] Finish pasting templated blocks into build files.

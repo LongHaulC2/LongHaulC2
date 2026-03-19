@@ -11,6 +11,7 @@ from client.src.client.modules.task_definitions import (
     Exit,
     FileDownload,
     FileUpload,
+    LinkList,
     LinkSmb,
     Ls,
     MemStoreClear,
@@ -244,6 +245,15 @@ def build_cli_parser(implant_uuid: str):
 
     # Create subparsers for the link command (dest="protocol" makes args.protocol equal the subcommand name)
     link_subparsers = link_parser.add_subparsers(dest="protocol", required=True)
+
+    # link list
+    link_list = link_subparsers.add_parser("list", help="List all linked implants")
+    link_list.set_defaults(
+        func=lambda args: (  # noqa
+            ResultType.TASK,
+            LinkList(implant_uuid=implant_uuid).to_task(),
+        )
+    )
 
     # link smb
     link_smb = link_subparsers.add_parser("smb", help="Link via SMB named pipes")
