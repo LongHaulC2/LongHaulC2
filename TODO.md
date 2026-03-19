@@ -147,6 +147,9 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 - [X] Ensure the server correctly identifies linked implants in Neo4j.
 - [X] Update the task fetcher: when a parent checks in, bundle all tasks for the parent *and* its linked children into the MSGPack array.
 
+- [ ] Doxygen testing
+   - Add a BRIEF to each function in the template codebase, for faster docs with doxygen
+
 ### Day 12: March 21 - Malleable C2 & Profiles
 - [X] Add a global User-Agent option to the rendering process and set up global options handling.
 
