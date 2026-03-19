@@ -143,12 +143,11 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 
 - [ ] Link list child functions that lists all children
  > option to expand JSON in the gui? for better & more visible reults
-### Day 11: March 20 - Task Routing for Chains
-- [X] Ensure the server correctly identifies linked implants in Neo4j.
-- [X] Update the task fetcher: when a parent checks in, bundle all tasks for the parent *and* its linked children into the MSGPack array.
+### Day 11: March 20 - Implant Docs Overhaul
 
 - [ ] Doxygen testing
-   - Add a BRIEF to each function in the template codebase, for faster docs with doxygen
+   - [ ] Add a BRIEF to each function in the template codebase, for faster docs with doxygen
+
 
 ### Day 12: March 21 - Malleable C2 & Profiles
 - [X] Add a global User-Agent option to the rendering process and set up global options handling.

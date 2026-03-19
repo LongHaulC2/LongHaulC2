@@ -19,6 +19,10 @@ otherwise you can run into weird deadlocks/double locks
 
 */
 
+/**
+ * @namespace GetQueue
+ * @brief Holds functions related to interacting with the GetQueue
+ */
 namespace GetQueue {
     //inline cuz this is a .h, and functinos are called from multiple files
     inline std::queue<nlohmann::json> get_queue;
@@ -26,6 +30,11 @@ namespace GetQueue {
 
 
     //a dedicated store task here would be cool
+    /**
+     * @brief Pushes a task into the Get queue. The GetQueue is an array of all inbound tasks
+     * 
+     * @param task_result A nlohmann::json object, which is the task result
+     */
     inline void push(nlohmann::json task_result) {
         std::lock_guard<std::mutex> lock(get_queue_mutex);
         get_queue.push(task_result);
@@ -35,6 +44,11 @@ namespace GetQueue {
         DEBUG_LOG(task_result.dump(4));
     }
 
+    /**
+     * @brief Drains all items from the queue
+     * 
+     * @return nlohmann::json::array An array of tasks, from the GetQueue
+     */
     inline nlohmann::json drain_queue() {
         std::lock_guard<std::mutex> lock(get_queue_mutex);
 
@@ -51,11 +65,12 @@ namespace GetQueue {
 
         return results;
     }
-
-
 }
 
-
+/**
+ * @namespace PostQueue
+ * @brief Holds functions related to interacting with the PostQueue
+ */
 namespace PostQueue {
     //inline cuz this is a .h, and functinos are called from multiple files
     inline std::queue<nlohmann::json> post_queue;
@@ -63,6 +78,12 @@ namespace PostQueue {
 
     //a dedicated store task here would be cool
 
+    /**
+     * @brief Pushes a task into the PostQueue. The PostQueue is an array
+    of all tasks to be POSTed back to the server (or next up the chain)
+     * 
+     * @param task_result 
+     */
     inline void push(nlohmann::json task_result) {
         std::lock_guard<std::mutex> lock(mutex);
         post_queue.push(task_result);

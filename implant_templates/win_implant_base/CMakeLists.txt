@@ -38,8 +38,6 @@ set(SOURCES
     "data/msgpack/msgpack.h"
     "data/transforms/transforms.cpp"
     "data/transforms/transforms.h"
-    "tests/test.cpp"
-    "tests/test.h"
     "protocols/base64/base64.cpp"
     "protocols/base64/base64.h"
     "comms/comms.h"

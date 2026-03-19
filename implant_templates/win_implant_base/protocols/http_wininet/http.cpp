@@ -1,3 +1,8 @@
+/**
+ * @file http.cpp
+ * @brief Implements HTTP/HTTPS communication using the WinInet API.
+ */
+
 #include <windows.h>
 #include <wininet.h>
 #include <iostream>
@@ -12,6 +17,18 @@
 New approach, the protocols have no idea about malleable c2. All things are passed in as necessary instead of jinja templated in.
 */
 
+/**
+ * @brief Executes an HTTP request (typically GET) using WinInet.
+ * * @param callback_host The target hostname or IP address (e.g., L"192.168.1.10" or L"example.com").
+ * @param callback_port The target port number (e.g., 80 or 443).
+ * @param http_verb The HTTP verb to use (e.g., L"GET").
+ * @param uri The resource path/URI (e.g., L"/index.html").
+ * @param headers A vector of formatted HTTP header strings to append to the request.
+ * @param request_body The body of the HTTP request (typically empty for GET, but supported here for flexibility).
+ * @param response A reference to a string where the server's returned response body will be appended.
+ * @return true If the complete connection, request, and response reading sequence succeeds.
+ * @return false If any stage of the connection or request fails.
+ */
 bool HTTP_GET(const std::wstring& callback_host, int callback_port, std::wstring http_verb, const std::wstring& uri, const std::vector<std::wstring>& headers, std::string& request_body, std::string& response) {
     // 1. Initialize
     //https://learn.microsoft.com/en-us/windows/win32/api/wininet/nf-wininet-internetopenw
@@ -86,6 +103,18 @@ bool HTTP_GET(const std::wstring& callback_host, int callback_port, std::wstring
     return true;
 }
 
+/**
+ * @brief Executes an HTTP POST request using WinInet.
+ * * @param callback_host The target hostname or IP address.
+ * @param callback_port The target port number.
+ * @param http_verb The HTTP verb to use (e.g., L"POST").
+ * @param uri The resource path/URI.
+ * @param headers A vector of formatted HTTP header strings to append to the request.
+ * @param request_body The body of the HTTP request containing the payload to be sent.
+ * @param response A reference to a string where the server's returned response body will be appended.
+ * @return true If the complete connection, request, and response reading sequence succeeds.
+ * @return false If any stage of the connection or request fails.
+ */
 //(const std::wstring& callback_host, int callback_port, std::wstring http_verb, const std::wstring& uri, const std::vector<std::wstring>& headers, std::string& request_body, std::string& response) {
 bool HTTP_POST(const std::wstring& callback_host, int callback_port, std::wstring http_verb, const std::wstring& uri, const std::vector<std::wstring>& headers, std::string& request_body, std::string& response) {
     // 1. Initialize
@@ -158,4 +187,3 @@ bool HTTP_POST(const std::wstring& callback_host, int callback_port, std::wstrin
     WinApi::InternetCloseHandle(hInternet);
     return true;
 }
-

