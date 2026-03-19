@@ -254,6 +254,19 @@ public:
             return this->unpack_to_json(raw_response);
         }
 
+        //if our last error was a pipe err, reset the pipes so we can be connected to again
+        DWORD err = WinApi::GetLastError();
+        if (err == ERROR_BROKEN_PIPE || err == ERROR_PIPE_NOT_CONNECTED || err == ERROR_NO_DATA || err == ERROR_BAD_PIPE) {
+            DEBUG_LOG("[ [[ profile.ns ]]_Ingress::get ] Parent disconnect detected (Error: " << err << ")! Triggering pipe reset.");
+            
+            if ([[ profile.ns ]]::reset_pipes()) {
+                DEBUG_LOG("[ [[ profile.ns ]]_Ingress::get ] Pipes reset successfully. Awaiting tasks next cycle.");
+            } else {
+                DEBUG_LOG("[ [[ profile.ns ]]_Ingress::get ] Fatal error resetting pipes.");
+            }
+        }
+
+
         return nlohmann::json();
     }
 };

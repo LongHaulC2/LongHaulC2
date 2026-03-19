@@ -367,9 +367,31 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         if (cri.route_type == ROUTE_SMB_PIPE) {
             DEBUG_LOG("Waiting for connection from child");
 
-            // quickly connect to pipes
+            //wait and connect to inbox
+            DEBUG_LOG("Waiting for INBOX pipe to become available...");
+            if (!WinApi::WaitNamedPipeW(cri.pipe_inbox.c_str(), 5000)) {
+                result["error"] = "Timeout waiting for INBOX pipe. Child might be dead or busy.";
+                return result;
+            }
             HANDLE h_parent_write = WinApi::CreateFileW(cri.pipe_inbox.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+            if (h_parent_write == INVALID_HANDLE_VALUE) {
+                result["error"] = "Failed to open INBOX pipe. Error: " + std::to_string(WinApi::GetLastError());
+                return result;
+            }
+
+            // wait & connect to outbox
+            DEBUG_LOG("INBOX connected. Waiting for OUTBOX pipe to become available...");
+            if (!WinApi::WaitNamedPipeW(cri.pipe_outbox.c_str(), 5000)) {
+                WinApi::CloseHandle(h_parent_write); 
+                result["error"] = "Timeout waiting for OUTBOX pipe. Child dropped connection.";
+                return result;
+            }
             HANDLE h_parent_read = WinApi::CreateFileW(cri.pipe_outbox.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+            if (h_parent_read == INVALID_HANDLE_VALUE) {
+                WinApi::CloseHandle(h_parent_write);
+                result["error"] = "Failed to open OUTBOX pipe. Error: " + std::to_string(WinApi::GetLastError());
+                return result;
+            }
 
             if (h_parent_write != INVALID_HANDLE_VALUE && h_parent_read != INVALID_HANDLE_VALUE) {
                 DEBUG_LOG("Pipes connected. Waiting for child to check in...");

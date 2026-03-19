@@ -175,6 +175,13 @@ namespace WinApi {
         return LI_FN(SetNamedPipeHandleState)(hNamedPipe, lpMode, lpMaxCollectionCount, lpCollectDataTimeout);
     }
 
+    //https://learn.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-disconnectnamedpipe
+    inline BOOL DisconnectNamedPipe(HANDLE hNamedPipe) {
+        DEBUG_LOG("[WinApi::DisconnectNamedPipe] Calling DisconnectNamedPipe");
+        return LI_FN(DisconnectNamedPipe)(hNamedPipe);
+    }
+
+
     // --- Thread Pool API ---
 
     inline PTP_WORK CreateThreadpoolWork(PTP_WORK_CALLBACK pfnwk, PVOID pv, PTP_CALLBACK_ENVIRON pcbe) {
@@ -303,6 +310,11 @@ namespace WinApi {
         return LI_FN(ConnectNamedPipe)(hNamedPipe, lpOverlapped);
     }
 
+    //https://learn.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-waitnamedpipew
+    inline BOOL WaitNamedPipeW(LPCWSTR lpNamedPipeName, DWORD nTimeOut) {
+        DEBUG_LOG("[WinApi::WaitNamedPipeW] Calling WaitNamedPipeW");
+        return LI_FN(WaitNamedPipeW)(lpNamedPipeName, nTimeOut);
+    }
 
 
     //modules to do/check:

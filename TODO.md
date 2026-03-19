@@ -127,7 +127,7 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
    > [ ] do Unlink 
       > [x] getting "could not find child". Check that it's actually added in link.
          > stupid logic bug. Fixed.
-         - [ ]BUG - on unlink, if you tr to relink - you get a "231 pipes busy"
+         - [ ] BUG - on unlink, if you tr to relink - you get a "231 pipes busy"
          Need to make sure pipes are properly closed/reset.
 
       > [ ] verify parser side
