@@ -11,6 +11,7 @@ from client.src.client.pages.custom import BongoSpinner
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.formatted_tooltip import formatted_tooltip
 from client.src.client.pages.menu import setup_menu
+from client.src.client.pages.payloads import download_payload, download_payload_source
 
 server_log = structlog.getLogger("server")
 
@@ -62,9 +63,12 @@ async def payload_details(payload_hash: str):
 
 
 async def render_dashboard(payload_metadata: dict, payload_hash: str):
-    payload_name = payload_metadata.get("name", "UNKNOWN_PAYLOAD.exe")
-    payload_type = payload_metadata.get("type", "Executable")
-    payload_size = payload_metadata.get("size", "0 B")
+    # should get payload at load as well, for various metrics
+    payload_bytes = await get_payload_bytes(payload_hash)
+
+    payload_name = payload_metadata.get("payload_name", "?")
+    payload_type = get_payload_type(payload_metadata)
+    payload_size = round((len(payload_bytes) / 1000), 2)
 
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
         with ui.row().classes("tech-header-bar flex w-full items-center justify-between shrink-0"):  # noqa
@@ -87,18 +91,24 @@ async def render_dashboard(payload_metadata: dict, payload_hash: str):
                     ui.label(f"payload_hash // {payload_hash}").classes("tech-label-sub text-emerald-500")
 
             # Actions right side area
-            # with ui.row().classes("items-center gap-2"):
-            #     ui.button("DOWNLOAD", icon="download", ...
+            with ui.row().classes("items-center gap-2"):
+                ui.button(
+                    "SOURCE",
+                    icon="source",
+                    on_click=lambda: download_payload_source(hash=payload_hash, name=payload_name),
+                ).props("dense flat size=sm").classes("tech-btn-action-2")
+                ui.button(
+                    "DOWNLOAD", icon="download", on_click=lambda: download_payload(hash=payload_hash, name=payload_name)
+                ).props("dense flat size=sm").classes("tech-btn-action-2")
 
         with ui.row().classes(
             "w-full h-10 gap-0 bg-black/20 border-b border-white/5 items-center shrink-0 flex-nowrap overflow-x-auto"
         ):
             # Adapted flat stats for payload characteristics
             flat_stat("TYPE", payload_type, "extension", "emerald")
-            flat_stat("SIZE", payload_size, "data_usage", "blue")
+            flat_stat("SIZE (KB)", payload_size, "data_usage", "blue")
             flat_stat("OS TARGET", payload_metadata.get("os", "Windows"), "desktop_windows", "purple")
             flat_stat("ARCH", payload_metadata.get("arch", "x64"), "dns", "grey")
-            flat_stat("COMPILED", str(payload_metadata.get("compile_time", "Unknown")), "schedule", "orange")
 
         with ui.row().classes("w-full flex-grow p-4 gap-4 overflow-hidden no-wrap items-stretch"):  # noqa
             with ui.column().classes(
@@ -162,3 +172,21 @@ async def render_dashboard(payload_metadata: dict, payload_hash: str):
                 with ui.column().classes("w-full p-4 gap-2 border-t border-white/5 shrink-0 bg-black/20"):
                     ui.label("ACTIONS").classes("tech-label-sub")
                     # Put payload-specific actions here, like "Generate Shellcode", "Download", "Delete"
+
+
+def get_payload_type(payload_metadata: dict) -> str:
+    """
+    Helper to not clog the render_dashboard func.
+
+    Determines payload type based off of payload name. Only used
+    for visuals in the payload dashboard
+    """
+    name = payload_metadata.get("payload_name", "").lower()
+
+    if "." not in name:
+        return "RAW"
+    if name.endswith(".exe"):
+        return "EXE"
+    if name.endswith(".dll"):
+        return "DLL"
+    return "RAW"
