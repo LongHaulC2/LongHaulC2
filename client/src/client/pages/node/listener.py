@@ -1,7 +1,13 @@
 import structlog
-from nicegui import ui
+from nicegui import app, ui
 
-from client.src.client.modules.api_calls import get_listener_data
+from client.src.client.modules.api_calls import (
+    delete_listener,
+    get_listener_data,
+    restart_listener,
+    start_listener_from_existing,
+    stop_listener,
+)
 from client.src.client.modules.profile_visualizer import http_view
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.formatted_tooltip import formatted_tooltip
@@ -67,9 +73,15 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
         # ====================
         with ui.row().classes("tech-header-bar flex w-full items-center justify-between shrink-0"):
             with ui.row().classes("items-center gap-4"):
-                ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to("/operations")).props(
-                    "flat dense square size=sm"
-                ).classes("tech-btn-ghost")
+                await ui.context.client.connected()
+                prev_uri = app.storage.tab.get("previous_uri", "/")
+                with (
+                    ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to(prev_uri))
+                    .props("flat dense square size=sm")
+                    .classes("tech-btn-ghost")
+                ):
+                    formatted_tooltip(prev_uri)
+
                 ui.icon("terminal", size="md", color="emerald-500").classes(
                     "p-2 bg-emerald-500/10 rounded border border-emerald-500/20"
                 )
@@ -80,20 +92,54 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
                     )
 
             with ui.row().classes("items-center gap-2"):
-                btn_start = ui.button(icon="play_arrow", on_click=lambda: ...).props(
-                    "dense flat size=sm color=emerald-400"
-                )
-                with btn_start:
-                    formatted_tooltip("Start")
-                btn_restart = ui.button(icon="restart_alt", on_click=lambda: ...).props(
-                    "dense flat size=sm color=blue-400"
-                )
-                with btn_restart:
-                    formatted_tooltip("Restart", body="Attempts to restart the given service")
+                with ui.button(
+                    "START",
+                    icon="play_arrow",
+                    on_click=lambda: start_listener_from_existing(listener_uuid=listener_uuid),
+                ).props("flat dense color=green no-caps size=sm"):
+                    formatted_tooltip(
+                        title="Start a stopped listener",
+                        body=("The listener must already exist to be restarted."),
+                        footer="To spawn a new listener, click the '+ listener' button",
+                    )
 
-                btn_stop = ui.button(icon="stop", on_click=lambda: ...).props("dense flat size=sm color=red-400")
-                with btn_stop:
-                    formatted_tooltip("Stop", body="Attempts to stop the given service")
+                with ui.button(
+                    "RESTART", icon="restart_alt", on_click=lambda: restart_listener(listener_uuid=listener_uuid)
+                ).props("flat dense color=orange no-caps size=sm"):
+                    formatted_tooltip(
+                        title="Restart the Listener",
+                        body=(
+                            "Kill the current listener process, and re-spawn a new one with the same config. "
+                            "This is handy for if a listener crashes, or encounters a bug."
+                        ),
+                    )
+
+                with ui.button("STOP", icon="stop", on_click=lambda: stop_listener(listener_uuid=listener_uuid)).props(  # noqa
+                    "flat dense color=red no-caps size=sm"
+                ):
+                    formatted_tooltip(
+                        title="Stop Listener",
+                        body=(
+                            "Stops the listener process without deleting it.\n"
+                            "The listener remains in the database,\n"
+                            "is still a valid compile target,\n"
+                            "and can be restarted at any time."
+                        ),
+                        footer="(Acts like a pause button)",
+                    )
+
+                with ui.button(
+                    "DELETE", icon="delete", on_click=lambda: delete_listener(listener_uuid=listener_uuid)
+                ).props("flat dense color=purple no-caps size=sm"):
+                    # ui.tooltip("Stop, and DELETE a listener from the database. This listener will cease to exist.")
+                    formatted_tooltip(
+                        title="Delete Listener",
+                        body=(
+                            "Stops, and deletes the listener from the Database.\n"
+                            "The listener will be nuked from existence via this action"
+                        ),
+                        footer="\n",  # add a \n so there's space at the bottom, and the whole message shows.
+                    )
 
         # ====================
         #   2. VITALS BAR (Flat layout replacing stat_cards)
@@ -101,10 +147,11 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
         with ui.row().classes(
             "w-full h-10 gap-0 bg-black/20 border-b border-white/5 items-center shrink-0 flex-nowrap overflow-x-auto"
         ):
+            flat_stat("PROTOCOL", listener_data.get("listener_type", "?"), "headphones", "blue")
             flat_stat("NETWORK ADDR", listener_data.get("listener_host", "0.0.0.0"), "lan", "blue")
             flat_stat("NETWORK PORT", listener_data.get("listener_port", "0"), "lan", "blue")
-            flat_stat("NETWORK PROFILE", listener_data.get("listener_profile_name", "0.0.0.0"), "lan", "blue")
-            flat_stat("CONNECTED IMPLANTS", listener_data.get("?", "?"), "lan", "blue")
+            flat_stat("NETWORK PROFILE", listener_data.get("listener_profile_name", "0.0.0.0"), "code", "green")
+            # flat_stat("CONNECTED IMPLANTS", listener_data.get("?", "?"), "lan", "blue")
 
         # ====================
         #   3. BODY
@@ -128,9 +175,10 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
                     with tabs:
                         ui.tab("metadata_tab", label="Listener Data").classes("h-10 min-h-0 tech-label-sub")
 
-                        ui.tab("connected_implants_tab", label="CONNECTED IMPLANTS").classes(
-                            "h-10 min-h-0 tech-label-sub"
-                        )
+                        # not implemented api side yet, this will be a later option
+                        # ui.tab("connected_implants_tab", label="CONNECTED IMPLANTS").classes(
+                        #     "h-10 min-h-0 tech-label-sub"
+                        # )
                         ui.tab("network_profile_tab", label="Net Profile [CONFIG]").classes(
                             "h-10 min-h-0 tech-label-sub"
                         )
