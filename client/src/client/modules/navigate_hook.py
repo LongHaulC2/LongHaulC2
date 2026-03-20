@@ -4,6 +4,18 @@ from nicegui import app, ui
 async def navigate(destination: str, previous_uri: str = "/"):
     """
     Custom navigate hook that keep track of previous URI for backtracking purposes
+
+
+    Example usage:
+
+    uri = f"/some_target_uri"
+    prev_uri = await get_current_uri()
+
+    ui.button(
+        f"OPEN PAGE",
+        on_click=lambda: navigate(uri, prev_uri),
+    ).classes("w-full tech-btn-action")
+
     """
     app.storage.tab["previous_uri"] = previous_uri
     ui.navigate.to(destination)

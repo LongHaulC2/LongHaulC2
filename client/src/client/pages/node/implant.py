@@ -5,6 +5,7 @@ from nicegui import app, ui
 
 from client.src.client.modules.api_calls import get_implant_data, get_implant_task_history
 from client.src.client.pages.footer import build_footer
+from client.src.client.pages.formatted_tooltip import formatted_tooltip
 from client.src.client.pages.menu import setup_menu
 
 server_log = structlog.getLogger("server")
@@ -47,13 +48,16 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
     process_name = implant_metadata.get("process", "?")
 
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
-        with ui.row().classes("tech-header-bar flex w-full items-center justify-between shrink-0"):
+        with ui.row().classes("tech-header-bar flex w-full items-center justify-between shrink-0"):  # noqa
             with ui.row().classes("items-center gap-4"):
                 await ui.context.client.connected()
                 prev_uri = app.storage.tab.get("previous_uri", "/")
-                ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to(prev_uri)).props(
-                    "flat dense square size=sm"
-                ).classes("tech-btn-ghost")
+                with (
+                    ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to(prev_uri))
+                    .props("flat dense square size=sm")
+                    .classes("tech-btn-ghost")
+                ):
+                    formatted_tooltip(prev_uri)
                 ui.icon("terminal", size="md", color="emerald-500").classes(
                     "p-2 bg-emerald-500/10 rounded border border-emerald-500/20"
                 )
@@ -61,12 +65,13 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
                     ui.label(f"{user} @ {hostname}").classes("tech-label-header-bold")
                     ui.label(f"IMPLANT_UUID // {implant_uuid}").classes("tech-label-sub text-emerald-500")
 
-            with ui.row().classes("items-center gap-2"):
-                ui.button(
-                    "INTERACT",
-                    icon="terminal",
-                    on_click=lambda: ui.navigate.to("/operations"),
-                ).classes("tech-btn-action px-4").props("unelevated dense")
+            # disabling for now, this is the right side button area
+            # with ui.row().classes("items-center gap-2"):
+            #     ui.button(
+            #         "INTERACT",
+            #         icon="terminal",
+            #         on_click=lambda: ui.navigate.to("/operations"),
+            #     ).classes("tech-btn-action px-4").props("unelevated dense")
 
         with ui.row().classes(
             "w-full h-10 gap-0 bg-black/20 border-b border-white/5 items-center shrink-0 flex-nowrap overflow-x-auto"
@@ -107,6 +112,7 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
                                 info_row(key, value)
 
                     with ui.tab_panel("history_tab").classes("w-full h-full p-0 flex flex-col"):
+                        # in one row, so large expands don't push the search to one side, and command table to another
                         with ui.row().classes(
                             "w-full p-2 justify-between items-center border-b border-white/5 shrink-0 bg-black/20"
                         ):
@@ -121,74 +127,74 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
                             with search.add_slot("prepend"):
                                 ui.icon("arrow_forward_ios", size="xs", color="emerald-500")
 
-                        columns = [
-                            {"name": "status", "label": "STATUS", "field": "status", "align": "left"},
-                            {"name": "task", "label": "COMMAND", "field": "task", "align": "left"},
-                            {"name": "id", "label": "UUID", "field": "id", "align": "left"},
-                        ]
+                            columns = [
+                                {"name": "status", "label": "STATUS", "field": "status", "align": "left"},
+                                {"name": "task", "label": "COMMAND", "field": "task", "align": "left"},
+                                {"name": "id", "label": "UUID", "field": "id", "align": "left"},
+                            ]
 
-                        table = (
-                            ui.table(columns=columns, rows=[], row_key="id")
-                            .classes("tech-table-base w-full flex-grow")
-                            .props("dense flat dark")
-                        )
+                            table = (
+                                ui.table(columns=columns, rows=[], row_key="id")
+                                .classes("tech-table-base w-full flex-grow")
+                                .props("dense flat dark")
+                            )
 
-                        def apply_filter(e):
-                            table._props["filter"] = e.value
-                            table.update()
+                            def apply_filter(e):
+                                table._props["filter"] = e.value
+                                table.update()
 
-                        search.on_value_change(apply_filter)
+                            search.on_value_change(apply_filter)
 
-                        table.add_slot(
-                            "header",
-                            r"""
-                            <q-tr :props="props" class="tech-table-head">
-                                <q-th auto-width />
-                                <q-th v-for="col in props.cols" :key="col.name" :props="props" class="text-left">
-                                    {{ col.label }}
-                                </q-th>
-                            </q-tr>
-                        """,
-                        )
+                            table.add_slot(
+                                "header",
+                                r"""
+                                <q-tr :props="props" class="tech-table-head">
+                                    <q-th auto-width />
+                                    <q-th v-for="col in props.cols" :key="col.name" :props="props" class="text-left">
+                                        {{ col.label }}
+                                    </q-th>
+                                </q-tr>
+                            """,
+                            )
 
-                        table.add_slot(
-                            "body",
-                            r"""
-<q-tr :props="props" class="tech-table-row-hover tech-table-body cursor-pointer" @click="props.expand = !props.expand">
-    <q-td auto-width>
-        <q-btn size="sm" color="emerald" round dense flat
-            @click.stop="props.expand = !props.expand"
-            :icon="props.expand ? 'remove' : 'add'" />
-    </q-td>
-    <q-td v-for="col in props.cols" :key="col.name" :props="props">
-        <span v-if="col.name === 'status'">
-            <q-icon :name="props.row.status_icon" :color="props.row.status_color" size="sm" class="mr-2"/>
-            <span class="tech-data-mono">{{ col.value }}</span>
-        </span>
-        <span v-else-if="col.name === 'task'" class="tech-data-bold">
-            {{ col.value }}
-        </span>
-        <span v-else class="tech-data-mono">
-            {{ col.value }}
-        </span>
-    </q-td>
-</q-tr>
-<q-tr v-show="props.expand" :props="props">
-    <q-td colspan="100%" class="bg-black/40 p-4 shadow-inner border-t border-white/5">
-        <div class="flex flex-col gap-4">
-            <div class="w-full">
-                <div class="tech-label-sub mb-1">REQUEST DATA //</div>
-                <pre class="w-full bg-transparent text-emerald-400 font-mono text-xs overflow-x-auto p-0 m-0">{{ props.row.req_data }}</pre>
+                            table.add_slot(
+                                "body",
+                                r"""
+    <q-tr :props="props" class="tech-table-row-hover tech-table-body cursor-pointer" @click="props.expand = !props.expand">
+        <q-td auto-width>
+            <q-btn size="sm" color="emerald" round dense flat
+                @click.stop="props.expand = !props.expand"
+                :icon="props.expand ? 'remove' : 'add'" />
+        </q-td>
+        <q-td v-for="col in props.cols" :key="col.name" :props="props">
+            <span v-if="col.name === 'status'">
+                <q-icon :name="props.row.status_icon" :color="props.row.status_color" size="sm" class="mr-2"/>
+                <span class="tech-data-mono">{{ col.value }}</span>
+            </span>
+            <span v-else-if="col.name === 'task'" class="tech-data-bold">
+                {{ col.value }}
+            </span>
+            <span v-else class="tech-data-mono">
+                {{ col.value }}
+            </span>
+        </q-td>
+    </q-tr>
+    <q-tr v-show="props.expand" :props="props">
+        <q-td colspan="100%" class="bg-black/40 p-4 shadow-inner border-t border-white/5">
+            <div class="flex flex-col gap-4">
+                <div class="w-full">
+                    <div class="tech-label-sub mb-1">REQUEST DATA //</div>
+                    <pre class="w-full bg-transparent text-emerald-400 font-mono text-xs overflow-x-auto p-0 m-0">{{ props.row.req_data }}</pre>
+                </div>
+                <div class="w-full">
+                    <div class="tech-label-sub mb-1">RESPONSE DATA //</div>
+                    <pre class="w-full bg-transparent text-emerald-400 font-mono text-xs overflow-x-auto p-0 m-0">{{ props.row.res_data }}</pre>
+                </div>
             </div>
-            <div class="w-full">
-                <div class="tech-label-sub mb-1">RESPONSE DATA //</div>
-                <pre class="w-full bg-transparent text-emerald-400 font-mono text-xs overflow-x-auto p-0 m-0">{{ props.row.res_data }}</pre>
-            </div>
-        </div>
-    </q-td>
-</q-tr>
-""",  # noqa - nicegu
-                        )
+        </q-td>
+    </q-tr>
+    """,  # noqa - nicegu
+                            )
 
                         async def load_history():
                             res = await get_implant_task_history(implant_uuid)

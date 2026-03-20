@@ -185,33 +185,7 @@ First:
    https://nicegui.io/documentation/storage
       app.storeage.tab may be best. tldr, per tab, which makes sense for a back button
 
-```
-from nicegui import app, ui
-
-@ui.page('/')
-async def index():
-    await ui.context.client.connected()
-    app.storage.tab['count'] = app.storage.tab.get('count', 0) + 1
-    ui.label(f'Tab reloaded {app.storage.tab["count"]} times')
-    ui.button('Reload page', on_click=ui.navigate.reload)
-
-ui.run()
-```
-
-I wonder if I can hook the page change mechanism, to auto set this value. 
-Maybe a custom ui navigate to
-
-i.e.
-
-async navigate_to(dest, current_uri):
-   storage_previous_uri = current_uri
-   ui.navigate.to(dest)
-
-
-   # or, get uri with:
-   url = await ui.run_javascript('window.location.href') # -> full httpwhatever/whateer
-   # location.pathname = just the uri, ex, /abcd
-
+   idea in place, now implement where navigates exist
 ---
 
 
