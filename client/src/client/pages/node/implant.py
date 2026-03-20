@@ -7,6 +7,7 @@ from client.src.client.modules.api_calls import get_implant_data, get_implant_ta
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.formatted_tooltip import formatted_tooltip
 from client.src.client.pages.menu import setup_menu
+from client.src.client.pages.operations import terminal
 
 server_log = structlog.getLogger("server")
 
@@ -235,8 +236,9 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
                     with ui.tab_panel("terminal_tab").classes(
                         "w-full h-full items-center justify-center text-neutral-600"
                     ):
-                        ui.icon("terminal", size="xl").classes("mb-2 opacity-50")
-                        ui.label("TERMINAL MODULE NOT IMPLEMENTED").classes("tech-label-sub")
+                        await terminal(implant_uuid=implant_uuid)
+                        # ui.icon("terminal", size="xl").classes("mb-2 opacity-50")
+                        # ui.label("TERMINAL MODULE NOT IMPLEMENTED").classes("tech-label-sub")
 
                 with ui.column().classes("w-full p-4 gap-2 border-t border-white/5 shrink-0 bg-black/20"):
                     ui.label("ACTIONS").classes("tech-label-sub")

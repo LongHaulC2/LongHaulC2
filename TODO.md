@@ -170,13 +170,15 @@ puts all the docs together into a docs folder.
 It would be cool if I could get a unified template goign for this, but 
 tbh, per page is probably still easier/simpler/faster in the short term
 
-- [ ] Implant Page (1 hour)
+- [X] Implant Page (1 hour)
 - [ ] Listener Page (1 hour)
 - [ ] Payload Page (1 hour)
 - [ ] Network Page (1 hour)
    > Relevant network info
 - [ ] File/memstore Page (1 hour)
    > HEX contents of file (if stored somewhere)
+
+- [ ] Context menu for all of these, i.e., in operations, context menu over implant
 
 Misc:
 First:
