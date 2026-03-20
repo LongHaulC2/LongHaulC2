@@ -8,6 +8,7 @@ from nicegui import app, ui
 
 # Imports
 from client.src.client.modules.api_calls import get_all_graph_data, search_server
+from client.src.client.modules.navigate_hook import get_current_uri, navigate
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.formatted_tooltip import formatted_tooltip
 from client.src.client.pages.menu import setup_menu
@@ -208,7 +209,7 @@ async def graph_view():
     search_input.on_value_change(trigger_refresh)
 
 
-def handle_click(e, nodes, sidebar_container):
+async def handle_click(e, nodes, sidebar_container):
     payload = e.args.get("fromActionPayload", {})
     data_index = payload.get("dataIndexInside")
     if data_index is None:
@@ -250,9 +251,11 @@ def handle_click(e, nodes, sidebar_container):
             target_uuid = props.get(uuid_key) or props.get("implant_uuid") or props.get("host_uuid")
 
             if target_uuid:
+                uri = f"/{node_type.lower()}/{target_uuid}"
+                prev_uri = await get_current_uri()
                 ui.button(
                     f"OPEN {node_type.upper()} PAGE",
-                    on_click=lambda: ui.navigate.to(f"/{node_type.lower()}/{target_uuid}"),
+                    on_click=lambda: navigate(uri, prev_uri),
                 ).classes("w-full tech-btn-action")
 
             if node_type in ["File", "MemstoreFile"]:

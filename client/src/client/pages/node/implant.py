@@ -1,7 +1,7 @@
 import json
 
 import structlog
-from nicegui import ui
+from nicegui import app, ui
 
 from client.src.client.modules.api_calls import get_implant_data, get_implant_task_history
 from client.src.client.pages.footer import build_footer
@@ -49,7 +49,9 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
         with ui.row().classes("tech-header-bar flex w-full items-center justify-between shrink-0"):
             with ui.row().classes("items-center gap-4"):
-                ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to("/operations")).props(
+                await ui.context.client.connected()
+                prev_uri = app.storage.tab.get("previous_uri", "/")
+                ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to(prev_uri)).props(
                     "flat dense square size=sm"
                 ).classes("tech-btn-ghost")
                 ui.icon("terminal", size="md", color="emerald-500").classes(

@@ -161,14 +161,56 @@ puts all the docs together into a docs folder.
 - [X] Add a global User-Agent option to the rendering process and set up global options handling.
 
 ### Day 13: March 22 - The Templating Engine (Part 1)
-- [ ] Build the Python logic to select options and files dynamically.
-- [ ] Format code blocks with injected data (callbacks, transforms).
+~~- [ ] Build the Python logic to select options and files dynamically.~~
+~~- [ ] Format code blocks with injected data (callbacks, transforms).~~
 - [ ] store source before compile, so debugging is easier
    > will take a few min to reworks to save first, then compile. 
 
-### Day 14: March 23 - The Templating Engine (Part 2)
-- [X] Finish pasting templated blocks into build files.
-- [X] Template the SMB code (allowing for malleable pipe names).
+### Day 14: March 23 - GUI - Node Pages
+It would be cool if I could get a unified template goign for this, but 
+tbh, per page is probably still easier/simpler/faster in the short term
+
+- [ ] Implant Page (1 hour)
+- [ ] Listener Page (1 hour)
+- [ ] Payload Page (1 hour)
+- [ ] Network Page (1 hour)
+   > Relevant network info
+- [ ] File/memstore Page (1 hour)
+   > HEX contents of file (if stored somewhere)
+
+Misc:
+First:
+ - [ ] Return button - make it point at actual previous link.
+   Idea, store previous_page in cookie/storage, then on return, go to that link. Probably the easiest
+   https://nicegui.io/documentation/storage
+      app.storeage.tab may be best. tldr, per tab, which makes sense for a back button
+
+```
+from nicegui import app, ui
+
+@ui.page('/')
+async def index():
+    await ui.context.client.connected()
+    app.storage.tab['count'] = app.storage.tab.get('count', 0) + 1
+    ui.label(f'Tab reloaded {app.storage.tab["count"]} times')
+    ui.button('Reload page', on_click=ui.navigate.reload)
+
+ui.run()
+```
+
+I wonder if I can hook the page change mechanism, to auto set this value. 
+Maybe a custom ui navigate to
+
+i.e.
+
+async navigate_to(dest, current_uri):
+   storage_previous_uri = current_uri
+   ui.navigate.to(dest)
+
+
+   # or, get uri with:
+   url = await ui.run_javascript('window.location.href') # -> full httpwhatever/whateer
+   # location.pathname = just the uri, ex, /abcd
 
 ---
 
@@ -185,9 +227,9 @@ puts all the docs together into a docs folder.
 *Goal: Making the operator experience snappy and intuitive.*
 
 ### Day 15: March 24 - Terminal & Task Display
-- [ ] Finish task retrieval from the server to display in the UI terminal.
-- [ ] Implement timestamp/UUID sorting to prevent duplicate fetches.
-- [ ] Clean up terminal spacing, auto-focus, and add the "Enter to send" keybind.
+- [X] Finish task retrieval from the server to display in the UI terminal.
+- [X] Implement timestamp/UUID sorting to prevent duplicate fetches.
+- [X] Clean up terminal spacing, auto-focus, and add the "Enter to send" keybind.
 
 ### Day 16: March 25 - GUI Context & Workflows
 - [X] Add relationship names to the GUI visualizer.
@@ -215,8 +257,8 @@ puts all the docs together into a docs folder.
 
 ### Day 20: March 29 - Documentation & Final Smoke Test
 - [ ] Write the deployment documentation (explaining `make deploy`, `make undeploy`).
-- [ ] Document the API.
-- [ ] Run a full end-to-end smoke test: generate a payload, link an SMB child, pass a command, verify the Neo4j graph updates accurately.
+- [ ] Document the API. (redoc - get stupid dark mode working)
+
 
 ---
 **April 1st:** Beta Launch.
