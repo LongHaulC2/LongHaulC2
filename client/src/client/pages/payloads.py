@@ -10,6 +10,7 @@ from client.src.client.modules.api_calls import (
     get_payload_data,
     get_payload_source_bytes,
 )
+from client.src.client.modules.navigate_hook import get_current_uri, navigate
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.formatted_tooltip import formatted_tooltip
 from client.src.client.pages.menu import setup_menu
@@ -98,6 +99,13 @@ async def render_payloads_table():
         .classes("w-full flex-grow tech-table-base tech-table-head tech-table-body tech-table-row-hover")
         .props("dense")
         .bind_filter_from(filter_text, "value")
+    )
+
+    current_uri = await get_current_uri()
+    table.on(
+        # double click to go to implant page
+        "row-dblclick",
+        lambda e: ui.timer(0.1, lambda: navigate(f"/payload/{e.args[1]['hash']}", current_uri), once=True),
     )
 
     def get_fmt(name):

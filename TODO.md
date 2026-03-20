@@ -172,8 +172,11 @@ tbh, per page is probably still easier/simpler/faster in the short term
 
 - [X] Implant Page (1 hour)
 - [X] Listener Page (1 hour)
-   > on double click, open page
+   > [X] on double click, open page
 - [ ] Payload Page (1 hour)
+   > may need to create
+   > [ ] metadata (payload call)
+   > [ ] Hex view (DL payload form server, load into hex)
 - [ ] Network Page (1 hour)
    > Relevant network info
 - [ ] File/memstore Page (1 hour)

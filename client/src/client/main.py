@@ -21,6 +21,7 @@ import client.src.client.pages.node.implant  # noqa: F401
 import client.src.client.pages.node.listener  # noqa: F401
 import client.src.client.pages.node.network  # noqa: F401
 import client.src.client.pages.node.nic  # noqa: F401
+import client.src.client.pages.node.payload  # noqa: F401
 
 # notes, just import your page here and it'll do the import python magic to add it to the web interface
 # also, use full paths due to nicegui being picky about relative paths
