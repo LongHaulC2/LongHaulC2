@@ -12,6 +12,7 @@ from client.src.client.modules.api_calls import (
     start_listener_from_existing,
     stop_listener,
 )
+from client.src.client.modules.navigate_hook import get_current_uri, navigate
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.formatted_tooltip import formatted_tooltip
 from client.src.client.pages.menu import setup_menu
@@ -91,6 +92,13 @@ async def render_listeners_table():
 
     columns = [
         {"name": "status", "label": "STATUS", "field": "status", "align": "left", "sortable": True},
+        {
+            "name": "listener UUID",
+            "label": "LISTENER UUID",
+            "field": "listener_uuid",
+            "align": "left",
+            "sortable": True,
+        },
         {"name": "name", "label": "NAME", "field": "name", "align": "left", "sortable": True},
         {"name": "type", "label": "PROTOCOL", "field": "type", "align": "left", "sortable": True},
         {"name": "bind", "label": "BIND ADDRESS", "field": "bind", "align": "left", "sortable": True},
@@ -104,6 +112,13 @@ async def render_listeners_table():
         .classes("w-full flex-grow tech-table-base tech-table-head tech-table-body tech-table-row-hover")
         .props("dense")
         .bind_filter_from(filter_text, "value")
+    )
+    # this should be at the top, but for now it's here cuz it's only called in the table.on
+    current_uri = await get_current_uri()
+    table.on(
+        # double click to go to implant page
+        "row-dblclick",
+        lambda e: ui.timer(0.1, lambda: navigate(f"/listener/{e.args[1]['listener_uuid']}", current_uri), once=True),
     )
 
     async def update_table_data():

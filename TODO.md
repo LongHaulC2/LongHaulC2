@@ -171,7 +171,8 @@ It would be cool if I could get a unified template goign for this, but
 tbh, per page is probably still easier/simpler/faster in the short term
 
 - [X] Implant Page (1 hour)
-- [ ] Listener Page (1 hour)
+- [X] Listener Page (1 hour)
+   > on double click, open page
 - [ ] Payload Page (1 hour)
 - [ ] Network Page (1 hour)
    > Relevant network info
