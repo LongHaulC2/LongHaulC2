@@ -92,6 +92,7 @@ async def render_listeners_table():
 
     columns = [
         {"name": "status", "label": "STATUS", "field": "status", "align": "left", "sortable": True},
+        {"name": "name", "label": "NAME", "field": "name", "align": "left", "sortable": True},
         {
             "name": "listener UUID",
             "label": "LISTENER UUID",
@@ -99,7 +100,6 @@ async def render_listeners_table():
             "align": "left",
             "sortable": True,
         },
-        {"name": "name", "label": "NAME", "field": "name", "align": "left", "sortable": True},
         {"name": "type", "label": "PROTOCOL", "field": "type", "align": "left", "sortable": True},
         {"name": "bind", "label": "BIND ADDRESS", "field": "bind", "align": "left", "sortable": True},
         {"name": "profile", "label": "PROFILE", "field": "profile", "align": "left", "sortable": True},
