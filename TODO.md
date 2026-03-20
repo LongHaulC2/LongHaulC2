@@ -148,7 +148,7 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 - [ ] Doxygen testing
    - [ ] Add a BRIEF to each function in the template codebase, for faster docs with doxygen
 
-- [ ] Super docs builder? i.e., run like "make doc build" or something, which 
+- [X] Super docs builder? i.e., run like "make doc build" or something, which 
 puts all the docs together into a docs folder. 
    Docs in mind:
       - API docs (from swagger)
@@ -156,7 +156,7 @@ puts all the docs together into a docs folder.
       - Doxygen Docs (from doxygen/implant)
          > seperate, like /implant-docs or something
       - main docs
-
+   > tentatively here. it's fine, whatever. in docs repo
 ### Day 12: March 21 - Malleable C2 & Profiles
 - [X] Add a global User-Agent option to the rendering process and set up global options handling.
 
