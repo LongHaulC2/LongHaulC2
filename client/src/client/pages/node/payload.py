@@ -83,7 +83,7 @@ async def render_dashboard(payload_metadata: dict, payload_hash: str):
                     formatted_tooltip(prev_uri)
 
                 # Changed icon to memory/extension to fit "payload" vibe
-                ui.icon("memory", size="md", color="emerald-500").classes(
+                ui.icon("code", size="sm", color="emerald-500").classes(
                     "p-2 bg-emerald-500/10 rounded border border-emerald-500/20"
                 )
                 with ui.column().classes("gap-0"):
@@ -94,7 +94,7 @@ async def render_dashboard(payload_metadata: dict, payload_hash: str):
             with ui.row().classes("items-center gap-2"):
                 ui.button(
                     "SOURCE",
-                    icon="source",
+                    icon="code",
                     on_click=lambda: download_payload_source(hash=payload_hash, name=payload_name),
                 ).props("dense flat size=sm").classes("tech-btn-action-2")
                 ui.button(

@@ -51,7 +51,7 @@ async def render_dashboard(file_data: dict, file_uuid: str):
                 ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to("/operations")).props(
                     "flat dense square size=sm"
                 ).classes("tech-btn-ghost")
-                ui.icon("description", size="md", color="emerald-500").classes(
+                ui.icon("description", size="sm", color="emerald-500").classes(
                     "p-2 bg-emerald-500/10 rounded border border-emerald-500/20"
                 )
                 with ui.column().classes("gap-0"):

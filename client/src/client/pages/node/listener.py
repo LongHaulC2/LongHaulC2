@@ -82,7 +82,7 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
                 ):
                     formatted_tooltip(prev_uri)
 
-                ui.icon("terminal", size="md", color="emerald-500").classes(
+                ui.icon("headphones", size="sm", color="emerald-500").classes(
                     "p-2 bg-emerald-500/10 rounded border border-emerald-500/20"
                 )
                 with ui.column().classes("gap-0"):
