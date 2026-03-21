@@ -13,7 +13,7 @@ from client.src.client.modules.api_calls import (
     update_implant,
 )
 from client.src.client.modules.task_parser import ResultType, build_cli_parser, get_all_command_names, task_tree
-from client.src.client.pages.dialogues import upload_dialog
+from client.src.client.pages.dialogues import upload_to_implant_dialog
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.formatted_tooltip import formatted_tooltip
 from client.src.client.pages.listeners import start_listener_dialogue
@@ -152,7 +152,7 @@ async def implant_view(syntax_drawer):
                     ui.button(
                         # get all selected to upload to
                         icon="present_to_all",
-                        on_click=lambda: upload_dialog([row["implant_uuid"] for row in table.selected]),
+                        on_click=lambda: upload_to_implant_dialog([row["implant_uuid"] for row in table.selected]),
                     )
                     .classes("text-orange-400 hover:text-orange-200 transition-colors tech-btn-action-2")
                     .props("dense flat size=sm square")

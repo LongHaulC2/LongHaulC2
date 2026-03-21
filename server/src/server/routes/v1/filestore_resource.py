@@ -142,10 +142,8 @@ class FileActions(Resource):
         responses=COMMON_ERRORS,
         security="Bearer Auth",
     )
-    # show a model for what happens when nothing is here
     @file_store_ns.response(200, "Deletion Successful", FILEACTIONS_DELETE_RESPONSE)
     @file_store_ns.response(404, "File Not Found")
-    # and then what to actually filter the output by
     @file_store_ns.marshal_with(FILEACTIONS_DELETE_RESPONSE)
     @jwt_required()
     def delete(self, file_uuid):
@@ -158,7 +156,9 @@ class FileActions(Resource):
         api_logger.info("Getting file", file_uuid=file_uuid, caller_ip=ip)
         check_type(file_uuid, str, "file_uuid")
 
-        # sql call to get implant data, return it as a dict (including bin data)
+        with get_mysql_session() as session:
+            file_service = MySQLImplantFileService(session)
+            file_service.delete_file(file_uuid=file_uuid)
 
         return APIResponse(
             status="200",

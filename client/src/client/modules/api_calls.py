@@ -1,3 +1,4 @@
+import base64
 import time
 from typing import Any, Literal
 
@@ -763,6 +764,66 @@ async def get_payload_source_bytes(payload_hash: str) -> bytes | None:
         endpoint=f"/api/v1/build/{payload_hash}/source",
         return_type="content",
     )
+
+
+async def get_all_files():
+    """Gets all files stored in DB"""
+    return await safe_api_request(
+        method="GET",
+        endpoint="/api/v1/filestore/",
+    )
+
+
+async def get_file_bytes(file_uuid: str) -> bytes | None:
+    """
+    Retrieve the bytes of a stored file
+
+    Args:
+        file_uuid (str): The UUID of the file to download
+
+    Returns:
+        bytes: The raw binary content of the payload, or None if download fails.
+        Example structure:
+        b'\x4d\x5a\x90...' (The actual executable bytes)
+    """
+    return await safe_api_request(
+        method="GET",
+        endpoint=f"/api/v1/filestore/{file_uuid}",
+        return_type="content",
+    )
+
+
+async def post_new_file_to_server_filestore(file_name, file_bytes: bytes):
+    """
+    Posts a new file to the filestore
+
+    """
+
+    # b64 is ascii, so we decode to that
+    file_contents = base64.b64encode(file_bytes).decode("ascii")
+
+    request_data = {"file_name": file_name, "file_contents": file_contents}
+
+    return await safe_api_request(
+        method="POST",
+        endpoint="/api/v1/filestore/",
+        json=request_data,
+    )
+
+
+async def delete_file_from_server_filestore(file_uuid: str):
+    """
+    Deletes a file from the server filestore
+
+    """
+
+    return await safe_api_request(
+        method="DELETE",
+        endpoint=f"/api/v1/filestore/{file_uuid}",
+    )
+
+
+# uplaod file
 
 
 async def get_implant_task_history_since_uuid(implant_uuid: str, since_task_uuid: str) -> dict | None:
