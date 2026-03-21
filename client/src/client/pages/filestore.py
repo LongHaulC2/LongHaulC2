@@ -71,15 +71,28 @@ async def filestore_view():
                 ui.label("FILE STORE //").classes("tech-label-header-section")
 
             with ui.row().classes("items-center gap-2"):
-                ui.button("Upload", icon="upload", on_click=upload_action).props("dense flat size=sm").classes(
-                    "tech-btn-action"
-                )
-                ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/filestore")).props(
-                    "dense flat size=sm"
-                ).classes("tech-btn-action-2")
-                ui.button(icon="delete", on_click=delete_selected).props("dense flat size=sm square").classes(
-                    "text-red-400 hover:text-red-200 transition-colors tech-btn-action-2"
-                )
+                with (
+                    ui.button("Upload", icon="upload", on_click=upload_action)
+                    .props("dense flat size=sm")
+                    .classes("tech-btn-action")
+                ):
+                    formatted_tooltip(
+                        "Upload File To Server File Store", footer="<i>Allows for multiple files at once</i>"
+                    )
+
+                with (
+                    ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/filestore"))
+                    .props("dense flat size=sm")
+                    .classes("tech-btn-action-2")
+                ):
+                    formatted_tooltip("Refresh File Table")
+
+                with (
+                    ui.button(icon="delete", on_click=delete_selected)
+                    .props("dense flat size=sm square")
+                    .classes("text-red-400 hover:text-red-200 transition-colors tech-btn-action-2")
+                ):
+                    formatted_tooltip("Delete Selected Files")
 
         # with ui.row().classes("w-full h-8 gap-0 bg-[#0c0c0c] border-b border-white/5 items-center"):
         #     stat_widget("Total Files:", "storage", "emerald", "total")
@@ -96,7 +109,7 @@ async def filestore_view():
                 with filter_text.add_slot("prepend"):
                     ui.icon("arrow_forward_ios", size="xs", color="emerald-500")
                 with filter_text:
-                    formatted_tooltip("Filter artifacts", "A simple text based filter search. Not Lucene, sorry.")
+                    formatted_tooltip("Filter files", "A simple text based filter search. Not Lucene, sorry.")
 
             columns = [
                 {"name": "file_name", "label": "FILE NAME", "field": "file_name", "align": "left", "sortable": True},
@@ -130,7 +143,7 @@ async def filestore_view():
                 <q-td :props="props">
                     <div class="row items-center justify-end gap-1 no-wrap">
                         <q-btn icon="download" flat dense size="sm" color="grey-6" @click="$parent.$emit('bin', props.row)">
-                            <q-tooltip class="bg-black">BINARY</q-tooltip>
+                            <q-tooltip class="bg-black">Download File</q-tooltip>
                         </q-btn>
                     </div>
                 </q-td>

@@ -9,6 +9,7 @@ from nicegui import app, ui
 # imported to render the page/register it
 import client.src.client.log  # noqa: F401
 import client.src.client.modules.health_check  # noqa: F401
+import client.src.client.pages.comms  # noqa: F401
 import client.src.client.pages.docs  # noqa: F401
 import client.src.client.pages.error  # noqa: F401
 import client.src.client.pages.filestore  # noqa: F401

@@ -157,7 +157,7 @@ async def implant_view(syntax_drawer):
                     .classes("text-orange-400 hover:text-orange-200 transition-colors tech-btn-action-2")
                     .props("dense flat size=sm square")
                 ):
-                    formatted_tooltip("Upload File")
+                    formatted_tooltip("Upload File To Host/Memstore")
                 with (
                     ui.button(icon="open_in_new", on_click=lambda: action_open_implant_page())
                     .classes("tech-btn-action-2 tech-btn-action-2")

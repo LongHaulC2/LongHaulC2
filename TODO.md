@@ -182,23 +182,20 @@ tbh, per page is probably still easier/simpler/faster in the short term
 - [ ] Network Page (1 hour) - gonna probably take some backend work
    > Relevant network info
 
-- [ ] File/memstore Page (1 hour)
-   > HEX contents of file (if stored somewhere), use same logic as hex view from payload
-   > Storing this data in SQL to track all uploaded files would be a good way to handle this.
-      prim key would be hash, and this would avoid problems with storing in neo4j
-      > space saver: Add an enpoint for this, but also just sort all tasks by file/memstore upload tasks, 
-      and pull from there?
-      > Then again, a dedicated file store table is cleaner for long term.
-      > Files would get added via upload hook on successful upload, and users could also upload to dedicated file store
-      > left off working on API code for file stuff
-         > need endpoint for POSTING a new file, GETTING file contents, GETTING all file (table), and DELETING file
+- [X] File/memstore Page (1 hour)
+   - [ ] Verify memstore, and file nodes lead correctly to file page
+   - [ ] on successful write/memstore, save file to filestore (response pipeline)
+
+- [ ] ! Add notes tab to every node 
+   > may require update endpoint for neo4j...
+   > worth it, as communication is very important
 
 - [ ] Context menu for all of these, i.e., in operations, context menu over implant
    > Double click in tables is the current way, OR, from node graph
 
 Misc:
 First:
- - [ ] Return button - make it point at actual previous link.
+ - [X] Return button - make it point at actual previous link.
    Idea, store previous_page in cookie/storage, then on return, go to that link. Probably the easiest
    https://nicegui.io/documentation/storage
       app.storeage.tab may be best. tldr, per tab, which makes sense for a back button
@@ -218,10 +215,10 @@ First:
 ## Phase 6: GUI Polish & Performance
 *Goal: Making the operator experience snappy and intuitive.*
 
-### Day 15: March 24 - Terminal & Task Display
-- [X] Finish task retrieval from the server to display in the UI terminal.
-- [X] Implement timestamp/UUID sorting to prevent duplicate fetches.
-- [X] Clean up terminal spacing, auto-focus, and add the "Enter to send" keybind.
+### Day 15: March 24 - Comms Module
+ - [ ] Implement chat feature
+ - [ ] Store in DB table
+ - [ ] POC in /comms. Keep it simple, but useable
 
 ### Day 16: March 25 - GUI Context & Workflows
 - [X] Add relationship names to the GUI visualizer.
