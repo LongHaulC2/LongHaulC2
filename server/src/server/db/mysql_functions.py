@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from ..schemas.implant import Task
 from ..utils.checks import check_type
-from .mysql_models import ImplantPayload, ImplantTask, UserLogin
+from .mysql_models import FileStore, ImplantPayload, ImplantTask, UserLogin
 
 server_logger = structlog.getLogger("server")
 
@@ -557,6 +557,103 @@ class MySQLImplantPayloadService:
             server_logger.info("Payload deleted successfully.")
         else:
             server_logger.warning("Attempted to delete non-existent payload", payload_hash=payload_hash)
+
+
+class MySQLImplantFileService:
+    """
+    Class for managing Files in sql
+    """
+
+    def __init__(self, session):
+        self.session = session
+
+    def register_file(self, file_name: str, file_bytes: bytes, file_uuid: str) -> str:
+        """
+        Create an entry for a new file
+        Returns the UUID of the file added in the DB.
+        """
+        server_logger.info("Registering new file", file_name=file_name)
+
+        check_type(file_bytes, bytes, "file_bytes")
+        check_type(file_name, str, "file_name")
+
+        # get hash of payload
+        md5_obj = hashlib.md5(file_bytes)
+        hash_bytes = md5_obj.digest()
+        hash_str = md5_obj.hexdigest()
+
+        # Save to DB
+        file_entry = FileStore(
+            file_hash=hash_bytes,
+            file_bytes=file_bytes,
+            file_name=file_name,
+            file_uuid=file_uuid,
+        )
+
+        self.session.add(file_entry)
+        self.session.commit()
+
+        server_logger.info("Successfully committed file", file_hash=hash_str, file_uuid=file_uuid)
+
+        return file_uuid
+
+    def get_file_by_uuid(self, file_uuid: str):
+        """
+        Retrieve a payload object by file_uuid
+
+        file_uuid: str
+        """
+        check_type(file_uuid, str, "file_uuid")
+
+        server_logger.info("Retrieving payload for hash", file_uuid=file_uuid)
+
+        file = self.session.query(FileStore).filter_by(file_uuid=file_uuid).first()
+
+        if file:
+            return file
+        server_logger.warning("No file found for uuid", file_uuid=file_uuid)
+        return None
+
+    def get_all_files(self):
+        """
+        Retrieve ALL files currently registered in the database.
+        Converts the binary hash in the DB to a hex string in the returned dict.
+        """
+        server_logger.info("Retrieving all payloads from database")
+
+        payloads = self.session.query(FileStore).all()
+
+        results = []
+        for p in payloads:
+            data = p.to_dict()
+            # Convert the bytes hash to hex string for the final output
+            if isinstance(data.get("file_hash"), bytes):
+                data["file_hash"] = data["file_hash"].hex()
+
+            # Remove file bytes cuz flask can't handle it as its bytes.
+            # payloads can be downloaded with dedicated download endpoint.
+            if "file_bytes" in data:
+                del data["file_bytes"]
+
+            results.append(data)
+
+        return results
+
+    def delete_file(self, file_uuid: str):
+        """
+        Delete a file by UUID.
+        """
+        check_type(file_uuid, str, "file_uuid")
+        server_logger.info("Deleting payload", payloadfile_uuid_hash=file_uuid)
+
+        file = self.session.query(FileStore).filter_by(file_uuid=file_uuid).first()
+
+        if file:
+            self.session.delete(file)
+            self.session.commit()
+            server_logger.info("file deleted successfully.")
+        else:
+            server_logger.warning("Attempted to delete non-existent file", file_uuid=file_uuid)
 
 
 class MySQLUserService:

@@ -177,13 +177,24 @@ tbh, per page is probably still easier/simpler/faster in the short term
    > may need to create
    > [X] metadata (payload call)
    > [X] Hex view (DL payload form server, load into hex)
-   > [ ] DL button (source and bin)
-- [ ] Network Page (1 hour)
+   > [X] DL button (source and bin)
+
+- [ ] Network Page (1 hour) - gonna probably take some backend work
    > Relevant network info
+
 - [ ] File/memstore Page (1 hour)
-   > HEX contents of file (if stored somewhere)
+   > HEX contents of file (if stored somewhere), use same logic as hex view from payload
+   > Storing this data in SQL to track all uploaded files would be a good way to handle this.
+      prim key would be hash, and this would avoid problems with storing in neo4j
+      > space saver: Add an enpoint for this, but also just sort all tasks by file/memstore upload tasks, 
+      and pull from there?
+      > Then again, a dedicated file store table is cleaner for long term.
+      > Files would get added via upload hook on successful upload, and users could also upload to dedicated file store
+      > left off working on API code for file stuff
+         > need endpoint for POSTING a new file, GETTING file contents, GETTING all file (table), and DELETING file
 
 - [ ] Context menu for all of these, i.e., in operations, context menu over implant
+   > Double click in tables is the current way, OR, from node graph
 
 Misc:
 First:

@@ -143,6 +143,20 @@ class ImplantPayload(Base):
     )
 
 
+class FileStore(Base):
+    __tablename__ = "filestore"
+    file_uuid = Column(String(36), primary_key=True)
+    file_name = Column(Text)
+    file_hash = Column(TINYBLOB(16))  # md5 hash
+    file_bytes = deferred(Column(LONGBLOB))  # LONGBLOB is 4gb (massive, intentional for expandability)
+
+    __table_args__ = (
+        # add file compression, this is going to be a big table, so it's worth the overhead.
+        # note... have to do "''" due to mysql being picky
+        {"mysql_compression": "'zlib'"}
+    )
+
+
 class UserLogin(Base):
     __tablename__ = "users"
 
