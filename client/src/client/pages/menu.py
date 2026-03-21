@@ -91,13 +91,16 @@ def setup_menu(title: str):
             nav_btn("OPERATIONS", "terminal", "/operations")
             nav_btn("ENGAGEMENT_MAP", "device_hub", "/graph")
             nav_btn("PAYLOADS", "layers", "/payloads")
-            nav_btn("FILESTORE", "folder", "/filestore")
             nav_btn("LISTENERS", "headphones", "/listeners")
 
             ui.separator().classes("bg-white/5 mt-4 mb-2")
             ui.label("AUTOMATION").classes("tech-label-sub")
             nav_btn("SCRIPTS", "code", "/scripts")
             nav_btn("DOCS", "info", "/docs")
+
+            ui.separator().classes("bg-white/5 mt-4 mb-2")
+            ui.label("RESOURCES").classes("tech-label-sub")
+            nav_btn("FILESTORE", "folder", "/filestore")
 
             ui.separator().classes("bg-white/5 mt-4 mb-2")
             ui.label("ADMIN").classes("tech-label-sub")

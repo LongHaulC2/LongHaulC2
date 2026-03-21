@@ -47,8 +47,8 @@ async def filestore_view():
         files = (p_resp or {}).get("data", [])
         rows = [
             {
-                "file_uuid": p.get("file_uuid"),
                 "file_name": p.get("file_name", "Unnamed"),
+                "file_uuid": p.get("file_uuid"),
                 "file_hash": p.get("file_hash", ""),
             }
             for p in files
@@ -81,8 +81,8 @@ async def filestore_view():
                     "text-red-400 hover:text-red-200 transition-colors tech-btn-action-2"
                 )
 
-        with ui.row().classes("w-full h-8 gap-0 bg-[#0c0c0c] border-b border-white/5 items-center"):
-            stat_widget("Total Files:", "storage", "emerald", "total")
+        # with ui.row().classes("w-full h-8 gap-0 bg-[#0c0c0c] border-b border-white/5 items-center"):
+        #     stat_widget("Total Files:", "storage", "emerald", "total")
 
         with ui.column().classes("w-full p-0 flex-grow overflow-hidden"):
             current_uri = await get_current_uri()
@@ -99,8 +99,8 @@ async def filestore_view():
                     formatted_tooltip("Filter artifacts", "A simple text based filter search. Not Lucene, sorry.")
 
             columns = [
-                {"name": "file_uuid", "label": "FILE UUID", "field": "file_uuid", "align": "left", "sortable": True},
                 {"name": "file_name", "label": "FILE NAME", "field": "file_name", "align": "left", "sortable": True},
+                {"name": "file_uuid", "label": "FILE UUID", "field": "file_uuid", "align": "left", "sortable": True},
                 {"name": "file_hash", "label": "HASH (MD5)", "field": "file_hash", "align": "left", "sortable": True},
                 {"name": "actions", "label": "ACTIONS", "field": "actions", "align": "right"},
             ]

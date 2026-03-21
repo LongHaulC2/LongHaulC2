@@ -34,12 +34,12 @@ async def upload_to_implant_dialog(implant_uuids: list):
             file_bytes = await e.file.read()
             state["file_bytes"] = file_bytes
 
-            ui.notify(
-                f"Staged: {e.file.name} ({len(file_bytes)} bytes)",
-                type="positive",
-                color="emerald",
-                icon="check_circle",
-            )
+            # ui.notify(
+            #     f"Staged: {e.file.name} ({len(file_bytes)} bytes)",
+            #     type="positive",
+            #     color="emerald",
+            #     icon="check_circle",
+            # )
             check_ready()
         except Exception as err:
             ui.notify(f"Failed to read file: {err}", type="negative")
@@ -158,94 +158,82 @@ async def upload_to_implant_dialog(implant_uuids: list):
 
 
 async def upload_to_server_filestore_dialog():
-    """
-    Opens a styled dialog for uploading files to the server's filestore.
-    """
-    # mutable state to hold data between upload and submit
-    state = {
-        "file_bytes": b"",  # Raw content
-        "filename": "",  # Original filename
-    }
+    state = {"files": []}
 
-    # Logic
     def check_ready():
-        """Enables the submit button only when we have a file staged."""
-        if state["file_bytes"] and state["filename"]:
+        if state["files"]:
             submit_btn.enable()
             submit_btn.classes(add="shadow-[0_0_15px_rgba(16,185,129,0.4)]")
+            submit_btn.text = f"UPLOAD {len(state['files'])} FILES" if len(state["files"]) > 1 else "UPLOAD FILE"
         else:
             submit_btn.disable()
             submit_btn.classes(remove="shadow-[0_0_15px_rgba(16,185,129,0.4)]")
+            submit_btn.text = "UPLOAD FILE"
 
     async def handle_upload(e: events.UploadEventArguments):
         try:
-            # nicegui 3.0.0+ uses e.file.read()
             file_bytes = await e.file.read()
-            state["file_bytes"] = file_bytes
-            state["filename"] = e.file.name
+            state["files"].append({"filename": e.file.name, "file_bytes": file_bytes})
 
-            ui.notify(
-                f"Staged: {e.file.name} ({len(file_bytes)} bytes)",
-                type="positive",
-                color="emerald",
-                icon="check_circle",
-            )
+            # ui.notify(
+            #     f"Staged: {e.file.name} ({len(file_bytes)} bytes)",
+            #     type="positive",
+            #     color="emerald",
+            #     icon="check_circle",
+            # )
             check_ready()
         except Exception as err:
             ui.notify(f"Failed to read file: {err}", type="negative")
 
     async def submit_upload():
-        """Handles the actual submission to the server endpoint."""
-        if not state["file_bytes"] or not state["filename"]:
+        if not state["files"]:
             return
 
         submit_btn.disable()
         submit_btn.text = "UPLOADING..."
 
-        try:
-            # Call your provided endpoint function
-            response = await post_new_file_to_server_filestore(
-                file_name=state["filename"], file_bytes=state["file_bytes"]
-            )
+        success_count = 0
+        failed_files = []
 
-            # You might need to adjust this check based on how safe_api_request formats responses
-            if response:
-                ui.notify(f"Successfully uploaded {state['filename']}", type="positive")
-                dialog.submit(True)  # Close the dialog and return True
-            else:
-                ui.notify("Failed to upload file to server.", type="negative")
-                submit_btn.enable()
-                submit_btn.text = "UPLOAD FILE"
+        for f in state["files"]:
+            try:
+                response = await post_new_file_to_server_filestore(file_name=f["filename"], file_bytes=f["file_bytes"])
+                if response:
+                    success_count += 1
+                else:
+                    failed_files.append(f["filename"])
+            except Exception as e:
+                failed_files.append(f"{f['filename']} ({str(e)})")
 
-        except Exception as e:
-            ui.notify(f"Upload error: {str(e)}", type="negative")
+        if success_count == len(state["files"]):
+            ui.notify(f"Successfully uploaded {success_count} files", type="positive")
+            dialog.submit(True)
+        elif success_count > 0:
+            ui.notify(f"Uploaded {success_count} files, but {len(failed_files)} failed.", type="warning")
+            dialog.submit(True)
+        else:
+            ui.notify("Failed to upload files.", type="negative")
             submit_btn.enable()
-            submit_btn.text = "UPLOAD FILE"
+            check_ready()
 
-    # UI Layout
     with ui.dialog() as dialog, ui.card().classes("tech-dialog w-[500px] p-0 overflow-hidden"):
-        # Header
         with ui.row().classes("tech-header-bar w-full items-center justify-between"):
             with ui.row().classes("gap-3 items-center"):
                 ui.icon("cloud_upload", color="emerald-500").classes("text-xl")
                 ui.label("SERVER FILESTORE UPLOAD").classes("tech-label-sub")
 
-            # Close button styled as a ghost icon
             ui.button(icon="close", on_click=dialog.close).props("square flat dense text-color=grey").classes(
                 "opacity-70 hover:opacity-100 transition-opacity"
             )
 
-        # Body
         with ui.column().classes("p-6 gap-5 w-full"):
-            # File Upload Component
             ui.upload(
-                label="SELECT FILE FOR SERVER",
+                label="SELECT FILES FOR SERVER",
                 auto_upload=True,
-                max_files=1,
+                multiple=True,
                 on_upload=handle_upload,
             ).props("flat bordered dark color=emerald").classes("w-full bg-black/20")
 
-        # Footer
         with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"):
             ui.button("CANCEL", on_click=dialog.close).props("flat dense no-caps").classes(
                 "tech-btn-action-2 font-bold tracking-wide"
