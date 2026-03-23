@@ -193,12 +193,17 @@ tbh, per page is probably still easier/simpler/faster in the short term
    > worth it, as communication is very important
    > this would allow for node creation, etc as well from graph
    > overview:
-      `GET /graph/node/<nodename>/`: Lists instances of this node type (e.g., returns a list of all current beacons/agents).
+      [X] `GET /graph/node/<nodename>/`: Lists instances of this node type (e.g., returns a list of all current beacons/agents).
          > could use /schema for fields
-      `GET /graph/node/<nodename>/<uuid>`: gets properties of node
-      `POST /graph/node/<nodename>/`: Create new node. UUID returned
-      `PATCH /graph/node/<nodename>/<uuid>`: Updates node data
-      `DELETE /graph/node/<nodename>/<uuid>`: Deletes the node
+         > [ ] marshalling
+      [ ] `GET /graph/node/<nodename>/<uuid>`: gets properties of node
+         > [ ] marshalling
+      [ ] `POST /graph/node/<nodename>/`: Create new node. UUID returned
+         > [ ] marshalling
+      [ ] `PATCH /graph/node/<nodename>/<uuid>`: Updates node data
+         > [ ] marshalling
+      [ ] `DELETE /graph/node/<nodename>/<uuid>`: Deletes the node
+         > [ ] marshalling
 
    - [ ] Implement notes via PATCH func on gui
 

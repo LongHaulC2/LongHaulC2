@@ -92,6 +92,7 @@ class NodeParent(Resource):
         ip = request.remote_addr
         api_logger.info("Listing nodes by type", nodename=nodename, caller_ip=ip)
 
+        # lowering the passed in nodename string, to match the class lookup
         node_class = get_node_class_from_string(node_name=nodename.lower())
 
         if not node_class:
