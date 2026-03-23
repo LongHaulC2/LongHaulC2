@@ -179,9 +179,11 @@ tbh, per page is probably still easier/simpler/faster in the short term
    > [X] Hex view (DL payload form server, load into hex)
    > [X] DL button (source and bin)
 
-- [ ] Network Page (1 hour) - gonna probably take some backend work
-   > Relevant network info
+~- [ ] Network Page (1 hour) - gonna probably take some backend work
+   > Relevant network info~
+   > NOPE - new rule: Nodes only get a page for BETA, if they have a DB, or are something relevant. Can expand as time goes
 
+ > here
 - [X] File/memstore Page (1 hour)
    - [ ] Verify memstore, and file nodes lead correctly to file page
    - [ ] on successful write/memstore, save file to filestore (response pipeline)
@@ -189,6 +191,13 @@ tbh, per page is probably still easier/simpler/faster in the short term
 - [ ] ! Add notes tab to every node 
    > may require update endpoint for neo4j...
    > worth it, as communication is very important
+   > this would allow for node creation, etc as well from graph
+   > overview:
+      `GET /graph/node/<nodename>/`: Lists instances of this node type (e.g., returns a list of all current beacons/agents).
+         > could use /schema for fields
+      `GET /graph/node/<nodename>/<uuid>`: gets properties of node
+      `POST /graph/node/<nodename>/`: Create new node. UUID returned
+      `PATCH /graph/node/<nodename>/<uuid>`: Updates node data
 
 - [ ] Context menu for all of these, i.e., in operations, context menu over implant
    > Double click in tables is the current way, OR, from node graph
@@ -204,6 +213,7 @@ First:
 ---
 
 
+
 ## Phase 5: Auth & Context
 *Goal: Adding core authentication mechanisms for user switching, etc.*
  - Login via user/pass
@@ -215,7 +225,7 @@ First:
 ## Phase 6: GUI Polish & Performance
 *Goal: Making the operator experience snappy and intuitive.*
 
-### Day 15: March 24 - Comms Module
+### Day 15: March 24 - Comms Module - maybe push to a v1.1
  - [ ] Implement chat feature
  - [ ] Store in DB table
  - [ ] POC in /comms. Keep it simple, but useable
