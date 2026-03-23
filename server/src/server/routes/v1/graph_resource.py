@@ -5,7 +5,13 @@ from flask_restx import Namespace, Resource
 from werkzeug.exceptions import abort
 
 from ...api_models.error import COMMON_ERRORS
-from ...api_models.graph import GRAPH_SEARCH_POST_INPUT, GRAPH_SEARCH_POST_RESPONSE, NODE_GET_LIST_RESPONSE
+from ...api_models.graph import (
+    GRAPH_SEARCH_POST_INPUT,
+    GRAPH_SEARCH_POST_RESPONSE,
+    NODE_DELETE_RESPONSE,
+    NODE_GET_LIST_RESPONSE,
+    NODE_GET_SINGLE_RESPONSE,
+)
 from ...api_models.listener import LISTENER_GET_RESPONSE
 from ...db.neo4j_functions import Neo4jCoreService
 from ...db.neo4j_models import get_node_class_from_string
@@ -152,6 +158,7 @@ class Node(Resource):
         responses=COMMON_ERRORS,
         security="Bearer Auth",
     )
+    @graph_ns.marshal_with(NODE_GET_SINGLE_RESPONSE)
     @jwt_required()
     def get(self, nodename, uuid):
         """
@@ -160,15 +167,27 @@ class Node(Resource):
         ip = request.remote_addr
         api_logger.info("Getting node properties", nodename=nodename, uuid=uuid, caller_ip=ip)
 
-        # Implementation here
-        node_data = {}
+        node_class = get_node_class_from_string(node_name=nodename.lower())
 
-        api_response = APIResponse(
+        if not node_class:
+            abort(400, "Invalid node type")
+
+        # format name of uuid
+        # tldr, bad planning, each model is NAME_uuid
+        node_uuid_var = f"{nodename.lower()}_uuid"
+        # this just takes it as kwargs and then unpacks it
+        node = node_class.nodes.get_or_none(**{node_uuid_var: uuid})
+
+        if not node:
+            abort(400, "Invalid node UUID")
+
+        node_data = node.to_dict()
+
+        return APIResponse(
             status="200",
             message="Success",
             data=node_data,
         )
-        return api_response.jsonify()
 
     @graph_ns.doc(
         summary="Update node data",
@@ -201,6 +220,7 @@ class Node(Resource):
         responses=COMMON_ERRORS,
         security="Bearer Auth",
     )
+    @graph_ns.marshal_with(NODE_DELETE_RESPONSE)
     @jwt_required()
     def delete(self, nodename, uuid):
         """
@@ -209,14 +229,28 @@ class Node(Resource):
         ip = request.remote_addr
         api_logger.info("Deleting node", nodename=nodename, uuid=uuid, caller_ip=ip)
 
-        # Implementation here
+        node_class = get_node_class_from_string(node_name=nodename.lower())
 
-        api_response = APIResponse(
+        if not node_class:
+            abort(400, "Invalid node type")
+
+        # format name of uuid
+        # tldr, bad planning, each model is NAME_uuid
+        node_uuid_var = f"{nodename.lower()}_uuid"
+        # this just takes it as kwargs and then unpacks it
+        node = node_class.nodes.get_or_none(**{node_uuid_var: uuid})
+
+        if not node:
+            abort(400, "Invalid node UUID")
+
+        # note - delete will auto handle the detach
+        node.delete()
+
+        return APIResponse(
             status="200",
             message="Deleted",
             data=None,
         )
-        return api_response.jsonify()
 
 
 graph_ns.add_resource(Graph, "/")

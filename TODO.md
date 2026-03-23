@@ -195,15 +195,18 @@ tbh, per page is probably still easier/simpler/faster in the short term
    > overview:
       [X] `GET /graph/node/<nodename>/`: Lists instances of this node type (e.g., returns a list of all current beacons/agents).
          > could use /schema for fields
-         > [ ] marshalling
-      [ ] `GET /graph/node/<nodename>/<uuid>`: gets properties of node
-         > [ ] marshalling
-      [ ] `DELETE /graph/node/<nodename>/<uuid>`: Deletes the node
-         > [ ] marshalling
+         > [X] marshalling
+
+      [X] `GET /graph/node/<nodename>/<uuid>`: gets properties of node
+         > [X] marshalling
+
+      [X] `DELETE /graph/node/<nodename>/<uuid>`: Deletes the node
+         > [X] marshalling
 
       > need to think about how to handle the schema input with these 2 
       [ ] `POST /graph/node/<nodename>/`: Create new node. UUID returned
          > [ ] marshalling
+
       [ ] `PATCH /graph/node/<nodename>/<uuid>`: Updates node data
          > [ ] marshalling
 

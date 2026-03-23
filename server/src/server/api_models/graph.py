@@ -97,3 +97,5 @@ NODE_GET_LIST_RESPONSE = wrap_response_raw(api)
 
 # GET /node/<nodename>/<uuid>
 NODE_GET_SINGLE_RESPONSE = wrap_response_raw(api)
+
+NODE_DELETE_RESPONSE = wrap_response_empty(api, "NODE_DELETE_RESPONSE_MODEL")

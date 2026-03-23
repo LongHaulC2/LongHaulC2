@@ -439,7 +439,7 @@ class Neo4jFileNode(StructuredNode, GraphHelpers):
 # A registry for mapping node name str to the class. Used in API.
 NODE_REGISTRY = {
     "implant": Neo4jImplantNode,
-    "host": Neo4jImplantNode,
+    "host": Neo4jHostNode,
     "network": Neo4jNetworkNode,
     "listener": Neo4jListenerNode,
     "channel": Neo4jC2ChannelNode,
