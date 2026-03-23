@@ -5,7 +5,7 @@ from flask_restx import Namespace, Resource
 from werkzeug.exceptions import abort
 
 from ...api_models.error import COMMON_ERRORS
-from ...api_models.graph import GRAPH_SEARCH_POST_INPUT, GRAPH_SEARCH_POST_RESPONSE
+from ...api_models.graph import GRAPH_SEARCH_POST_INPUT, GRAPH_SEARCH_POST_RESPONSE, NODE_GET_LIST_RESPONSE
 from ...api_models.listener import LISTENER_GET_RESPONSE
 from ...db.neo4j_functions import Neo4jCoreService
 from ...db.neo4j_models import get_node_class_from_string
@@ -84,6 +84,7 @@ class NodeParent(Resource):
         responses=COMMON_ERRORS,
         security="Bearer Auth",
     )
+    @graph_ns.marshal_with(NODE_GET_LIST_RESPONSE)
     @jwt_required()
     def get(self, nodename):
         """
@@ -103,12 +104,11 @@ class NodeParent(Resource):
         # then flip into a dict
         node_list = [node.to_dict() for node in nodes]
 
-        api_response = APIResponse(
+        return APIResponse(
             status="200",
             message="Success",
             data=node_list,
         )
-        return api_response.jsonify()
 
     @graph_ns.doc(
         summary="Create a new node",

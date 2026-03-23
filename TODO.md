@@ -198,12 +198,15 @@ tbh, per page is probably still easier/simpler/faster in the short term
          > [ ] marshalling
       [ ] `GET /graph/node/<nodename>/<uuid>`: gets properties of node
          > [ ] marshalling
+      [ ] `DELETE /graph/node/<nodename>/<uuid>`: Deletes the node
+         > [ ] marshalling
+
+      > need to think about how to handle the schema input with these 2 
       [ ] `POST /graph/node/<nodename>/`: Create new node. UUID returned
          > [ ] marshalling
       [ ] `PATCH /graph/node/<nodename>/<uuid>`: Updates node data
          > [ ] marshalling
-      [ ] `DELETE /graph/node/<nodename>/<uuid>`: Deletes the node
-         > [ ] marshalling
+
 
    - [ ] Implement notes via PATCH func on gui
 

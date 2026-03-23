@@ -1,3 +1,4 @@
+import base64
 from datetime import date, datetime
 from typing import Literal
 
@@ -62,8 +63,14 @@ class GraphHelpers:
 
         # remove fields/modify fields that aren't str/int/bool
         for key, value in data.items():
+            # print(f"{key}:{value}:{type(value)}")
+
             if isinstance(value, datetime | date):
                 data[key] = value.isoformat()
+
+            # all bytes -> base64:
+            if isinstance(value, bytes):
+                data[key] = base64.b64encode(value).decode("utf-8")
 
         return data
 
