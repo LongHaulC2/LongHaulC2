@@ -1,3 +1,6 @@
+from datetime import date, datetime
+from typing import Literal
+
 from edwh_uuid7 import uuid7
 from neomodel import (
     BooleanProperty,
@@ -44,6 +47,27 @@ Relationships:
  """
 
 
+class GraphHelpers:
+    """
+    A helper class to provide generic JSON serialization for neomodel nodes.
+    """
+
+    def to_dict(self) -> dict:
+        """
+        Gets the properties from a neomodel, and turns them into a python dict.
+
+        """
+        # Grab the raw properties
+        data = self.__properties__.copy()
+
+        # remove fields/modify fields that aren't str/int/bool
+        for key, value in data.items():
+            if isinstance(value, datetime | date):
+                data[key] = value.isoformat()
+
+        return data
+
+
 class DiscoveredViaRel(StructuredRel):
     # What tool or protocol found this?ex, arp, icmp, etc.
     method = StringProperty(required=True)
@@ -54,7 +78,7 @@ class DiscoveredViaRel(StructuredRel):
 
 
 # semi structured for addtl ad hoc fields
-class Neo4jImplantNode(SemiStructuredNode):
+class Neo4jImplantNode(SemiStructuredNode, GraphHelpers):
     """
     Implant Node for Implants.
 
@@ -88,7 +112,7 @@ class Neo4jImplantNode(SemiStructuredNode):
         return None
 
 
-class Neo4jHostNode(StructuredNode):
+class Neo4jHostNode(StructuredNode, GraphHelpers):
     """
     Implant Node for Implants.
     """
@@ -193,7 +217,7 @@ class Neo4jHostNode(StructuredNode):
         return None
 
 
-class Neo4jNetworkNode(StructuredNode):
+class Neo4jNetworkNode(StructuredNode, GraphHelpers):
     """
     Represents a Layer 3 network segment (subnet/VLAN).
     """
@@ -219,7 +243,7 @@ class Neo4jNetworkNode(StructuredNode):
         return None
 
 
-class Neo4jListenerNode(StructuredNode):
+class Neo4jListenerNode(StructuredNode, GraphHelpers):
     """
     Listener Node for Listeners. Strictly typed to mirror the MySQL schema.
 
@@ -277,7 +301,7 @@ class Neo4jListenerNode(StructuredNode):
         }
 
 
-class Neo4jC2ChannelNode(StructuredNode):
+class Neo4jC2ChannelNode(StructuredNode, GraphHelpers):
     """
     Intermediate node representing the communication path.
     """
@@ -307,7 +331,7 @@ class Neo4jC2ChannelNode(StructuredNode):
         return None
 
 
-class Neo4jNicNode(SemiStructuredNode):
+class Neo4jNicNode(SemiStructuredNode, GraphHelpers):
     """A class for  NIC nodes."""
 
     nic_uuid = StringProperty(unique_index=True, default=uuid7)
@@ -359,7 +383,7 @@ class Neo4jNicNode(SemiStructuredNode):
         return results[0] if results else None
 
 
-class Neo4jMemstoreFileNode(StructuredNode):
+class Neo4jMemstoreFileNode(StructuredNode, GraphHelpers):
     """A class for memory store file nodes"""
 
     memstore_file_uuid = StringProperty(unique_index=True, default=uuid7)
@@ -384,7 +408,7 @@ class Neo4jMemstoreFileNode(StructuredNode):
         return None
 
 
-class Neo4jFileNode(StructuredNode):
+class Neo4jFileNode(StructuredNode, GraphHelpers):
     """A class for file nodes"""
 
     file_uuid = StringProperty(unique_index=True, default=uuid7)
@@ -403,3 +427,29 @@ class Neo4jFileNode(StructuredNode):
         if file_path:
             return cls.nodes.get_or_none(file_path=file_path)
         return None
+
+
+# A registry for mapping node name str to the class. Used in API.
+NODE_REGISTRY = {
+    "implant": Neo4jImplantNode,
+    "host": Neo4jImplantNode,
+    "network": Neo4jNetworkNode,
+    "listener": Neo4jListenerNode,
+    "channel": Neo4jC2ChannelNode,
+    "nic": Neo4jNicNode,
+    "memstore_file": Neo4jMemstoreFileNode,
+    "file": Neo4jFileNode,
+}
+NodeType = Literal["implant", "host", "network", "listener", "channel", "nic", "memstore_file", "file"]
+
+
+def get_node_class_from_string(node_name: NodeType) -> SemiStructuredNode | StructuredNode | None:
+    """
+    Gets a node class based on provided string
+
+    """
+    if not node_name:
+        return None
+
+    # a lower check just incase a capital is passed.
+    return NODE_REGISTRY.get(node_name.lower())

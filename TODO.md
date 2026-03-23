@@ -198,8 +198,11 @@ tbh, per page is probably still easier/simpler/faster in the short term
       `GET /graph/node/<nodename>/<uuid>`: gets properties of node
       `POST /graph/node/<nodename>/`: Create new node. UUID returned
       `PATCH /graph/node/<nodename>/<uuid>`: Updates node data
+      `DELETE /graph/node/<nodename>/<uuid>`: Deletes the node
 
-- [ ] Context menu for all of these, i.e., in operations, context menu over implant
+   - [ ] Implement notes via PATCH func on gui
+
+<!-- - [ ] Context menu for all of these, i.e., in operations, context menu over implant -->
    > Double click in tables is the current way, OR, from node graph
 
 Misc:
