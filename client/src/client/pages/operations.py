@@ -5,12 +5,10 @@ from nicegui import app, ui
 from client.src.client.modules.api_calls import (
     delete_implant,
     get_all_implant_data,
-    get_implant_data,
     get_implant_task_history,
     get_implant_task_history_since_uuid,
     queue_task,
     search_server,
-    update_implant,
 )
 from client.src.client.modules.task_parser import ResultType, build_cli_parser, get_all_command_names, task_tree
 from client.src.client.pages.dialogues import upload_to_implant_dialog
@@ -18,7 +16,6 @@ from client.src.client.pages.footer import build_footer
 from client.src.client.pages.formatted_tooltip import formatted_tooltip
 from client.src.client.pages.listeners import start_listener_dialogue
 from client.src.client.pages.menu import setup_menu
-from client.src.client.pages.notes import open_notes_dialog
 from client.src.client.pages.payloads import start_payload_dialogue
 from client.src.client.pages.syntax_sidebar import build_syntax_sidebar
 
@@ -157,20 +154,13 @@ async def implant_view(syntax_drawer):
                     .classes("text-orange-400 hover:text-orange-200 transition-colors tech-btn-action-2")
                     .props("dense flat size=sm square")
                 ):
-                    formatted_tooltip("Upload File To Host/Memstore")
+                    formatted_tooltip("Upload File To Host/Memstore of selected")
                 with (
                     ui.button(icon="open_in_new", on_click=lambda: action_open_implant_page())
                     .classes("tech-btn-action-2 tech-btn-action-2")
                     .props("dense flat size=sm square")
                 ):
                     formatted_tooltip("Open Page for Selected")
-                # Notes
-                with (
-                    ui.button(icon="notes", on_click=lambda: handle_notes())
-                    .classes("tech-btn-action-2 tech-btn-action-2")
-                    .props("dense flat size=sm square ")
-                ):
-                    formatted_tooltip("Edit Notes")
 
                 # Refresh
                 with (
@@ -206,6 +196,17 @@ async def implant_view(syntax_drawer):
             table.on(
                 "row-dblclick", lambda e: ui.timer(0.1, lambda: terminal_add_tab(e.args[1]["implant_uuid"]), once=True)
             )
+
+            # and select on single click
+            def toggle_selection(e):
+                row_data = e.args[1]
+                if row_data in table.selected:
+                    table.selected.remove(row_data)
+                else:
+                    table.selected.append(row_data)
+                table.update()  # Refresh UI to show the checkmark
+
+            table.on("row-click", toggle_selection)
 
     # --- LOGIC ---
     async def refresh():
@@ -307,21 +308,6 @@ async def implant_view(syntax_drawer):
             # FIX: Pass only the full UUID.
             # The function now handles the slicing for the label internally.
             await terminal_add_tab(implant_uuid)
-
-    async def handle_notes():
-        ids = [row["implant_uuid"] for row in table.selected]
-        if len(ids) == 1:
-            implant_uuid = ids[0]
-            implant_data = await get_implant_data(implant_uuid=implant_uuid)
-            implant_notes = implant_data.get("data", {}).get("notes")
-            notes = await open_notes_dialog(implant_uuid=f"ID: {implant_uuid}", populate_editor_with=implant_notes)
-            await update_implant(implant_uuid=implant_uuid, data={"notes": notes})
-        elif len(ids) > 1:
-            notes = await open_notes_dialog(implant_uuid=f"Editing {len(ids)} implants notes")
-            for implant_uuid in ids:
-                await update_implant(implant_uuid=implant_uuid, data={"notes": notes})
-        else:
-            ui.notify("Select an implant to edit notes", type="warning", color="orange-9")
 
     update_time = app.storage.user.get("auto_refresh_rate", 1)
     ui.timer(update_time, refresh)

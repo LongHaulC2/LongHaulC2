@@ -121,6 +121,17 @@ async def render_listeners_table():
         lambda e: ui.timer(0.1, lambda: navigate(f"/listener/{e.args[1]['listener_uuid']}", current_uri), once=True),
     )
 
+    # and select on single click
+    def toggle_selection(e):
+        row_data = e.args[1]
+        if row_data in table.selected:
+            table.selected.remove(row_data)
+        else:
+            table.selected.append(row_data)
+        table.update()  # Refresh UI to show the checkmark
+
+    table.on("row-click", toggle_selection)
+
     async def update_table_data():
         try:
             resp = await get_all_listener_data()

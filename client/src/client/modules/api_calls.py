@@ -885,3 +885,77 @@ async def get_all_graph_data() -> dict | None:
         method="GET",
         endpoint="/api/v1/graph/",
     )
+
+
+async def get_single_node_data(node_type: str, node_uuid: str) -> dict | None:
+    """Get data about ONE node
+
+    Args:
+        node_type (str): The node type
+        node_uuid (str): The UUID of the node
+
+    Returns:
+        dict | None: Dict of data
+    """
+    api_log.debug("Getting a node", node_type=node_type, node_uuid=node_uuid)
+
+    # get implants
+    return await safe_api_request(
+        method="GET",
+        endpoint=f"/api/v1/graph/node/{node_type}/{node_uuid}",
+    )
+
+
+async def get_all_node_data(node_type: str) -> dict | None:
+    """Gets data from ALL of a node type
+
+    Args:
+        node_type (str): The node type
+
+    Returns:
+        dict | None: Dict of data
+    """
+    api_log.debug("Getting nodes", node_type=node_type)
+
+    # get implants
+    return await safe_api_request(
+        method="GET",
+        endpoint=f"/api/v1/graph/node/{node_type}/",
+    )
+
+
+async def update_node_data(node_type: str, node_uuid: str, node_data: dict):
+    """Update the data of one node
+
+    Args:
+        node_type (str): The node type
+        node_uuid (str): The UUID of the node
+        node_data (dict): Dict data to update the node with
+
+    """
+    api_log.debug("Deleting a node", node_type=node_type, node_uuid=node_uuid, node_data=node_data)
+
+    return await safe_api_request(
+        method="PATCH",
+        endpoint=f"/api/v1/graph/node/{node_type}/{node_uuid}",
+        json=node_data,
+    )
+
+
+async def delete_single_node(node_type: str, node_uuid: str) -> dict | None:
+    """Delete data from ONE node
+
+    Args:
+        node_type (str): The node type
+        node_uuid (str): The UUID of the node
+
+    Returns:
+        dict | None: Dict of data
+    """
+    api_log.debug("Deleting a node", node_type=node_type, node_uuid=node_uuid)
+
+    # get implants
+    return await safe_api_request(
+        method="DELETE",
+        endpoint=f"/api/v1/graph/node/{node_type}/{node_uuid}",
+    )

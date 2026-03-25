@@ -9,6 +9,7 @@ from client.src.client.modules.api_calls import (
     stop_listener,
 )
 from client.src.client.modules.profile_visualizer import http_view
+from client.src.client.pages.components.notes_editor import GenericNotesEditor
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.formatted_tooltip import formatted_tooltip
 from client.src.client.pages.menu import setup_menu
@@ -186,6 +187,8 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
                             "h-10 min-h-0 tech-label-sub"
                         )
 
+                        ui.tab("notes_tab", label="NOTES").classes("h-10 min-h-0 tech-label-sub")
+
                         # ui.tab("graph_tab", label="GRAPH").classes("h-10 min-h-0 tech-label-sub")
 
                 # Tabs Content
@@ -224,6 +227,14 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
                         profile_rep = http_view(profile_toml)
                         for line in profile_rep:
                             code_panel.push(line)
+
+                    with ui.tab_panel("notes_tab").classes("w-full h-full p-0"):  # noqa - nicegui
+                        # hook me into genetic update func that takes node type, and contents?
+                        with ui.column().classes("w-full h-full relative"):
+                            GenericNotesEditor(
+                                node_type="listener",
+                                node_id=listener_uuid,
+                            )
                     # Graph Tab
                     # with ui.tab_panel("graph_tab").classes(
                     #     "w-full h-full items-center justify-center text-neutral-600"

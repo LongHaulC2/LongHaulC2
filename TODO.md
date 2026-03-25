@@ -211,7 +211,8 @@ tbh, per page is probably still easier/simpler/faster in the short term
       [X] `PATCH /graph/node/<nodename>/<uuid>`: Updates node data
          > [X] marshalling
 
-   - [ ] Implement notes via PATCH func on gui
+   - [X] Implement notes via PATCH func on gui
+      > [X] Notes are on backend, need to add notes tab to each page. 
 
 <!-- - [ ] Context menu for all of these, i.e., in operations, context menu over implant -->
    > Double click in tables is the current way, OR, from node graph
@@ -244,10 +245,14 @@ First:
  - [ ] Store in DB table
  - [ ] POC in /comms. Keep it simple, but useable
 
-### Day 16: March 25 - GUI Context & Workflows
-- [X] Add relationship names to the GUI visualizer.
-- [ ] Create context menus/buttons for selected items in the graph (e.g., right-click to "Open Implant Page" or "Pop Shell").
-- [ ] Split the Implant and Host pages logically (Implant = binary info; Host = OS info, all implants on it).
+### Day 16: March 25 - GENERICS
+- [ ] GUI - Move functions to generics. Anything that is repeated/used a lot. 
+
+- [ ] HEX EDITOR -> GenericHex
+- [ ] NOTES -> GenericNotes
+
+MISC
+- [ ]  
 
 ### Day 17: March 26 - Performance Throttling
 - [X] Implement pagination *everywhere* a list is returned.

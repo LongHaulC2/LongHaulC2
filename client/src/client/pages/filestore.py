@@ -156,6 +156,17 @@ async def filestore_view():
             )
             table.on("bin", lambda e: download_file(file_uuid=e.args["file_uuid"], name=e.args["file_name"]))
 
+            # and select on single click
+            def toggle_selection(e):
+                row_data = e.args[1]
+                if row_data in table.selected:
+                    table.selected.remove(row_data)
+                else:
+                    table.selected.append(row_data)
+                table.update()  # Refresh UI to show the checkmark
+
+            table.on("row-click", toggle_selection)
+
             await refresh_data()
 
 

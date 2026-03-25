@@ -1,6 +1,8 @@
 import structlog
 from nicegui import ui
 
+from client.src.client.pages.components.notes_editor import GenericNotesEditor
+
 # from client.src.client.modules.api_calls import get_nic_data
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
@@ -101,6 +103,14 @@ async def render_dashboard(nic_data: dict, nic_uuid: str):
                     ):
                         ui.icon("sync_alt", size="xl").classes("mb-2 opacity-50")
                         ui.label("TRAFFIC MODULE NOT IMPLEMENTED").classes("tech-label-sub")
+
+                    with ui.tab_panel("notes_tab").classes("w-full h-full p-0"):  # noqa - nicegui
+                        # hook me into genetic update func that takes node type, and contents?
+                        with ui.column().classes("w-full h-full relative"):
+                            GenericNotesEditor(
+                                node_type="nic",
+                                node_id=nic_uuid,
+                            )
 
                 with ui.column().classes("w-full p-4 gap-2 border-t border-white/5 shrink-0 bg-black/20"):
                     ui.label("ACTIONS").classes("tech-label-sub")

@@ -1,6 +1,3 @@
-import asyncio
-
-import hexdump
 import structlog
 from nicegui import ui
 
@@ -9,7 +6,8 @@ from client.src.client.modules.api_calls import (
     get_all_files,
     get_file_bytes,
 )
-from client.src.client.pages.custom import BongoSpinner
+from client.src.client.pages.components.hex_view import GenericHexViewer
+from client.src.client.pages.components.notes_editor import GenericNotesEditor
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
 
@@ -58,6 +56,7 @@ async def render_dashboard(file_data: dict, file_uuid: str):
     file_name = file_data.get("file_name", "UNKNOWN")
     file_size = len(file_contents) / 1000
     md5_hash = file_data.get("file_hash", "UNKNOWN")
+    # file_notes = file_data.get("file_notes", "NO NOTES")
 
     async def handle_download():
         file_bytes = await get_file_bytes(file_uuid)
@@ -118,6 +117,7 @@ async def render_dashboard(file_data: dict, file_uuid: str):
                     with tabs:
                         ui.tab("metadata_tab", label="FILE DATA").classes("h-10 min-h-0 tech-label-sub")
                         ui.tab("preview_tab", label="HEX PREVIEW").classes("h-10 min-h-0 tech-label-sub")
+                        ui.tab("notes_tab", label="NOTES TAB").classes("h-10 min-h-0 tech-label-sub")
 
                 with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0"):
                     with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):  # noqa - nicegui
@@ -127,25 +127,19 @@ async def render_dashboard(file_data: dict, file_uuid: str):
 
                     with ui.tab_panel("preview_tab").classes("w-full h-full p-0 flex flex-col"):  # noqa - nicegui
                         with ui.column().classes("w-full h-full relative"):
-                            spinner = BongoSpinner("Processing hexdump (this may take a moment)...")
-                            code_mirror = ui.codemirror(
-                                value="Loading data...", theme="androidstudio", language="yaml"
-                            ).classes("w-full h-full bg-transparent text-emerald-400 font-mono text-xs")
+                            GenericHexViewer(entity_id=file_uuid, fetch_bytes_api=get_file_bytes)
 
-                            async def load_hexdump():
-                                await asyncio.sleep(0.1)
-                                data = await get_file_bytes(file_uuid)
-                                if not data:
-                                    code_mirror.value = "ERROR: Failed to retrieve file bytes."
-                                    return
-
-                                spinner.start()
-                                hex_str = await asyncio.to_thread(hexdump.hexdump, data, result="return")
-                                spinner.stop()
-
-                                code_mirror.value = hex_str
-
-                            ui.timer(0, load_hexdump, once=True)
+                    with ui.tab_panel("notes_tab").classes("w-full h-full p-0"):  # noqa - nicegui
+                        # hook me into genetic update func that takes node type, and contents?
+                        with ui.column().classes("w-full h-full relative"):
+                            GenericNotesEditor(
+                                node_type="file",
+                                node_id=file_uuid,
+                            )
 
                 with ui.column().classes("w-full p-4 gap-2 border-t border-white/5 shrink-0 bg-black/20"):
                     ui.label("ACTIONS").classes("tech-label-sub")
+
+
+async def notes_editor():
+    ui.codemirror(theme="androidstudio").classes("w-full h-full")

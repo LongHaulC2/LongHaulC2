@@ -169,6 +169,15 @@ async def render_dashboard(payload_metadata: dict, payload_hash: str):
                         # Trigger load once directly on the main event loop
                         ui.timer(0, load_hexdump, once=True)
 
+                    # payloads don't have a uuid... cuz they are in mysql
+                    # with ui.tab_panel("notes_tab").classes("w-full h-full p-0"):  # noqa - nicegui
+                    #     # hook me into genetic update func that takes node type, and contents?
+                    #     with ui.column().classes("w-full h-full relative"):
+                    #         GenericNotesEditor(
+                    #             node_type="payload",
+                    #             node_id=payload_uuid,
+                    #         )
+
                 with ui.column().classes("w-full p-4 gap-2 border-t border-white/5 shrink-0 bg-black/20"):
                     ui.label("ACTIONS").classes("tech-label-sub")
                     # Put payload-specific actions here, like "Generate Shellcode", "Download", "Delete"
