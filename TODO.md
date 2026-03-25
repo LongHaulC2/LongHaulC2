@@ -208,9 +208,8 @@ tbh, per page is probably still easier/simpler/faster in the short term
       [ ] `POST /graph/node/<nodename>/`: Create new node. UUID returned
          > [ ] marshalling
 
-      [ ] `PATCH /graph/node/<nodename>/<uuid>`: Updates node data
-         > [ ] marshalling
-
+      [X] `PATCH /graph/node/<nodename>/<uuid>`: Updates node data
+         > [X] marshalling
 
    - [ ] Implement notes via PATCH func on gui
 

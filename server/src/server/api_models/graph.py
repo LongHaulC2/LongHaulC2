@@ -101,37 +101,3 @@ NODE_GET_SINGLE_RESPONSE = wrap_response_raw(api)
 NODE_DELETE_RESPONSE = wrap_response_empty(api, "NODE_DELETE_RESPONSE_MODEL")
 
 NODE_PATCH_INPUT = wrap_response_empty(api, "NODE_PATCH_INPUT_MODEL")
-
-
-# Represents a single field's rules
-SCHEMA_FIELD_MODEL = api.model(
-    "SCHEMA_FIELD_MODEL",
-    {
-        "type": fields.String(example="StringProperty", description="The neomodel data type"),
-        "required": fields.Boolean(example=True, description="Whether this field must be provided on POST"),
-        "unique": fields.Boolean(example=False, description="Whether this field must be unique in the database"),
-        "default_exists": fields.Boolean(
-            example=False, description="Whether the database will auto-fill this if omitted"
-        ),
-    },
-)
-
-# The overall schema payload
-NODE_SCHEMA_MODEL = api.model(
-    "NODE_SCHEMA_MODEL",
-    {
-        "node_type": fields.String(example="implant"),
-        "is_flexible": fields.Boolean(
-            example=True, description="If true, the API accepts arbitrary fields not listed in the schema."
-        ),
-        "fields": fields.Raw(
-            description="A dictionary mapping field names to their database rules.",
-            example={
-                "implant_uuid": {"type": "StringProperty", "required": True, "unique": True, "default_exists": False},
-                "os_info": {"type": "StringProperty", "required": False, "unique": False, "default_exists": False},
-            },
-        ),
-    },
-)
-
-NODE_SCHEMA_RESPONSE = wrap_response_single(api, NODE_SCHEMA_MODEL)

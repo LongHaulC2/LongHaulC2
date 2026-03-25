@@ -134,6 +134,8 @@ class Neo4jHostNode(StructuredNode, GraphHelpers):
     mac_address = StringProperty()
     hostname = StringProperty()
 
+    host_notes = StringProperty(default="")
+
     # Host -> Network
     on_subnet = RelationshipTo("Neo4jNetworkNode", "ON_SUBNET")
 
@@ -230,6 +232,7 @@ class Neo4jNetworkNode(StructuredNode, GraphHelpers):
     """
 
     network_uuid = StringProperty(unique_index=True, default=uuid7)
+    network_notes = StringProperty(default="")
 
     # move me to not default
     cidr = StringProperty(unique_index=True, required=True)  # 10.0.1.0/24
@@ -267,7 +270,7 @@ class Neo4jListenerNode(StructuredNode, GraphHelpers):
     listener_name = StringProperty(max_length=255)
 
     # Unlimited length text fields (equivalent to SQLAlchemy 'Text')
-    listener_notes = StringProperty()
+    listener_notes = StringProperty(default="")
 
     # State
     listener_active = BooleanProperty(default=False)
@@ -314,7 +317,7 @@ class Neo4jC2ChannelNode(StructuredNode, GraphHelpers):
     """
 
     channel_uuid = StringProperty(unique_index=True, default=uuid7)
-
+    channel_notes = StringProperty(default="")
     channel_id = StringProperty(unique_index=True, required=True)  # e.g., session_id or protocol_host_hash
     protocol = StringProperty(required=True)  # "HTTPS", "DNS", "SMB"
     # jitter = IntegerProperty(default=0)
@@ -348,6 +351,8 @@ class Neo4jNicNode(SemiStructuredNode, GraphHelpers):
     # associating hostname with NIC, as it's possible for this NIC's ip to be a different DNS name
     # than another NIC's IP's
     dns_name = StringProperty()
+
+    nic_notes = StringProperty(default="")
 
     # cidr
     cidr = StringProperty()
@@ -396,6 +401,7 @@ class Neo4jMemstoreFileNode(StructuredNode, GraphHelpers):
     memstore_file_uuid = StringProperty(unique_index=True, default=uuid7)
 
     file_name = StringProperty(unique_index=True, required=True)
+    memstore_file_notes = StringProperty(default="")
 
     # ip, optional
     # ip_address = StringProperty()
@@ -419,6 +425,7 @@ class Neo4jFileNode(StructuredNode, GraphHelpers):
     """A class for file nodes"""
 
     file_uuid = StringProperty(unique_index=True, default=uuid7)
+    file_notes = StringProperty(default="")
 
     file_path = StringProperty(unique_index=True, required=True)
     md5 = StringProperty()
