@@ -2,6 +2,7 @@ import structlog
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restx import Namespace, Resource
+from neomodel.contrib import SemiStructuredNode
 from werkzeug.exceptions import abort
 
 from ...api_models.error import COMMON_ERRORS
@@ -11,6 +12,7 @@ from ...api_models.graph import (
     NODE_DELETE_RESPONSE,
     NODE_GET_LIST_RESPONSE,
     NODE_GET_SINGLE_RESPONSE,
+    NODE_PATCH_INPUT,
 )
 from ...api_models.listener import LISTENER_GET_RESPONSE
 from ...db.neo4j_functions import Neo4jCoreService
@@ -116,30 +118,59 @@ class NodeParent(Resource):
             data=node_list,
         )
 
-    @graph_ns.doc(
-        summary="Create a new node",
-        description="Creates a new node of the specified type and returns its UUID.",
-        responses=COMMON_ERRORS,
-        security="Bearer Auth",
-    )
-    @jwt_required()
-    def post(self, nodename):
-        """
-        Create new node
-        """
-        ip = request.remote_addr
-        payload = request.json  # noqa
-        api_logger.info("Creating new node", nodename=nodename, caller_ip=ip)
+    # later - create new
+    # @graph_ns.doc(
+    #     summary="Create a new node",
+    #     description="Creates a new node of the specified type.",
+    #     responses=COMMON_ERRORS,
+    #     security="Bearer Auth",
+    # )
+    # @graph_ns.expect(NODE_POST_INPUT)
+    # @jwt_required()
+    # def post(self, nodename):
+    #     ip = request.remote_addr
+    #     payload = request.json or {}
 
-        # Implementation here
-        new_node_data = {}
+    #     # get class
+    #     node_class = get_node_class_from_string(node_name=nodename.lower())
+    #     if not node_class:
+    #         abort(400, "Invalid node type")
 
-        api_response = APIResponse(
-            status="201",
-            message="Created",
-            data=new_node_data,
-        )
-        return api_response.jsonify()
+    #     # Determine strict vs flexible validation
+    #     is_flexible = issubclass(node_class, SemiStructuredNode)
+    #     defined_properties = node_class.__all_properties__
+
+    #     # 3. Validate payload before instantiation
+    #     clean_payload = {}
+    #     for key, value in payload.items():
+    #         if key in defined_properties:
+    #             clean_payload[key] = value
+    #         elif is_flexible:
+    #             clean_payload[key] = value
+    #         else:
+    #             # Reject unknown fields on strict nodes before we even touch the database
+    #             abort(400, f"Invalid field '{key}' provided for node type {nodename}")
+
+    #     # Handle UUID Generation
+    #     node_uuid_var = f"{nodename.lower()}_uuid"
+
+    #     # If the client didn't supply a UUID, generate one for them
+    #     if node_uuid_var not in clean_payload:
+    #         clean_payload[node_uuid_var] = str(uuid.uuid4())
+
+    #     # 5. Instantiate and save
+    #     try:
+    #         # neomodel **kwargs instantiation handles the rest
+    #         new_node = node_class(**clean_payload).save()
+    #     except Exception as e:
+    #         # Catch neomodel validation errors (e.g., missing required fields)
+    #         abort(400, f"Failed to create node: {str(e)}")
+
+    #     return {
+    #         "status": "201",
+    #         "message": "Created successfully",
+    #         "data": new_node.to_dict()
+    #     }, 201
 
 
 class Node(Resource):
@@ -191,28 +222,60 @@ class Node(Resource):
 
     @graph_ns.doc(
         summary="Update node data",
-        description="Partially updates an existing node's data based on its UUID.",
+        description="Partially updates an existing node's data.",
         responses=COMMON_ERRORS,
         security="Bearer Auth",
     )
+    @graph_ns.expect(NODE_PATCH_INPUT)
     @jwt_required()
     def patch(self, nodename, uuid):
-        """
-        Updates node data
-        """
         ip = request.remote_addr
-        payload = request.json  # noqa
-        api_logger.info("Updating node", nodename=nodename, uuid=uuid, caller_ip=ip)
+        payload = request.json
 
-        # Implementation here
-        updated_node_data = {}
+        api_logger.info("Updating node", nodename=nodename, uuid=uuid, caller_ip=ip, payload=payload)
 
-        api_response = APIResponse(
+        # Get class and fetch existing node
+        node_class = get_node_class_from_string(node_name=nodename.lower())
+        if not node_class:
+            abort(400, "Invalid node type")
+
+        node_uuid_var = f"{nodename.lower()}_uuid"
+        node = node_class.nodes.get_or_none(**{node_uuid_var: uuid})
+        if not node:
+            abort(404, f"{nodename} with that UUID not found")
+
+        # Determine if the node is strict or flexible
+        is_flexible = issubclass(node_class, SemiStructuredNode)
+
+        # Get the defined properties of the class (to prevent Mass Assignment)
+        # neomodel stores defined fields in __all_properties__
+        defined_properties = node_class.__all_properties__
+
+        # Safely iterate and update
+        for key, value in payload.items():
+            # Don't let the field UUID be updated.
+            # kinda patchy
+            if key in [node_uuid_var, "uuid"]:
+                continue
+
+            if key in defined_properties:
+                # It's a known field, safe to update
+                setattr(node, key, value)
+            elif is_flexible:
+                # It's an unknown field, but this is an Implant (SemiStructured), so allow it
+                setattr(node, key, value)
+            else:
+                # It's an unknown field on a strict node. Reject the whole request.
+                abort(400, f"Invalid field '{key}' provided for node type {nodename}")
+
+        # 5. Save and return
+        node.save()
+
+        return APIResponse(
             status="200",
             message="Success",
-            data=updated_node_data,
+            data=node.to_dict(),
         )
-        return api_response.jsonify()
 
     @graph_ns.doc(
         summary="Delete a node",
@@ -253,9 +316,62 @@ class Node(Resource):
         )
 
 
+# busted - not sure why
+# class NodeSchema(Resource):
+#     """
+#     Returns the database schema for a specific node type.
+#     """
+
+#     @graph_ns.doc(
+#         summary="Get node schema",
+#         description="Retrieves the allowed fields, data types, and requirements for a node type.",
+#         responses=COMMON_ERRORS,
+#         security="Bearer Auth",
+#     )
+#     @graph_ns.param("nodename", "The type of node")
+#     @graph_ns.response(200, "Retrieved schema successfully")  # NODE_SCHEMA_RESPONSE)
+#     # @jwt_required()
+#     def get(self, nodename):
+#         ip = request.remote_addr
+#         api_logger.info("Getting schema for node type", nodename=nodename, caller_ip=ip)
+
+#         # 1. Resolve the class
+#         node_class = get_node_class_from_string(node_name=nodename.lower())
+#         if not node_class:
+#             abort(400, "Invalid node type")
+
+#         # 2. Build the base response
+#         schema_data = {
+#             "node_type": nodename.lower(),
+#             "is_flexible": issubclass(node_class, SemiStructuredNode),
+#             "fields": {},
+#         }
+
+#         # 3. Inspect neomodel properties at runtime
+#         for prop_name in node_class.__all_properties__:
+#             # Get the actual property object (e.g., the StringProperty instance)
+#             prop_obj = getattr(node_class, prop_name)
+
+#             # Extract its rules
+#             schema_data["fields"][prop_name] = {
+#                 # __class__.__name__ turns <class 'neomodel.StringProperty'> into "StringProperty"
+#                 "type": prop_obj.__class__.__name__,
+#                 "required": getattr(prop_obj, "required", False),
+#                 "unique": getattr(prop_obj, "unique_index", False),
+#                 "default_exists": getattr(prop_obj, "has_default", False),
+#             }
+
+#         return APIResponse(
+#             status="200",
+#             message="Success",
+#             data=schema_data,
+#         )
+
+
 graph_ns.add_resource(Graph, "/")
 graph_ns.add_resource(GraphSearch, "/search")
 graph_ns.add_resource(NodeParent, "/node/<string:nodename>/")
+# busted for some reason, deal with later.
+# graph_ns.add_resource(NodeSchema, "/node/<string:nodename>/schema")
 graph_ns.add_resource(Node, "/node/<string:nodename>/<string:uuid>")
-
 api.add_namespace(graph_ns)

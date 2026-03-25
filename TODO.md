@@ -203,7 +203,8 @@ tbh, per page is probably still easier/simpler/faster in the short term
       [X] `DELETE /graph/node/<nodename>/<uuid>`: Deletes the node
          > [X] marshalling
 
-      > need to think about how to handle the schema input with these 2 
+      > need to think about how to handle the schema input with these 2
+      > Maybe a check if field exists, if so, update, else, ret 400>
       [ ] `POST /graph/node/<nodename>/`: Create new node. UUID returned
          > [ ] marshalling
 
