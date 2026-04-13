@@ -94,18 +94,18 @@ async def render_dashboard(network_data: dict, network_uuid: str):
                     )
                     with tabs:
                         ui.tab("metadata_tab", label="NETWORK DATA").classes("h-10 min-h-0 tech-label-sub")
-                        ui.tab("hosts_tab", label="CONNECTED HOSTS").classes("h-10 min-h-0 tech-label-sub")
+                        # ui.tab("hosts_tab", label="CONNECTED HOSTS").classes("h-10 min-h-0 tech-label-sub")
                         ui.tab("note_tab", label="NOTES").classes("h-10 min-h-0 tech-label-sub")
 
                 with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0"):
                     with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):  # noqa - nicegu
                         MetadataView(network_data)
 
-                    with ui.tab_panel("hosts_tab").classes(
-                        "w-full h-full items-center justify-center text-neutral-600"
-                    ):
-                        ui.icon("dns", size="xl").classes("mb-2 opacity-50")
-                        ui.label("HOSTS MODULE NOT IMPLEMENTED").classes("tech-label-sub")
+                    # with ui.tab_panel("hosts_tab").classes(
+                    #     "w-full h-full items-center justify-center text-neutral-600"
+                    # ):
+                    #     ui.icon("dns", size="xl").classes("mb-2 opacity-50")
+                    #     ui.label("HOSTS MODULE NOT IMPLEMENTED").classes("tech-label-sub")
 
                     with ui.tab_panel("notes_tab").classes("w-full h-full p-0"):  # noqa - nicegui
                         # hook me into genetic update func that takes node type, and contents?

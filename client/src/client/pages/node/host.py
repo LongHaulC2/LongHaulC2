@@ -92,18 +92,18 @@ async def render_dashboard(host_data: dict, host_uuid: str):
                     )
                     with tabs:
                         ui.tab("metadata_tab", label="HOST DATA").classes("h-10 min-h-0 tech-label-sub")
-                        ui.tab("implants_tab", label="KNOWN IMPLANTS").classes("h-10 min-h-0 tech-label-sub")
+                        # ui.tab("implants_tab", label="KNOWN IMPLANTS").classes("h-10 min-h-0 tech-label-sub")
                         ui.tab("notes_tab", label="notes").classes("h-10 min-h-0 tech-label-sub")
 
                 with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0"):
                     with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):  # noqa - nicegu
                         MetadataView(host_data)
 
-                    with ui.tab_panel("implants_tab").classes(
-                        "w-full h-full items-center justify-center text-neutral-600"
-                    ):
-                        ui.icon("memory", size="xl").classes("mb-2 opacity-50")
-                        ui.label("IMPLANTS MODULE NOT IMPLEMENTED").classes("tech-label-sub")
+                    # with ui.tab_panel("implants_tab").classes(
+                    #     "w-full h-full items-center justify-center text-neutral-600"
+                    # ):
+                    #     ui.icon("memory", size="xl").classes("mb-2 opacity-50")
+                    #     ui.label("IMPLANTS MODULE NOT IMPLEMENTED").classes("tech-label-sub")
 
                     with ui.tab_panel("notes_tab").classes("w-full h-full p-0"):  # noqa - nicegui
                         # hook me into genetic update func that takes node type, and contents?

@@ -92,17 +92,17 @@ async def render_dashboard(nic_data: dict, nic_uuid: str):
                     )
                     with tabs:
                         ui.tab("metadata_tab", label="NIC DATA").classes("h-10 min-h-0 tech-label-sub")
-                        ui.tab("traffic_tab", label="TRAFFIC STATS").classes("h-10 min-h-0 tech-label-sub")
+                        # ui.tab("traffic_tab", label="TRAFFIC STATS").classes("h-10 min-h-0 tech-label-sub")
 
                 with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0"):
                     with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):  # noqa - nicegu
                         MetadataView(nic_data)
 
-                    with ui.tab_panel("traffic_tab").classes(
-                        "w-full h-full items-center justify-center text-neutral-600"
-                    ):
-                        ui.icon("sync_alt", size="xl").classes("mb-2 opacity-50")
-                        ui.label("TRAFFIC MODULE NOT IMPLEMENTED").classes("tech-label-sub")
+                    # with ui.tab_panel("traffic_tab").classes(
+                    #     "w-full h-full items-center justify-center text-neutral-600"
+                    # ):
+                    #     ui.icon("sync_alt", size="xl").classes("mb-2 opacity-50")
+                    #     ui.label("TRAFFIC MODULE NOT IMPLEMENTED").classes("tech-label-sub")
 
                     with ui.tab_panel("notes_tab").classes("w-full h-full p-0"):  # noqa - nicegui
                         # hook me into genetic update func that takes node type, and contents?

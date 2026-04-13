@@ -258,11 +258,12 @@ First:
 - [ ] Move anything that *could* be using node endpoints, to node endpoints
 
    - [ ] Metadata
-      - note, include node data as well in this metadata? i.e., implant metadata, but also just everything
+      - [X] note, include node data as well in this metadata? i.e., implant metadata, but also just everything
       from the node as well?
-      - Add metadata view to the graph as well, it looks much better
+      - [X] Add metadata view to the graph as well, it looks much better
       - move the top stats bar to a generic as well, with generic data, such as "first seen".
          No need for individual data with the new metadata tab
+
 
 MISC
 - [ ]  
@@ -274,7 +275,16 @@ MISC
 
 ### Day 18: March 27 - New Operations Commands
 - [ ] Implement the `--resolve` command (ARP only by default, toggle DNS resolution via the arg).
-- [ ] Finish the deref operator assistance functions and hook them up to BOF and file uploads.
+
+## Agent Upgrades:
+
+## Protocols:
+ - [ ] NTP
+ - [ ] ICMP
+
+## Functionality:
+   - Addtl commands?
+
 
 ---
 

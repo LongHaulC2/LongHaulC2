@@ -238,8 +238,6 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
                         "w-full h-full items-center justify-center text-neutral-600"
                     ):
                         await terminal(implant_uuid=implant_uuid)
-                        # ui.icon("terminal", size="xl").classes("mb-2 opacity-50")
-                        # ui.label("TERMINAL MODULE NOT IMPLEMENTED").classes("tech-label-sub")
 
                     with ui.tab_panel("notes_tab").classes("w-full h-full p-0"):  # noqa - nicegui
                         # hook me into genetic update func that takes node type, and contents?

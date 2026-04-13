@@ -5,6 +5,7 @@ from nicegui import ui
 
 
 def run_random_easter_egg():
+    return  # disabling for now.
     if hasattr(ui.context.client, "easter_timer_started"):
         return
     # prevents dup timers
