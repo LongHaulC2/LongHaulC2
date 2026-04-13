@@ -53,7 +53,8 @@ class GenericNotesEditor:
                 self.editor.value = "Could not retrieve notes"
                 return
 
-            content = request_data.get("data", {}).get("notes", "")
+            note_variable_name = f"{self.node_type}_notes"
+            content = request_data.get("data", {}).get(note_variable_name, "")
 
             self.original_content = content or ""
             self.editor.value = self.original_content
@@ -70,7 +71,8 @@ class GenericNotesEditor:
         try:
             # Pull latest to check for differences
             request_data = await get_single_node_data(self.node_type, self.node_id)
-            latest_content = request_data.get("data", {}).get("notes", "")
+            note_variable_name = f"{self.node_type}_notes"
+            latest_content = request_data.get("data", {}).get(note_variable_name, "")
 
             # Check for conflicts
             if latest_content != self.original_content:
@@ -89,7 +91,8 @@ class GenericNotesEditor:
     async def execute_save(self):
         self.status_label.text = "Saving..."
         try:
-            note_data = {"notes": self.editor.value}
+            note_variable_name = f"{self.node_type}_notes"
+            note_data = {note_variable_name: self.editor.value}
 
             await update_node_data(self.node_type, self.node_id, note_data)
             self.original_content = self.editor.value  # Update baseline

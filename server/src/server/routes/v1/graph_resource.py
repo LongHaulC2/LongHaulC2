@@ -239,7 +239,12 @@ class Node(Resource):
         if not node_class:
             abort(400, "Invalid node type")
 
+        #! In short, bad planning means each model has a different uuid field, but they all follow the pattern
+        #! NAME_uuid.
+        #! So we have to dynamically format the lookup based on the nodename.
+        #! This is a bit hacky, but it works for now without a major refactor.
         node_uuid_var = f"{nodename.lower()}_uuid"
+
         node = node_class.nodes.get_or_none(**{node_uuid_var: uuid})
         if not node:
             abort(404, f"{nodename} with that UUID not found")
@@ -249,7 +254,8 @@ class Node(Resource):
 
         # Get the defined properties of the class (to prevent Mass Assignment)
         # neomodel stores defined fields in __all_properties__
-        defined_properties = node_class.__all_properties__
+        # This is a tuple - so we convert to a dict.
+        defined_properties = dict(node_class.__all_properties__)
 
         # Safely iterate and update
         for key, value in payload.items():
@@ -268,7 +274,7 @@ class Node(Resource):
                 # It's an unknown field on a strict node. Reject the whole request.
                 abort(400, f"Invalid field '{key}' provided for node type {nodename}")
 
-        # 5. Save and return
+        # Save and return
         node.save()
 
         return APIResponse(

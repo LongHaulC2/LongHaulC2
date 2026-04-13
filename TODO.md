@@ -248,8 +248,22 @@ First:
 ### Day 16: March 25 - GENERICS
 - [ ] GUI - Move functions to generics. Anything that is repeated/used a lot. 
 
-- [ ] HEX EDITOR -> GenericHex
-- [ ] NOTES -> GenericNotes
+- [ ] HEX EDITOR -> GenericHex (any node page with data/content)
+   > [ ] add in tech-styling
+- [X] NOTES -> GenericNotes
+   > [ ] add in tech-styling
+
+- [ ] Bug: notes request failing. (Works for implants - does not for payloads/others. )
+   - [ ] payloads
+
+```
+2026-04-12T21:16:27.112870Z [info     ] Updating node                  [api] caller_ip=10.0.0.30 nodename=listener payload={'notes': 'asfsadfasdfsdafsa'} uuid=019ce405-8802-732e-8e05-86ad05f345bf
+2026-04-12T21:16:27.116604Z [error    ] An error occurred              [server] error=<BadRequest '400: Bad Request'> message="400 Bad Request: Invalid field 'notes' provided for node type listener"
+10.0.0.30 - - [12/Apr/2026 21:16:27] "PATCH /api/v1/graph/node/listener/019ce405-8802-732e-8e05-86ad05f345bf HTTP/1.1" 400 -
+```
+
+
+- [ ] Move anything that *could* be using node endpoints, to node endpoints
 
 MISC
 - [ ]  
@@ -258,6 +272,7 @@ MISC
 - [X] Implement pagination *everywhere* a list is returned.
 - [X] Add user-specified refresh intervals (1-60s) on the operations table to stop the client from choking on updates.
 - [ ] Rip out spammy `ui.notify` calls for high-frequency events.
+   > create a custom notify in custom.py?
 
 ### Day 18: March 27 - New Operations Commands
 - [ ] Implement the `--resolve` command (ARP only by default, toggle DNS resolution via the arg).
