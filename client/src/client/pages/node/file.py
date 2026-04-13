@@ -7,6 +7,7 @@ from client.src.client.modules.api_calls import (
     get_file_bytes,
 )
 from client.src.client.pages.components.hex_view import GenericHexViewer
+from client.src.client.pages.components.metadata_view import MetadataView
 from client.src.client.pages.components.notes_editor import GenericNotesEditor
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.menu import setup_menu
@@ -121,9 +122,7 @@ async def render_dashboard(file_data: dict, file_uuid: str):
 
                 with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0"):
                     with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):  # noqa - nicegui
-                        with ui.scroll_area().classes("w-full h-full p-4"):
-                            for key, value in file_data.items():
-                                info_row(key, value)
+                        MetadataView(file_data)
 
                     with ui.tab_panel("preview_tab").classes("w-full h-full p-0 flex flex-col"):  # noqa - nicegui
                         with ui.column().classes("w-full h-full relative"):

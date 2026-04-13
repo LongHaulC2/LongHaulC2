@@ -9,6 +9,7 @@ from client.src.client.modules.api_calls import (
     stop_listener,
 )
 from client.src.client.modules.profile_visualizer import http_view
+from client.src.client.pages.components.metadata_view import MetadataView
 from client.src.client.pages.components.notes_editor import GenericNotesEditor
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.formatted_tooltip import formatted_tooltip
@@ -195,13 +196,7 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
                 with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0"):
                     # Metadata Tab
                     with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):  # noqa
-                        with ui.scroll_area().classes("w-full h-full p-4"):
-                            for key, value in listener_data.items():
-                                # skip contents, it's way too big
-                                if key == "listener_profile_contents":
-                                    info_row(key, "See `NET PROFILE [CONFIG]` tab")
-                                    continue
-                                info_row(key, value)
+                        MetadataView(listener_data)
 
                     # Connected Implants Tab
                     with ui.tab_panel("connected_implants_tab").classes(

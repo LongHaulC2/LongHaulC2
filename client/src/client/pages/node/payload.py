@@ -5,6 +5,7 @@ import structlog
 from nicegui import app, ui
 
 from client.src.client.modules.api_calls import get_payload_bytes, get_payload_data
+from client.src.client.pages.components.metadata_view import MetadataView
 from client.src.client.pages.custom import BongoSpinner
 
 # Adjust these imports based on your actual file structure for payloads
@@ -131,9 +132,7 @@ async def render_dashboard(payload_metadata: dict, payload_hash: str):
                 with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0"):
                     # --- METADATA TAB ---
                     with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):  # noqa - nicegui
-                        with ui.scroll_area().classes("w-full h-full p-4"):
-                            for key, value in payload_metadata.items():
-                                info_row(key, value)
+                        MetadataView(payload_metadata)
 
                     # --- HEXDUMP TAB ---
                     with ui.tab_panel("hexdump_tab").classes("w-full h-full p-0 flex flex-col"):

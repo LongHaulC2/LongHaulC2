@@ -253,21 +253,12 @@ First:
 - [X] NOTES -> GenericNotes
    > [ ] add in tech-styling
 
-- [ ] Bug: notes request failing. (Works for implants - does not for payloads/others. )
-   - [ ] payloads
-
-```
-2026-04-12T21:16:27.112870Z [info     ] Updating node                  [api] caller_ip=10.0.0.30 nodename=listener payload={'notes': 'asfsadfasdfsdafsa'} uuid=019ce405-8802-732e-8e05-86ad05f345bf
-2026-04-12T21:16:27.116604Z [error    ] An error occurred              [server] error=<BadRequest '400: Bad Request'> message="400 Bad Request: Invalid field 'notes' provided for node type listener"
-10.0.0.30 - - [12/Apr/2026 21:16:27] "PATCH /api/v1/graph/node/listener/019ce405-8802-732e-8e05-86ad05f345bf HTTP/1.1" 400 -
-```
-
+- [X] Bug: notes request failing. (Works for implants - others. )
 
 - [ ] Move anything that *could* be using node endpoints, to node endpoints
 
 MISC
 - [ ]  
-
 ### Day 17: March 26 - Performance Throttling
 - [X] Implement pagination *everywhere* a list is returned.
 - [X] Add user-specified refresh intervals (1-60s) on the operations table to stop the client from choking on updates.

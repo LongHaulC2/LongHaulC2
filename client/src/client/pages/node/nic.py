@@ -1,6 +1,7 @@
 import structlog
 from nicegui import ui
 
+from client.src.client.pages.components.metadata_view import MetadataView
 from client.src.client.pages.components.notes_editor import GenericNotesEditor
 
 # from client.src.client.modules.api_calls import get_nic_data
@@ -94,9 +95,7 @@ async def render_dashboard(nic_data: dict, nic_uuid: str):
 
                 with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0"):
                     with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):  # noqa - nicegu
-                        with ui.scroll_area().classes("w-full h-full p-4"):
-                            for key, value in nic_data.items():
-                                info_row(key, value)
+                        MetadataView(nic_data)
 
                     with ui.tab_panel("traffic_tab").classes(
                         "w-full h-full items-center justify-center text-neutral-600"

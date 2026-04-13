@@ -4,6 +4,7 @@ import structlog
 from nicegui import app, ui
 
 from client.src.client.modules.api_calls import get_implant_data, get_implant_task_history
+from client.src.client.pages.components.metadata_view import MetadataView
 from client.src.client.pages.components.notes_editor import GenericNotesEditor
 from client.src.client.pages.footer import build_footer
 from client.src.client.pages.formatted_tooltip import formatted_tooltip
@@ -110,9 +111,7 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
 
                 with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0"):
                     with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):  # noqa - nicegu
-                        with ui.scroll_area().classes("w-full h-full p-4"):
-                            for key, value in implant_metadata.items():
-                                info_row(key, value)
+                        MetadataView(implant_metadata)
 
                     with ui.tab_panel("history_tab").classes("w-full h-full p-0 flex flex-col"):
                         # in one row, so large expands don't push the search to one side, and command table to another
