@@ -235,15 +235,33 @@ async def handle_click(e, nodes, sidebar_container):
                 "text-neutral-500 hover:text-white"
             )
 
-        with ui.column().classes("p-4 w-full gap-4"):
-            with ui.column().classes("w-full gap-1"):
+        with ui.column().classes("w-full h-full"):
+            # manual implementation of cards, instead of using the MetadataView component. THis is simpler & less
+            # fighting as that component is not meant for small areas like this taskbar.
+            with ui.scroll_area().classes("w-full h-full gap-2"):
                 for key, val in props.items():
-                    # skip profile contents cuz it's huge, wait on metadata
-                    if key == "listener_profile_contents" or key == "metadata":
+                    # skip these more complex properties that we don't want to show in the sidebar,
+                    # but are needed for other things
+                    if key in ["listener_profile_contents", "metadata"]:
                         continue
-                    with ui.row().classes("w-full justify-between border-b border-white/5 pb-1"):
-                        ui.label(key).classes("text-[10px] text-zinc-500 font-mono uppercase")
-                        ui.label(str(val)).classes("text-[11px] text-emerald-400/80 font-mono text-right break-all")
+
+                    # Clean up the key string for UI display
+                    formatted_key = str(key).replace("_", " ").upper()
+
+                    with (  # noqa - nicegui
+                        ui.card()
+                        .props("flat bg-transparent")
+                        .classes(
+                            "w-full tech-glass-panel rounded border border-white/5 p-3 "
+                            "hover:border-emerald-500/30 hover:bg-white/5 transition-all"
+                        )
+                    ):
+                        # Inner column with gap-0 tightly hugs the label and value together
+                        with ui.column().classes("w-full gap-0"):
+                            ui.label(formatted_key).classes("tech-label-sub text-[10px] text-zinc-500 tracking-wider")
+
+                            # break-all ensures long UUIDs/hashes wrap cleanly instead of blowing out the width
+                            ui.label(str(val)).classes("tech-data-mono text-sm text-emerald-400/90 break-all")
 
             ui.separator().classes("bg-white/5")
 
