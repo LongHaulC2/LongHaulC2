@@ -9,6 +9,8 @@ class MetadataView(ui.scroll_area):
     Simple values are displayed in a responsive grid of cards, while complex values
     (JSON blobs, lists, long strings) are displayed in expandable code blocks below.
     Uses existing 'tech-' CSS classes for styling.
+
+    The goal here is to take whatever data is dumped into us, and display it in a somewhat formatted manner.
     """
 
     def __init__(self, metadata: dict, **kwargs):

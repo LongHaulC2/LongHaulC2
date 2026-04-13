@@ -1,6 +1,7 @@
 import structlog
 from nicegui import ui
 
+from client.src.client.modules.api_calls import get_single_node_data
 from client.src.client.pages.components.metadata_view import MetadataView
 from client.src.client.pages.components.notes_editor import GenericNotesEditor
 
@@ -35,7 +36,7 @@ async def nic_details(nic_uuid: str):
 
     setup_menu("NIC View")
 
-    api_res = {}  # await get_nic_data(nic_uuid)
+    api_res = await get_single_node_data(node_type="nic", node_uuid=nic_uuid)  # await get_nic_data(nic_uuid)
     nic_data = api_res.get("data", {}) or {}
 
     await render_dashboard(nic_data, nic_uuid)

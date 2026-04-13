@@ -257,6 +257,13 @@ First:
 
 - [ ] Move anything that *could* be using node endpoints, to node endpoints
 
+   - [ ] Metadata
+      - note, include node data as well in this metadata? i.e., implant metadata, but also just everything
+      from the node as well?
+      - Add metadata view to the graph as well, it looks much better
+      - move the top stats bar to a generic as well, with generic data, such as "first seen".
+         No need for individual data with the new metadata tab
+
 MISC
 - [ ]  
 ### Day 17: March 26 - Performance Throttling

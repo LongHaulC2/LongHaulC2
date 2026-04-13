@@ -1,6 +1,7 @@
 import structlog
 from nicegui import ui
 
+from client.src.client.modules.api_calls import get_single_node_data
 from client.src.client.pages.components.metadata_view import MetadataView
 from client.src.client.pages.components.notes_editor import GenericNotesEditor
 
@@ -35,7 +36,9 @@ async def network_details(network_uuid: str):
 
     setup_menu("Network View")
 
-    api_res = {}  # await get_network_data(network_uuid)
+    api_res = await get_single_node_data(
+        node_type="network", node_uuid=network_uuid
+    )  # await get_network_data(network_uuid)
     network_data = api_res.get("data", {}) or {}
 
     await render_dashboard(network_data, network_uuid)

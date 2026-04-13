@@ -1,6 +1,7 @@
 import structlog
 from nicegui import ui
 
+from client.src.client.modules.api_calls import get_single_node_data
 from client.src.client.pages.components.metadata_view import MetadataView
 from client.src.client.pages.components.notes_editor import GenericNotesEditor
 
@@ -36,7 +37,7 @@ async def host_details(host_uuid: str):
     setup_menu("Host View")
 
     # holdoff on host data atm
-    api_res = {}  # await get_host_data(host_uuid)
+    api_res = await get_single_node_data(node_type="host", node_uuid=host_uuid)  # await get_host_data(host_uuid)
     host_data = api_res.get("data", {}) or {}
 
     await render_dashboard(host_data, host_uuid)

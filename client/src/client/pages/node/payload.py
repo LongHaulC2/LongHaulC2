@@ -46,6 +46,8 @@ async def payload_details(payload_hash: str):
     # We'll have to get ALL the payloads, then sort for the one we want.
     # not super efficent, but ideally there wouldn't be enough payloads that this
     # actually slows anything down.
+    # Additionally - payloads are not stored in neo4j, but instead in mysql, so we can't do any fancy graph queries
+    # to get this data, we just have to ask for it directly.
     response_data = await get_payload_data()
     payload_list = response_data.get("data", [])
 
