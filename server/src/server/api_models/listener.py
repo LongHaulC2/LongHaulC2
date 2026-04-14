@@ -118,7 +118,9 @@ LISTENERS_POST_INPUT = api.model(
             description="Host the listener will listen on (DNS Host, or IP address)",
         ),
         "listener_port": fields.Integer(required=False, description="Port to spawn the listener on"),
-        "listener_type": fields.String(required=True, description="What type of listener to spawn"),
+        "listener_type": fields.String(
+            required=True, description="What type of listener to spawn", enum=["ntp", "http", "pivot_smb"]
+        ),
         "listener_name": fields.String(required=True, description="Name of listener"),
         "listener_notes": fields.String(required=False, description="Listener notes"),
         "listener_profile_name": fields.String(required=True, description="Listener malleable c2 profile name"),

@@ -276,14 +276,7 @@ MISC
 ### Day 18: March 27 - New Operations Commands
 - [ ] Implement the `--resolve` command (ARP only by default, toggle DNS resolution via the arg).
 
-## Agent Upgrades:
 
-## Protocols:
- - [ ] NTP
- - [ ] ICMP
-
-## Functionality:
-   - Addtl commands?
 
 
 ---
@@ -301,5 +294,26 @@ MISC
 - [ ] Document the API. (redoc - get stupid dark mode working)
 
 
----
-**April 1st:** Beta Launch.
+
+## Agent Upgrades:
+
+## Protocols:
+ - [ ] NTP
+ - [ ] ICMP
+
+## Functionality:
+   - Addtl commands?
+
+
+## Sprint 10 - NTP:
+
+### Implant:
+   - [ ] NTP Logic
+      - refine old extc2 logic
+
+### Server:
+- [ ] NTP Listener
+
+
+### GUI:
+- [ ] NTP options

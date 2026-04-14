@@ -25,6 +25,7 @@ app = FastAPI(
 listener_logger = structlog.get_logger("listener")
 
 # Global state
+#! Globals not ideal, but are a simple way to share state without having to do a class.
 g_profile: dict = {}
 g_listener_uuid: str = ""
 

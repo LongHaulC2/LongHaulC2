@@ -9,6 +9,7 @@ from ..instance import active_processes
 from ..schemas.listeners import ListenerCreate
 from ..utils.checks import check_type
 from .http.http import run as http_run
+from .ntp.ntp import run as ntp_run
 
 
 class InvalidListenerType(Exception):
@@ -80,6 +81,30 @@ def start_listener(
                 # server_logger.warning("Invalid listener type", listener_type=listener_data.listener_type)
                 # throw custom error if invalid listener type
                 # raise InvalidListenerType
+
+            case "ntp":
+                p = multiprocessing.Process(
+                    target=ntp_run,
+                    kwargs={
+                        "listener_uuid": listener_data.listener_uuid,
+                        "listener_host": listener_data.listener_host,
+                        "listener_port": listener_data.listener_port,
+                        "listener_profile_contents": listener_data.listener_profile_contents,
+                    },
+                    daemon=True,  # shuts down listeners at program exit.
+                )
+                # toss in global active processes dict
+                active_processes[listener_data.listener_name] = p
+                p.start()
+                # THREAD-SAFE ADDITION
+                with listeners_lock:
+                    listeners[listener_data.listener_uuid] = p
+                server_logger.info(
+                    "Listener started",
+                    listener_uuid=listener_data.listener_uuid,
+                    pid=p.pid,
+                    type=listener_data.listener_type,
+                )
 
             case _:
                 server_logger.warning("Invalid listener type", listener_type=listener_data.listener_type)
