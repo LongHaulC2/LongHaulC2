@@ -1,0 +1,29 @@
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Literal
+
+from ....design import create_anchor_name
+
+
+@dataclass(kw_only=True, slots=True)
+class Demo:
+    function: Callable
+    lazy: bool = True
+    tab: str | Callable | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class DocumentationPart:
+    title: str | None = None
+    description: str | None = None
+    description_format: Literal["md", "rst"] = "md"
+    link: str | None = None
+    ui: Callable | None = None
+    demo: Demo | None = None
+    reference: type | None = None
+    search_text: str | None = None
+
+    @property
+    def link_target(self) -> str | None:
+        """Return the link target for in-page navigation."""
+        return create_anchor_name(self.title) if self.title else None
