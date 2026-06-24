@@ -122,7 +122,7 @@ deploy: check_root
 	mkdir -p /var/log/longhaulc2
 	
 	# copy over user contents into new workspace
-	cp -r ./client/src/client/user/. $(WORKSPACE_DIR)
+	cp -r ./client/user/. $(WORKSPACE_DIR)
 	
 	@echo "=================================================="
 	@echo "Copying files"
@@ -276,7 +276,7 @@ dev_install:
 	# create workspace dir here as well, for workspace items for dev. 
 	mkdir -p $(WORKSPACE_DIR)
 	mkdir -p /var/log/longhaulc2
-	cp -r ./client/src/client/user/. $(WORKSPACE_DIR)
+	cp -r ./client/user/. $(WORKSPACE_DIR)
 	
 	# location for implant templates to live
 	mkdir -p $(WORKSPACE_DIR)/implant_templates

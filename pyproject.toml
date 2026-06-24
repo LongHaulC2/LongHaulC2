@@ -75,7 +75,7 @@ exclude = [
     "*.md",    # exclude docs
     "*test*",  # exclude any tests
     "*user/*", # exlcude anything in client user folder, which is for python scripts & malleablec2 files
-    ".prompts/*"
+    "development/*"
 ]
 
 [tool.ruff.lint]
