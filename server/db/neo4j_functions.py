@@ -300,6 +300,20 @@ class Neo4jImplantNodeService:
         return implant_node
 
     @staticmethod
+    def update_last_checkin(implant_uuid: str) -> None:
+        import time
+
+        node = Neo4jImplantNode.get_or_create({"implant_uuid": implant_uuid})[0]
+        node.last_checkin = int(time.time())
+        node.save()
+
+    @staticmethod
+    def update_sleep_value(implant_uuid: str, sleep_value: int) -> None:
+        node = Neo4jImplantNode.get_or_create({"implant_uuid": implant_uuid})[0]
+        node.sleep_value = sleep_value
+        node.save()
+
+    @staticmethod
     def create_or_get_node(implant_uuid):
         """
         Creates a node. Useful for getting a quick new node and letting this handle all

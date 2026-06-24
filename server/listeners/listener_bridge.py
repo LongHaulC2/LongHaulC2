@@ -15,6 +15,8 @@ def _register_new_implant(unpacked_metadata: dict, external_ip: str, listener_uu
 
     # extract external ip from the listener that called this
     unpacked_metadata["external_ip"] = external_ip
+    # seed default sleep_value matching the C++ implant default (sleep_time=5)
+    unpacked_metadata.setdefault("sleep_value", 5)
 
     implant_uuid = unpacked_metadata.get("implant_uuid")
     if not implant_uuid:
@@ -61,6 +63,8 @@ def handle_beacon(data_from_implant: bytes, external_ip: str, listener_uuid: str
         if not implant_data_in_db or not implant_data_in_db.get("system_hostname"):
             core_logger.info("Registering new implant or populating placeholder", implant_uuid=implant_uuid)
             _register_new_implant(implant_get_request, external_ip, listener_uuid)
+
+        Neo4jImplantNodeService.update_last_checkin(implant_uuid)
 
     # find the egress node of one of the implant UUID's
     one_of_the_uuids_from_checkin = implant_get_request_array[0].get("implant_uuid")

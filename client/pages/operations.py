@@ -1,3 +1,5 @@
+import time
+
 import orjson
 import structlog
 from nicegui import app, ui
@@ -231,6 +233,16 @@ async def implant_view(syntax_drawer):
                 table.rows = []
                 table.update()
             return
+
+        now = int(time.time())
+        for row in data:
+            last_checkin = row.get("last_checkin")
+            sleep_value = row.get("sleep_value")
+            if last_checkin and sleep_value:
+                diff = (last_checkin + sleep_value) - now
+                row["next_checkin"] = f"in {diff}s" if diff > 0 else f"OVERDUE ({abs(diff)}s)"
+            else:
+                row["next_checkin"] = "--"
 
         if not table_initialized:
             keys = tuple(data[0].keys())

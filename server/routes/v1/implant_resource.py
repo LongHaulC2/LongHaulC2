@@ -227,6 +227,12 @@ class ImplantTask(Resource):
         task_uuid = task_service.task.task_uuid
         data = {"task_uuid": task_uuid}
 
+        task_name = (request.json or {}).get("task", {}).get("task_name")
+        if task_name == "sleep":
+            sleep_time = (request.json or {}).get("task", {}).get("args", {}).get("sleep_time")
+            if isinstance(sleep_time, int) and sleep_time > 0:
+                Neo4jImplantNodeService.update_sleep_value(uuid, sleep_time)
+
         api_logger.debug("Task enqueued", task_uuid=task_uuid, implant_uuid=uuid, caller_ip=ip)
         return APIResponse(status="200", message="Queued task successfully", data=data)
 
