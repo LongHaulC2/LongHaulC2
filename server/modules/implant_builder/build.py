@@ -88,11 +88,18 @@ def build_implant(
                     server_logger.error("Listener not found.", listener_uuid=uuid)
                     raise ValueError(f"Invalid listener UUID: {uuid}")
 
-                # snag and sanitize the name of that listeenr
                 listener_data = db_listener.to_dict()
+
+                if not listener_data.get("listener_profile_contents"):
+                    server_logger.error(
+                        "Listener has no profile configured — cannot build",
+                        listener_uuid=uuid,
+                        listener_name=listener_data.get("listener_name"),
+                    )
+                    raise ValueError(f"Listener {uuid} has no profile contents. Assign a profile before building.")
+
                 listener_data["listener_profile_name"] = sanitize_cpp_name(listener_data["listener_name"])
 
-                # Store data for the renderer
                 full_listeners_data[uuid] = listener_data
 
         except Exception as e:

