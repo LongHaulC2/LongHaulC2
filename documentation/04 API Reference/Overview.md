@@ -165,7 +165,6 @@ Use the returned `task_uuid` to poll for the result.
 | `link smb` | `protocol` (`"smb"`), `target` (string), `inbox_pipe` (string), `outbox_pipe` (string) |
 | `unlink smb` | `child_uuid` (string) |
 | `link list` | *(none)* |
-| `discover neighbors` | *(none)* |
 
 > **Binary args:** For tasks that take binary data (`file upload`, `memstore upload`, `bof`), send raw bytes inside a msgpack payload. If using JSON, the client handles base64 decoding before serializing — the server and implant always work with raw bytes.
 

@@ -66,7 +66,6 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 ### Day 5: March 14 - Response Pipeline Safety
 - [X] split response pipeline into proper modules/files
 - [X] host: ip/mac double check neo4j models, hosts show up without them. Likely a sideeffect of structured node switch
-      >[X] update discover neighbors to link hosts to main network, it's arp, so it's safe to assume they are on that subnet [omg this was a rabbithole]
 - [X] Add aggressive safety checks to `response_pipeline`.
 - [X] Implement the fail-fast mechanism (if task result != 0, return immediately to prevent poisoning the graph).
 - [X] Add local loggers to the pipeline using `structlog`.

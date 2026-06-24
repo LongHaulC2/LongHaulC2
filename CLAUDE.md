@@ -191,3 +191,4 @@ Examples of things to push back on:
 - You will be passed documentation dumps for various libraries. If it is not present, ask for it. Treat this as the source of truth for development with said libraries. NiceGUI is constantly changing and many mistakes are made due to outdated information.
 - Library docs live in `development/library_documentation/`.
 - The Tech Stack section above says SQLite — it's actually **MySQL** (via SQLAlchemy + PyMySQL). The CLAUDE.md was outdated; the code is the source of truth.
+- Every code adjustment, edit the docs to reflect the changes made. This prevents stale documentation. Make this your last step.

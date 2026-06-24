@@ -23,7 +23,6 @@ errors without relying on addtl branch logic. I try to use windows error  macro 
 #include "modules/ls.h"
 #include "modules/files.h"
 #include "modules/bof.h"
-#include "modules/discover.h"
 #include "data/msgpack/msgpack.h"
 #include "settings.h"
 #include "data/structs.h"
@@ -784,18 +783,6 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         result["message"] = GetErrorMessage(windows_error_code);
         result["data"] = module_result.data;
 
-
-        return result;
-    }
-    else if (task_name == "discover neighbors") {
-        nlohmann::json result;
-
-        ModuleResult module_result = passive_arp_discovery();
-        DWORD windows_error_code = module_result.windows_error_code;
-
-        result["data"] = module_result.data;
-        result["windows_error_code"] = windows_error_code;
-        result["message"] = GetErrorMessage(windows_error_code);
 
         return result;
     }

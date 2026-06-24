@@ -1,112 +1,19 @@
 import base64
 import hashlib
-import ipaddress
 
 import structlog
-from neomodel import db
 
 from ...db.mysql_connector import get_mysql_session
 from ...db.mysql_functions import MySQLImplantTaskService
 from ...db.neo4j_functions import (
     Neo4jChainingService,
     Neo4jFileNodeService,
-    Neo4jHostNodeService,
     Neo4jImplantNodeService,
     Neo4jMemstoreFileNodeService,
-    Neo4jNicNodeService,
 )
 
 response_pipeline_logger = structlog.getLogger("response_pipeline")
 server_logger = structlog.getLogger("server")
-
-
-def _handle_discover_neighbors(task_request_dict: dict, task_response_dict: dict, implant_uuid: str):  # noqa
-    discover_neighbors_logger = response_pipeline_logger.bind(task="discover neighbors", implant_uuid=implant_uuid)
-
-    try:
-        neighbor_list = task_response_dict.get("result", {}).get("data", [])
-        if not neighbor_list:
-            return
-
-        # Fetch all networks the scanning implant is currently connected to
-        query = """
-        MATCH (i:Neo4jImplantNode {implant_uuid: $implant_uuid})-[:RUNNING_ON]->(h:Neo4jHostNode)
-        MATCH (h)<-[:ATTACHED_TO]-(n:Neo4jNicNode)-[:IN_NETWORK]->(net:Neo4jNetworkNode)
-        RETURN net.cidr AS cidr, net.network_uuid AS net_uuid
-        """
-        results, _ = db.cypher_query(query, {"implant_uuid": implant_uuid})
-
-        if not results:
-            discover_neighbors_logger.error("Implant has no known network context. Neighbors cannot be mapped.")
-            return
-
-        # Convert results into a list of (IPv4Network, network_uuid) tuples for fast checking
-        available_networks = []
-        for cidr, net_uuid in results:
-            try:
-                available_networks.append((ipaddress.ip_network(cidr, strict=False), net_uuid))
-            except ValueError:
-                continue
-
-        # Process each neighbor
-        for neighbor in neighbor_list:
-            neighbor_ip_str = neighbor.get("ip")
-            neighbor_mac = neighbor.get("mac")
-            neighbor_host = neighbor.get("hostname", f"UNK-{neighbor_ip_str}")
-
-            if not neighbor_ip_str:
-                continue
-
-            # find the matching network for each NIC
-            target_net_uuid = None
-            target_cidr_str = None
-
-            try:
-                # resolove NIC to the net node, i.e. if the implant has multiple nics
-                # make sure we use the right network node when attaching neighbors
-                # tldr: make sure 192.168.0.2 doesn't go to 10.0.0.1/24
-                neighbor_ip_obj = ipaddress.ip_address(neighbor_ip_str)
-                for network_obj, net_uuid in available_networks:
-                    if neighbor_ip_obj in network_obj:
-                        target_net_uuid = net_uuid
-                        target_cidr_str = str(network_obj)
-                        break
-            except ValueError:
-                discover_neighbors_logger.debug("Invalid neighbor IP address format", ip=neighbor_ip_str)
-                continue
-
-            if not target_net_uuid:
-                discover_neighbors_logger.debug(
-                    "Neighbor not in any known implant subnets, skipping", ip=neighbor_ip_str
-                )
-                continue
-
-            # plot it
-
-            # Create/Get the neighbor Host
-            host_node = Neo4jHostNodeService.create_or_get_node(
-                hostname=neighbor_host, ip_address=neighbor_ip_str, mac_address=neighbor_mac
-            )
-
-            # Create/Get the neighbor NIC
-            nic_node = Neo4jNicNodeService.create_or_get_node(mac_address=neighbor_mac, ip_address=neighbor_ip_str)
-
-            # Update NIC with the CIDR we matched
-            nic_node.cidr = target_cidr_str
-            nic_node.save()
-
-            # connect our new nic, to our new host in the graph
-            Neo4jNicNodeService.connect_nic_to_host(
-                host_uuid=host_node.host_uuid, mac_address=neighbor_mac, ip_address=neighbor_ip_str
-            )
-
-            # Connect NIC to the specific Network segment matched via UUID
-            Neo4jNicNodeService.connect_nic_to_network_by_uuid(network_uuid=target_net_uuid, nic_uuid=nic_node.nic_uuid)
-
-        discover_neighbors_logger.info("Successfully plotted discovery results across subnets")
-
-    except Exception as e:
-        discover_neighbors_logger.error("An error occurred during discovery processing", error=str(e))
 
 
 def _handle_memstore_upload(task_request_dict: dict, task_response_dict: dict, implant_uuid: str):  # noqa
@@ -275,7 +182,6 @@ def _handle_smb_link(task_request_dict: dict, task_response_dict: dict, implant_
 
 
 TASK_HANDLERS = {
-    "discover neighbors": _handle_discover_neighbors,
     "memstore upload": _handle_memstore_upload,
     "memstore clear": _handle_memstore_clear,
     "memstore delete": _handle_memstore_delete,

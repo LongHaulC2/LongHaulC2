@@ -141,10 +141,6 @@ link smb             : Link to a child implant via SMB pipes. Ex: `link smb <hos
 link list            : List all linked child implants.
 unlink smb           : Sever link to a child. Ex: `unlink smb <child_uuid>`
 
----------
-Discovery
----------
-discover neighbors   : Passive ARP discovery of neighboring hosts.
 ```
 
 ---

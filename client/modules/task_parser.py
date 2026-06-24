@@ -7,7 +7,6 @@ from enum import Enum
 from client.modules.task_definitions import (
     BofRunner,
     Cd,
-    DiscoverNeighbors,
     Exit,
     FileDownload,
     FileUpload,
@@ -27,7 +26,6 @@ from client.modules.task_definitions import (
     StratList,
     StratPost,
     UnlinkSmb,
-    discover_cmds,
     execution_cmds,
     fs_cmds,
     link_cmds,
@@ -234,12 +232,6 @@ def build_cli_parser(implant_uuid: str):
         )
     )
 
-    # Discover
-    disc = subparsers.add_parser("discover").add_subparsers(dest="disc_cmd", parser_class=C2Parser)
-    disc.add_parser("neighbors").set_defaults(
-        func=lambda args: (ResultType.TASK, DiscoverNeighbors(implant_uuid=implant_uuid).to_task())  # noqa - args needed for return
-    )
-
     # link
     link_parser = subparsers.add_parser("link", help="Link to a downstream implant")
 
@@ -397,13 +389,4 @@ def get_all_command_names(parser, current_path="") -> list[str]:
 
 def get_all_command_classes():
     # big list of command classes
-    return (
-        system_cmds
-        + fs_cmds
-        + mem_cmds
-        + strat_cmds
-        + execution_cmds
-        + discover_cmds
-        + terminal_helper_cmds
-        + link_cmds
-    )
+    return system_cmds + fs_cmds + mem_cmds + strat_cmds + execution_cmds + terminal_helper_cmds + link_cmds

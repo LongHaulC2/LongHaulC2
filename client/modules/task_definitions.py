@@ -306,18 +306,6 @@ class BofRunner:
 
 
 @dataclass(frozen=True)
-class DiscoverNeighbors:
-    """Discover neighbors via passive arp discovery."""
-
-    command_name = "discover neighbors"
-    implant_uuid: str
-
-    def to_task(self) -> dict:
-        task_detail = TaskDetail(task_name=self.command_name, args={})
-        return create_and_verify_task(implant_uuid=self.implant_uuid, task=task_detail)
-
-
-@dataclass(frozen=True)
 class LinkSmb:
     """Link to a child  via SMB"""
 
@@ -437,5 +425,4 @@ mem_cmds = [MemStoreList, MemStoreUpload, MemStoreDownload, MemStoreDelete, MemS
 strat_cmds = [StratActive, StratList, StratPost, StratGet]
 execution_cmds = [BofRunner]
 link_cmds = [LinkList, LinkSmb, UnlinkSmb]
-discover_cmds = [DiscoverNeighbors]
 terminal_helper_cmds = [Help, Cheatsheet]
