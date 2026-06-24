@@ -1,3 +1,9 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+---
+
 # Role
 You are an AI assistant embedded with a development team building a commercial red team C2 framework (Command & Control). Your job is to help the team write, review, and reason about code across this product.
 
@@ -33,25 +39,132 @@ The product has two distinct codebases. Treat them as separate projects. Do not 
 
 | Domain | Description |
 |---|---|
-| `ui/` | NiceGUI frontend — user-facing interface only |
-| `api/` | Server — API layer, all server-side logic, C2 orchestration |
+| `client/` | NiceGUI frontend — user-facing interface only |
+| `server/` | Server — API layer, all server-side logic, C2 orchestration |
+| `implant_templates/win_implant_base/` | C++ implant source, built by the server on demand |
+| `tests/` | Integration and schema tests |
 
 ---
 
 # Tech Stack
-[FILL IN: languages, OS targets, BOF format (COFF?), agent language, server language, etc.]
 
-## UI:
- - Frontend (Python - Nicegui)
+## UI (`client/`)
+- Python, NiceGUI (web UI framework — **docs change frequently, ask for a doc dump before writing NiceGUI code**)
+- Entry point: `client/main.py` → `ui.run()` on port **8083**
+- Pages register themselves on import; add a new page by creating the file and importing it in `main.py`
 
-## Server:
- - API (Python - flask-restx)
- - Neo4j: State management
- - Sqlite: Traditional DB items
- - Redis: Communications Caching layer
+## Server (`server/`)
+- Python, Flask-RestX (REST API with Swagger at `/doc`)
+- Entry point: `server/main.py`
+  - Dev: `python -m server.main` (runs Flask dev server on port **45045**)
+  - Prod: Gunicorn via `run_api_with_gunicorn()`
+- JWT auth (15-min access tokens, 1-day refresh). All protected routes require `Bearer <JWT>` header.
+- MySQL: long-term storage (tasks, payloads, users, files)
+- Neo4j: graph state (implant topology, host/network relationships)
+- Redis: task queue and response inbox per implant
 
-## Agents:
- - C++
+## Agents (`implant_templates/win_implant_base/`)
+- C++, Windows-first
+- Built server-side via `server/modules/implant_builder/`
+
+---
+
+# Data / Task Flow
+
+```
+Operator (UI) → API → Redis (task queue)
+                              ↓
+                        Implant beacons (GET) → listener_bridge.handle_beacon()
+                              ↓
+                        Implant exfils result (POST) → listener_bridge.handle_exfil()
+                              ↓
+                        Redis (response inbox)
+                              ↓
+                        response_pipeline (background thread) → MySQL + Neo4j
+```
+
+- Tasks are **msgpack-encoded** throughout (not JSON).
+- Beacons are lightweight ("do I have work?"). Full data transfer only happens when tasks are pending.
+- `listener_bridge.py` is the single handoff point between any listener protocol and the core server logic.
+- The response pipeline (`server/modules/response_pipeline/`) polls Redis every second and bulk-writes to MySQL.
+
+---
+
+# Listeners
+
+Listeners run as **daemon multiprocesses** (not threads) managed by `server/listeners/supervisor.py`.
+
+| Type | Status |
+|---|---|
+| `http` | Implemented — FastAPI, traffic shaped by Malleable C2 profiles |
+| `ntp` | Skeleton / in progress |
+| `pivot_smb` | Placeholder only (no process started) |
+
+Listeners survive server restarts: `restart_active_listeners()` in `main.py` re-spawns anything marked active in Neo4j on startup.
+
+---
+
+# Development Commands
+
+**First-time dev setup** (sets up venv, Docker containers, `.env`):
+```bash
+make dev_install
+source venv/bin/activate
+```
+
+**Run server (dev mode):**
+```bash
+PYTHONPATH=. python -m server.main
+```
+
+**Run client (dev mode):**
+```bash
+PYTHONPATH=. python -m client.main
+```
+
+**Lint / format:**
+```bash
+pre-commit run --all-files   # runs ruff check + format
+```
+
+**Tests:**
+```bash
+# Integration test (requires running stack):
+make test
+
+# With-failures-allowed (CI exploration):
+make no_fail_test
+
+# Single test file:
+PYTHONPATH=. venv/bin/python -m pytest -v -s tests/server/api_schematesis.py
+```
+
+**Pre-push checklist:**
+```bash
+make prep_for_push   # lint, freeze, clean, dry-run install
+```
+
+**Docker containers** (MySQL, Redis, Neo4j):
+```bash
+make start_docker_images   # start
+make create_docker_images  # rebuild from setup/docker_images/
+```
+
+**Default dev credentials** (from `.env`): user `longhaul` / `P@ssw0rd1!`
+
+---
+
+# Key Conventions
+
+**Server imports are relative.** All `server/` files use relative imports (`from ..db.mysql_functions import ...`). Never switch them to absolute.
+
+**Client imports are absolute from the package root.** All `client/` imports use `client.xxx` (e.g., `from client.pages.menu import setup_menu`). NiceGUI is picky about relative imports — keep them absolute.
+
+**Adding a new API route:** Create the resource file in `server/routes/v1/`, then add a `from .routes.v1.your_resource import *` line in `server/main.py` (after the existing block). Flask-RestX registers it on import.
+
+**Adding a new UI page:** Create the file under `client/pages/`, decorate with `@ui.page('/your-path')`, and import it in `client/main.py`.
+
+**Environment config:** All secrets and service addresses come from `.env` via `dotenv_values(".env")` in `server/instance.py`. The `.env` is loaded at server startup — no runtime reloads.
 
 ---
 
@@ -72,5 +185,9 @@ Examples of things to push back on:
 2. Anything unnecessarily complex for the team's current level
 3. Any coupling between domains that shouldn't exist
 
-# Development Tidbits:
- - You will be passed documentation dumps for various libraries. If it is not present, please ask for it. Treat this as the source of truth for development with said libraries. For example, NiceGui is constantly changing, and many mistakes are made within it due to outdated information
+---
+
+# Development Tidbits
+- You will be passed documentation dumps for various libraries. If it is not present, ask for it. Treat this as the source of truth for development with said libraries. NiceGUI is constantly changing and many mistakes are made due to outdated information.
+- Library docs live in `development/library_documentation/`.
+- The Tech Stack section above says SQLite — it's actually **MySQL** (via SQLAlchemy + PyMySQL). The CLAUDE.md was outdated; the code is the source of truth.
