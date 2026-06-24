@@ -273,15 +273,13 @@ dev_install:
 	@echo "=================================================="
 	$(MAKE) create_env
 	
-	# create workspace dir here as well, for workspace items for dev. 
-	mkdir -p $(WORKSPACE_DIR)
-	mkdir -p /var/log/longhaulc2
+	@echo "=================================================="
+	@echo "Creating workspace dirs"
+	@echo "=================================================="
+	sudo mkdir -p $(WORKSPACE_DIR)
+	sudo mkdir -p $(WORKSPACE_DIR)/implant_templates
+	sudo chown -R $(USER):$(USER) $(WORKSPACE_DIR)
 	cp -r ./client/user/. $(WORKSPACE_DIR)
-	
-	# location for implant templates to live
-	mkdir -p $(WORKSPACE_DIR)/implant_templates
-
-	# copy over templates
 	cp -r ./implant_templates/. $(WORKSPACE_DIR)/implant_templates
 
 	@echo "=================================================="
@@ -290,7 +288,6 @@ dev_install:
 	sudo mkdir -p /var/log/longhaulc2/
 	sudo mkdir -p /var/log/longhaulc2/web/
 	sudo mkdir -p /var/log/longhaulc2/server/
-
 	sudo chmod -R 777 /var/log/longhaulc2
 
 	@echo "=================================================="
