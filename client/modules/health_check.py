@@ -10,6 +10,8 @@ async def health_check():
     global previous_status, first_check
 
     response = await get_health_status()
+    if response is None:
+        return
     current_data = response.get("data", {})
 
     # join dicts together for comparison
