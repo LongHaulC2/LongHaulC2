@@ -1,8 +1,24 @@
+import re
+
 from nicegui import app, ui
 
 from client.info import LOGIN_BANNER
 from client.modules.api_calls import authenticate_to_server
 from client.pages.formatted_tooltip import formatted_tooltip
+
+
+def _validate_server_address(v: str) -> str | None:
+    """Returns an error string if invalid, None if valid."""
+    if not v:
+        return None
+    if not v.lower().startswith(("http://", "https://")):
+        return 'Requires an "http://" or "https://" prefix'
+    stripped = re.sub(r"^https?://", "", v, flags=re.IGNORECASE)
+    if not stripped or stripped.startswith(":"):
+        return "Must include a host (URL or IP address)"
+    if not re.search(r":\d+$", stripped):
+        return "Must include a port number (e.g. :45045)"
+    return None
 
 
 @ui.page("/login")
@@ -37,14 +53,22 @@ def login_page():
             with ui.column().classes("w-full p-8 gap-5"):
                 # Host
                 host = (
-                    ui.input("SERVER_ADDRESS", placeholder="10.0.0.50:45045")
-                    .props("outlined dense dark color=emerald autofocus input-class='font-mono text-sm'")
+                    ui.input(
+                        "SERVER_ADDRESS",
+                        placeholder="https://10.0.0.50:45045",
+                        validation=_validate_server_address,
+                    )
+                    .props(
+                        "outlined dense dark color=emerald autofocus hide-bottom-space input-class='font-mono text-sm'"
+                    )
                     .classes("w-full")
                     .on("keydown.enter", lambda: username.run_method("focus"))  # Fixed flow
                 )
                 with host:
-                    # ui.tooltip("").classes("bg-black text-emerald-500 font-mono text-xs border border-emerald-500/30")
-                    formatted_tooltip(title="Target LongHaulC2 Server Address", body="The server to connect to")
+                    formatted_tooltip(
+                        title="Target LongHaulC2 Server Address",
+                        body="Format: https://<host>:<port>  e.g. https://10.0.0.50:45045",
+                    )
 
                 # Username
                 username = (
@@ -61,7 +85,7 @@ def login_page():
                     .classes("w-full")
                     .on(
                         "keydown.enter",
-                        lambda: handle_login(host=host.value, user=username.value, password=password.value),
+                        lambda: handle_login(host_value=host.value, user=username.value, password=password.value),
                     )
                 )
 
@@ -70,7 +94,9 @@ def login_page():
                 # Login Button
                 with (
                     ui.button(
-                        on_click=lambda: handle_login(host=host.value, user=username.value, password=password.value),
+                        on_click=lambda: handle_login(
+                            host_value=host.value, user=username.value, password=password.value
+                        ),
                     )
                     .classes(
                         "w-full py-2 bg-emerald-900/50 hover:bg-emerald-600/80 border border-emerald-500/50 transition-all duration-300"  # noqa - styling
@@ -82,43 +108,40 @@ def login_page():
 
             # --- FOOTER / BANNER ---
             with ui.column().classes("w-full bg-[#050505] border-t border-white/5 p-4 gap-0"):  # noqa
-                # with ui.row().classes("w-full items-center gap-2 mb-2"):
-                #     ui.icon("warning", color="amber-600").classes("text-xs")
-                #     ui.label("RESTRICTED SYSTEM").classes(
-                #         "text-[9px] font-mono text-amber-600 tracking-widest font-bold"
-                #     )
-
                 # Scrollable Banner Area
                 with ui.scroll_area().classes("h-24 w-full pr-3 custom-scrollbar"):
                     ui.label(LOGIN_BANNER.strip()).classes(
                         "text-[12px] font-mono text-neutral-500 tracking-wide leading-relaxed whitespace-pre-line"
                     )
 
-    async def handle_login(host, user, password):  # noqa: ARG001 - going to be filled in when login logic is done
-        if host:
-            # set host here, so the app knows what to make req's to
-            app.storage.user["api_host"] = host
+    async def handle_login(host_value, user, password):
+        if not host_value:
+            ui.notify("Please enter a server address", type="warning")
+            return
 
-            # call auth
-            tokens = await authenticate_to_server(username=user, password=password)
+        error = _validate_server_address(host_value)
+        if error:
+            host.validate()  # trigger inline display of the error
+            ui.notify(error, type="warning")
+            return
 
-            if not tokens:
-                ui.notify(f"Authentication to {host} failed", type="negative")
-                return
+        app.storage.user["api_host"] = host_value
 
-            refresh_token = tokens.get("data", {}).get("refresh_token")
-            access_token = tokens.get("data", {}).get("access_token")
+        tokens = await authenticate_to_server(username=user, password=password)
 
-            if refresh_token and access_token:
-                # Save the host directly to the user's session
-                app.storage.user["refresh_token"] = refresh_token
-                app.storage.user["access_token"] = access_token
+        if not tokens:
+            ui.notify(f"Authentication to {host_value} failed", type="negative")
+            return
 
-                ui.notify(f"Connected to {host}", type="positive")
-                ui.navigate.to("/operations")
-                return
+        refresh_token = tokens.get("data", {}).get("refresh_token")
+        access_token = tokens.get("data", {}).get("access_token")
 
-            ui.notify(f"Authentication to {host} failed", type="negative")
+        if refresh_token and access_token:
+            app.storage.user["refresh_token"] = refresh_token
+            app.storage.user["access_token"] = access_token
 
-        else:
-            ui.notify("Please enter a valid server address", type="warning")
+            ui.notify(f"Connected to {host_value}", type="positive")
+            ui.navigate.to("/operations")
+            return
+
+        ui.notify(f"Authentication to {host_value} failed", type="negative")
