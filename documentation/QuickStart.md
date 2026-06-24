@@ -5,55 +5,82 @@ slug: /
 
 # Quickstart Guide
 
-What's up! If you just want to get rolling with the tool, this is the page for you!
+Get rolling fast. This page covers the minimal path from zero to a running server.
 
 ## Quick Links
 
-Get up to speed and join the development with the links below:
-
-* **[GitHub Org](https://github.com/LongHaulC2):** Explore the source code, track issues, and submit pull requests.
-* **[Video Documentation](#):** *(Coming Soon)* Check out our YouTube channel for visual setup guides, usage tutorials, and more.
-* **[Doxygen](https://longhaulc2.github.io/doxygen):** DoxyGen Implant Documentation
-<!-- * **[Documentation](#):** *(Coming Soon)* Everything you need to deploy, configure, and operate LongHaul. -->
-* **[Latest Releases](#):** *(Coming Soon)* Grab the latest binaries and update notes.
-
-
-<!--* **[Community Discord](#):** *(Coming Soon)* Join the conversation, ask questions, and share your setups.-->
+- **[GitHub Org](https://github.com/LongHaulC2):** Source code, issues, PRs
+- **[Doxygen](https://longhaulc2.github.io/doxygen):** C++ implant API docs
+- **[Video Documentation](#):** *(Coming Soon)*
+- **[Latest Releases](#):** *(Coming Soon)*
 
 ---
 
+## Prerequisites
 
-## Getting Started
+- A **Linux box** with `sudo` access
+- **Docker** (installed by `make deploy` if not present)
+- **Python 3** (installed by `make deploy` if not present)
+- An internet connection (to pull Docker images)
 
-I'll keep this short because I hate long install instructions. 
+---
 
-First, verify you have the following:
-* **A Linux box**
-    * **With `sudo` privileges**
-* **An internet connection**
-* **A brain (optional)**
-
-### 1. Install and Start the Server
-
-Run these commands to pull the code, install the dependencies, and fire up the backend:
+## Production Install
 
 ```bash
 git clone https://github.com/LongHaulC2/LongHaulC2
 cd LongHaulC2
 
-# install make
-sudo apt-get install make
-
-# Setup everything
-make deploy
-
-# Done!
-# check status with:
-sudo systemctl status longhaulc2-web
-sudo systemctl status longhaulc2-server
+sudo make deploy
 ```
 
-### Additional Docs:
-You can find the more in-depth setup docs here:
+That's it. The Makefile installs all apt dependencies, sets up Docker containers (MySQL, Redis, Neo4j), builds the cross-compilation image, installs services, and starts everything.
 
-[Setup Docs](https://longhaulc2.github.io/00%20Intro%20&%20Setup/LongHaul%20C2%20-%20Advanced%20Setup)
+```bash
+# Verify services are running
+sudo systemctl status longhaulc2-server
+sudo systemctl status longhaulc2-web
+```
+
+**Default credentials:** `longhaul` / `P@ssw0rd1!`
+
+> Change the defaults in production: `sudo make deploy INIT_API_USER=operator INIT_API_PASS=<strong_pass> MYSQL_ROOT_PASSWORD=<strong_pass> REDIS_PASSWORD=<strong_pass> NEO4J_PASSWORD=<strong_pass> JWT_SECRET_KEY=<strong_secret>`
+
+**Access the UI:** `http://<server>:8083`
+
+**API + Swagger:** `http://<server>:45045/doc`
+
+---
+
+## Development Install
+
+For local development with live reloads:
+
+```bash
+git clone https://github.com/LongHaulC2/LongHaulC2
+cd LongHaulC2
+
+make dev_install
+source venv/bin/activate
+
+# Run the server (terminal 1)
+PYTHONPATH=. python -m server.main
+
+# Run the client (terminal 2)
+PYTHONPATH=. python -m client.main
+```
+
+---
+
+## What Got Installed?
+
+See `install_reference` (created by `make deploy`) for a full list of everything that was touched on your system: apt packages, directories, systemd units, Docker containers, and the workspace path.
+
+---
+
+## Next Steps
+
+- [Advanced Setup](00%20Intro%20%26%20Setup/LongHaul%20C2%20-%20Advanced%20Setup.md) — customize credentials, Makefile reference, port summary
+- [Listeners](01%20Listeners/Overview.md) — create your first listener
+- [Commands](02%20Implants/1.%20Commands.md) — full implant command reference
+- [Scripting / API](03%20Scripting/Overview.md) — automate operations via the REST API

@@ -1,74 +1,189 @@
 # Advanced Setup & Makefile Reference
 
-If you want more control over your LongHaul C2 deployment or just want to know exactly what's happening under the hood, this page is for you. 
+If you want more control over your LongHaul C2 deployment or just want to know exactly what's happening under the hood, this page is for you.
 
-We use a `Makefile` to automate the heavy lifting. By default, it sets up everything you need for a local development environment, but it is highly customizable.
+A `Makefile` handles the heavy lifting for both development and production deployments.
 
 ---
 
-## Customizing the Installation
+## Development vs Production
 
-You can override the default credentials and paths by passing variables directly to the `make` command. 
+There are two distinct installation paths:
 
-**Security Note:** *Never use the default passwords in a production or internet-facing environment.*
+| Mode | Command | Description |
+|---|---|---|
+| **Development** | `make dev_install` | Local venv, Docker containers, live reloads. Run directly with Python. |
+| **Production** | `sudo make deploy` | Installs as systemd services under a restricted `longhaul` user. |
 
-**Example:**
+---
+
+## Development Setup
+
 ```bash
-make install MYSQL_ROOT_PASSWORD=MySuperSecretPassword123 REDIS_PASSWORD=AnotherSecret456
+git clone https://github.com/LongHaulC2/LongHaulC2
+cd LongHaulC2
 
+# Install dependencies, create venv, spin up Docker containers, create .env
+make dev_install
+
+# Activate the venv
+source venv/bin/activate
+
+# Run the server
+PYTHONPATH=. python -m server.main
+
+# Run the client (separate terminal)
+PYTHONPATH=. python -m client.main
 ```
 
-### Available Variables
+### Development Makefile Commands
 
-| Variable | Default Value | Description |
-| --- | --- | --- |
-| `MYSQL_ROOT_PASSWORD` | `P@ssw0rd1!` | Password for the MySQL root user. |
-| `MYSQL_ROOT_USER` | `root` | Username for the MySQL database. |
-| `REDIS_PASSWORD` | `P@ssw0rd1!` | Password for the Redis database. |
-| `REDIS_USER` | `default` | Username for Redis. |
-| `VENV_PATH` | `./venv` | Path where the Python virtual environment will be created. |
-| `DOCKER_DIR` | `setup/docker_images` | Directory containing custom Dockerfiles for cross-compilation. |
+| Command | What it does |
+|---|---|
+| `make dev_install` | Installs apt deps, creates venv, installs Python deps, creates `.env`, creates workspace dirs at `/var/lib/longhaulc2`, pulls and starts Docker containers. |
+| `make dev_uninstall` | Stops and removes Docker containers, removes venv and `.env`, wipes workspace and log dirs. |
+| `make dev_reinstall` | Runs `dev_uninstall` then `dev_install` — clean slate for dev. |
 
 ---
 
-## Available `make` Commands
+## Production Deployment
 
-Here is exactly what each command does to your system.
+```bash
+sudo make deploy
+```
 
-### `make install`
+This installs everything to `/opt/longhaulc2` and runs both services under the `longhaul` system user.
 
-The main setup routine. When you run this, the script performs the following actions:
+```bash
+# Check service status after deploy
+sudo systemctl status longhaulc2-server
+sudo systemctl status longhaulc2-web
+```
 
-1. **Installs System Dependencies:** Runs `apt-get` to install `Python3`, `pip`, `virtualenv`, `docker.io`, `redis-tools`, and `postgresql-client`.
-2. **Deploys Infrastructure:** Pulls the latest MySQL and Redis-Stack Docker images and spins them up in detached containers (`C2_mysql` and `C2_redis-stack`).
-3. **Builds Compilers:** Calls `create_docker_images` to build the isolated Docker containers used for cross-compiling your payloads.
-4. **Sets up Python:** Creates a virtual environment at `VENV_PATH` and installs both the server and client requirements.
-5. **Configures the Environment:** Generates a `.env` file in your root directory populated with the database credentials you specified (or the defaults).
+### Production Makefile Commands
 
-### `make uninstall`
-
-The nuclear option. Use this to completely wipe your LongHaul C2 local environment.
-
-* Stops and removes the `C2_mysql` and `C2_redis-stack` Docker containers.
-* Deletes the local MySQL and Redis Docker images.
-* Deletes the Python `venv` folder.
-* Deletes the `.env` file containing your configurations.
-
-### `make reset`
-
-Simply runs `make uninstall` followed immediately by `make install`. If you want a quick fresh start, this is it. I use it constantly while doing dev work. 
-
-### `make create_docker_images`
-
-*(Automatically run during `make install`)*
-This target ensures your user is added to the `docker` group (preventing annoying permission issues). It then iterates through the `setup/docker_images` directory, building a fresh Docker image for every builder environment found.
+| Command | What it does |
+|---|---|
+| `sudo make deploy` | Full production install: apt deps, system user, directory structure, venv, systemd services, Docker containers, TLS certs. |
+| `sudo make undeploy` | Full removal: stops services, removes systemd units, Docker containers, install dirs, workspace, logs, and system user. |
+| `sudo make redeploy` | Runs `undeploy` then `deploy`. Use when upgrading. |
 
 ---
 
-## Ports & Infrastructure Summary
+## Customizing Credentials
 
-If you are running firewalls or deploying on a remote VPS, be aware of the following ports opened by the default installation:
+Pass variables directly to any `make` command to override defaults.
 
-* **MySQL:** `127.0.0.1:3306` (and `33060`)
-* **Redis:** `127.0.0.1:6379`
-* **Redis Insights (Web GUI):** `0.0.0.0:8001` *(Note: Exposed globally by default for dev convenience. You should lock this down in prod).*
+> **Security:** Never use the default credentials in production or on an internet-facing machine.
+
+```bash
+sudo make deploy \
+  MYSQL_ROOT_PASSWORD=MySuperSecretPassword \
+  REDIS_PASSWORD=AnotherSecret \
+  NEO4J_PASSWORD=YetAnotherSecret \
+  JWT_SECRET_KEY=MyJWTSecret \
+  INIT_API_USER=operator \
+  INIT_API_PASS=MyOperatorPass
+```
+
+### All Configurable Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `MYSQL_ROOT_PASSWORD` | `P@ssw0rd1!` | MySQL root user password |
+| `MYSQL_ROOT_USER` | `root` | MySQL root username |
+| `REDIS_PASSWORD` | `P@ssw0rd1!` | Redis password |
+| `REDIS_USER` | `default` | Redis username |
+| `NEO4J_USER` | `neo4j` | Neo4j username |
+| `NEO4J_PASSWORD` | `P@ssw0rd1!` | Neo4j password |
+| `JWT_SECRET_KEY` | `P@ssw0rd1!` | Secret key for signing JWT tokens |
+| `INIT_API_USER` | `longhaul` | Username for the initial operator account |
+| `INIT_API_PASS` | `P@ssw0rd1!` | Password for the initial operator account |
+| `MYSQL_HOST` | `localhost` | MySQL host |
+| `MYSQL_PORT` | `3306` | MySQL port |
+| `REDIS_HOST` | `localhost` | Redis host |
+| `REDIS_PORT` | `6379` | Redis port |
+
+---
+
+## Docker Utilities
+
+| Command | What it does |
+|---|---|
+| `make pull_docker_images` | Pulls `mysql:latest`, `redis/redis-stack:latest`, and `neo4j:latest`. |
+| `make start_docker_images` | Starts `C2_mysql`, `C2_redis-stack`, and `C2_neo4j-stack` containers. |
+| `make create_docker_images` | Builds the cross-compilation Docker images from `setup/docker_images/` (e.g., `win_x64`). Adds your user to the `docker` group. |
+
+---
+
+## Infrastructure Summary
+
+### Service Ports
+
+| Service | Port(s) | Notes |
+|---|---|---|
+| **LongHaulC2 API (Server)** | `0.0.0.0:45045` | Flask REST API |
+| **LongHaulC2 UI (Client)** | `0.0.0.0:8083` | NiceGUI web interface |
+| **MySQL** | `0.0.0.0:3306`, `127.0.0.1:33060` | C2 database — bind to localhost in prod |
+| **Redis** | `127.0.0.1:6379` | Task queue |
+| **Redis Insight (Web GUI)** | `0.0.0.0:8001` | Redis management UI — exposed globally by default, lock this down in prod |
+| **Neo4j (Web UI / Browser)** | `0.0.0.0:7474` | Graph database web UI |
+| **Neo4j (Bolt)** | `0.0.0.0:7687` | Neo4j driver connection |
+
+### Docker Containers
+
+| Container | Image | Purpose |
+|---|---|---|
+| `C2_mysql` | `mysql:latest` | Long-term storage (tasks, payloads, users, files) |
+| `C2_redis-stack` | `redis/redis-stack:latest` | Task queue and response inbox per implant |
+| `C2_neo4j-stack` | `neo4j:latest` | Graph state (implant topology, host/network relationships) |
+
+### Filesystem Layout (Production)
+
+| Path | Purpose |
+|---|---|
+| `/opt/longhaulc2/server/` | Server application code + venv |
+| `/opt/longhaulc2/client/` | Client application code + venv |
+| `/var/lib/longhaulc2/` | Workspace: implant templates, user scripts |
+| `/var/lib/longhaulc2/implant_templates/` | C++ implant source used by the build system |
+| `/var/log/longhaulc2/` | Application logs |
+| `/etc/ssl/certs/longhaulc2_api_cert.pem` | TLS certificate (auto-generated on deploy) |
+
+---
+
+## TLS Certificates
+
+`make deploy` automatically generates a self-signed TLS certificate (4096-bit RSA, 365-day validity) and places it in `/etc/ssl/certs/`. The server uses this for HTTPS.
+
+To regenerate:
+```bash
+sudo make clean-certs
+sudo make certs
+```
+
+---
+
+## Linting & Pre-Push Checklist
+
+```bash
+# Lint & format (runs ruff check + ruff format via pre-commit)
+pre-commit run --all-files
+
+# Full pre-push prep: lint, freeze deps, clean .pyc files, dry-run install
+make prep_for_push
+```
+
+---
+
+## Testing
+
+```bash
+# Integration test (requires a running stack + real implant)
+make integration_test
+
+# API schema tests (requires running server)
+PYTHONPATH=. venv/bin/python -m pytest -v -s tests/server/api_schematesis.py
+
+# Run all tests but allow failures (useful for CI exploration)
+make no_fail_test
+```
