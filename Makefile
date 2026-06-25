@@ -589,3 +589,29 @@ integration_test:
 	fi
 
 	$(DIR_OF_THIS_SCRIPT)/venv/bin/python -m pytest -v -s $(DIR_OF_THIS_SCRIPT)/tests/integration_test/run_implant_tasks.py::test_run_implant_tasks
+
+# ---------------------------------------------------------------------------
+# Local test targets (no implant required — just a running server + Docker DBs)
+# ---------------------------------------------------------------------------
+
+.PHONY: server_tests
+server_tests:
+	# Run API server tests: auth, health, implants, listeners, filestore, build.
+	# Requires: server running on localhost:45045 and Docker DBs up.
+	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_auth.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_health.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_implants.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_listeners.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_filestore.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_build.py
+
+.PHONY: web_tests
+web_tests:
+	# Run UI smoke tests. No server or implant needed.
+	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
+		$(DIR_OF_THIS_SCRIPT)/tests/web/web_tests.py
+
+.PHONY: local_tests
+local_tests: server_tests web_tests
+	# Run all non-implant tests (server API + UI smoke).

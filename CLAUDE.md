@@ -129,15 +129,66 @@ pre-commit run --all-files   # runs ruff check + format
 
 **Tests:**
 ```bash
-# Integration test (requires running stack):
+# Server API tests — no implant needed, just server + Docker DBs running:
+make server_tests
+
+# UI smoke tests — no server or implant needed:
+make web_tests
+
+# Both of the above in one shot:
+make local_tests
+
+# Integration test (requires live Windows implant — CI only):
 make test
+make integration_test
 
 # With-failures-allowed (CI exploration):
 make no_fail_test
 
 # Single test file:
-PYTHONPATH=. venv/bin/python -m pytest -v -s tests/server/api_schematesis.py
+PYTHONPATH=. venv/bin/python -m pytest -v -s tests/server/test_auth.py
 ```
+
+**Test layout:**
+| Target | Files | Requires |
+|---|---|---|
+| `make server_tests` | `tests/server/test_*.py` | Server + Docker DBs |
+| `make web_tests` | `tests/web/web_tests.py` | Nothing |
+| `make local_tests` | Both above | Server + Docker DBs |
+| `make test` | `tests/integration_test/deploy_implant.py` | Full CI stack + Windows implant |
+| `make integration_test` | `tests/integration_test/run_implant_tasks.py` | Live implant running |
+
+**Prerequisites for `make server_tests`:**
+1. Docker containers running: `make start_docker_images`
+2. Server running: `PYTHONPATH=. python -m server.main`
+3. Port **19099** must be free on localhost — listener tests bind there and fail if it's in use
+
+If you hit connection errors, that's almost always the server not running or a stale listener process holding 19099.
+
+**Environment overrides for `make server_tests`:**
+```bash
+SERVER_URL=http://myhost:45045 TEST_API_USER=admin TEST_API_PASS=hunter2 make server_tests
+```
+Defaults: `http://localhost:45045` / `longhaul` / `P@ssw0rd1!` (from `.env`).
+
+**Server test file coverage (`tests/server/`):**
+- `conftest.py` — `FullC2APIClient` (adds auth + missing methods on top of the integration-test base), session-scoped `api_client` fixture (auto-authenticates on startup), function-scoped `listener_uuid` / `implant_uuid` / `file_uuid` fixtures (create resource, yield UUID, delete on teardown)
+- `test_auth.py` — login, token refresh, register (authed/unauthed), rejected/malformed tokens
+- `test_health.py` — health check success and 401 on no token
+- `test_implants.py` — full CRUD, task queuing, task history, search
+- `test_listeners.py` — full CRUD, start/stop via PATCH, missing-field validation
+- `test_filestore.py` — upload/download/delete, missing-field validation, nonexistent file handling
+- `test_build.py` — submits a build job and verifies acceptance only (HTTP 200 + `build_uuid`); does **not** poll for completion since the cross-compiler toolchain is not present on dev machines
+
+**Web smoke tests (`tests/web/web_tests.py`) — need to know:**
+
+These run against a real in-process NiceGUI app (no browser, no server needed). They verify pages render without crashing and key static labels are present.
+
+Three pages (Operations, Listeners, Payloads) are auth-gated: `setup_menu()` redirects to `/login` when `app.storage.user["api_host"]` is unset. These tests verify the redirect fires by asserting the login page labels appear — they do **not** test page content directly.
+
+Pages excluded from smoke tests (graph, all node detail pages): they make unconditional API calls on load and throw an unhandled exception without a live server. Smoke-testing them without a server is not useful; use the integration test suite for those.
+
+If you add a new page that makes API calls on load, guard it with a check for `api_host` in storage (same pattern as `setup_menu`) or it will 500 in `make web_tests`.
 
 **Pre-push checklist:**
 ```bash

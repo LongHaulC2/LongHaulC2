@@ -177,13 +177,12 @@ make prep_for_push
 
 ## Testing
 
-```bash
-# Integration test (requires a running stack + real implant)
-make integration_test
+| Target | Requires | Description |
+|---|---|---|
+| `make web_tests` | Nothing | UI smoke tests — pages render, auth guards fire |
+| `make server_tests` | Server + Docker containers | API tests — all endpoints, CRUD, auth |
+| `make local_tests` | Server + Docker containers | Both of the above |
+| `make integration_test` | Full stack + live Windows implant | Full E2E with real implant (CI only) |
+| `make no_fail_test` | Full stack | Integration tests, exits 0 on failure |
 
-# API schema tests (requires running server)
-PYTHONPATH=. venv/bin/python -m pytest -v -s tests/server/api_schematesis.py
-
-# Run all tests but allow failures (useful for CI exploration)
-make no_fail_test
-```
+For full prerequisites, per-test-file coverage, and common failure causes, see [Testing Overview](../05%20Testing/Overview.md).

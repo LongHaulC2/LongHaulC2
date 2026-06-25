@@ -1,14 +1,14 @@
 # Project Overview
 
-**Project Goal:** To replace existing C2 frameworks for long-haul, Red Team/Offensive management scenarios. This tool serves as a "guardian" or "maintain access" solution — the failsafe when primary access methods are detected or neutralized.
-
-While it is not designed to surpass Cobalt Strike or similar C2 tooling as a day-to-day operations tool, LongHaulC2 aims to outperform all of them as a low-overhead management and persistence solution.
+**Project Goal:** A minimal, plugin/flexible C2 framework that is **not malicious by default**. The implant ships with only a small set of built-ins — filesystem operations, file transfer, memory store, strategy switching, and SMB chaining. Everything else is operator-loaded at runtime via Beacon Object Files (BOFs). The implant is a tool, not a threat, until you make it one.
 
 ---
 
 ## Objectives
 
-- **Malleable C2 Interoperability:** Leverage existing Cobalt Strike Malleable C2 profiles for traffic shaping.
+- **Not Malicious by Default:** The implant ships with little to no traditional offensive capability. All offensive actions are loaded at/during runtime via BOFs. Bring your own.
+- **Minimal Signature:** Intentionally small built-in feature set. Less code in the implant means less to detect, less to go wrong, and less to maintain.
+- **Network Profiles:** Leverage adjustable network profiles for varied network communication
 - **Robust Management:** Comprehensive REST API and a web-based frontend for operator management.
 - **Automation-first:** Everything accessible via the UI is also accessible via the API, enabling full scripted operations.
 
@@ -18,7 +18,7 @@ While it is not designed to surpass Cobalt Strike or similar C2 tooling as a day
 
 The entire architecture was built around surviving for months or years, not just days:
 
-- **Granular Profile Binding:** Each listener can use a distinct Malleable C2 profile. A single server can serve multiple campaigns with different traffic signatures simultaneously.
+- **Granular Profile Binding:** Each listener can use a distinct Network profile. A single server can serve multiple campaigns with different traffic signatures simultaneously.
 - **Dynamic Strategy Switching:** Implants support multiple communication profiles baked in at build time. Operators can hot-swap the active GET or POST strategy at runtime without spawning new artifacts.
 - **Automated Rotation:** Via the API, operators can script rotation schedules (e.g., Spotify traffic in the morning, Windows Update profile at night).
 - **BOF-first Extension Model:** The implant ships with minimal built-in capability. All offensive actions are loaded at runtime as Beacon Object Files (BOFs), keeping the implant's static footprint small.
