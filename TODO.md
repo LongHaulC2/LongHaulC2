@@ -66,7 +66,6 @@ this is gonna be fun. TLDR, make api thread safe so we can crank the gunicorn wo
 ### Day 5: March 14 - Response Pipeline Safety
 - [X] split response pipeline into proper modules/files
 - [X] host: ip/mac double check neo4j models, hosts show up without them. Likely a sideeffect of structured node switch
-      >[X] update discover neighbors to link hosts to main network, it's arp, so it's safe to assume they are on that subnet [omg this was a rabbithole]
 - [X] Add aggressive safety checks to `response_pipeline`.
 - [X] Implement the fail-fast mechanism (if task result != 0, return immediately to prevent poisoning the graph).
 - [X] Add local loggers to the pipeline using `structlog`.
@@ -276,14 +275,7 @@ MISC
 ### Day 18: March 27 - New Operations Commands
 - [ ] Implement the `--resolve` command (ARP only by default, toggle DNS resolution via the arg).
 
-## Agent Upgrades:
 
-## Protocols:
- - [ ] NTP
- - [ ] ICMP
-
-## Functionality:
-   - Addtl commands?
 
 
 ---
@@ -301,5 +293,26 @@ MISC
 - [ ] Document the API. (redoc - get stupid dark mode working)
 
 
----
-**April 1st:** Beta Launch.
+
+## Agent Upgrades:
+
+## Protocols:
+ - [ ] NTP
+ - [ ] ICMP
+
+## Functionality:
+   - Addtl commands?
+
+
+## Sprint 10 - NTP:
+
+### Implant:
+   - [ ] NTP Logic
+      - refine old extc2 logic
+
+### Server:
+- [ ] NTP Listener
+
+
+### GUI:
+- [ ] NTP options

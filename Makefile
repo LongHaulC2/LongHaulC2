@@ -122,7 +122,7 @@ deploy: check_root
 	mkdir -p /var/log/longhaulc2
 	
 	# copy over user contents into new workspace
-	cp -r ./client/src/client/user/. $(WORKSPACE_DIR)
+	cp -r ./client/user/. $(WORKSPACE_DIR)
 	
 	@echo "=================================================="
 	@echo "Copying files"
@@ -273,15 +273,13 @@ dev_install:
 	@echo "=================================================="
 	$(MAKE) create_env
 	
-	# create workspace dir here as well, for workspace items for dev. 
-	mkdir -p $(WORKSPACE_DIR)
-	mkdir -p /var/log/longhaulc2
-	cp -r ./client/src/client/user/. $(WORKSPACE_DIR)
-	
-	# location for implant templates to live
-	mkdir -p $(WORKSPACE_DIR)/implant_templates
-
-	# copy over templates
+	@echo "=================================================="
+	@echo "Creating workspace dirs"
+	@echo "=================================================="
+	sudo mkdir -p $(WORKSPACE_DIR)
+	sudo mkdir -p $(WORKSPACE_DIR)/implant_templates
+	sudo chown -R $(USER):$(USER) $(WORKSPACE_DIR)
+	cp -r ./client/user/. $(WORKSPACE_DIR)
 	cp -r ./implant_templates/. $(WORKSPACE_DIR)/implant_templates
 
 	@echo "=================================================="
@@ -290,7 +288,6 @@ dev_install:
 	sudo mkdir -p /var/log/longhaulc2/
 	sudo mkdir -p /var/log/longhaulc2/web/
 	sudo mkdir -p /var/log/longhaulc2/server/
-
 	sudo chmod -R 777 /var/log/longhaulc2
 
 	@echo "=================================================="
@@ -592,3 +589,29 @@ integration_test:
 	fi
 
 	$(DIR_OF_THIS_SCRIPT)/venv/bin/python -m pytest -v -s $(DIR_OF_THIS_SCRIPT)/tests/integration_test/run_implant_tasks.py::test_run_implant_tasks
+
+# ---------------------------------------------------------------------------
+# Local test targets (no implant required — just a running server + Docker DBs)
+# ---------------------------------------------------------------------------
+
+.PHONY: server_tests
+server_tests:
+	# Run API server tests: auth, health, implants, listeners, filestore, build.
+	# Requires: server running on localhost:45045 and Docker DBs up.
+	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_auth.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_health.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_implants.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_listeners.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_filestore.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_build.py
+
+.PHONY: web_tests
+web_tests:
+	# Run UI smoke tests. No server or implant needed.
+	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
+		$(DIR_OF_THIS_SCRIPT)/tests/web/web_tests.py
+
+.PHONY: local_tests
+local_tests: server_tests web_tests
+	# Run all non-implant tests (server API + UI smoke).

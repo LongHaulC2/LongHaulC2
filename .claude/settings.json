@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PYTHONPATH=. venv/bin/python -m pytest -v -s tests/web/web_tests.py)"
+    ]
+  }
+}

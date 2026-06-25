@@ -1,0 +1,37 @@
+/**
+ * LongHaulC2 doc theme.
+ * Docusaurus ships with a default dark palette; these overrides tighten it up.
+ */
+
+:root {
+  --ifm-color-primary: #10b981;         /* emerald-500 — matches the UI */
+  --ifm-color-primary-dark: #059669;
+  --ifm-color-primary-darker: #047857;
+  --ifm-color-primary-darkest: #065f46;
+  --ifm-color-primary-light: #34d399;
+  --ifm-color-primary-lighter: #6ee7b7;
+  --ifm-color-primary-lightest: #a7f3d0;
+  --ifm-code-font-size: 90%;
+  --docusaurus-highlighted-code-line-bg: rgba(16, 185, 129, 0.1);
+}
+
+/* Force dark mode globally — this is an ops tool, not a blog */
+[data-theme="dark"] {
+  --ifm-background-color: #0f0f0f;
+  --ifm-background-surface-color: #1a1a1a;
+  --ifm-navbar-background-color: #111111;
+  --ifm-footer-background-color: #0a0a0a;
+  --ifm-toc-border-color: #2a2a2a;
+  --ifm-color-emphasis-300: #333333;
+}
+
+/* Slightly tighter code blocks */
+.theme-code-block {
+  font-size: 0.875rem;
+}
+
+/* Sidebar active item highlight */
+.menu__link--active {
+  color: var(--ifm-color-primary) !important;
+  font-weight: 600;
+}

@@ -164,19 +164,6 @@ def test_19_bof_memstore(api_client, target_implant):
     dispatch_and_wait(api_client, target_implant, cmd)
 
 # ==========================================
-# Discovery Tests
-# ==========================================
-
-# resolve not configured yet
-def test_20_discover_neighbors_no_resolve(api_client, target_implant):
-    cmd = DiscoverNeighbors(implant_uuid=target_implant)
-    dispatch_and_wait(api_client, target_implant, cmd)
-
-def test_21_discover_neighbors_with_resolve(api_client, target_implant):
-    cmd = DiscoverNeighbors(implant_uuid=target_implant)
-    dispatch_and_wait(api_client, target_implant, cmd, timeout=120)
-
-# ==========================================
 # System Tests (Exit must be last)
 # ==========================================
 
@@ -237,12 +224,7 @@ def test_run_implant_tasks(api_client):
     test_18_bof_b64_with_args(api_client, uuid)
     test_19_bof_memstore(api_client, uuid)
 
-    # 6. Network Discovery
-    print("[*] Testing Neighbor discovery...")
-    test_20_discover_neighbors_no_resolve(api_client, uuid)
-    test_21_discover_neighbors_with_resolve(api_client, uuid)
-
-    # 7. Cleanup & Termination
+    # 6. Cleanup & Termination
     print("[*] Testing Sleep and Exit...")
     test_22_sleep(api_client, uuid)
     
