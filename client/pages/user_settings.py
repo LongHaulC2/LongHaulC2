@@ -3,6 +3,7 @@ import logging
 from nicegui import app, ui
 
 from client.pages.menu import setup_menu
+from client.utils.helpers import notify
 
 server_log = logging.getLogger("server")
 
@@ -11,6 +12,7 @@ def initialize_default_settings() -> None:
     """Populate the user storage with default application settings."""
     defaults = {
         "auto_refresh_rate": 1,
+        "notification_position": "bottom",
     }
 
     for key, value in defaults.items():
@@ -87,6 +89,32 @@ async def settings_view() -> None:
                                         ui.icon("circle", size="6px", color="emerald")
                                         ui.label(component).classes("tech-label-sub")
 
+                    # Notification position card
+                    with (  # noqa: SIM117 - nicegui, multiple with's are fine
+                        ui.row().classes("w-full gap-8 items-start bg-white/5 p-4 rounded border border-white/5"),
+                        ui.column().classes("w-1/3 gap-1"),
+                    ):
+                        ui.label("Notification Position").classes("tech-label-header-section underline font-bold")
+
+                        ui.select(
+                            options=[
+                                "top-left",
+                                "top-right",
+                                "top",
+                                "bottom-left",
+                                "bottom-right",
+                                "bottom",
+                                "left",
+                                "right",
+                                "center",
+                            ],
+                            value="bottom",
+                        ).bind_value(app.storage.user, "notification_position").props(
+                            "outlined dense dark color=emerald"
+                        ).classes("tech-label-sub w-40 my-1")
+
+                        ui.label("Where notifications appear on screen.").classes("tech-label-sub opacity-70")
+
                 # Danger Zone Section
                 with ui.column().classes("w-full gap-4 mt-8"):
                     with ui.row().classes("w-full items-center gap-2 border-b border-red-500/20 pb-2"):
@@ -111,7 +139,7 @@ async def settings_view() -> None:
                             """Clear user storage and reload the page to apply defaults."""
                             app.storage.user.clear()
                             initialize_default_settings()
-                            ui.notify("PREFERENCES RESET TO DEFAULT", type="warning", color="red-9")
+                            notify("PREFERENCES RESET TO DEFAULT", type="warning", color="red-9")
                             ui.navigate.to("/settings")
 
                         ui.button("RESET TO DEFAULT", on_click=trigger_reset).props("outline dense color=red").classes(

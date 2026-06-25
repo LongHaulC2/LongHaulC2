@@ -6,6 +6,7 @@ from nicegui import ui
 from client.modules.api_calls import preview_profile
 from client.pages.footer import build_footer
 from client.pages.menu import setup_menu
+from client.utils.helpers import notify
 
 server_log = structlog.getLogger("server")
 server_log.info("Loading /profile-preview page")
@@ -59,7 +60,7 @@ async def _input_panel():
         if path.is_file():
             _current_file_path = path
             _textarea.value = path.read_text()
-            ui.notify(f"Loaded {e.value}", type="positive", color="emerald-9")
+            notify(f"Loaded {e.value}", type="positive", color="emerald-9")
 
     def refresh_files():
         nonlocal profile_map
@@ -119,18 +120,18 @@ async def _input_panel():
 
 def _do_quick_save():
     if _textarea is None or not (_textarea.value or "").strip():
-        ui.notify("Nothing to save", type="warning", color="orange-9")
+        notify("Nothing to save", type="warning", color="orange-9")
         return
     if _current_file_path is not None:
         _current_file_path.write_text(_textarea.value)
-        ui.notify(f"Saved {_current_file_path.name}", type="positive", color="emerald-9")
+        notify(f"Saved {_current_file_path.name}", type="positive", color="emerald-9")
     else:
         _do_save_as()
 
 
 def _do_save_as():
     if _textarea is None or not (_textarea.value or "").strip():
-        ui.notify("Nothing to save", type="warning", color="orange-9")
+        notify("Nothing to save", type="warning", color="orange-9")
         return
     default_name = _current_file_path.name if _current_file_path else "profile.toml"
 
@@ -160,14 +161,14 @@ def _finalize_save_as(dialog, name_input):
 
     filename = (name_input.value or "").strip()
     if not filename:
-        ui.notify("Enter a filename", type="warning", color="orange-9")
+        notify("Enter a filename", type="warning", color="orange-9")
         return
     if not filename.endswith(".toml"):
         filename += ".toml"
 
     new_path = PROFILES_DIR / filename
     if not new_path.resolve().is_relative_to(PROFILES_DIR.resolve()):
-        ui.notify("Invalid filename", type="negative")
+        notify("Invalid filename", type="negative")
         return
 
     new_path.write_text(_textarea.value)
@@ -179,7 +180,7 @@ def _finalize_save_as(dialog, name_input):
         _file_select.set_value(filename)
         _file_select.update()
 
-    ui.notify(f"Saved {filename}", type="positive", color="emerald-9")
+    notify(f"Saved {filename}", type="positive", color="emerald-9")
 
 
 # ---------------------------------------------------------------------------
@@ -218,7 +219,7 @@ async def _do_render(render_btn):
 
     toml_text = (_textarea.value or "").strip() if _textarea else ""
     if not toml_text:
-        ui.notify("Paste a TOML profile first", type="warning", color="orange-9")
+        notify("Paste a TOML profile first", type="warning", color="orange-9")
         return
 
     render_btn.props("loading")
@@ -228,7 +229,7 @@ async def _do_render(render_btn):
         render_btn.props("loading=false")
 
     if not result:
-        ui.notify("Failed to contact server", type="negative")
+        notify("Failed to contact server", type="negative")
         return
 
     data = result.get("data", {})

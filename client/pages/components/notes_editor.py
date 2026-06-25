@@ -1,6 +1,7 @@
 from nicegui import ui
 
 from client.modules.api_calls import get_single_node_data, update_node_data
+from client.utils.helpers import notify
 
 
 class GenericNotesEditor:
@@ -59,7 +60,7 @@ class GenericNotesEditor:
             self.original_content = content or ""
             self.editor.value = self.original_content
         except Exception as e:
-            ui.notify(f"Failed to load notes: {e}", type="negative")
+            notify(f"Failed to load notes: {e}", type="negative")
             self.editor.value = "ERROR LOADING DATA"
         finally:
             self.save_btn.enable()
@@ -84,7 +85,7 @@ class GenericNotesEditor:
             await self.execute_save()
 
         except Exception as e:
-            ui.notify(f"Error during save prep: {e}", type="negative")
+            notify(f"Error during save prep: {e}", type="negative")
         finally:
             self.save_btn.enable()
 
@@ -96,10 +97,10 @@ class GenericNotesEditor:
 
             await update_node_data(self.node_type, self.node_id, note_data)
             self.original_content = self.editor.value  # Update baseline
-            ui.notify("Notes saved successfully", type="positive")
+            notify("Notes saved successfully", type="positive")
             self.status_label.text = "Saved."
         except Exception as e:
-            ui.notify(f"Failed to save notes: {e}", type="negative")
+            notify(f"Failed to save notes: {e}", type="negative")
             self.status_label.text = "Save failed."
 
     def show_conflict_dialog(self):

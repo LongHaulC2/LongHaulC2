@@ -30,6 +30,8 @@ async def health_check():
     if changes:
         core_keys = current_data.get("core", {}).keys()
 
+        position = app.storage.user.get("notification_position", "bottom")
+
         for name, status in changes.items():
             display_name = name.replace("_", " ").title()
 
@@ -41,20 +43,26 @@ async def health_check():
                         f"The server cannot continue to function with {display_name} down. "
                     )
 
-                    ui.notification(message=message, timeout=None, close_button="OK", type="negative")
+                    ui.notification(
+                        message=message, timeout=None, close_button="OK", type="negative", position=position
+                    )
                 else:
                     ui.notification(
-                        f"CORE RECOVERY: {display_name} is '{status}'", timeout=None, type="positive", close_button="OK"
+                        f"CORE RECOVERY: {display_name} is '{status}'",
+                        timeout=None,
+                        type="positive",
+                        close_button="OK",
+                        position=position,
                     )
 
             # check listeners/noncritical
             else:
                 if status != "running":
                     message = f"Listener {display_name}: '{status}'"
-                    ui.notification(message=message, type="warning", close_button="OK")
+                    ui.notification(message=message, type="warning", close_button="OK", position=position)
                 else:
                     message = f"Listener {display_name}: '{status}'"
-                    ui.notification(message=message, type="positive", close_button="OK")
+                    ui.notification(message=message, type="positive", close_button="OK", position=position)
 
     # update previous state
     previous_status = current_status.copy()

@@ -13,6 +13,7 @@ from client.pages.formatted_tooltip import formatted_tooltip
 
 # Imports
 from client.pages.menu import setup_menu
+from client.utils.helpers import notify
 
 server_log = structlog.getLogger("server")
 
@@ -124,25 +125,25 @@ async def status_page():
                 if action == "start":
                     # Assuming svc_name is your listener_uuid
                     await start_listener_from_existing(listener_uuid)
-                    # ui.notify(f"Started listener: {svc_name}", type="positive")
+                    # notify(f"Started listener: {svc_name}", type="positive")
 
                 elif action == "stop":
                     await stop_listener(listener_uuid)
-                    # ui.notify(f"Stopped listener: {svc_name}", type="negative")
+                    # notify(f"Stopped listener: {svc_name}", type="negative")
 
                 elif action == "restart":
                     await restart_listener(listener_uuid)
                     # notify  only on restart, as this doesn't trigger the health watchdog
-                    ui.notify(f"Restarted listener: {svc_name}", type="info")
+                    notify(f"Restarted listener: {svc_name}", type="info")
 
                 # Trigger an immediate refresh of the UI data
                 await poll_data()
 
             except Exception as e:
-                ui.notify(f"Action failed: {str(e)}", type="warning")
+                notify(f"Action failed: {str(e)}", type="warning")
         else:
             # logic for core services when I want to implement that handling
-            ui.notify(f"Action {action} not implemented for Core services", color="grey")
+            notify(f"Action {action} not implemented for Core services", color="grey")
 
     def build_service_row(container, category: str, svc_name: str, initial_raw_status: str):
         """Draws a service row for the first time and registers its UI components."""

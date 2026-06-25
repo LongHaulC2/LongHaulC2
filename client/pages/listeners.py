@@ -16,6 +16,7 @@ from client.modules.navigate_hook import get_current_uri, navigate
 from client.pages.footer import build_footer
 from client.pages.formatted_tooltip import formatted_tooltip
 from client.pages.menu import setup_menu
+from client.utils.helpers import notify
 
 stats = {"total": 0, "online": 0, "http": 0}
 
@@ -213,10 +214,10 @@ async def render_listeners_table():
 
         async def batch_action(action_func, msg, color):
             if not table.selected:
-                return ui.notify("No Selection", type="warning")
+                return notify("No Selection", type="warning")
             for row in table.selected:
                 await action_func(row["listener_uuid"])
-            ui.notify(f"{msg} {len(table.selected)} listeners", type=color)
+            notify(f"{msg} {len(table.selected)} listeners", type=color)
             await update_table_data()
             return None
 
@@ -284,13 +285,13 @@ async def start_listener_dialogue():
             required_fields.extend([listener_host_field.value, listener_port_field.value])
 
         if not all(required_fields):
-            ui.notify("Missing required fields", type="warning", color="orange-9")
+            notify("Missing required fields", type="warning", color="orange-9")
             return
 
         file_path = Path(__file__).resolve().parent.parent / "user" / "profiles" / str(listener_profile_field.value)
 
         if not file_path.exists():
-            ui.notify(f"Profile not found: {file_path.name}", type="warning")
+            notify(f"Profile not found: {file_path.name}", type="warning")
             return
 
         # set defaults if not host or port
@@ -313,11 +314,11 @@ async def start_listener_dialogue():
         dialog_spinner.visible = False
 
         if result:
-            ui.notify("Listener Online", type="positive", color="emerald-9")
+            notify("Listener Online", type="positive", color="emerald-9")
             dialog.close()
             # ui.navigate.to("/listeners")
         else:
-            ui.notify("Failed to start listener", type="negative")
+            notify("Failed to start listener", type="negative")
 
     # TECH DIALOG
     with ui.dialog() as dialog, ui.card().classes("tech-dialog w-[600px] p-0 rounded overflow-hidden"):

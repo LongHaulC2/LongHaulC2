@@ -218,6 +218,12 @@ make create_docker_images  # rebuild from setup/docker_images/
 
 **Environment config:** All secrets and service addresses come from `.env` via `dotenv_values(".env")` in `server/instance.py`. The `.env` is loaded at server startup — no runtime reloads.
 
+**User preferences** are stored in `app.storage.user` and initialized in `client/pages/user_settings.py:initialize_default_settings()`. Known keys:
+- `auto_refresh_rate` (int, default `1`) — polling interval in seconds for timers throughout the UI
+- `notification_position` (str, default `"bottom"`) — where `ui.notify()` banners appear; valid values: `top-left`, `top-right`, `top`, `bottom-left`, `bottom-right`, `bottom`, `left`, `right`, `center`
+
+**Notifications:** Never call `ui.notify()` directly in `client/`. Use `notify()` from `client.utils.helpers` instead — it reads `notification_position` from user storage so the user's preference is applied everywhere.
+
 ---
 
 # Behavioral Rules
