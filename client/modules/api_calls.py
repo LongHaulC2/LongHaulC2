@@ -959,3 +959,24 @@ async def delete_single_node(node_type: str, node_uuid: str) -> dict | None:
         method="DELETE",
         endpoint=f"/api/v1/graph/node/{node_type}/{node_uuid}",
     )
+
+
+async def preview_profile(profile_contents: str) -> dict | None:
+    """Submit raw TOML profile contents to the server for preview rendering.
+
+    Returns a structured breakdown of request/response templates, header lists,
+    and step-by-step transform chain output for each protocol section.
+
+    Args:
+        profile_contents (str): Raw TOML string of the network profile.
+
+    Returns:
+        dict | None: Structured preview data including transform chains and validation info.
+    """
+    check_type(profile_contents, str, "profile_contents")
+    api_log.debug("Requesting profile preview")
+    return await safe_api_request(
+        method="POST",
+        endpoint="/api/v1/profiles/preview",
+        json={"profile_contents": profile_contents},
+    )

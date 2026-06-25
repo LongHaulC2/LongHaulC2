@@ -27,7 +27,7 @@ The team is relatively new to offensive tooling. Prioritize:
 - SMB Chaining (lateral movement / peer-to-peer)
 
 **UI/Server functionality:**
-- Network Profile creation and editing
+- Network Profile creation, editing, and preview/rendering
 - BOF storage (and a market, later)
 - BYOL: Bring Your Own Loader support
 
@@ -179,12 +179,13 @@ Defaults: `http://localhost:45045` / `longhaul` / `P@ssw0rd1!` (from `.env`).
 - `test_listeners.py` — full CRUD, start/stop via PATCH, missing-field validation
 - `test_filestore.py` — upload/download/delete, missing-field validation, nonexistent file handling
 - `test_build.py` — submits a build job and verifies acceptance only (HTTP 200 + `build_uuid`); does **not** poll for completion since the cross-compiler toolchain is not present on dev machines
+- `test_profiles.py` — profile preview endpoint: valid TOML (parse_ok=true, http_get populated, transform steps non-empty, metadata_token_location set), malformed TOML (HTTP 200 with parse_ok=false + parse_error, http_get null), missing profile_contents (HTTP 400), unauthenticated (HTTP 401)
 
 **Web smoke tests (`tests/web/web_tests.py`) — need to know:**
 
 These run against a real in-process NiceGUI app (no browser, no server needed). They verify pages render without crashing and key static labels are present.
 
-Three pages (Operations, Listeners, Payloads) are auth-gated: `setup_menu()` redirects to `/login` when `app.storage.user["api_host"]` is unset. These tests verify the redirect fires by asserting the login page labels appear — they do **not** test page content directly.
+Auth-gated pages (Operations, Listeners, Payloads, Profile Preview): `setup_menu()` redirects to `/login` when `app.storage.user["api_host"]` is unset. These tests verify the redirect fires by asserting the login page labels appear — they do **not** test page content directly.
 
 Pages excluded from smoke tests (graph, all node detail pages): they make unconditional API calls on load and throw an unhandled exception without a live server. Smoke-testing them without a server is not useful; use the integration test suite for those.
 

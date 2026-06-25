@@ -365,6 +365,42 @@ Returns the implant topology and network graph data used to populate the **Graph
 
 ---
 
+## Profiles — `/api/v1/profiles/`
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/profiles/preview` | Parse and render a profile TOML, returning structured output with per-step transform chains |
+
+### POST `/profiles/preview`
+
+Always returns HTTP 200. Parse failures are returned as data (check `data.validation.parse_ok`), not as HTTP errors.
+
+**Request body:**
+```json
+{ "profile_contents": "<raw TOML string>" }
+```
+
+**Response `data`:**
+```json
+{
+  "profile_name": "Amazon Browsing",
+  "profile_author": "@harmj0y",
+  "http_get": { "method": "GET", "uri": "...", "client": { ... }, "server": { ... } },
+  "http_post": { "method": "POST", "uri": "...", "client": { ... }, "server": { ... } },
+  "smb": null,
+  "validation": {
+    "parse_ok": true,
+    "parse_error": null,
+    "missing_fields": [],
+    "warnings": []
+  }
+}
+```
+
+See [Network Profiles](../06%20Network%20Profiles/Overview.md) for the full response shape and field descriptions.
+
+---
+
 ## Health — `/api/v1/health/`
 
 | Method | Path | Auth | Description |
