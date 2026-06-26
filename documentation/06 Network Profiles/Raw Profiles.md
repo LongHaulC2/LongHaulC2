@@ -295,13 +295,65 @@ transforms = [{ op = "prepend", val = "\x23\x00" }]
 transforms = [{ op = "prepend", val = '\x23\x00' }]
 ```
 
-### 3. Using the same body template for GET and POST with overlapping prefix structure
+### 3. Identical GET and POST prepend values (silent exfil loss)
 
-If GET and POST body templates have identical prefixes and no structural differences, the server's GET decode path will extract bytes from POST packets and attempt to parse them as beacons. This will fail gracefully (falls through to POST decode), but adds latency per packet.
+If GET and POST both use a `prepend` transform with the **same** byte sequence, binary prefix matching cannot distinguish them. The server falls back to try-GET-then-POST. In this fallback, exfil packets (which contain `implant_uuid`) can pass the secondary shape guard and be accepted by `handle_beacon` as a check-in with no tasks — the exfil result is silently discarded and never stored.
 
-Design templates so they are structurally distinct — for example, use different extension field types as in the NTP profile (`0xF001` for GET, `0xF002` for POST). The disambiguator still works without this, but explicit differentiation is cleaner.
+```toml
+# BROKEN — identical prepend on GET and POST; server cannot tell them apart
+[raw.get.client.metadata]
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\x00\x01\x02\x03' }
+]
 
-### 4. Expecting the listener to handle protocol-specific concerns automatically
+[raw.post.client.output]
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\x00\x01\x02\x03' }   # same bytes — broken
+]
+```
+
+```toml
+# CORRECT — use the protocol's own type field to differentiate
+[raw.get.client.metadata]
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\x00\x01\x02\xF0\x01' }   # type = 0xF001
+]
+
+[raw.post.client.output]
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\x00\x01\x02\xF0\x02' }   # type = 0xF002 — distinct
+]
+```
+
+Use the protocol's own type/opcode/flag field as the differentiator. NTP does this with extension field types. DNS uses the QR bit in the flags field. FTP uses different command strings. Whatever the protocol provides, encode it in your prepend so the server can route without guessing.
+
+### 4. No prepend transform at all (relies entirely on fallback)
+
+If neither GET nor POST uses a `prepend` transform, binary prefix matching is skipped entirely. The server uses try-GET-then-POST with the secondary shape guard. This works only if the exfil data reliably contains `task_uuid` in the first element AND the msgpack decode of random GET data always fails. Both conditions usually hold, but this is fragile — any encoding edge case can break it.
+
+**Always include a `prepend` transform** with distinct values for GET and POST. Even a 1-byte type tag is enough:
+
+```toml
+[raw.get.client.metadata]
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\x01' }   # type: beacon
+]
+
+[raw.post.client.output]
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\x02' }   # type: exfil
+]
+```
+
+---
+
+### 5. Expecting the listener to handle protocol-specific concerns automatically
 
 The raw listener does not:
 - Compute checksums (NTP, UDP, TCP, IP)
@@ -311,7 +363,7 @@ The raw listener does not:
 
 If the protocol you are mimicking requires correct checksums (e.g., IP-layer ICMP), you need either a raw socket implementation or a different approach.
 
-### 5. Multi-line body templates
+### 6. Multi-line body templates
 
 The `body` field is a TOML string. If your body template needs to contain a newline character (e.g., for HTTP-over-raw), use the escape `\n` in a basic string:
 
