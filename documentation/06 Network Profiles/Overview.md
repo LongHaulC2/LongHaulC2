@@ -1,8 +1,19 @@
 # Network Profiles
 
-A **network profile** is a TOML file that controls how an implant's traffic looks on the wire. Profiles define URI templates, HTTP headers, query parameters, body formats, and transform chains for beacon (GET) and exfil (POST) traffic. The concept is similar to Cobalt Strike's Malleable C2 profiles, but focused on the network layer only — LongHaul does not implement payload-staging or process-injection configuration.
+A **network profile** is a TOML file that controls exactly what bytes an implant sends and receives. Profiles define packet structure, token placement, and transform chains for beacon (GET) and exfil (POST) traffic.
 
-Each listener is paired with one profile at creation time. An implant can hold multiple listener/profile combinations and switch between them at runtime with `strat set get` / `strat set post`.
+> **Note for operators familiar with Cobalt Strike:** LongHaul network profiles serve the same general purpose as Malleable C2 profiles, but are an independent implementation. The TOML schema, transform operations, and raw socket support are specific to LongHaul — do not expect syntax compatibility.
+
+---
+
+## Profile Types
+
+| Type | Description |
+|---|---|
+| **HTTP** | Defines URI patterns, headers, query parameters, and body templates for HTTP/HTTPS traffic. The HTTP listener handles framing (status codes, Content-Length, etc.) automatically — the profile controls the shape of the content within that frame. |
+| **Raw** | Defines the complete wire format for any TCP or UDP protocol. No framing is added by the listener. Whatever is in the `body` template is exactly what goes on the wire. Use this to mimic NTP, DNS, FTP, or any other protocol. See [Raw Profiles](./Raw%20Profiles.md) for full documentation. |
+
+A single profile file can contain both `[http.*]` and `[raw.*]` sections, giving one implant multiple transport options it can switch between at runtime.
 
 ---
 
@@ -14,40 +25,126 @@ Profiles are stored at:
 /var/lib/longhaulc2/profiles/
 ```
 
-Files must have a `.toml` extension. The **Profile Preview** page (`/profile-preview` in the UI) scans this directory and lets you load any profile directly into the previewer.
+Files must have a `.toml` extension. The **Profile Preview** page (`/profile-preview` in the UI) scans this directory and lets you load any profile directly into the previewer. Example profiles ship in `client/user/profiles/`.
 
 ---
 
-## File Format
+## Tokens
 
-Profiles are plain TOML. The top-level sections are:
+Three tokens are replaced by the implant at runtime. **These are the only things in a profile that get substituted — everything else is sent literally.**
+
+| Token | Replaced with |
+|---|---|
+| `<METADATA>` | Encoded beacon metadata (implant ID, host info, sleep settings, etc.). Used in GET requests. |
+| `<CLIENT_ID>` | The implant's unique UUID. Used in POST requests. |
+| `<OUTPUT>` | Task results going out (exfil), or server task payload coming in (response). Used in POST requests and server response bodies. |
+
+If you put `<ANYTHING_ELSE>` in a body template, header value, or URI, it will be sent to the target **as-is, angle brackets and all.** There is no variable substitution beyond the three tokens above.
+
+### Quick Example
+
+```toml
+# This URI sends literally: /api/v2/search?q=<METADATA>
+# The implant replaces <METADATA> with the encoded beacon data.
+uri = "/api/v2/search?q=<METADATA>"
+
+# This URI sends literally: /api/v2/search?session_id=<session_id>
+# <session_id> is NOT a recognized token — the angle brackets go on the wire.
+uri = "/api/v2/search?session_id=<session_id>"   # WRONG: not a token
+```
+
+---
+
+## Transform Chains
+
+Transforms encode or modify the **data payload** (the token content) before it is injected into the template. They are applied in order. The template structure itself is never modified by transforms — only the bytes that replace a token.
+
+### Supported Operations
+
+| Op | Description | `val` field |
+|---|---|---|
+| `base64` | Standard Base64 encode | — |
+| `base64url` | URL-safe Base64 encode, no padding (RFC 4648 §5) | — |
+| `prepend` | Prepend a string or binary sequence | Required |
+| `append` | Append a string or binary sequence | Required |
+| `netbios` | NetBIOS encode (lowercase) | — |
+| `netbiosu` | NetBIOS encode (uppercase) | — |
+
+### Transform Order Matters
+
+```toml
+[http.get.client.metadata]
+transforms = [
+    { op = "base64" },
+    { op = "prepend", val = "session-token=" }
+]
+```
+
+Given input `HELLO`:
+```
+1. base64   →  SEVMTE8=
+2. prepend  →  session-token=SEVMTE8=
+```
+
+The server **reverses** this chain automatically when it receives the packet. Swapping the order would produce different (wrong) results.
+
+---
+
+## HTTP Profile
+
+### Sections
 
 | Section | Description |
 |---|---|
-| `[profile]` | Metadata: name and author |
-| `[http.get]` | HTTP GET (beacon check-in) configuration |
-| `[http.get.client]` | Headers, body template, and transform chains for the outbound beacon request |
-| `[http.get.server]` | Headers, body template, and transform chains for the server's response |
-| `[http.post]` | HTTP POST (exfil) configuration |
-| `[http.post.client]` | Headers, parameters, body template, and transform chains for the exfil request |
-| `[http.post.server]` | Headers, body, and transform chains for the server's response to an exfil |
-| `[smb]` | SMB named pipe names for lateral movement (optional) |
+| `[http.get]` | HTTP GET (beacon check-in) |
+| `[http.get.client]` | Outbound request: headers, body, token location |
+| `[http.get.client.metadata]` | Transform chain applied to beacon metadata |
+| `[http.get.server]` | Server response: headers, body |
+| `[http.get.server.output]` | Transform chain applied to server task output |
+| `[http.post]` | HTTP POST (exfil) |
+| `[http.post.client]` | Outbound request: headers, parameters, body |
+| `[http.post.client.id]` | Transform chain applied to `<CLIENT_ID>` |
+| `[http.post.client.output]` | Transform chain applied to exfil output |
+| `[http.post.server]` | Server response: headers, body |
+| `[http.post.server.output]` | Transform chain applied to server response |
 
-### Minimal Example
+### Wire Contract for HTTP
+
+The HTTP listener adds standard HTTP framing around your profile content. What you control:
+
+- **`uri`** — the request path and query string, verbatim
+- **`useragent`** — the User-Agent header value
+- **`headers`** — additional headers, added exactly as specified
+- **`parameters`** — query parameters appended to the URI
+- **`body`** — the HTTP request body, verbatim
+
+What the HTTP listener handles automatically: HTTP method line, `Content-Length`, status codes (200 for tasks, 204 for no-tasks), and basic connection management.
+
+### Token Placement in HTTP
+
+The `<METADATA>` token can appear in:
+- A header value: `{ "Cookie" = "<METADATA>" }`
+- The request body: `body = "<METADATA>"`
+- The URI: `uri = "/search?q=<METADATA>"`
+
+Only **one occurrence per request** is meaningful. If `<METADATA>` appears in multiple places, the Profile Preview tool will report which location it finds first.
+
+### Minimal HTTP Example
 
 ```toml
 [profile]
-name   = "Example Profile"
+name   = "Example HTTP Profile"
 author = "@operator"
 
 [http.get]
-method = "GET"
-uri    = "/api/v1/data"
+method    = "GET"
+uri       = "/api/v1/data"
+useragent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 
 [http.get.client]
 headers = [
-    { "Accept" = "*/*" },
-    { "Cookie" = "<METADATA>" }
+    { "Accept"     = "*/*" },
+    { "Cookie"     = "<METADATA>" }
 ]
 body = ""
 
@@ -65,8 +162,9 @@ body    = "<OUTPUT>"
 transforms = []
 
 [http.post]
-method = "POST"
-uri    = "/api/v1/submit"
+method    = "POST"
+uri       = "/api/v1/submit"
+useragent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 
 [http.post.client]
 headers    = [{ "Content-Type" = "application/x-www-form-urlencoded" }]
@@ -89,101 +187,50 @@ transforms = []
 
 ---
 
-## Token Placeholders
-
-Three special tokens are replaced by the implant at runtime:
-
-| Token | Replaced with | Used in |
-|---|---|---|
-| `<METADATA>` | Beacon metadata (sleep time, implant ID, host info, etc.) | `[http.get.client]` headers, body, or URI |
-| `<CLIENT_ID>` | The implant's unique identifier | `[http.post.client]` headers, parameters, body, or URI |
-| `<OUTPUT>` | Task results (exfil) or server task payload (response) | `[http.post.client]` body; server response bodies |
-
-The profile preview tool shows you exactly which header, parameter, or body field each token lands in.
-
----
-
-## Transform Chains
-
-Transforms encode or modify a data payload before it is injected into the request or response. They are applied in order, one step at a time.
-
-### Supported Operations
-
-| Op | Description | `val` field |
-|---|---|---|
-| `base64` | Standard Base64 encode | — |
-| `base64url` | URL-safe Base64 encode (RFC 4648 §5) | — |
-| `prepend` | Prepend a string | Required — the string to prepend |
-| `append` | Append a string | Required — the string to append |
-| `mask` | XOR each byte with the bytes of `val` (cyclic) | Required — the XOR key string |
-| `netbios` | NetBIOS encode (lowercase) | — |
-| `netbiosu` | NetBIOS encode (uppercase) | — |
-
-### Example
-
-```toml
-[http.get.client.metadata]
-transforms = [
-    { op = "base64" },
-    { op = "prepend", val = "session-token=" },
-    { op = "append",  val = "; path=/" }
-]
-```
-
-Applied to `PREVIEW_PAYLOAD`:
-
-```
-INPUT          →  PREVIEW_PAYLOAD
-base64         →  UFJFVklFV19QQVlMT0FE
-prepend        →  session-token=UFJFVklFV19QQVlMT0FE
-append         →  session-token=UFJFVklFV19QQVlMT0FE; path=/
-```
-
----
-
 ## SMB Configuration
 
 The optional `[smb]` section sets named pipe names for SMB pivot implants:
 
 ```toml
 [smb]
-inbox_pipe_name  = "msrpc_svr"
-outbox_pipe_name = "msrpc_svc"
+
+[smb.get]
+pipe_name = "msrpc_svr"
+
+[smb.post]
+pipe_name = "msrpc_svc"
 ```
 
-These names are baked into implants built with an `smb` listener target. The parent implant (with HTTP egress) connects to the child over the named pipe.
+These names are baked into implants built with an SMB listener target. The parent implant (with HTTP or raw egress) connects to the child over the named pipe.
 
 ---
 
 ## Profile Preview Tool
 
-The **Profile Preview** page (`/profile-preview`) lets you visualize what a profile produces before attaching it to a live listener.
+The **Profile Preview** page (`/profile-preview`) visualizes what a profile produces before attaching it to a live listener.
 
 ### Loading a Profile
 
-- **From disk:** Select a `.toml` file from the dropdown (scans `/var/lib/longhaulc2/profiles/`). Use the refresh button to pick up newly added files.
+- **From disk:** Select a `.toml` file from the dropdown.
 - **Manual paste:** Type or paste TOML directly into the textarea.
 
 ### Rendering
 
-Click **RENDER** to send the profile to the server. The right panel shows:
+Click **RENDER**. The right panel shows a tab per protocol section present in the profile (`HTTP_GET`, `HTTP_POST`, `SMB`, `RAW`) plus a **VALIDATION** tab.
 
-- A tab per protocol section present in the profile (`HTTP_GET`, `HTTP_POST`, `SMB`)
-- A **VALIDATION** tab with parse status, missing fields, and warnings
-- For each HTTP section:
-  - Method, URI, User-Agent
-  - CLIENT REQUEST: headers, query parameters, body, token locations
-  - Step-by-step transform chain with intermediate output at each step
-  - SERVER RESPONSE: headers, body, response transforms
+For each section, the preview shows:
+- The template structure (headers, URI, body)
+- The token location (`header:Cookie`, `body`, `uri`, etc.)
+- A step-by-step transform chain with intermediate output after each step, using the sample payload `PREVIEW_PAYLOAD`
 
-The preview uses a sample payload (`PREVIEW_PAYLOAD`) so you can see exactly what the transform chain produces.
+Use the preview to confirm the transform chain produces what you expect before deploying.
 
 ### Saving
 
 | Button | Behavior |
 |---|---|
-| Save (`save` icon) | Overwrites the file currently loaded from disk. If content was pasted manually (no file selected), opens Save As. |
-| Save As (`save_as` icon) | Opens a dialog — enter a filename, saves to `/var/lib/longhaulc2/profiles/`. Auto-appends `.toml` if omitted. Refreshes the dropdown after saving. |
+| Save | Overwrites the file currently loaded from disk. Opens Save As if no file is selected. |
+| Save As | Enter a filename, saves to `/var/lib/longhaulc2/profiles/`. Auto-appends `.toml` if omitted. |
 
 ---
 
@@ -191,41 +238,24 @@ The preview uses a sample payload (`PREVIEW_PAYLOAD`) so you can see exactly wha
 
 ### `POST /api/v1/profiles/preview`
 
-Parse and render a profile. Always returns HTTP 200 — parse failures are returned as data, not API errors.
+Parses and renders a profile. Always returns HTTP 200 — parse failures are returned as structured data, not 4xx errors.
 
-**Request body:**
+**Request:**
 ```json
 { "profile_contents": "<raw TOML string>" }
 ```
 
-**Response shape (success):**
+**Response (success):**
 ```json
 {
   "status": "200",
   "data": {
-    "profile_name": "Amazon Browsing",
-    "profile_author": "@harmj0y",
-    "http_get": {
-      "method": "GET",
-      "uri": "/s/ref=nb_sb_noss_1/...",
-      "useragent": "",
-      "client": {
-        "headers": [{ "Cookie": "<METADATA>" }],
-        "body": "",
-        "metadata_token_location": "header:Cookie",
-        "metadata_transforms": [
-          { "op": "base64", "result_display": "UFJFVklFV19QQVlMT0FE" },
-          { "op": "prepend", "val": "session-token=", "result_display": "session-token=UFJFVklFV19QQVlMT0FE" }
-        ]
-      },
-      "server": {
-        "headers": [{ "Server": "Server" }],
-        "body": "<OUTPUT>",
-        "output_transforms": []
-      }
-    },
-    "http_post": { "...": "same structure" },
+    "profile_name": "Example",
+    "profile_author": "@operator",
+    "http_get": { "..." : "..." },
+    "http_post": { "..." : "..." },
     "smb": null,
+    "raw_profiles": [],
     "validation": {
       "parse_ok": true,
       "parse_error": null,
@@ -236,26 +266,22 @@ Parse and render a profile. Always returns HTTP 200 — parse failures are retur
 }
 ```
 
-**Response shape (parse failure):**
+**Response (parse failure):**
 ```json
 {
   "status": "200",
   "data": {
-    "http_get": null,
-    "http_post": null,
-    "smb": null,
+    "http_get": null, "http_post": null, "smb": null, "raw_profiles": [],
     "validation": {
       "parse_ok": false,
-      "parse_error": "Invalid TOML: ...",
-      "missing_fields": [],
-      "warnings": []
+      "parse_error": "Invalid TOML at line 7: ...",
+      "missing_fields": [], "warnings": []
     }
   }
 }
 ```
 
 **curl example:**
-
 ```bash
 curl -s -X POST http://localhost:45045/api/v1/profiles/preview \
   -H "Authorization: Bearer <token>" \
@@ -265,13 +291,65 @@ curl -s -X POST http://localhost:45045/api/v1/profiles/preview \
 
 ---
 
-## Adding a New Protocol
+## Common Mistakes
 
-The preview endpoint is designed to be additive. When a new transport (e.g., NTP) is ready:
+These mistakes are operationally dangerous — they cause the implant to send wrong bytes silently, with no error.
 
-1. Add a new model in `server/api_models/profile.py`
-2. Add a nullable `fields.Nested` field for the new protocol to `PROFILE_PREVIEW_DATA_MODEL`
-3. Add an extraction block in `server/routes/v1/profile_resource.py`
-4. The UI tab appears automatically — the frontend builds tabs dynamically from non-null keys in the response
+### 1. Using an unrecognized token
 
-No structural changes are needed in existing code.
+```toml
+# WRONG — <session_id> is not a token. Sent literally on the wire:
+#   Cookie: session_id=<session_id>
+headers = [{ "Cookie" = "session_id=<session_id>" }]
+
+# CORRECT — <METADATA> is the recognized token:
+headers = [{ "Cookie" = "session_id=<METADATA>" }]
+```
+
+### 2. Putting static data in the wrong place
+
+Transforms modify the *data inside the token*. They do not modify the template structure.
+
+```toml
+# WRONG — the word "Bearer" goes inside the base64'd metadata:
+[http.get.client.metadata]
+transforms = [{ op = "prepend", val = "Bearer " }, { op = "base64" }]
+# Result in Cookie header: Cookie: <base64 of "Bearer " + metadata>
+
+# CORRECT — put the static prefix in the header, base64 just the data:
+[http.get.client]
+headers = [{ "Authorization" = "Bearer <METADATA>" }]
+
+[http.get.client.metadata]
+transforms = [{ op = "base64" }]
+# Result: Authorization: Bearer <base64 of metadata>
+```
+
+### 3. Forgetting that `append` adds to the token content, not the header
+
+```toml
+# You want:  Cookie: session=<base64>; path=/
+# WRONG — the semicolon ends up inside the base64 value:
+transforms = [{ op = "base64" }, { op = "append", val = "; path=/" }]
+
+# CORRECT — put the static suffix outside the token in the header value:
+headers = [{ "Cookie" = "<METADATA>; path=/" }]
+transforms = [{ op = "base64" }]
+```
+
+### 4. Raw profiles: `\x` escapes in double-quoted TOML strings
+
+TOML **basic strings** (double-quoted `"..."`) do not support `\x` hex escapes. They only support `\uXXXX` and standard escapes (`\n`, `\t`, `\\`, etc.). Using `\x` in a double-quoted string causes a TOML parse error.
+
+```toml
+# WRONG — TOML rejects \x in double-quoted strings:
+{ op = "prepend", val = "\x23\x00\x06" }
+
+# CORRECT — use TOML literal strings (single-quoted) for \xNN sequences:
+{ op = "prepend", val = '\x23\x00\x06' }
+
+# Also correct — use \uXXXX in double-quoted strings:
+{ op = "prepend", val = "# " }
+```
+
+See [Raw Profiles](./Raw%20Profiles.md) for full details on binary encoding.

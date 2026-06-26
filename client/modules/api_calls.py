@@ -577,19 +577,14 @@ async def start_listener(
     Args:
         listener_host (str): Host/IP the listener will bind to.
         listener_port (int): Port for the listener.
-        listener_type (str): Type of listener (e.g., 'http').
+        listener_type (str): Type of listener ('http', 'raw', 'pivot_smb').
         listener_name (str): Friendly name for the listener.
         listener_notes (str): Additional notes.
-        listener_profile_name (str): Malleable C2 profile name.
-        listener_profile_contents (str): The raw string content of the C2 profile.
+        listener_profile_name (str): Network profile filename.
+        listener_profile_contents (str): The raw TOML content of the network profile.
 
     Returns:
         dict: The created listener's details, including its new UUID.
-        Example structure:
-        {
-            "listener_uuid": "019baffa-c8c7-76ff-a40d-d2ec6c99306e",
-            "status": "running"
-        }
     """
     # validate inputs
     check_type(listener_host, str, "listener_host")

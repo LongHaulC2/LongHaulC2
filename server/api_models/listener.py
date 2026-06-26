@@ -119,7 +119,7 @@ LISTENERS_POST_INPUT = api.model(
         ),
         "listener_port": fields.Integer(required=False, description="Port to spawn the listener on"),
         "listener_type": fields.String(
-            required=True, description="What type of listener to spawn", enum=["ntp", "http", "pivot_smb"]
+            required=True, description="What type of listener to spawn", enum=["http", "raw", "pivot_smb"]
         ),
         "listener_name": fields.String(required=True, description="Name of listener"),
         "listener_notes": fields.String(required=False, description="Listener notes"),

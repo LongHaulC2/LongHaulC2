@@ -1,6 +1,6 @@
 # Listeners
 
-A **listener** is a network process that handles inbound implant traffic. Each listener is bound to a port and a Malleable C2 profile that defines the traffic shape. Multiple listeners can run simultaneously with different profiles.
+A **listener** is a network process that handles inbound implant traffic. Each listener is bound to a port and a network profile that defines the traffic shape. Multiple listeners can run simultaneously with different profiles.
 
 ---
 
@@ -32,8 +32,8 @@ Implant (GET/POST)
 
 | Type | Status | Transport |
 |---|---|---|
-| `http` | **Implemented** | HTTP/HTTPS via FastAPI, traffic shaped by Malleable C2 profiles |
-| `ntp` | In progress (skeleton) | NTP tunneling via custom socket implementation |
+| `http` | **Implemented** | HTTP/HTTPS via FastAPI. Traffic shape controlled by the `[http.*]` sections of the network profile. |
+| `raw` | **Implemented** | Plain TCP or UDP. The profile's `[raw.*]` body templates define the complete wire format — no framing is added. Use for NTP, DNS, FTP, or any custom binary protocol. |
 | `pivot_smb` | Placeholder | No process is started. Used as an internal marker for implants that connect via SMB chains rather than direct egress. |
 
 ---
@@ -47,11 +47,11 @@ Listeners are created through the UI (**Listeners** page) or via the API (`POST 
 | Field | Type | Description |
 |---|---|---|
 | `listener_name` | string | Human-readable name. Used to identify the listener and to derive strategy names in the implant. |
-| `listener_type` | string | One of: `http`, `ntp`, `pivot_smb` |
+| `listener_type` | string | One of: `http`, `raw`, `ntp`, `pivot_smb` |
 | `listener_host` | string | IP or hostname the listener binds to (e.g., `0.0.0.0`) |
-| `listener_port` | integer | Port to listen on (e.g., `443`, `80`, `8080`) |
-| `listener_profile_name` | string | Name of the Malleable C2 profile to use |
-| `listener_profile_contents` | string | Full text of the Malleable C2 profile |
+| `listener_port` | integer | Port to listen on (e.g., `443`, `80`, `123`) |
+| `listener_profile_name` | string | Filename of the network profile (e.g., `profile_def.toml`) |
+| `listener_profile_contents` | string | Full TOML text of the network profile |
 | `listener_notes` | string | Optional operator notes |
 
 ### Example API Call
@@ -101,9 +101,9 @@ curl -X PATCH http://localhost:45045/api/v1/listeners/<uuid> \
 
 ---
 
-## Malleable C2 Profiles
+## Network Profiles
 
-LongHaul implements the **network layer** of Malleable C2 profiles: URI patterns, HTTP headers, and body transforms for `http-get` and `http-post` blocks. Payload-staging configuration (specific to Cobalt Strike artifacts) is not supported.
+Each listener is paired with a **network profile** (a TOML file) that controls exactly what bytes go on the wire. See [Network Profiles](../06%20Network%20Profiles/Overview.md) for full documentation.
 
 Each listener gets one profile. Implants can be built with multiple listeners/profiles baked in and can switch between them at runtime with `strat set get` / `strat set post`.
 
@@ -127,13 +127,17 @@ The HTTP listener is built on **FastAPI** and runs as a daemon process. It handl
 - **Beacon (GET):** Implant checks in, provides metadata, receives pending tasks as a msgpack array.
 - **Exfil (POST):** Implant delivers task results as a msgpack array.
 
-Traffic shape is fully controlled by the Malleable C2 profile assigned at listener creation time.
+Traffic shape is fully controlled by the network profile assigned at listener creation time.
 
 ---
 
-## NTP Listener
+## Raw Listener
 
-In progress. A custom socket-based implementation for tunneling C2 traffic inside NTP packets. Not yet ready for operational use.
+The raw listener sends and receives arbitrary bytes over TCP or UDP. The network profile's `[raw.*]` section defines the complete wire format — the listener adds no framing beyond what the profile specifies.
+
+Use this listener type to mimic any protocol: NTP, DNS, FTP, custom binary, etc. A working NTP example profile ships at `client/user/profiles/raw_ntp_profile.toml`.
+
+See [Raw Profiles](../06%20Network%20Profiles/Raw%20Profiles.md) for full documentation.
 
 ---
 

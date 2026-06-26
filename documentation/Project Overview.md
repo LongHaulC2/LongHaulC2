@@ -71,8 +71,8 @@ Listeners run as **daemon multiprocesses** managed by `server/listeners/supervis
 
 | Type | Status | Notes |
 |---|---|---|
-| `http` | Implemented | FastAPI, traffic shaped by Malleable C2 profiles |
-| `ntp` | In progress | Custom NTP tunnel (skeleton) |
+| `http` | Implemented | FastAPI, traffic shape controlled by network profile |
+| `raw` | Implemented | Plain TCP/UDP, complete wire format defined by profile `[raw.*]` sections |
 | `pivot_smb` | Placeholder | Registered as a type but no process is started — used as an internal marker for SMB-linked chains |
 
 ### Ports
@@ -205,9 +205,9 @@ To minimize traffic noise:
 - **Build system:** Docker cross-compilation (`win_x64` image, CMake + Ninja). Produces `.exe` and `.dll` artifacts stored in MySQL.
 - **Memory store:** In-process key-value store (RAM only). XOR-obfuscated at rest to hinder memory scanning.
 
-### Malleable C2 Support
+### Network Profile Support
 
-LongHaul implements the **network communication layer** of Malleable C2 profiles: `http-get`, `http-post`, URI patterns, headers, and transforms. Payload-staging and artifact configurations specific to Cobalt Strike are not supported.
+LongHaul network profiles control `http-get`, `http-post`, URI patterns, headers, transforms, and raw socket wire formats. Payload-staging and artifact configurations specific to other C2 frameworks are not supported.
 
 ### Encryption
 

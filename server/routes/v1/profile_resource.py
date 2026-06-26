@@ -10,6 +10,7 @@ from ...api_models.error import COMMON_ERRORS
 from ...api_models.profile import (
     PROFILE_PREVIEW_INPUT,
     PROFILE_PREVIEW_RESPONSE,
+    PROFILE_RAW_ENTRY_MODEL,  # noqa: F401 — imported to ensure model is registered
 )
 from ...instance import api
 from ...listeners.transform import apply_python_transforms
@@ -122,6 +123,53 @@ def _build_smb(smb_block: dict) -> dict:
     }
 
 
+def _build_raw_get(get_block: dict) -> dict:
+    metadata_transforms = get_block.get("client", {}).get("metadata", {}).get("transforms", [])
+    server_output_transforms = get_block.get("server", {}).get("output", {}).get("transforms", [])
+    body = get_block.get("body", "<METADATA>")
+    return {
+        "proto": get_block.get("proto", "tcp"),
+        "client": {
+            "body": body,
+            "metadata_token_location": "body" if "<METADATA>" in body else "not_found",
+            "metadata_transforms": _apply_transforms_with_steps(_PREVIEW_PAYLOAD, metadata_transforms),
+        },
+        "server": {
+            "body": get_block.get("server", {}).get("body", "<OUTPUT>"),
+            "output_transforms": _apply_transforms_with_steps(_PREVIEW_PAYLOAD, server_output_transforms),
+        },
+    }
+
+
+def _build_raw_post(post_block: dict) -> dict:
+    output_transforms = post_block.get("client", {}).get("output", {}).get("transforms", [])
+    id_transforms = post_block.get("client", {}).get("id", {}).get("transforms", [])
+    server_output_transforms = post_block.get("server", {}).get("output", {}).get("transforms", [])
+    body = post_block.get("body", "<OUTPUT>")
+    return {
+        "proto": post_block.get("proto", "tcp"),
+        "client": {
+            "body": body,
+            "output_token_location": "body" if "<OUTPUT>" in body else "not_found",
+            "output_transforms": _apply_transforms_with_steps(_PREVIEW_PAYLOAD, output_transforms),
+            "id_transforms": _apply_transforms_with_steps(_PREVIEW_PAYLOAD, id_transforms),
+        },
+        "server": {
+            "body": post_block.get("server", {}).get("body", ""),
+            "output_transforms": _apply_transforms_with_steps(_PREVIEW_PAYLOAD, server_output_transforms),
+        },
+    }
+
+
+def _build_all_raw(raw_block: dict) -> list[dict]:
+    """Parse the [raw] TOML block (top-level [raw.get]/[raw.post] only)."""
+    if not raw_block:
+        return []
+    get_data = _build_raw_get(raw_block.get("get", {})) if raw_block.get("get") else None
+    post_data = _build_raw_post(raw_block.get("post", {})) if raw_block.get("post") else None
+    return [{"name": "default", "get": get_data, "post": post_data}]
+
+
 def _validate(parsed: dict) -> dict:
     missing = []
     warnings = []
@@ -143,6 +191,9 @@ def _validate(parsed: dict) -> dict:
 
     if not parsed.get("smb"):
         warnings.append("[smb] section not present — SMB chaining will not be configured")
+
+    if not parsed.get("http") and not parsed.get("raw"):
+        warnings.append("Neither [http] nor [raw] section present — no C2 channel configured")
 
     return {"parse_ok": True, "parse_error": None, "missing_fields": missing, "warnings": warnings}
 
@@ -187,6 +238,7 @@ class ProfilePreview(Resource):
                     "http_get": None,
                     "http_post": None,
                     "smb": None,
+                    "raw_profiles": [],
                     "validation": {
                         "parse_ok": False,
                         "parse_error": str(e),
@@ -202,6 +254,7 @@ class ProfilePreview(Resource):
         http_get_data = _build_http_get(http_block["get"]) if http_block.get("get") else None
         http_post_data = _build_http_post(http_block["post"]) if http_block.get("post") else None
         smb_data = _build_smb(parsed["smb"]) if parsed.get("smb") else None
+        raw_profiles_data = _build_all_raw(parsed.get("raw", {}))
 
         return APIResponse(
             status="200",
@@ -212,6 +265,7 @@ class ProfilePreview(Resource):
                 "http_get": http_get_data,
                 "http_post": http_post_data,
                 "smb": smb_data,
+                "raw_profiles": raw_profiles_data,
                 "validation": _validate(parsed),
             },
         )

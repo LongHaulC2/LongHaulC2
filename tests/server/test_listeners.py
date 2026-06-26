@@ -76,3 +76,23 @@ def test_listeners_unauthed():
     base_url = os.getenv("SERVER_URL", "http://localhost:45045")
     resp = raw_requests.get(f"{base_url}/api/v1/listeners")
     assert resp.status_code == 401
+
+
+def test_create_raw_listener(api_client, raw_listener_uuid):
+    """Creating a raw listener returns 200 with uuid, active=True, and type='raw'."""
+    resp = api_client.get_listener(raw_listener_uuid)
+    assert resp["status"] == "200"
+    data = resp["data"]
+    assert data["listener_uuid"] == raw_listener_uuid
+    assert data["listener_type"] == "raw"
+    assert data["listener_active"] is True
+
+
+def test_raw_listener_stop_start(api_client, raw_listener_uuid):
+    """Raw listener can be stopped and restarted via PATCH."""
+    stop_resp = api_client.patch_listener(raw_listener_uuid, {"active": False})
+    assert stop_resp["status"] == "200"
+
+    start_resp = api_client.patch_listener(raw_listener_uuid, {"active": True})
+    assert start_resp["status"] == "200"
+    assert "started" in start_resp["message"].lower() or "online" in start_resp["message"].lower()

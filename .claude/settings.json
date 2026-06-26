@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(PYTHONPATH=. venv/bin/python -m pytest -v -s tests/web/web_tests.py)"
+      "Bash(PYTHONPATH=. venv/bin/python -m pytest -v -s tests/web/web_tests.py)",
+      "Bash(python -m ruff check client/pages/listeners.py client/modules/api_calls.py server/listeners/supervisor.py server/api_models/listener.py)",
+      "Bash(PYTHONPATH=. venv/bin/python -m ruff check client/pages/listeners.py)",
+      "Bash(venv/bin/python -m ruff format --check client/pages/listeners.py)"
     ]
   }
 }

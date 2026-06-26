@@ -133,6 +133,92 @@ PROFILE_SMB_MODEL = api.model(
 )
 
 ######################################################################
+# RAW GET / POST
+######################################################################
+
+PROFILE_RAW_GET_CLIENT_MODEL = api.model(
+    "PROFILE_RAW_GET_CLIENT_MODEL",
+    {
+        "body": fields.String(description="Wire body template (contains <METADATA> token)", example="<METADATA>"),
+        "metadata_token_location": fields.String(description="Always 'body' for raw profiles", example="body"),
+        "metadata_transforms": fields.List(
+            fields.Nested(PROFILE_TRANSFORM_STEP_MODEL),
+            description="Step-by-step transform chain applied to beacon metadata before wire send",
+        ),
+    },
+)
+
+PROFILE_RAW_GET_SERVER_MODEL = api.model(
+    "PROFILE_RAW_GET_SERVER_MODEL",
+    {
+        "body": fields.String(
+            description="Server response body template (contains <OUTPUT> token)", example="<OUTPUT>"
+        ),
+        "output_transforms": fields.List(
+            fields.Nested(PROFILE_TRANSFORM_STEP_MODEL),
+            description="Step-by-step transform chain applied to server task output",
+        ),
+    },
+)
+
+PROFILE_RAW_GET_MODEL = api.model(
+    "PROFILE_RAW_GET_MODEL",
+    {
+        "proto": fields.String(description="Socket protocol", example="tcp", enum=["tcp", "udp"]),
+        "client": fields.Nested(PROFILE_RAW_GET_CLIENT_MODEL),
+        "server": fields.Nested(PROFILE_RAW_GET_SERVER_MODEL),
+    },
+)
+
+PROFILE_RAW_POST_CLIENT_MODEL = api.model(
+    "PROFILE_RAW_POST_CLIENT_MODEL",
+    {
+        "body": fields.String(description="Wire body template (contains <OUTPUT> token)", example="<OUTPUT>"),
+        "output_token_location": fields.String(description="Always 'body' for raw profiles", example="body"),
+        "output_transforms": fields.List(
+            fields.Nested(PROFILE_TRANSFORM_STEP_MODEL),
+            description="Step-by-step transform chain applied to exfil output before wire send",
+        ),
+        "id_transforms": fields.List(
+            fields.Nested(PROFILE_TRANSFORM_STEP_MODEL),
+            description="Step-by-step transform chain applied to implant ID",
+        ),
+    },
+)
+
+PROFILE_RAW_POST_SERVER_MODEL = api.model(
+    "PROFILE_RAW_POST_SERVER_MODEL",
+    {
+        "body": fields.String(description="Server ACK body template", example=""),
+        "output_transforms": fields.List(
+            fields.Nested(PROFILE_TRANSFORM_STEP_MODEL),
+            description="Step-by-step transform chain applied to server ACK output",
+        ),
+    },
+)
+
+PROFILE_RAW_POST_MODEL = api.model(
+    "PROFILE_RAW_POST_MODEL",
+    {
+        "proto": fields.String(description="Socket protocol", example="tcp", enum=["tcp", "udp"]),
+        "client": fields.Nested(PROFILE_RAW_POST_CLIENT_MODEL),
+        "server": fields.Nested(PROFILE_RAW_POST_SERVER_MODEL),
+    },
+)
+
+PROFILE_RAW_ENTRY_MODEL = api.model(
+    "PROFILE_RAW_ENTRY_MODEL",
+    {
+        "name": fields.String(
+            description="Sub-profile name ('default' for top-level [raw.*], or the named key e.g. 'ntp')",
+            example="default",
+        ),
+        "get": fields.Nested(PROFILE_RAW_GET_MODEL, allow_null=True),
+        "post": fields.Nested(PROFILE_RAW_POST_MODEL, allow_null=True),
+    },
+)
+
+######################################################################
 # Validation
 ######################################################################
 
@@ -165,6 +251,10 @@ PROFILE_PREVIEW_DATA_MODEL = api.model(
             PROFILE_HTTP_POST_MODEL, allow_null=True, description="HTTP POST (exfil) configuration and transforms"
         ),
         "smb": fields.Nested(PROFILE_SMB_MODEL, allow_null=True, description="SMB chaining pipe configuration"),
+        "raw_profiles": fields.List(
+            fields.Nested(PROFILE_RAW_ENTRY_MODEL),
+            description="Raw socket sub-profiles found in [raw.*] sections",
+        ),
         "validation": fields.Nested(PROFILE_VALIDATION_MODEL, description="Parse status and detected issues"),
     },
 )

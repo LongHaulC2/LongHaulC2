@@ -6,6 +6,7 @@ from pathlib import Path
 import structlog
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
+from .context_generators.context_raw import generate_toml_raw_context
 from .context_generators.context_toml import generate_toml_http_context, generate_toml_smb_context
 from .types import ListenerProfile  # Import your types
 
@@ -164,6 +165,25 @@ def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dic
         # Return just the one unified namespace
         return {"namespace": unified_namespace}
 
+    if listener_type == "raw":
+        host = listener.get("listener_host")
+        port = listener.get("listener_port")
+        prof_name = listener.get("listener_profile_name")
+
+        unified_namespace = sanitize_cpp_name(f"raw_{host}_{port}_{prof_name}")
+
+        context = _get_listener_context(listener)
+        context["raw_profile_namespace"] = unified_namespace
+
+        _render_file(
+            output_dir / "comms/comms.h",
+            "raw_comms.h.j2",
+            context,
+            mode="a",
+        )
+
+        return {"namespace": unified_namespace}
+
     raise ValueError(f"Unsupported listener type: {listener_type}")
 
 
@@ -182,6 +202,14 @@ def _get_listener_context(listener: ListenerProfile) -> dict:
     if listener_type == "pivot_smb":
         return generate_toml_smb_context(
             profile_toml=listener.get("listener_profile_contents"),
+            profile_name=listener.get("listener_profile_name"),
+        )
+
+    if listener_type == "raw":
+        return generate_toml_raw_context(
+            profile_toml=listener.get("listener_profile_contents"),
+            host=listener.get("listener_host"),
+            port=listener.get("listener_port"),
             profile_name=listener.get("listener_profile_name"),
         )
 

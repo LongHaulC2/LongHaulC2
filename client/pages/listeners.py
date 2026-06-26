@@ -308,7 +308,7 @@ async def start_listener_dialogue():
             listener_name=listener_name_field.value,
             listener_notes=listener_notes_field.value,
             listener_profile_name=listener_profile_field.value,
-            listener_profile_contents=get_malleable_profile_content(file_path),
+            listener_profile_contents=get_profile_content(file_path),
         )
 
         dialog_spinner.visible = False
@@ -335,7 +335,7 @@ async def start_listener_dialogue():
                 )
 
                 listener_type_field = (
-                    ui.select(["http", "pivot_smb", "ntp"], label="PROTOCOL", value="http")
+                    ui.select(["http", "raw", "pivot_smb"], label="PROTOCOL", value="http")
                     .props("outlined dense dark color=emerald options-dense")
                     .classes("w-1/3 tech-select")
                 )
@@ -379,8 +379,8 @@ async def start_listener_dialogue():
 
             listener_profile_field = (
                 ui.select(
-                    get_malleable_profiles_list(),
-                    label="MALLEABLE PROFILE",
+                    get_profile_list(),
+                    label="NETWORK PROFILE",
                     with_input=True,
                 )
                 .props("outlined dense dark color=emerald options-dense")
@@ -406,7 +406,7 @@ async def start_listener_dialogue():
     dialog.open()
 
 
-def get_malleable_profiles_list() -> list:
+def get_profile_list() -> list:
     try:
         script_path = Path(__file__).resolve().parent.parent / "user" / "profiles"
         script_path.mkdir(parents=True, exist_ok=True)
@@ -415,7 +415,7 @@ def get_malleable_profiles_list() -> list:
         return []
 
 
-def get_malleable_profile_content(file_path) -> str:
+def get_profile_content(file_path) -> str:
     try:
         with Path.open(file_path) as file:
             return file.read()
