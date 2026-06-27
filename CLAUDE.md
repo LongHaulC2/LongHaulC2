@@ -138,7 +138,18 @@ body = ""              # ACK sent back to implant
 
 **Binary values in transform `val` fields:** Use TOML literal strings (single-quoted) with `\xNN` hex escapes. The server's `malleable_string_to_bytes` processes them. Example: `{ op = "prepend", val = '\x23\x00\x06\xEC' }` prepends 4 bytes. Do NOT use TOML basic string (double-quoted) `\xNN` — TOML rejects `\x` as an invalid escape. Use `\uXXXX` in basic strings only if you prefer Unicode escaping.
 
-**Example/test profile:** `client/user/profiles/raw_ntp_profile.toml` — NTP mimicry (RFC 5905, UDP). Wire format: 48-byte NTP client header + 4-byte private extension field header (type 0xF001/0xF002) + base64url payload. Create a listener with `listener_type = "raw"` and point it at UDP port 123 (or any port for testing). ICMP mimicry (RFC 792) is not yet supported — it requires `SOCK_RAW` / `IPPROTO_ICMP` and elevated privileges, which the raw listener doesn't implement yet.
+**Available profiles (`client/user/profiles/`):**
+
+| File | Protocol | Transport | Port | Notes |
+|---|---|---|---|---|
+| `raw_ntp_profile.toml` | NTP (RFC 5905) | UDP | 123 | 48-byte header + private extension field (0xF001/0xF002) + base64url |
+| `raw_ntp_profile_but_tcp.toml` | NTP over TCP | TCP | any | Same as above, proto changed to tcp |
+| `raw_ftp_profile.toml` | FTP (RFC 959, simplified) | TCP | 21 | RETR/STOR command verbs + 150/226 replies; no 220 banner or auth phase |
+| `raw_dns_profile.toml` | DNS EDNS0 (RFC 1035 + RFC 6891) | UDP | 53 | TXT query for `data.c2.local`; payload in private OPT option 0xFFFE/0xFFFF |
+| `raw_snmp_profile.toml` | SNMP (RFC 1157 / RFC 3416) | UDP | 161 | Payload in community string; GET=SNMPv1 GetRequest, POST=SNMPv2c InformRequest |
+| `raw_debug_profile.toml` | None (bare msgpack) | TCP | any | Zero transforms; for pipeline testing only, not operational use |
+
+ICMP mimicry (RFC 792) is not yet supported — it requires `SOCK_RAW` / `IPPROTO_ICMP` and elevated privileges, which the raw listener doesn't implement yet.
 
 ---
 

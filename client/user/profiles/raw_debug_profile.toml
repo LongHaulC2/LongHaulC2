@@ -1,0 +1,66 @@
+[profile]
+name = "Debug Raw"
+author = "LongHaul Team"
+
+# ==========================================================================
+# RAW - Debug / True Raw (no transforms, TCP)
+# ==========================================================================
+#
+# Usage:
+#   1. Create a raw listener: POST /api/v1/listeners with
+#        listener_type = "raw"
+#        listener_port = <any free port>
+#        listener_profile_contents = <contents of this file>
+#
+# Wire format:
+#   Bare msgpack bytes — no encoding, no framing, no protocol mimicry.
+#   What the implant produces internally goes on the wire exactly as-is.
+#
+# Intended use:
+#   Development and debugging only. Lets you verify the listener pipeline
+#   (beacon routing, task delivery, exfil handling) without any transform
+#   layer in the way. Not suitable for operational use.
+#
+# Disambiguation:
+#   No prepend transforms exist, so prefix-based routing is not available.
+#   The listener falls through to try-GET-then-POST. The secondary guard
+#   in _try_get (checks for "task_uuid" in the unpacked msgpack to reject
+#   exfil data misrouted to the beacon handler) provides correct separation.
+#
+# Transport:
+#   TCP. One connection per message (send → close → server responds → close).
+# ==========================================================================
+
+
+# --------------------------------------------------------------------------
+# GET — Beacon check-in (implant → server)
+# --------------------------------------------------------------------------
+[raw.get]
+proto = "tcp"
+body = "<METADATA>"
+
+[raw.get.client.metadata]
+# No transforms: raw msgpack bytes go directly on the wire.
+transforms = []
+
+[raw.get.server]
+body = "<OUTPUT>"
+
+[raw.get.server.output]
+# No transforms: raw task msgpack bytes go directly back to the implant.
+transforms = []
+
+
+# --------------------------------------------------------------------------
+# POST — Task exfil (implant → server)
+# --------------------------------------------------------------------------
+[raw.post]
+proto = "tcp"
+body = "<OUTPUT>"
+
+[raw.post.client.output]
+# No transforms: raw msgpack exfil bytes go directly on the wire.
+transforms = []
+
+[raw.post.server]
+body = ""

