@@ -11,7 +11,7 @@ WorkingDirectory=@DEPLOY_DIR@/client
 Environment=PYTHONPATH=@DEPLOY_DIR@
 # load .env so we can access the nicegui storage secret
 EnvironmentFile=@DEPLOY_DIR@/.env
-ExecStart=@DEPLOY_DIR@/client/venv/bin/python -m client.src.client.main
+ExecStart=@DEPLOY_DIR@/client/venv/bin/python -m client.main
 
 Restart=always
 RestartSec=5
