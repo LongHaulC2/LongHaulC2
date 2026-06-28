@@ -18,7 +18,7 @@ from client.pages.formatted_tooltip import formatted_tooltip
 from client.pages.menu import setup_menu
 from client.utils.helpers import notify
 
-stats = {"total": 0, "online": 0, "http": 0}
+stats = {"total": 0, "online": 0}
 
 server_log = structlog.getLogger("server")
 server_log.info("Loading /listeners page")
@@ -140,15 +140,12 @@ async def render_listeners_table():
 
             new_rows = []
             o_count = 0
-            h_count = 0
 
             for listener in fresh_data:
                 active = bool(listener.get("listener_active", 0))
-                l_type = listener.get("listener_type", "http")
+                l_type = listener.get("listener_type", "raw")
                 if active:
                     o_count += 1
-                if l_type == "http":
-                    h_count += 1
 
                 new_rows.append(
                     {
@@ -163,7 +160,7 @@ async def render_listeners_table():
                     }
                 )
 
-            stats.update({"total": len(new_rows), "online": o_count, "http": h_count})
+            stats.update({"total": len(new_rows), "online": o_count})
             table.rows = new_rows
         except Exception as e:
             server_log.error(f"Table Update Failed: {e}")
@@ -205,7 +202,7 @@ async def render_listeners_table():
         "body-cell-type",
         r"""
         <q-td :props="props">
-            <q-badge :color="props.value === 'http' ? 'blue-10' : 'purple-10'" class="font-mono text-[9px] px-1 rounded-sm">{{ props.value.toUpperCase() }}</q-badge>
+            <q-badge :color="props.value === 'raw' ? 'blue-10' : 'purple-10'" class="font-mono text-[9px] px-1 rounded-sm">{{ props.value.toUpperCase() }}</q-badge>
         </q-td>
     """,  # noqa
     )
@@ -335,7 +332,7 @@ async def start_listener_dialogue():
                 )
 
                 listener_type_field = (
-                    ui.select(["http", "raw", "pivot_smb"], label="PROTOCOL", value="http")
+                    ui.select(["raw", "pivot_smb"], label="PROTOCOL", value="raw")
                     .props("outlined dense dark color=emerald options-dense")
                     .classes("w-1/3 tech-select")
                 )

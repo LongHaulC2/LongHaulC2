@@ -249,10 +249,10 @@ def _render_output(data: dict):
     # New protocols (e.g. NTP) will be picked up automatically once the server
     # returns them — just add an entry here and a corresponding render function.
     protocol_sections = []
-    if data.get("http_get"):
-        protocol_sections.append(("HTTP_GET", data["http_get"], _render_http_section))
-    if data.get("http_post"):
-        protocol_sections.append(("HTTP_POST", data["http_post"], _render_http_section))
+    for i, entry in enumerate(data.get("raw_profiles", [])):
+        name = entry.get("name", f"raw_{i}")
+        tab_label = f"RAW_{name.upper()}" if name != "default" else "RAW"
+        protocol_sections.append((tab_label, entry, _render_raw_entry))
     if data.get("smb"):
         protocol_sections.append(("SMB", data["smb"], _render_smb_section))
 
@@ -289,75 +289,55 @@ def _render_output(data: dict):
                     _render_validation(data.get("validation", {}))
 
 
-def _render_http_section(section: dict):
-    # Request line
-    with ui.row().classes("items-center gap-3"):
-        ui.label(section.get("method", "")).classes(
-            "text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded"  # noqa: E501
+def _render_raw_side(label: str, side: dict | None):
+    """Render one side (get or post) of a raw profile entry."""
+    if not side:
+        ui.label(f"No {label} configured").classes("tech-label-sub text-neutral-500 italic")
+        return
+
+    ui.label(label).classes("tech-label-header-section")
+
+    with ui.row().classes("items-center gap-2"):
+        ui.label("PROTO").classes("tech-label-sub text-neutral-500 w-24 shrink-0")
+        ui.label(side.get("proto", "tcp").upper()).classes(
+            "text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded"  # noqa
         )
-        ui.label(section.get("uri", "")).classes("tech-data-mono text-neutral-300 text-xs break-all")
 
-    if section.get("useragent"):
-        with ui.row().classes("items-center gap-2"):
-            ui.label("User-Agent").classes("tech-label-sub text-neutral-500 w-32 shrink-0")
-            ui.label(section["useragent"]).classes("tech-data-mono text-neutral-400 text-xs break-all")
-
-    # Client block
-    client = section.get("client", {})
-    ui.separator().classes("bg-white/5")
-    ui.label("CLIENT REQUEST").classes("tech-label-header-section")
-
-    if client.get("headers"):
-        ui.label("HEADERS").classes("tech-label-sub text-neutral-500")
-        _render_kv_list(client["headers"])
-
-    if client.get("parameters"):
-        ui.label("QUERY PARAMETERS").classes("tech-label-sub text-neutral-500")
-        _render_kv_list(client["parameters"])
+    client = side.get("client", {})
+    server = side.get("server", {})
 
     if client.get("body"):
         with ui.row().classes("items-center gap-2"):
-            ui.label("BODY").classes("tech-label-sub text-neutral-500 w-32 shrink-0")
+            ui.label("CLIENT BODY").classes("tech-label-sub text-neutral-500 w-24 shrink-0")
             ui.label(client["body"]).classes("tech-data-mono text-neutral-400 text-xs")
 
-    # Token location badges
-    for label, key in [
-        ("METADATA TOKEN", "metadata_token_location"),
-        ("CLIENT_ID TOKEN", "id_token_location"),
-        ("OUTPUT TOKEN", "output_token_location"),
-    ]:
-        if client.get(key):
-            with ui.row().classes("items-center gap-2"):
-                ui.label(label).classes("tech-label-sub text-neutral-500 w-36 shrink-0")
-                ui.label(client[key]).classes("tech-data-mono text-amber-400 text-xs")
-
-    # Transform chains
     for chain_label, chain_key in [
         ("METADATA TRANSFORMS", "metadata_transforms"),
-        ("ID TRANSFORMS", "id_transforms"),
         ("OUTPUT TRANSFORMS", "output_transforms"),
+        ("ID TRANSFORMS", "id_transforms"),
     ]:
-        if chain_key in client:
+        if client.get(chain_key):
             ui.label(chain_label).classes("tech-label-sub text-neutral-500")
             _render_transform_chain(client[chain_key])
 
-    # Server block
-    server = section.get("server", {})
     ui.separator().classes("bg-white/5")
-    ui.label("SERVER RESPONSE").classes("tech-label-header-section")
-
-    if server.get("headers"):
-        ui.label("HEADERS").classes("tech-label-sub text-neutral-500")
-        _render_kv_list(server["headers"])
+    ui.label("SERVER RESPONSE").classes("tech-label-sub text-neutral-500 font-bold")
 
     if server.get("body"):
         with ui.row().classes("items-center gap-2"):
-            ui.label("BODY").classes("tech-label-sub text-neutral-500 w-32 shrink-0")
-            ui.label(server["body"]).classes("tech-data-mono text-neutral-400 text-xs")
+            ui.label("BODY").classes("tech-label-sub text-neutral-500 w-24 shrink-0")
+            ui.label(server["body"]).classes("tech-data-mono text-neutral-400 text-xs break-all")
 
-    if "output_transforms" in server:
+    if server.get("output_transforms"):
         ui.label("OUTPUT TRANSFORMS").classes("tech-label-sub text-neutral-500")
         _render_transform_chain(server["output_transforms"])
+
+
+def _render_raw_entry(entry: dict):
+    """Render a full raw profile entry (both GET and POST sides)."""
+    _render_raw_side("GET (BEACON)", entry.get("get"))
+    ui.separator().classes("bg-white/10 my-2")
+    _render_raw_side("POST (EXFIL)", entry.get("post"))
 
 
 def _render_smb_section(section: dict):

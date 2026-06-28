@@ -43,79 +43,6 @@ def _apply_transforms_with_steps(data: bytes, transforms_list: list[dict] | None
     return steps
 
 
-def _find_token_location(token: str, uri: str, client_block: dict) -> str:
-    """Return a human-readable description of where a profile token appears in a request."""
-    if token in uri:
-        return f"uri:{uri}"
-    for h in client_block.get("headers", []):
-        for k, v in h.items():
-            if token in str(v):
-                return f"header:{k}"
-    for p in client_block.get("parameters", []):
-        for k, v in p.items():
-            if token in str(v):
-                return f"parameter:{k}"
-    if token in client_block.get("body", ""):
-        return "body"
-    return "not_found"
-
-
-def _build_http_get(get_block: dict) -> dict:
-    uri = get_block.get("uri", "")
-    client_block = get_block.get("client", {})
-    server_block = get_block.get("server", {})
-
-    metadata_transforms = client_block.get("metadata", {}).get("transforms", [])
-    server_output_transforms = server_block.get("output", {}).get("transforms", [])
-
-    return {
-        "method": get_block.get("method", "GET"),
-        "uri": uri,
-        "useragent": get_block.get("useragent", ""),
-        "client": {
-            "headers": client_block.get("headers", []),
-            "body": client_block.get("body", ""),
-            "metadata_token_location": _find_token_location("<METADATA>", uri, client_block),
-            "metadata_transforms": _apply_transforms_with_steps(_PREVIEW_PAYLOAD, metadata_transforms),
-        },
-        "server": {
-            "headers": server_block.get("headers", []),
-            "body": server_block.get("body", ""),
-            "output_transforms": _apply_transforms_with_steps(_PREVIEW_PAYLOAD, server_output_transforms),
-        },
-    }
-
-
-def _build_http_post(post_block: dict) -> dict:
-    uri = post_block.get("uri", "")
-    client_block = post_block.get("client", {})
-    server_block = post_block.get("server", {})
-
-    id_transforms = client_block.get("id", {}).get("transforms", [])
-    output_transforms = client_block.get("output", {}).get("transforms", [])
-    server_output_transforms = server_block.get("output", {}).get("transforms", [])
-
-    return {
-        "method": post_block.get("method", "POST"),
-        "uri": uri,
-        "useragent": post_block.get("useragent", ""),
-        "client": {
-            "headers": client_block.get("headers", []),
-            "parameters": client_block.get("parameters", []),
-            "body": client_block.get("body", ""),
-            "id_token_location": _find_token_location("<CLIENT_ID>", uri, client_block),
-            "id_transforms": _apply_transforms_with_steps(_PREVIEW_PAYLOAD, id_transforms),
-            "output_token_location": _find_token_location("<OUTPUT>", uri, client_block),
-            "output_transforms": _apply_transforms_with_steps(_PREVIEW_PAYLOAD, output_transforms),
-        },
-        "server": {
-            "headers": server_block.get("headers", []),
-            "body": server_block.get("body", ""),
-            "output_transforms": _apply_transforms_with_steps(_PREVIEW_PAYLOAD, server_output_transforms),
-        },
-    }
-
-
 def _build_smb(smb_block: dict) -> dict:
     return {
         "inbox_pipe_name": smb_block.get("get", {}).get("pipe_name", "inbox"),
@@ -174,26 +101,17 @@ def _validate(parsed: dict) -> dict:
     missing = []
     warnings = []
 
-    http_block = parsed.get("http", {})
-    if not http_block.get("get"):
-        missing.append("[http.get]")
-    else:
-        if not http_block["get"].get("uri"):
-            warnings.append("http.get.uri is not set")
-        if not http_block["get"].get("useragent"):
-            warnings.append("http.get.useragent is not set")
-
-    if not http_block.get("post"):
-        missing.append("[http.post]")
-    else:
-        if not http_block["post"].get("uri"):
-            warnings.append("http.post.uri is not set")
+    raw_block = parsed.get("raw", {})
+    if not raw_block.get("get"):
+        missing.append("[raw.get]")
+    if not raw_block.get("post"):
+        missing.append("[raw.post]")
 
     if not parsed.get("smb"):
         warnings.append("[smb] section not present — SMB chaining will not be configured")
 
-    if not parsed.get("http") and not parsed.get("raw"):
-        warnings.append("Neither [http] nor [raw] section present — no C2 channel configured")
+    if not parsed.get("raw"):
+        warnings.append("[raw] section not present — no C2 channel configured")
 
     return {"parse_ok": True, "parse_error": None, "missing_fields": missing, "warnings": warnings}
 
@@ -235,8 +153,6 @@ class ProfilePreview(Resource):
                 data={
                     "profile_name": "",
                     "profile_author": "",
-                    "http_get": None,
-                    "http_post": None,
                     "smb": None,
                     "raw_profiles": [],
                     "validation": {
@@ -249,10 +165,6 @@ class ProfilePreview(Resource):
             )
 
         profile_meta = parsed.get("profile", {})
-        http_block = parsed.get("http", {})
-
-        http_get_data = _build_http_get(http_block["get"]) if http_block.get("get") else None
-        http_post_data = _build_http_post(http_block["post"]) if http_block.get("post") else None
         smb_data = _build_smb(parsed["smb"]) if parsed.get("smb") else None
         raw_profiles_data = _build_all_raw(parsed.get("raw", {}))
 
@@ -262,8 +174,6 @@ class ProfilePreview(Resource):
             data={
                 "profile_name": profile_meta.get("name", ""),
                 "profile_author": profile_meta.get("author", ""),
-                "http_get": http_get_data,
-                "http_post": http_post_data,
                 "smb": smb_data,
                 "raw_profiles": raw_profiles_data,
                 "validation": _validate(parsed),

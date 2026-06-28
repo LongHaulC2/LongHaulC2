@@ -8,7 +8,7 @@ from client.modules.api_calls import (
     start_listener_from_existing,
     stop_listener,
 )
-from client.modules.profile_visualizer import http_view
+from client.modules.profile_visualizer import raw_view
 from client.pages.components.metadata_view import MetadataView
 from client.pages.components.notes_editor import GenericNotesEditor
 from client.pages.footer import build_footer
@@ -219,7 +219,7 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
                         # using a UI log, it has builtins like scrolling, etc to make this easier.
                         # not a permanent solution, but works for now.
                         code_panel = ui.log().classes("w-full h-full")  # noqa
-                        profile_rep = http_view(profile_toml)
+                        profile_rep = raw_view(profile_toml)
                         for line in profile_rep:
                             code_panel.push(line)
 

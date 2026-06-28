@@ -3,20 +3,23 @@ from pathlib import Path
 
 import requests as raw_requests
 
-_PROFILE_PATH = Path(__file__).resolve().parents[2] / "client" / "user" / "profiles" / "profile_def.toml"
+_PROFILE_PATH = Path(__file__).resolve().parents[2] / "client" / "user" / "profiles" / "raw_http_profile.toml"
 
 
 def test_profile_preview_valid_toml(api_client):
-    """POST a valid profile returns parse_ok=true with http_get populated and transform steps."""
+    """POST a valid raw profile returns parse_ok=true with raw_profiles populated and transform steps."""
     url = str(api_client.base_url / "profiles" / "preview")
     resp = api_client.session.post(url, json={"profile_contents": _PROFILE_PATH.read_text()})
     assert resp.status_code == 200
     body = resp.json()
     assert body["data"]["validation"]["parse_ok"] is True
-    assert body["data"]["http_get"] is not None
-    assert body["data"]["http_get"]["client"]["metadata_token_location"] == "header:Cookie"
-    assert len(body["data"]["http_get"]["client"]["metadata_transforms"]) > 0
-    assert body["data"]["http_post"] is not None
+    raw_profiles = body["data"]["raw_profiles"]
+    assert len(raw_profiles) == 1
+    assert raw_profiles[0]["name"] == "default"
+    assert raw_profiles[0]["get"]["proto"] == "tcp"
+    assert raw_profiles[0]["get"]["client"]["metadata_token_location"] == "body"
+    assert len(raw_profiles[0]["get"]["client"]["metadata_transforms"]) > 0
+    assert raw_profiles[0]["post"] is not None
 
 
 def test_profile_preview_malformed_toml(api_client):
@@ -27,7 +30,6 @@ def test_profile_preview_malformed_toml(api_client):
     body = resp.json()
     assert body["data"]["validation"]["parse_ok"] is False
     assert body["data"]["validation"]["parse_error"]
-    assert body["data"].get("http_get") is None
 
 
 def test_profile_preview_missing_field(api_client):
@@ -94,10 +96,11 @@ def test_profile_preview_raw_simple(api_client):
     assert raw_profiles[0]["post"] is not None
 
 
-def test_profile_preview_existing_http_has_empty_raw_profiles(api_client):
-    """Existing HTTP-only profile returns an empty raw_profiles list (no error)."""
+def test_profile_preview_no_raw_section_has_empty_raw_profiles(api_client):
+    """A TOML with no [raw] section returns parse_ok=true with an empty raw_profiles list."""
+    minimal_toml = '[profile]\nname = "minimal"\n'
     url = str(api_client.base_url / "profiles" / "preview")
-    resp = api_client.session.post(url, json={"profile_contents": _PROFILE_PATH.read_text()})
+    resp = api_client.session.post(url, json={"profile_contents": minimal_toml})
     assert resp.status_code == 200
     body = resp.json()
     assert body["data"]["validation"]["parse_ok"] is True

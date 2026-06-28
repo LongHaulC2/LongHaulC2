@@ -32,9 +32,10 @@ Implant (GET/POST)
 
 | Type | Status | Transport |
 |---|---|---|
-| `http` | **Implemented** | HTTP/HTTPS via FastAPI. Traffic shape controlled by the `[http.*]` sections of the network profile. |
-| `raw` | **Implemented** | Plain TCP or UDP. The profile's `[raw.*]` body templates define the complete wire format — no framing is added. Use for NTP, DNS, FTP, or any custom binary protocol. |
+| `raw` | **Implemented** | Plain TCP or UDP. The profile's `[raw.*]` body templates define the **complete wire format** — the listener adds nothing beyond what the TOML specifies. HTTP/1.1 mimicry, NTP, DNS, FTP, any binary protocol — all defined by the profile. `raw_http_profile.toml` ships as a ready-to-use HTTP/1.1 example. |
 | `pivot_smb` | Placeholder | No process is started. Used as an internal marker for implants that connect via SMB chains rather than direct egress. |
+
+> **The raw listener is the only C2 channel.** You own every byte that goes on the wire — the listener is a conduit, not a protocol. What your traffic looks like is entirely an operator decision made in the profile TOML.
 
 ---
 
@@ -47,10 +48,10 @@ Listeners are created through the UI (**Listeners** page) or via the API (`POST 
 | Field | Type | Description |
 |---|---|---|
 | `listener_name` | string | Human-readable name. Used to identify the listener and to derive strategy names in the implant. |
-| `listener_type` | string | One of: `http`, `raw`, `ntp`, `pivot_smb` |
+| `listener_type` | string | One of: `raw`, `pivot_smb` |
 | `listener_host` | string | IP or hostname the listener binds to (e.g., `0.0.0.0`) |
-| `listener_port` | integer | Port to listen on (e.g., `443`, `80`, `123`) |
-| `listener_profile_name` | string | Filename of the network profile (e.g., `profile_def.toml`) |
+| `listener_port` | integer | Port to listen on (e.g., `80`, `123`, `53`) |
+| `listener_profile_name` | string | Filename of the network profile (e.g., `raw_http_profile.toml`) |
 | `listener_profile_contents` | string | Full TOML text of the network profile |
 | `listener_notes` | string | Optional operator notes |
 
@@ -61,13 +62,13 @@ curl -s -X POST http://localhost:45045/api/v1/listeners/ \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "listener_name": "http_corp_traffic",
-    "listener_type": "http",
+    "listener_name": "http_mimicry",
+    "listener_type": "raw",
     "listener_host": "0.0.0.0",
-    "listener_port": 443,
-    "listener_profile_name": "amazon",
-    "listener_profile_contents": "...",
-    "listener_notes": "Mimics Amazon browsing traffic"
+    "listener_port": 80,
+    "listener_profile_name": "raw_http_profile.toml",
+    "listener_profile_contents": "<contents of raw_http_profile.toml>",
+    "listener_notes": "HTTP/1.1 mimicry via raw profile"
   }'
 ```
 
@@ -109,33 +110,32 @@ Each listener gets one profile. Implants can be built with multiple listeners/pr
 
 ### Strategy Naming
 
-When a listener is created, strategy names are automatically derived from the listener's metadata and baked into built implants. Strategy names follow the pattern:
+When a listener is created, strategy names are automatically derived from the listener's metadata and baked into built implants. For raw listeners, names follow the pattern:
 
 ```
-http_get_<host>_<port>_<profile_suffix>
-http_post_<host>_<port>_<profile_suffix>
+raw_<host>_<port>_<profile_name>
 ```
+
+Where `<profile_name>` is taken from the `[profile] name = "..."` field in the TOML, with non-alphanumeric characters replaced by underscores. For example, a listener on `0.0.0.0:80` using a profile named `"HTTP Mimicry"` produces the strategy name `raw_0_0_0_0_80_HTTP_Mimicry`.
 
 You can see available strategy names by running `strat list` in the implant terminal.
 
 ---
 
-## HTTP Listener
-
-The HTTP listener is built on **FastAPI** and runs as a daemon process. It handles:
-
-- **Beacon (GET):** Implant checks in, provides metadata, receives pending tasks as a msgpack array.
-- **Exfil (POST):** Implant delivers task results as a msgpack array.
-
-Traffic shape is fully controlled by the network profile assigned at listener creation time.
-
----
-
 ## Raw Listener
 
-The raw listener sends and receives arbitrary bytes over TCP or UDP. The network profile's `[raw.*]` section defines the complete wire format — the listener adds no framing beyond what the profile specifies.
+The raw listener sends and receives arbitrary bytes over TCP or UDP. The network profile's `[raw.*]` section defines the **complete wire format** — the listener adds no framing beyond what the profile specifies. Not a byte more, not a byte less.
 
-Use this listener type to mimic any protocol: NTP, DNS, FTP, custom binary, etc. A working NTP example profile ships at `client/user/profiles/raw_ntp_profile.toml`.
+What protocol your traffic looks like is entirely your decision. Example profiles ship in `client/user/profiles/`:
+
+| Profile | Looks like |
+|---|---|
+| `raw_http_profile.toml` | HTTP/1.1 (default starting point) |
+| `raw_ntp_profile.toml` | NTPv4 over UDP |
+| `raw_ftp_profile.toml` | FTP RETR/STOR |
+| `raw_dns_profile.toml` | DNS EDNS0 over UDP |
+| `raw_snmp_profile.toml` | SNMPv1/v2c |
+| `raw_debug_profile.toml` | Bare msgpack (no transforms — dev only) |
 
 See [Raw Profiles](../06%20Network%20Profiles/Raw%20Profiles.md) for full documentation.
 
@@ -145,7 +145,7 @@ See [Raw Profiles](../06%20Network%20Profiles/Raw%20Profiles.md) for full docume
 
 The `pivot_smb` type is a marker — no network process is started. It exists to represent implants in the graph that communicate via SMB named pipes through a parent implant, rather than reaching the server directly.
 
-When you create a `pivot_smb` listener, the server registers it in Neo4j and makes it available as a build target so you can generate an implant that is configured to communicate over the SMB chain. The parent implant (with an `http` listener) acts as the egress node.
+When you create a `pivot_smb` listener, the server registers it in Neo4j and makes it available as a build target so you can generate an implant that is configured to communicate over the SMB chain. The parent implant (with a `raw` listener) acts as the egress node.
 
 ---
 

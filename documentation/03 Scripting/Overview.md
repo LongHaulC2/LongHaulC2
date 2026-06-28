@@ -194,7 +194,7 @@ for _ in range(30):
 import requests
 
 api_url = "http://localhost:45045"
-new_profile = "http_get_10_0_0_30_443_cloudfront"
+new_profile = "raw_10_0_0_30_80_HTTP_Mimicry"
 
 r = requests.post(f"{api_url}/api/v1/authentication/", json={
     "username": "longhaul", "password": "P@ssw0rd1!"

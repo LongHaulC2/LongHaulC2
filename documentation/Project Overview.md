@@ -8,7 +8,7 @@
 
 - **Not Malicious by Default:** The implant ships with little to no traditional offensive capability. All offensive actions are loaded at/during runtime via BOFs. Bring your own.
 - **Minimal Signature:** Intentionally small built-in feature set. Less code in the implant means less to detect, less to go wrong, and less to maintain.
-- **Network Profiles:** Leverage adjustable network profiles for varied network communication
+- **Traffic Defined by You:** Raw profiles give operators full control over every byte that goes on the wire — what protocol your traffic mimics is an operator decision, not a framework constraint
 - **Robust Management:** Comprehensive REST API and a web-based frontend for operator management.
 - **Automation-first:** Everything accessible via the UI is also accessible via the API, enabling full scripted operations.
 
@@ -18,7 +18,7 @@
 
 The entire architecture was built around surviving for months or years, not just days:
 
-- **Granular Profile Binding:** Each listener can use a distinct Network profile. A single server can serve multiple campaigns with different traffic signatures simultaneously.
+- **Granular Profile Binding:** Each listener uses a raw profile that defines the complete wire format. A single server can serve multiple campaigns with completely different traffic signatures simultaneously — HTTP mimicry on one port, NTP on another, custom binary on a third.
 - **Dynamic Strategy Switching:** Implants support multiple communication profiles baked in at build time. Operators can hot-swap the active GET or POST strategy at runtime without spawning new artifacts.
 - **Automated Rotation:** Via the API, operators can script rotation schedules (e.g., Spotify traffic in the morning, Windows Update profile at night).
 - **BOF-first Extension Model:** The implant ships with minimal built-in capability. All offensive actions are loaded at runtime as Beacon Object Files (BOFs), keeping the implant's static footprint small.
@@ -71,8 +71,7 @@ Listeners run as **daemon multiprocesses** managed by `server/listeners/supervis
 
 | Type | Status | Notes |
 |---|---|---|
-| `http` | Implemented | FastAPI, traffic shape controlled by network profile |
-| `raw` | Implemented | Plain TCP/UDP, complete wire format defined by profile `[raw.*]` sections |
+| `raw` | Implemented | Plain TCP/UDP. The profile's `[raw.*]` sections define the complete wire format. What the traffic looks like is determined entirely by the TOML — HTTP/1.1 mimicry (`raw_http_profile.toml`), NTP, DNS, FTP, and custom binary protocols are all just different profiles. |
 | `pivot_smb` | Placeholder | Registered as a type but no process is started — used as an internal marker for SMB-linked chains |
 
 ### Ports
@@ -207,7 +206,7 @@ To minimize traffic noise:
 
 ### Network Profile Support
 
-LongHaul network profiles control `http-get`, `http-post`, URI patterns, headers, transforms, and raw socket wire formats. Payload-staging and artifact configurations specific to other C2 frameworks are not supported.
+LongHaul raw profiles define the complete wire format for all C2 traffic — body templates, transform chains, and protocol-specific binary framing. No protocol is baked into the implant; what your traffic looks like on the wire is fully operator-defined. Payload-staging and artifact configurations specific to other C2 frameworks are not supported.
 
 ### Encryption
 

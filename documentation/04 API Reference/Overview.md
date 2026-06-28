@@ -232,12 +232,12 @@ Search implants by hostname, IP, UUID, or any indexed field.
 **Request body:**
 ```json
 {
-  "listener_name": "http_corp_traffic",
-  "listener_type": "http",
+  "listener_name": "http_mimicry",
+  "listener_type": "raw",
   "listener_host": "0.0.0.0",
-  "listener_port": 443,
-  "listener_profile_name": "amazon",
-  "listener_profile_contents": "http-get { ... }",
+  "listener_port": 80,
+  "listener_profile_name": "raw_http_profile.toml",
+  "listener_profile_contents": "<contents of raw_http_profile.toml>",
   "listener_notes": "Optional notes"
 }
 ```
@@ -383,11 +383,16 @@ Always returns HTTP 200. Parse failures are returned as data (check `data.valida
 **Response `data`:**
 ```json
 {
-  "profile_name": "Amazon Browsing",
-  "profile_author": "@harmj0y",
-  "http_get": { "method": "GET", "uri": "...", "client": { ... }, "server": { ... } },
-  "http_post": { "method": "POST", "uri": "...", "client": { ... }, "server": { ... } },
+  "profile_name": "HTTP Mimicry",
+  "profile_author": "LongHaul Team",
   "smb": null,
+  "raw_profiles": [
+    {
+      "name": "default",
+      "get": { "proto": "tcp", "client": { ... }, "server": { ... } },
+      "post": { "proto": "tcp", "client": { ... }, "server": { ... } }
+    }
+  ],
   "validation": {
     "parse_ok": true,
     "parse_error": null,

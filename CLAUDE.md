@@ -96,9 +96,10 @@ Listeners run as **daemon multiprocesses** (not threads) managed by `server/list
 
 | Type | Status |
 |---|---|
-| `http` | Implemented — FastAPI, traffic shape controlled by network profile |
 | `raw` | Implemented — plain Python `socket`, wire format fully defined by profile TOML |
 | `pivot_smb` | Placeholder only (no process started) |
+
+HTTP/1.1 traffic mimicry is handled by `raw_http_profile.toml` — there is no separate HTTP listener type. The WinINet-based HTTP implant and FastAPI HTTP listener have been removed.
 
 Listeners survive server restarts: `restart_active_listeners()` in `main.py` re-spawns anything marked active in Neo4j on startup.
 
@@ -142,6 +143,7 @@ body = ""              # ACK sent back to implant
 
 | File | Protocol | Transport | Port | Notes |
 |---|---|---|---|---|
+| `raw_http_profile.toml` | HTTP/1.1 mimicry | TCP | 80 | GET/POST with full HTTP headers; Wireshark-visible as HTTP |
 | `raw_ntp_profile.toml` | NTP (RFC 5905) | UDP | 123 | 48-byte header + private extension field (0xF001/0xF002) + base64url |
 | `raw_ntp_profile_but_tcp.toml` | NTP over TCP | TCP | any | Same as above, proto changed to tcp |
 | `raw_ftp_profile.toml` | FTP (RFC 959, simplified) | TCP | 21 | RETR/STOR command verbs + 150/226 replies; no 220 banner or auth phase |
@@ -228,7 +230,7 @@ Defaults: `http://localhost:45045` / `longhaul` / `P@ssw0rd1!` (from `.env`).
 - `test_listeners.py` — full CRUD, start/stop via PATCH, missing-field validation; raw listener create/start/stop on port 19100
 - `test_filestore.py` — upload/download/delete, missing-field validation, nonexistent file handling
 - `test_build.py` — submits a build job and verifies acceptance only (HTTP 200 + `build_uuid`); does **not** poll for completion since the cross-compiler toolchain is not present on dev machines
-- `test_profiles.py` — profile preview endpoint: valid HTTP TOML, raw simple TOML (one `"default"` entry), HTTP-only profile returns empty raw_profiles list, malformed TOML (HTTP 200 with parse_ok=false), missing profile_contents (HTTP 400), unauthenticated (HTTP 401)
+- `test_profiles.py` — profile preview endpoint: valid raw profile (`raw_http_profile.toml`, asserts `raw_profiles` populated), raw simple TOML (one `"default"` entry), minimal TOML with no `[raw]` section returns empty `raw_profiles`, malformed TOML (HTTP 200 with parse_ok=false), missing profile_contents (HTTP 400), unauthenticated (HTTP 401)
 
 **Web smoke tests (`tests/web/web_tests.py`) — need to know:**
 

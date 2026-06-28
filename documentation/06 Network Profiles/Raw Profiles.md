@@ -1,8 +1,8 @@
 # Raw Profiles
 
-A **raw profile** defines the complete wire format for a TCP or UDP connection. Unlike HTTP profiles — where the HTTP listener adds framing automatically — a raw profile controls every byte that goes on the wire. The body template is the packet. Nothing is added by the listener outside what the profile specifies.
+A **raw profile** defines the complete wire format for a TCP or UDP connection. The body template is the packet. The listener adds nothing beyond what the profile specifies — not a byte more, not a byte less.
 
-Use raw profiles to mimic protocols that have nothing to do with HTTP: NTP, DNS, FTP, custom binary protocols, etc.
+Unlike C2 frameworks where the wire format is fixed or partially controlled, here you own every byte. What protocol your traffic looks like — HTTP, NTP, DNS, FTP, custom binary — is an operator decision made in the TOML, not a capability baked into the implant. The shipped `raw_http_profile.toml` provides HTTP/1.1 mimicry as a starting point, but it is just one profile among many you can define or create.
 
 ---
 
@@ -365,10 +365,10 @@ If the protocol you are mimicking requires correct checksums (e.g., IP-layer ICM
 
 ### 6. Multi-line body templates
 
-The `body` field is a TOML string. If your body template needs to contain a newline character (e.g., for HTTP-over-raw), use the escape `\n` in a basic string:
+The `body` field is a TOML string. Use `\r\n` escapes in a basic string to embed carriage-return/line-feed bytes directly:
 
 ```toml
 body = "GET /api HTTP/1.1\r\nHost: example.com\r\n\r\n<METADATA>"
 ```
 
-Note: `\r` and `\n` ARE valid in TOML basic strings. For binary null bytes, use a literal string with `\x00`.
+Note: `\r` and `\n` ARE valid in TOML basic strings. For binary null bytes or other non-ASCII bytes, use a literal string with `\x00`.

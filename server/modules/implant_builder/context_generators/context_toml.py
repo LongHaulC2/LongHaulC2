@@ -30,32 +30,6 @@ def sanitize_cpp_name(name: str) -> str:
     return clean_name
 
 
-def generate_toml_http_context(profile_toml: str, host: str, port: int, profile_name: str) -> dict:
-    server_logger.info("Generating HTTP context from TOML profile")
-
-    try:
-        data = tomllib.loads(profile_toml)
-    except Exception as e:
-        server_logger.error("Failed to parse TOML Profile", error=str(e))
-        raise e
-
-    opts = data.get("profile", {}).get("options", {})  # noqa
-
-    get_block = data.get("http", {}).get("get", {})
-    post_block = data.get("http", {}).get("post", {})
-
-    return {
-        "callback_host": host,
-        "callback_port": port,
-        "get_useragent": get_block.get("useragent", "Mozilla/5.0"),
-        "post_useragent": post_block.get("useragent", "Mozilla/5.0"),
-        "http_profile_namespace": sanitize_cpp_name(f"http_{host}_{port}_{profile_name}"),
-        # Pass the raw config blocks directly to Jinja
-        "get_config": get_block,
-        "post_config": post_block,
-    }
-
-
 def generate_toml_smb_context(profile_toml: str, profile_name: str) -> dict:
     server_logger.info("Generating SMB context from TOML profile")
 

@@ -427,9 +427,9 @@ async def get_listener_data(listener_uuid: str) -> dict | None:
             "listener_name": "C2_Primary",
             "listener_host": "0.0.0.0",
             "listener_port": 8080,
-            "listener_type": "http",
-            "listener_profile_name": "default",
-            "listener_profile_contents": "http-get {\n  ... \n}..."
+            "listener_type": "raw",
+            "listener_profile_name": "raw_http_profile.toml",
+            "listener_profile_contents": "[raw.get]\nproto = \"tcp\"\nbody = \"<METADATA>\"\n..."
         }
     """
     check_type(listener_uuid, str, "listener_uuid")
@@ -577,7 +577,7 @@ async def start_listener(
     Args:
         listener_host (str): Host/IP the listener will bind to.
         listener_port (int): Port for the listener.
-        listener_type (str): Type of listener ('http', 'raw', 'pivot_smb').
+        listener_type (str): Type of listener ('raw', 'pivot_smb').
         listener_name (str): Friendly name for the listener.
         listener_notes (str): Additional notes.
         listener_profile_name (str): Network profile filename.

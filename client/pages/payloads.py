@@ -402,23 +402,23 @@ async def start_payload_dialogue():
             # PROFILE CONFIG
             with ui.row().classes("w-full"):  # bg-white/5 rounded border border-white/5
                 profile_get_select = (
-                    ui.select(label="Initial Get Profile", options=[])
+                    ui.select(label="Initial Ingress (Beacon) Listener", options=[])
                     .props("outlined dense dark color=emerald options-dense")
                     .classes("flex-1 tech-select")
                 )
                 profile_get_select.disable()
 
                 profile_post_select = (
-                    ui.select(label="Initial Post Profile", options=[])
+                    ui.select(label="Initial Egress (Exfil) Listener", options=[])
                     .props("outlined dense dark color=emerald options-dense")
                     .classes("flex-1 tech-select")
                 )
                 profile_post_select.disable()
 
                 with profile_get_select:
-                    formatted_tooltip("The profile to use for the initial GET requests")
+                    formatted_tooltip("The listener profile used for initial beacon check-ins")
                 with profile_post_select:
-                    formatted_tooltip("The profile to use for the initial POST requests")
+                    formatted_tooltip("The listener profile used for initial task exfil")
 
             ui.separator()
             with ui.expansion("Additional Options").classes("tech-expansion w-full"):  # noqa - niecgui styling
