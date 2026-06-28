@@ -3,7 +3,34 @@ import tomllib
 
 import structlog
 
+from ....listeners.transform import malleable_string_to_bytes
+
 server_logger = structlog.getLogger("server")
+
+
+def _val_to_cpp_octal(val_str: str) -> str:
+    r"""Re-encode a TOML transform val as C++ octal escapes to prevent hex-bleed.
+
+    C++ \x is greedy and consumes all following hex digits, so \x0A226 becomes
+    codepoint 0x0A226 instead of \x0A followed by '226'. Octal escapes (\NNN)
+    always stop after 3 digits, so \015\012226 is unambiguous.
+    """
+    raw = malleable_string_to_bytes(val_str)
+    out = []
+    for b in raw:
+        if b == ord('"'):
+            out.append('\\"')
+        elif b == ord("\\"):
+            out.append("\\\\")
+        elif 32 <= b < 127:
+            out.append(chr(b))
+        else:
+            out.append(f"\\{b:03o}")
+    return "".join(out)
+
+
+def _cpp_safe_transforms(transforms: list) -> list:
+    return [{**t, "val": _val_to_cpp_octal(t["val"])} if "val" in t else t for t in transforms]
 
 
 def sanitize_cpp_name(name: str) -> str:
@@ -48,9 +75,15 @@ def generate_toml_raw_context(
         "post_body": post_block.get("body", "<OUTPUT>"),
         "get_server_body": get_block.get("server", {}).get("body", "<OUTPUT>"),
         "post_server_body": post_block.get("server", {}).get("body", ""),
-        # Transform lists (pre-extracted so Jinja doesn't need to traverse nested dicts)
-        "get_metadata_transforms": get_block.get("client", {}).get("metadata", {}).get("transforms", []),
-        "get_server_transforms": get_block.get("server", {}).get("output", {}).get("transforms", []),
-        "post_id_transforms": post_block.get("client", {}).get("id", {}).get("transforms", []),
-        "post_output_transforms": post_block.get("client", {}).get("output", {}).get("transforms", []),
+        # Transform lists — vals are re-encoded as C++ octal escapes to prevent hex-bleed
+        "get_metadata_transforms": _cpp_safe_transforms(
+            get_block.get("client", {}).get("metadata", {}).get("transforms", [])
+        ),
+        "get_server_transforms": _cpp_safe_transforms(
+            get_block.get("server", {}).get("output", {}).get("transforms", [])
+        ),
+        "post_id_transforms": _cpp_safe_transforms(post_block.get("client", {}).get("id", {}).get("transforms", [])),
+        "post_output_transforms": _cpp_safe_transforms(
+            post_block.get("client", {}).get("output", {}).get("transforms", [])
+        ),
     }
