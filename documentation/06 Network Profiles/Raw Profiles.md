@@ -16,20 +16,22 @@ If your body template for NTP contains a valid 48-byte NTP header structure, the
 
 ---
 
+> **New to C2 beaconing?** See [Beaconing](../00%20Intro/Beaconing.md) for an explanation of the GET/POST communication loop before reading this section.
+
 ## Profile Structure
 
 ### Simple (one protocol per file)
 
 ```toml
 [profile]
-name = "My Raw Profile"
+name = "Test Profile"
 
 [raw.get]
 proto = "udp"         # "tcp" or "udp"
 body  = "<METADATA>"  # complete wire template for outbound beacon
 
-[raw.get.client.metadata]
-transforms = [
+[raw.get.client.metadata] # actions on the implant metadata
+transforms = [ # transforms done to the inbound metadata
     { op = "base64url" }
 ]
 
@@ -372,3 +374,120 @@ body = "GET /api HTTP/1.1\r\nHost: example.com\r\n\r\n<METADATA>"
 ```
 
 Note: `\r` and `\n` ARE valid in TOML basic strings. For binary null bytes or other non-ASCII bytes, use a literal string with `\x00`.
+
+---
+
+## SMB Configuration
+
+The optional `[smb]` section sets named pipe names for SMB pivot implants:
+
+```toml
+[smb]
+
+[smb.get]
+pipe_name = "msrpc_svr"
+
+[smb.post]
+pipe_name = "msrpc_svc"
+```
+
+These names are baked into implants built with an SMB listener target. The parent implant (with raw egress) connects to the child over the named pipe.
+
+---
+
+## Profile Preview Tool
+
+The **Profile Preview** page (`/profile-preview`) visualizes what a profile produces before attaching it to a live listener.
+
+### Loading a Profile
+
+- **From disk:** Select a `.toml` file from the dropdown.
+- **Manual paste:** Type or paste TOML directly into the textarea.
+
+### Rendering
+
+Click **RENDER**. The right panel shows a tab per protocol section present in the profile (`RAW`, `SMB`) plus a **VALIDATION** tab.
+
+For each section, the preview shows:
+- The body template and proto (tcp/udp)
+- The token location (`body`, etc.)
+- A step-by-step transform chain with intermediate output after each step, using the sample payload `PREVIEW_PAYLOAD`
+
+Use the preview to confirm the transform chain produces what you expect before deploying.
+
+### Saving
+
+| Button | Behavior |
+|---|---|
+| Save | Overwrites the file currently loaded from disk. Opens Save As if no file is selected. |
+| Save As | Enter a filename, saves to `/var/lib/longhaulc2/profiles/`. Auto-appends `.toml` if omitted. |
+
+---
+
+## API — Profile Preview
+
+### `POST /api/v1/profiles/preview`
+
+Parses and renders a profile. Always returns HTTP 200 — parse failures are returned as structured data, not 4xx errors.
+
+**Request:**
+```json
+{ "profile_contents": "<raw TOML string>" }
+```
+
+**Response (success):**
+```json
+{
+  "status": "200",
+  "data": {
+    "profile_name": "HTTP Mimicry",
+    "profile_author": "LongHaul Team",
+    "smb": null,
+    "raw_profiles": [
+      {
+        "name": "default",
+        "get": {
+          "proto": "tcp",
+          "client": { "body": "<METADATA>", "metadata_token_location": "body", "metadata_transforms": [...] },
+          "server": { "body": "<OUTPUT>", "output_transforms": [...] }
+        },
+        "post": {
+          "proto": "tcp",
+          "client": { "body": "<OUTPUT>", "output_token_location": "body", "output_transforms": [...] },
+          "server": { "body": "HTTP/1.1 200 OK\r\n\r\n", "output_transforms": [] }
+        }
+      }
+    ],
+    "validation": {
+      "parse_ok": true,
+      "parse_error": null,
+      "missing_fields": [],
+      "warnings": []
+    }
+  }
+}
+```
+
+**Response (parse failure):**
+```json
+{
+  "status": "200",
+  "data": {
+    "smb": null,
+    "raw_profiles": [],
+    "validation": {
+      "parse_ok": false,
+      "parse_error": "Invalid TOML at line 7: ...",
+      "missing_fields": [], "warnings": []
+    }
+  }
+}
+```
+
+**curl example:**
+```bash
+curl -s -X POST http://localhost:45045/api/v1/profiles/preview \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d "{\"profile_contents\": $(jq -Rs . < /var/lib/longhaulc2/profiles/my_profile.toml)}"
+```
