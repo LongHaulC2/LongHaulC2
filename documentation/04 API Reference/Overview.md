@@ -402,7 +402,7 @@ Always returns HTTP 200. Parse failures are returned as data (check `data.valida
 }
 ```
 
-See [Network Profiles](../06%20Network%20Profiles/Overview.md) for the full response shape and field descriptions.
+See [Mimicry](../06%20Network%20Profiles/Overview.md) for the full response shape and field descriptions.
 
 ---
 

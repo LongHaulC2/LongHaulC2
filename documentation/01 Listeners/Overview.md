@@ -102,9 +102,9 @@ curl -X PATCH http://localhost:45045/api/v1/listeners/<uuid> \
 
 ---
 
-## Network Profiles
+## Mimicry
 
-Each listener is paired with a **network profile** (a TOML file) that controls exactly what bytes go on the wire. See [Network Profiles](../06%20Network%20Profiles/Overview.md) for full documentation.
+Each listener is paired with a **network profile** (a TOML file) that controls exactly what bytes go on the wire. See [Mimicry](../06%20Network%20Profiles/Overview.md) for full documentation.
 
 Each listener gets one profile. Implants can be built with multiple listeners/profiles baked in and can switch between them at runtime with `strat set get` / `strat set post`.
 

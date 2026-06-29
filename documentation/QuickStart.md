@@ -1,6 +1,5 @@
 ---
 id: LongHaul C2 - Quickstart Guide
-slug: /
 ---
 
 # Quickstart Guide
