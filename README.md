@@ -9,3 +9,5 @@ Built for red teams that need to adapt fast and stay resident long.
 Get started here: [longhaulc2.github.io](https://longhaulc2.github.io)
 
 ---
+
+...add cool images...
