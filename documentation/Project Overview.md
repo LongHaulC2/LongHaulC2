@@ -16,7 +16,7 @@ Built for red teams that need to adapt fast and stay resident long.
 
 ### **The implant isn't malware:** 
 ---
-...by default. The implant ships with basically zero offensive capability. Offensive tooling is loaded at runtime via BOFs. Add, swap or store a capability mid-operation without recompiling or redeploying the implant. - commands link here? -
+...by default. The implant ships with basically zero offensive capability. Offensive tooling is loaded at runtime via BOFs. Add, swap or store a capability mid-operation without recompiling or redeploying the implant.
 
 #### [Command Reference](./02%20Implants/1.%20Commands.md)
 

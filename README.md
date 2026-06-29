@@ -6,34 +6,6 @@ Minimal by design. Extensible at runtime. The implant ships clean — no offensi
 
 Built for red teams that need to adapt fast and stay resident long.
 
-See the docs here: [longhaulc2.github.io](https://longhaulc2.github.io)
-
----
-
-## Key Features
-
-### **The implant isn't malware:** 
----
-...by default. The implant ships with basically zero offensive capability. Offensive tooling is loaded at runtime via BOFs. Add, swap or store a capability mid-operation without recompiling or redeploying the implant. - commands link here? -
-
-#### [Command Reference](./02%20Implants/1.%20Commands.md)
-
-
-### **Small Footprint:** 
----
-Less implant code means less surface area. The built-in feature set is intentionally lean: BOF execution, filesystem access, file transfer, in-memory store, strategy switching, SMB chaining. That's the whole list. Additionally, thanks to mimicry, no networking libraries (save for sockets) are needed.
-
-### **Mimicry:**
----
-Custom Traffic Creation. Implement new protocols in minutes. Define a network profile, load it into a listener, and your C2 traffic looks like whatever you need — HTTP, NTP, DNS, FTP, or something entirely custom. The framework imposes zero protocol constraints.
-
-#### [Mimicry](./06%20Network%20Profiles/Overview.md)
-
-
-### **Built to Last:**
----
-Rotate traffic profiles at runtime without spawning new implants. Chain over SMB to reach isolated segments. The implant is designed to stay resident for as long as you need.
-
-- **API-First:** Nearly everything in the UI is an API call. Scripted rotations, automated tasking, third-party integrations — all first-class.
+Get started here: [longhaulc2.github.io](https://longhaulc2.github.io)
 
 ---
