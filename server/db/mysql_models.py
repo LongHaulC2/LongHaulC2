@@ -128,7 +128,7 @@ class ImplantPayload(Base):
     # https://docs.sqlalchemy.org/en/14/orm/loading_columns.html
     payload_bytes = deferred(Column(LONGBLOB))  # LONGBLOB is 4gb (massive, intentional for expandability)
     payload_source_code_bytes = deferred(Column(LONGBLOB))
-    # payload_listener_uuid = Column(String(36))  # matches Listener model uuid
+    payload_listener_uuids = Column(Text, nullable=True)
 
     payload_name = Column(Text)
 

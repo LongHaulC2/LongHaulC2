@@ -761,6 +761,15 @@ async def get_payload_source_bytes(payload_hash: str) -> bytes | None:
     )
 
 
+async def get_build_package(build_uuid: str) -> bytes | None:
+    """Download all binary artifacts for a build as a zip package."""
+    return await safe_api_request(
+        method="GET",
+        endpoint=f"/api/v1/build/jobs/{build_uuid}/package",
+        return_type="content",
+    )
+
+
 async def get_all_files():
     """Gets all files stored in DB"""
     return await safe_api_request(

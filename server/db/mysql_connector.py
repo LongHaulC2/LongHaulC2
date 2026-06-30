@@ -77,6 +77,21 @@ def _create_db_if_not_exist(host, port, user, password, database):
         temp_engine.dispose()  # Clean up the temp connection immediately
 
 
+def _ensure_schema_updates(eng):
+    """Add columns introduced after initial schema creation."""
+    with eng.connect() as conn:
+        result = conn.execute(
+            text(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS "
+                "WHERE TABLE_NAME = 'implant_payloads' AND COLUMN_NAME = 'payload_listener_uuids'"
+            )
+        )
+        if not result.fetchone():
+            conn.execute(text("ALTER TABLE implant_payloads ADD COLUMN payload_listener_uuids TEXT"))
+            conn.commit()
+            logger.info("Schema migration: added payload_listener_uuids column")
+
+
 def mysql_setup():
     global engine, SessionLocal
 
@@ -107,6 +122,7 @@ def mysql_setup():
 
         # Create all tables in the database (if they don't exist)
         Base.metadata.create_all(engine)
+        _ensure_schema_updates(engine)
         logger.debug("Table 'implants' created successfully.")
 
     except SQLAlchemyError as e:

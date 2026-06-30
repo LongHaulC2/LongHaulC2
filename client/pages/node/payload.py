@@ -81,9 +81,14 @@ async def render_dashboard(payload_metadata: dict, payload_hash: str):
         with ui.row().classes(
             "w-full h-10 gap-0 bg-black/20 border-b border-white/5 items-center shrink-0 flex-nowrap overflow-x-auto"
         ):
-            # Adapted flat stats for payload characteristics
             flat_stat("TYPE", payload_type, "extension", "emerald")
             flat_stat("SIZE (KB)", payload_size, "data_usage", "blue")
+            flat_stat(
+                "STRATEGIES",
+                str(len(payload_metadata.get("payload_listener_uuids", []) or [])),
+                "hub",
+                "orange",
+            )
             flat_stat("OS TARGET", payload_metadata.get("os", "Windows"), "desktop_windows", "purple")
             flat_stat("ARCH", payload_metadata.get("arch", "x64"), "dns", "grey")
 
