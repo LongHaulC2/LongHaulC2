@@ -1,5 +1,5 @@
 import structlog
-from nicegui import app, ui
+from nicegui import ui
 
 from client.modules.api_calls import (
     delete_listener,
@@ -9,6 +9,7 @@ from client.modules.api_calls import (
     start_listener_from_existing,
     stop_listener,
 )
+from client.pages.components.dashboard_widgets import back_button, flat_stat
 from client.pages.components.metadata_view import MetadataView
 from client.pages.components.notes_editor import GenericNotesEditor
 from client.pages.footer import build_footer
@@ -16,26 +17,6 @@ from client.pages.formatted_tooltip import formatted_tooltip
 from client.pages.menu import setup_menu
 
 server_log = structlog.getLogger("server")
-
-
-# ========================================
-#   DASHBOARD WIDGETS
-# ========================================
-def flat_stat(label: str, value: str, icon: str, color: str = "emerald"):
-    """Flat, inline stat widget against the background"""
-    with ui.element("div").classes("tech-stat-pill flex-1 min-w-max"):
-        ui.icon(icon, size="14px", color=f"{color}-500").classes("opacity-70")
-        ui.label(label).classes("tech-label-sub")
-        ui.label(str(value)).classes("tech-data-mono")
-
-
-def info_row(key: str, value: str):
-    """Key-Value terminal row"""
-    with ui.row().classes(
-        "w-full justify-between items-center py-2 border-b border-white/5 hover:bg-white/5 transition-colors"
-    ):
-        ui.label(key).classes("tech-label-sub")
-        ui.label(str(value)).classes("tech-data-mono break-all text-right max-w-[60%]")
 
 
 # ========================================
@@ -51,7 +32,7 @@ async def listener_details(listener_uuid: str):
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
     )
 
-    setup_menu("listener View")
+    setup_menu("Listener View")
 
     # Fetch listener listener_data
     api_res = await get_listener_data(listener_uuid)
@@ -75,21 +56,13 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
         # ====================
         with ui.row().classes("tech-header-bar flex w-full items-center justify-between shrink-0"):
             with ui.row().classes("items-center gap-4"):
-                await ui.context.client.connected()
-                prev_uri = app.storage.tab.get("previous_uri", "/")
-                with (
-                    ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to(prev_uri))
-                    .props("flat dense square size=sm")
-                    .classes("tech-btn-ghost")
-                ):
-                    formatted_tooltip(prev_uri)
-
+                await back_button()
                 ui.icon("headphones", size="sm", color="emerald-500").classes(
                     "p-2 bg-emerald-500/10 rounded border border-emerald-500/20"
                 )
                 with ui.column().classes("gap-0"):
                     ui.label(f"{listener_uuid}").classes("tech-label-header-bold")
-                    ui.label(f"listener // {listener_data.get('listener_host', '0.0.0.0')}").classes(
+                    ui.label(f"LISTENER // {listener_data.get('listener_host', '0.0.0.0')}").classes(
                         "tech-label-sub text-emerald-500"
                     )
 
@@ -175,16 +148,12 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
                         )
                     )
                     with tabs:
-                        ui.tab("metadata_tab", label="Listener Data").classes("h-10 min-h-0 tech-label-sub")
+                        ui.tab("metadata_tab", label="METADATA").classes("h-10 min-h-0 tech-label-sub")
 
-                        # not implemented api side yet, this will be a later option
-                        # ui.tab("connected_implants_tab", label="CONNECTED IMPLANTS").classes(
-                        #     "h-10 min-h-0 tech-label-sub"
-                        # )
-                        ui.tab("network_profile_tab", label="Net Profile [CONFIG]").classes(
+                        ui.tab("network_profile_tab", label="NET PROFILE [CONFIG]").classes(
                             "h-10 min-h-0 tech-label-sub"
                         )
-                        ui.tab("network_profile_wire_tab", label="Net Profile [On Wire]").classes(
+                        ui.tab("network_profile_wire_tab", label="NET PROFILE [ON WIRE]").classes(
                             "h-10 min-h-0 tech-label-sub"
                         )
 

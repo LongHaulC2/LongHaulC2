@@ -2,34 +2,17 @@ import asyncio
 
 import hexdump
 import structlog
-from nicegui import app, ui
+from nicegui import ui
 
 from client.modules.api_calls import get_payload_bytes, get_payload_data
+from client.pages.components.dashboard_widgets import back_button, flat_stat
 from client.pages.components.metadata_view import MetadataView
 from client.pages.custom import BongoSpinner
-
-# Adjust these imports based on your actual file structure for payloads
 from client.pages.footer import build_footer
-from client.pages.formatted_tooltip import formatted_tooltip
 from client.pages.menu import setup_menu
 from client.pages.payloads import download_payload, download_payload_source
 
 server_log = structlog.getLogger("server")
-
-
-def flat_stat(label: str, value: str, icon: str, color: str = "emerald"):
-    with ui.element("div").classes("tech-stat-pill flex-1 min-w-max"):
-        ui.icon(icon, size="14px", color=f"{color}-500").classes("opacity-70")
-        ui.label(label).classes("tech-label-sub")
-        ui.label(str(value)).classes("tech-data-mono")
-
-
-def info_row(key: str, value: str):
-    with ui.row().classes(
-        "w-full justify-between items-center py-2 border-b border-white/5 hover:bg-white/5 transition-colors"
-    ):
-        ui.label(key).classes("tech-label-sub")
-        ui.label(str(value)).classes("tech-data-mono break-all text-right max-w-[60%]")
 
 
 @ui.page("/payload/{payload_hash}")
@@ -76,16 +59,7 @@ async def render_dashboard(payload_metadata: dict, payload_hash: str):
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
         with ui.row().classes("tech-header-bar flex w-full items-center justify-between shrink-0"):  # noqa
             with ui.row().classes("items-center gap-4"):
-                await ui.context.client.connected()
-                prev_uri = app.storage.tab.get("previous_uri", "/")
-                with (
-                    ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to(prev_uri))
-                    .props("flat dense square size=sm")
-                    .classes("tech-btn-ghost")
-                ):
-                    formatted_tooltip(prev_uri)
-
-                # Changed icon to memory/extension to fit "payload" vibe
+                await back_button()
                 ui.icon("code", size="sm", color="emerald-500").classes(
                     "p-2 bg-emerald-500/10 rounded border border-emerald-500/20"
                 )
