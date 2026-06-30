@@ -367,13 +367,115 @@ Returns the implant topology and network graph data used to populate the **Graph
 
 ## Profiles — `/api/v1/profiles/`
 
+Profiles are stored server-side and managed through this API. The UI uses these endpoints for all profile operations — there is no filesystem dependency.
+
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/profiles/preview` | Parse and render a profile TOML, returning structured output with per-step transform chains |
+| `GET` | `/profiles/` | List all stored profiles (metadata only, no contents) |
+| `POST` | `/profiles/` | Upload or update a profile |
+| `GET` | `/profiles/<name>` | Download a profile by name (full contents) |
+| `DELETE` | `/profiles/<name>` | Delete a profile by name |
+| `POST` | `/profiles/seed` | Bulk-upload default profiles |
+| `POST` | `/profiles/preview` | Parse and render a profile TOML for visualization |
+
+### GET `/profiles/`
+
+Returns all profiles stored on the server. Contents are not included — use `GET /profiles/<name>` to fetch a specific profile's TOML.
+
+**Response `data`:**
+```json
+{
+  "profiles": [
+    {
+      "artifact_uuid": "01932ba4-...",
+      "artifact_name": "raw_http_profile.toml",
+      "content_hash": "a1b2c3...",
+      "created_at": 1719700000000,
+      "updated_at": 1719700000000
+    }
+  ]
+}
+```
+
+---
+
+### POST `/profiles/`
+
+Upload a new profile or update an existing one. If a profile with the same name already exists and the content is identical (same SHA256 hash), the request is a no-op. If the content differs, the profile is updated.
+
+**Request body:**
+```json
+{
+  "profile_name": "raw_http_profile.toml",
+  "profile_contents": "<full TOML string>"
+}
+```
+
+**Response `data`:**
+```json
+{
+  "artifact_uuid": "01932ba4-...",
+  "artifact_name": "raw_http_profile.toml",
+  "content_hash": "a1b2c3...",
+  "created": true
+}
+```
+
+`created` is `true` for new profiles, `false` for updates or no-ops.
+
+---
+
+### GET `/profiles/<name>`
+
+Download a specific profile by filename.
+
+**Response `data`:**
+```json
+{
+  "artifact_uuid": "01932ba4-...",
+  "artifact_name": "raw_http_profile.toml",
+  "artifact_contents": "[profile]\nname = \"HTTP Mimicry\"\n...",
+  "content_hash": "a1b2c3...",
+  "created_at": 1719700000000,
+  "updated_at": 1719700000000
+}
+```
+
+---
+
+### DELETE `/profiles/<name>`
+
+Delete a profile from the server. Returns `404` if the profile does not exist.
+
+---
+
+### POST `/profiles/seed`
+
+Bulk-upload multiple profiles in one request. Each profile follows upsert semantics (same as `POST /profiles/`).
+
+**Request body:**
+```json
+{
+  "profiles": [
+    { "profile_name": "raw_http_profile.toml", "profile_contents": "..." },
+    { "profile_name": "raw_ntp_profile.toml", "profile_contents": "..." }
+  ]
+}
+```
+
+**Response `data`:**
+```json
+{
+  "seeded": 6,
+  "profiles": ["raw_http_profile.toml", "raw_ntp_profile.toml", "..."]
+}
+```
+
+---
 
 ### POST `/profiles/preview`
 
-Always returns HTTP 200. Parse failures are returned as data (check `data.validation.parse_ok`), not as HTTP errors.
+Parse and render a profile TOML, returning structured output with per-step transform chains. Always returns HTTP 200. Parse failures are returned as data (check `data.validation.parse_ok`), not as HTTP errors.
 
 **Request body:**
 ```json

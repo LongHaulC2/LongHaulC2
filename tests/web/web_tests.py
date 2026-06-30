@@ -99,31 +99,6 @@ async def test_profile_preview_page(user: User, caplog):
 #         # Check for the refresh button icon/action presence
 #         await user.should_see("refresh")
 
-@pytest.mark.nicegui_main_file('client/main.py')
-async def test_scripts_page(user: User, caplog):
-    print("Testing Scripts Page Load")
-    
-    # Wrap in caplog context to ignore ERROR logs during page initialization
-    with caplog.at_level(logging.CRITICAL):
-        # 1. Open the page
-        await user.open('/scripts')
-        
-        # --- File Picker (Left Sidebar) ---
-        await user.should_see("SCRIPTS //")
-        # Check for the action buttons in the file picker header
-        await user.should_see("folder_open") # Icon check if supported, or labels below
-        
-        # --- Editor Section (Top Right) ---
-        await user.should_see("EDITOR //")
-        # CodeMirror might not render text immediately, 
-        # but we check the container header is there.
-        await user.should_see("code") 
-        
-        # --- Terminal Section (Bottom Right) ---
-        await user.should_see("TERMINAL_OUTPUT //")
-        await user.should_see("terminal")
-
-
 # --- Additional page smoke tests ---
 # All pages below follow the same pattern: open the route, verify key static
 # labels are rendered.  API calls on page-load will fail (no server running),

@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import structlog
 from nicegui import app, ui
 
@@ -7,10 +5,13 @@ from nicegui import app, ui
 from client.modules.api_calls import (
     delete_listener,
     get_all_listener_data,
+    get_all_profiles,
+    get_profile_by_name,
     restart_listener,
     start_listener,
     start_listener_from_existing,
     stop_listener,
+    upload_profile,
 )
 from client.modules.navigate_hook import get_current_uri, navigate
 from client.pages.footer import build_footer
@@ -272,6 +273,8 @@ async def render_listeners_table():
 #   DIALOG LOGIC
 # ====================
 async def start_listener_dialogue():
+    profile_names = await _get_profile_list()
+
     async def _start_listener():
         # Define what protocols don't need network binding
         is_pivot = listener_type_field.value == "pivot_smb"
@@ -285,10 +288,10 @@ async def start_listener_dialogue():
             notify("Missing required fields", type="warning", color="orange-9")
             return
 
-        file_path = Path(__file__).resolve().parent.parent / "user" / "profiles" / str(listener_profile_field.value)
-
-        if not file_path.exists():
-            notify(f"Profile not found: {file_path.name}", type="warning")
+        selected_profile = str(listener_profile_field.value)
+        profile_contents = await _get_profile_contents(selected_profile)
+        if not profile_contents:
+            notify(f"Profile not found: {selected_profile}", type="warning")
             return
 
         # set defaults if not host or port
@@ -304,8 +307,8 @@ async def start_listener_dialogue():
             listener_type=listener_type_field.value,
             listener_name=listener_name_field.value,
             listener_notes=listener_notes_field.value,
-            listener_profile_name=listener_profile_field.value,
-            listener_profile_contents=get_profile_content(file_path),
+            listener_profile_name=selected_profile,
+            listener_profile_contents=profile_contents,
         )
 
         dialog_spinner.visible = False
@@ -374,15 +377,20 @@ async def start_listener_dialogue():
                     listener_type_field, "value", backward=lambda v: v != "pivot_smb"
                 )
 
-            listener_profile_field = (
-                ui.select(
-                    get_profile_list(),
-                    label="NETWORK PROFILE",
-                    with_input=True,
+            with ui.row().classes("w-full gap-2 items-end"):
+                listener_profile_field = (
+                    ui.select(
+                        profile_names,
+                        label="NETWORK PROFILE",
+                        with_input=True,
+                    )
+                    .props("outlined dense dark color=emerald options-dense")
+                    .classes("flex-grow tech-select")
                 )
-                .props("outlined dense dark color=emerald options-dense")
-                .classes("w-full tech-select")
-            )
+                ui.button(
+                    icon="upload_file",
+                    on_click=lambda: _upload_profile_dialog(listener_profile_field),
+                ).props("flat dense size=sm color=emerald").tooltip("Upload Profile")
 
             listener_notes_field = (
                 ui.textarea("OPERATIONAL NOTES")
@@ -403,18 +411,84 @@ async def start_listener_dialogue():
     dialog.open()
 
 
-def get_profile_list() -> list:
+async def _get_profile_list() -> list:
+    """Fetch profile names from the server API."""
     try:
-        script_path = Path(__file__).resolve().parent.parent / "user" / "profiles"
-        script_path.mkdir(parents=True, exist_ok=True)
-        return sorted((p.name for p in script_path.iterdir() if p.is_file()), key=str.lower)
+        resp = await get_all_profiles()
+        if resp and resp.get("data"):
+            return sorted([p["artifact_name"] for p in resp["data"]], key=str.lower)
     except Exception:
-        return []
+        pass
+    return []
 
 
-def get_profile_content(file_path) -> str:
+async def _get_profile_contents(profile_name: str) -> str:
+    """Fetch profile contents from the server API."""
     try:
-        with Path.open(file_path) as file:
-            return file.read()
+        resp = await get_profile_by_name(profile_name)
+        if resp and resp.get("data", {}).get("artifact_contents"):
+            return resp["data"]["artifact_contents"]
     except Exception:
-        return ""
+        pass
+    return ""
+
+
+def _upload_profile_dialog(profile_select_field):
+    """Open a dialog to upload a .toml profile file to the server."""
+    state = {"filename": "", "contents": ""}
+
+    async def handle_upload(e):
+        try:
+            file_bytes = await e.file.read()
+            state["filename"] = e.file.name
+            state["contents"] = file_bytes.decode("utf-8")
+            submit_btn.enable()
+        except Exception as err:
+            notify(f"Failed to read file: {err}", type="negative")
+
+    async def submit():
+        if not state["contents"]:
+            return
+        name = state["filename"]
+        if not name.endswith(".toml"):
+            name += ".toml"
+
+        submit_btn.props("loading")
+        resp = await upload_profile(name, state["contents"])
+        submit_btn.props(remove="loading")
+
+        if resp:
+            notify(f"Uploaded {name}", type="positive", color="emerald-9")
+            d.close()
+            new_names = await _get_profile_list()
+            profile_select_field.options = new_names
+            profile_select_field.set_value(name)
+            profile_select_field.update()
+        else:
+            notify("Upload failed", type="negative")
+
+    with ui.dialog() as d, ui.card().classes("tech-dialog w-[500px] p-0 rounded overflow-hidden"):
+        with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
+            with ui.row().classes("gap-2 items-center"):
+                ui.icon("upload_file", color="emerald-500")
+                ui.label("UPLOAD PROFILE").classes("tech-label-sub")
+            ui.button(icon="close", on_click=d.close).props("dense flat size=sm color=grey")
+
+        with ui.column().classes("p-5 gap-4 w-full"):
+            ui.upload(
+                label="SELECT .TOML PROFILE",
+                auto_upload=True,
+                max_files=1,
+                on_upload=handle_upload,
+            ).props("flat bordered dark color=emerald accept=.toml").classes("w-full bg-black/20")
+
+        with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"):
+            ui.button("CANCEL", on_click=d.close).props("flat dense color=grey no-caps")
+            submit_btn = (
+                ui.button("UPLOAD", on_click=submit)
+                .props("unelevated dense color=emerald text-color=white no-caps")
+                .classes("font-bold tracking-wide")
+            )
+            submit_btn.disable()
+
+    d.open()

@@ -107,6 +107,50 @@ class FullC2APIClient(C2APIClient):
         response.raise_for_status()
         return response.json()
 
+    # -- Profile CRUD helpers --
+
+    def get_profiles(self) -> Dict[str, Any]:
+        url = str(self.base_url / "profiles")
+        response = self.session.get(url)
+        if not response.ok:
+            self._log_error(response)
+        response.raise_for_status()
+        return response.json()
+
+    def post_profile(self, name: str, contents: str) -> Dict[str, Any]:
+        url = str(self.base_url / "profiles")
+        payload = {"profile_name": name, "profile_contents": contents}
+        response = self.session.post(url, json=payload)
+        if not response.ok:
+            self._log_error(response, payload)
+        response.raise_for_status()
+        return response.json()
+
+    def get_profile(self, name: str) -> Dict[str, Any]:
+        url = str(self.base_url / "profiles" / name)
+        response = self.session.get(url)
+        if not response.ok:
+            self._log_error(response)
+        response.raise_for_status()
+        return response.json()
+
+    def delete_profile(self, name: str) -> Dict[str, Any]:
+        url = str(self.base_url / "profiles" / name)
+        response = self.session.delete(url)
+        if not response.ok:
+            self._log_error(response)
+        response.raise_for_status()
+        return response.json()
+
+    def post_profile_seed(self, profiles: list) -> Dict[str, Any]:
+        url = str(self.base_url / "profiles" / "seed")
+        payload = {"profiles": profiles}
+        response = self.session.post(url, json=payload)
+        if not response.ok:
+            self._log_error(response, payload)
+        response.raise_for_status()
+        return response.json()
+
 
 _RAW_PROFILE_TOML = """
 [profile]

@@ -105,3 +105,127 @@ def test_profile_preview_no_raw_section_has_empty_raw_profiles(api_client):
     body = resp.json()
     assert body["data"]["validation"]["parse_ok"] is True
     assert body["data"]["raw_profiles"] == []
+
+
+# ---------------------------------------------------------------------------
+# Profile CRUD tests
+# ---------------------------------------------------------------------------
+
+_TEST_PROFILE_NAME = "pytest_test_profile.toml"
+_TEST_PROFILE_CONTENTS = """
+[profile]
+name = "pytest profile"
+
+[raw.get]
+proto = "tcp"
+body = "<METADATA>"
+
+[raw.get.client.metadata]
+transforms = [{ op = "base64" }]
+
+[raw.get.server.output]
+transforms = []
+
+[raw.post]
+proto = "tcp"
+body = "<OUTPUT>"
+
+[raw.post.client.output]
+transforms = [{ op = "base64" }]
+
+[raw.post.server]
+body = ""
+"""
+
+
+def test_profile_upload(api_client):
+    """POST /profiles/ with name and contents returns 200 with artifact metadata."""
+    resp = api_client.post_profile(_TEST_PROFILE_NAME, _TEST_PROFILE_CONTENTS)
+    assert resp["status"] == "200"
+    assert resp["data"]["artifact_name"] == _TEST_PROFILE_NAME
+    assert resp["data"]["content_hash"]
+    assert resp["data"]["artifact_uuid"]
+    # cleanup
+    api_client.delete_profile(_TEST_PROFILE_NAME)
+
+
+def test_profile_list(api_client):
+    """GET /profiles/ includes an uploaded profile in the list."""
+    api_client.post_profile(_TEST_PROFILE_NAME, _TEST_PROFILE_CONTENTS)
+    resp = api_client.get_profiles()
+    assert resp["status"] == "200"
+    names = [p["artifact_name"] for p in resp["data"]]
+    assert _TEST_PROFILE_NAME in names
+    # list should not include contents
+    for p in resp["data"]:
+        assert "artifact_contents" not in p
+    api_client.delete_profile(_TEST_PROFILE_NAME)
+
+
+def test_profile_get_by_name(api_client):
+    """GET /profiles/<name> returns full contents."""
+    api_client.post_profile(_TEST_PROFILE_NAME, _TEST_PROFILE_CONTENTS)
+    resp = api_client.get_profile(_TEST_PROFILE_NAME)
+    assert resp["status"] == "200"
+    assert resp["data"]["artifact_contents"] == _TEST_PROFILE_CONTENTS
+    assert resp["data"]["artifact_name"] == _TEST_PROFILE_NAME
+    api_client.delete_profile(_TEST_PROFILE_NAME)
+
+
+def test_profile_upsert_same_hash(api_client):
+    """POST same profile twice with identical content keeps the same hash."""
+    resp1 = api_client.post_profile(_TEST_PROFILE_NAME, _TEST_PROFILE_CONTENTS)
+    resp2 = api_client.post_profile(_TEST_PROFILE_NAME, _TEST_PROFILE_CONTENTS)
+    assert resp1["data"]["content_hash"] == resp2["data"]["content_hash"]
+    assert resp1["data"]["artifact_uuid"] == resp2["data"]["artifact_uuid"]
+    api_client.delete_profile(_TEST_PROFILE_NAME)
+
+
+def test_profile_upsert_different_content(api_client):
+    """POST same name with different content updates the hash."""
+    resp1 = api_client.post_profile(_TEST_PROFILE_NAME, _TEST_PROFILE_CONTENTS)
+    modified = _TEST_PROFILE_CONTENTS.replace("pytest profile", "pytest profile v2")
+    resp2 = api_client.post_profile(_TEST_PROFILE_NAME, modified)
+    assert resp1["data"]["content_hash"] != resp2["data"]["content_hash"]
+    # UUID is preserved (same row updated)
+    assert resp1["data"]["artifact_uuid"] == resp2["data"]["artifact_uuid"]
+    api_client.delete_profile(_TEST_PROFILE_NAME)
+
+
+def test_profile_delete(api_client):
+    """DELETE /profiles/<name> removes the profile."""
+    api_client.post_profile(_TEST_PROFILE_NAME, _TEST_PROFILE_CONTENTS)
+    resp = api_client.delete_profile(_TEST_PROFILE_NAME)
+    assert resp["status"] == "200"
+    # verify it's gone from the list
+    list_resp = api_client.get_profiles()
+    names = [p["artifact_name"] for p in list_resp["data"]]
+    assert _TEST_PROFILE_NAME not in names
+
+
+def test_profile_seed(api_client):
+    """POST /profiles/seed bulk-uploads profiles and reports counts."""
+    profiles = [
+        {"profile_name": "seed_a.toml", "profile_contents": '[profile]\nname = "A"'},
+        {"profile_name": "seed_b.toml", "profile_contents": '[profile]\nname = "B"'},
+    ]
+    resp = api_client.post_profile_seed(profiles)
+    assert resp["status"] == "200"
+    assert resp["data"]["created"] == 2
+    assert resp["data"]["unchanged"] == 0
+
+    # seed again — should be unchanged
+    resp2 = api_client.post_profile_seed(profiles)
+    assert resp2["data"]["created"] == 0
+    assert resp2["data"]["unchanged"] == 2
+
+    # cleanup
+    api_client.delete_profile("seed_a.toml")
+    api_client.delete_profile("seed_b.toml")
+
+
+def test_profile_unauthed():
+    """GET /profiles/ without auth returns 401."""
+    base_url = os.getenv("SERVER_URL", "http://localhost:45045")
+    resp = raw_requests.get(f"{base_url}/api/v1/profiles/")
+    assert resp.status_code == 401
