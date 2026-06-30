@@ -59,6 +59,15 @@ async def test_payloads_page(user: User, caplog):
         await user.should_see("USERNAME")
         await user.should_see("PASSWORD")
 
+@pytest.mark.nicegui_main_file('client/main.py')
+async def test_profile_preview_page(user: User, caplog):
+    # Profile Preview requires auth. Without api_host in storage, setup_menu redirects
+    # to /login. This test verifies that auth guard is active.
+    with caplog.at_level(logging.CRITICAL):
+        await user.open('/profile-preview')
+        await user.should_see("USERNAME")
+        await user.should_see("PASSWORD")
+
 # @pytest.mark.nicegui_main_file('client/main.py')
 # async def test_graph_page(user: User, caplog):
 #     print("Testing Network Topology Graph Page Load")

@@ -3,6 +3,8 @@ import urllib.parse
 
 from nicegui import app, ui
 
+from client.utils.helpers import notify
+
 
 @app.on_page_exception
 def generate_error(exception: Exception) -> None:
@@ -44,7 +46,7 @@ def generate_error(exception: Exception) -> None:
 
                 # write err to clipboard, disabled as the report issue now auto fills
                 # ui.clipboard.write(issue_body)
-                ui.notify("Opening GitHub with error details pre-filled...", icon="rocket_launch")
+                notify("Opening GitHub with error details pre-filled...", icon="rocket_launch")
 
                 ui.run_javascript(f'window.open("{github_url}", "_blank")')
 

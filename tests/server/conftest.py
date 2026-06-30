@@ -108,16 +108,39 @@ class FullC2APIClient(C2APIClient):
         return response.json()
 
 
-_PROFILE_PATH = Path(__file__).resolve().parents[2] / "client" / "user" / "profiles" / "profile_def.toml"
+_RAW_PROFILE_TOML = """
+[profile]
+name = "pytest raw"
+
+[raw.get]
+proto = "tcp"
+body = "<METADATA>"
+
+[raw.get.client.metadata]
+transforms = [{ op = "base64" }]
+
+[raw.get.server.output]
+transforms = []
+
+[raw.post]
+proto = "tcp"
+body = "<OUTPUT>"
+
+[raw.post.client.output]
+transforms = [{ op = "base64" }]
+
+[raw.post.server]
+body = ""
+"""
 
 LISTENER_PAYLOAD = {
     "listener_host": "127.0.0.1",
     "listener_port": 19099,
-    "listener_type": "http",
+    "listener_type": "raw",
     "listener_name": "pytest_listener",
     "listener_notes": "Created by pytest — safe to delete",
-    "listener_profile_name": "profile_def.toml",
-    "listener_profile_contents": _PROFILE_PATH.read_text(),
+    "listener_profile_name": "pytest_raw.toml",
+    "listener_profile_contents": _RAW_PROFILE_TOML,
 }
 
 
@@ -146,8 +169,29 @@ def api_client():
 
 @pytest.fixture
 def listener_uuid(api_client):
-    """Creates a real HTTP listener on 127.0.0.1:19099, yields its UUID, then deletes it."""
+    """Creates a raw listener on 127.0.0.1:19099, yields its UUID, then deletes it."""
     resp = api_client.post_listeners(LISTENER_PAYLOAD)
+    uuid = resp["data"]["listener_uuid"]
+    yield uuid
+    try:
+        api_client.delete_listener(uuid)
+    except Exception:
+        pass
+
+
+@pytest.fixture
+def raw_listener_uuid(api_client):
+    """Creates a raw TCP listener on 127.0.0.1:19100, yields its UUID, then deletes it."""
+    payload = {
+        "listener_host": "127.0.0.1",
+        "listener_port": 19100,
+        "listener_type": "raw",
+        "listener_name": "pytest_raw_listener",
+        "listener_notes": "Created by pytest — safe to delete",
+        "listener_profile_name": "pytest_raw.toml",
+        "listener_profile_contents": _RAW_PROFILE_TOML,
+    }
+    resp = api_client.post_listeners(payload)
     uuid = resp["data"]["listener_uuid"]
     yield uuid
     try:

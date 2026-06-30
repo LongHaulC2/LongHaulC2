@@ -8,6 +8,7 @@ from nicegui import ui
 from client.pages.footer import build_footer
 from client.pages.formatted_tooltip import formatted_tooltip
 from client.pages.menu import setup_menu
+from client.utils.helpers import notify
 
 from ..utils.checks import check_type
 
@@ -296,7 +297,7 @@ async def create_new_file(file_path: str, file_name: str) -> bool:
     full_path = base_path / file_name
 
     if not full_path.resolve().is_relative_to(base_path):
-        ui.notify("Directory traversal detected", type="negative")
+        notify("Directory traversal detected", type="negative")
         ui.label("The image of shame will be displayed until you put in a valid file path/name").classes(
             "tech-label-sub"
         )
@@ -306,11 +307,11 @@ async def create_new_file(file_path: str, file_name: str) -> bool:
     try:
         with Path.open(full_path, "w") as f:
             f.write("")
-        ui.notify(f"Created {file_name}", type="positive", color="emerald-9")
+        notify(f"Created {file_name}", type="positive", color="emerald-9")
         file_picker.refresh()
         return True
     except Exception as e:
-        ui.notify(f"Error: {e}", type="negative")
+        notify(f"Error: {e}", type="negative")
         return False
 
 
@@ -383,7 +384,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
                 async def save_logic():
                     with Path.open(file_path, "w") as f:
                         f.write(editor.value)
-                    ui.notify("Saved", type="positive", color="emerald-9")
+                    notify("Saved", type="positive", color="emerald-9")
 
                 with ui.button(on_click=save_logic).classes("tech-btn-action-2").props("flat square dense size=sm"):
                     ui.icon("save", size="xs")
@@ -414,7 +415,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
                                 f.write(editor.value)
                             d.close()
                             file_picker.refresh()
-                            ui.notify("Saved new file")
+                            notify("Saved new file")
 
                     d.open()
 
@@ -429,7 +430,7 @@ async def code_editor(file_path: str, script_output_terminal_tab_name: str, exec
                 # Reload
                 async def reload_logic():
                     editor.value = await load_file()
-                    ui.notify(
+                    notify(
                         "Reloaded from disk",
                     )
 

@@ -1,7 +1,6 @@
 import structlog
 from nicegui import ui
 
-# Imports
 from client.modules.api_calls import (
     build_implant,
     get_all_listener_data,
@@ -14,6 +13,9 @@ from client.modules.navigate_hook import get_current_uri, navigate
 from client.pages.footer import build_footer
 from client.pages.formatted_tooltip import formatted_tooltip
 from client.pages.menu import setup_menu
+
+# Imports
+from client.utils.helpers import notify
 
 server_log = structlog.getLogger("server")
 payload_stats = {"total": "0", "active_listeners": "0", "latest": "N/A"}
@@ -254,7 +256,7 @@ async def start_payload_dialogue():
                 profile_post_select.value,
             ]
         ):
-            ui.notify("MISSING REQUIRED FIELDS", type="warning", color="orange-9")
+            notify("MISSING REQUIRED FIELDS", type="warning", color="orange-9")
             return
 
         progress_bar.classes(remove="opacity-0")
@@ -335,7 +337,7 @@ async def start_payload_dialogue():
                 progress_bar_fail.classes(remove="opacity-0")
                 progress_bar_fail.set_value(1)
 
-                ui.notify("BUILD FAILED", type="negative")
+                notify("BUILD FAILED", type="negative")
                 build_btn.props("loading=false")
                 status_timer.deactivate()
 
@@ -400,23 +402,23 @@ async def start_payload_dialogue():
             # PROFILE CONFIG
             with ui.row().classes("w-full"):  # bg-white/5 rounded border border-white/5
                 profile_get_select = (
-                    ui.select(label="Initial Get Profile", options=[])
+                    ui.select(label="Initial Ingress (Beacon) Listener", options=[])
                     .props("outlined dense dark color=emerald options-dense")
                     .classes("flex-1 tech-select")
                 )
                 profile_get_select.disable()
 
                 profile_post_select = (
-                    ui.select(label="Initial Post Profile", options=[])
+                    ui.select(label="Initial Egress (Exfil) Listener", options=[])
                     .props("outlined dense dark color=emerald options-dense")
                     .classes("flex-1 tech-select")
                 )
                 profile_post_select.disable()
 
                 with profile_get_select:
-                    formatted_tooltip("The profile to use for the initial GET requests")
+                    formatted_tooltip("The listener profile used for initial beacon check-ins")
                 with profile_post_select:
-                    formatted_tooltip("The profile to use for the initial POST requests")
+                    formatted_tooltip("The listener profile used for initial task exfil")
 
             ui.separator()
             with ui.expansion("Additional Options").classes("tech-expansion w-full"):  # noqa - niecgui styling
@@ -519,15 +521,15 @@ async def download_payload(hash, name):
     file_bytes = await get_payload_bytes(hash)
     if file_bytes:
         ui.download(file_bytes, filename=f"{name}")
-        ui.notify("Transfer Complete", type="positive")
+        notify("Transfer Complete", type="positive")
     else:
-        ui.notify("Transfer Failed", type="negative")
+        notify("Transfer Failed", type="negative")
 
 
 async def download_payload_source(hash, name):
     file_bytes = await get_payload_source_bytes(hash)
     if file_bytes:
         ui.download(file_bytes, filename=f"{name}_source.zip")
-        ui.notify("Transfer Complete", type="positive")
+        notify("Transfer Complete", type="positive")
     else:
-        ui.notify("Transfer Failed", type="negative")
+        notify("Transfer Failed", type="negative")

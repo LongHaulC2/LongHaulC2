@@ -18,8 +18,6 @@
 #include <iphlpapi.h>
 #include <netioapi.h>
 #include "_debug/debug.h"
-#include <wininet.h>
-
 /**
  * @namespace WinApi
  * @brief Encapsulates wrapped Windows API functions to manage resolution and prevent naming collisions.
@@ -199,48 +197,6 @@ namespace WinApi {
     inline HANDLE CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId) {
         DEBUG_LOG("[WinApi::CreateThread] Calling CreateThread");
         return LI_FN(CreateThread)(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
-    }
-
-    inline HINTERNET InternetOpenW(LPCWSTR lpszAgent, DWORD dwAccessType, LPCWSTR lpszProxy, LPCWSTR lpszProxyBypass, DWORD dwFlags) {
-        DEBUG_LOG("[WinApi::InternetOpenW] Calling InternetOpenW");
-        EnsureModuleLoaded("wininet.dll");
-        return LI_FN(InternetOpenW)(lpszAgent, dwAccessType, lpszProxy, lpszProxyBypass, dwFlags);
-    }
-
-    inline HINTERNET InternetConnectW(HINTERNET hInternet, LPCWSTR lpszServerName, INTERNET_PORT nServerPort, LPCWSTR lpszUserName, LPCWSTR lpszPassword, DWORD dwService, DWORD dwFlags, DWORD_PTR dwContext) {
-        DEBUG_LOG("[WinApi::InternetConnectW] Calling InternetConnectW");
-        EnsureModuleLoaded("wininet.dll");
-        return LI_FN(InternetConnectW)(hInternet, lpszServerName, nServerPort, lpszUserName, lpszPassword, dwService, dwFlags, dwContext);
-    }
-
-    inline HINTERNET HttpOpenRequestW(HINTERNET hConnect, LPCWSTR lpszVerb, LPCWSTR lpszObjectName, LPCWSTR lpszVersion, LPCWSTR lpszReferrer, LPCWSTR *lplpszAcceptTypes, DWORD dwFlags, DWORD_PTR dwContext) {
-        DEBUG_LOG("[WinApi::HttpOpenRequestW] Calling HttpOpenRequestW");
-        EnsureModuleLoaded("wininet.dll");
-        return LI_FN(HttpOpenRequestW)(hConnect, lpszVerb, lpszObjectName, lpszVersion, lpszReferrer, lplpszAcceptTypes, dwFlags, dwContext);
-    }
-
-    inline BOOL HttpAddRequestHeadersW(HINTERNET hRequest, LPCWSTR lpszHeaders, DWORD dwHeadersLength, DWORD dwModifiers) {
-        DEBUG_LOG("[WinApi::HttpAddRequestHeadersW] Calling HttpAddRequestHeadersW");
-        EnsureModuleLoaded("wininet.dll");
-        return LI_FN(HttpAddRequestHeadersW)(hRequest, lpszHeaders, dwHeadersLength, dwModifiers);
-    }
-
-    inline BOOL HttpSendRequestW(HINTERNET hRequest, LPCWSTR lpszHeaders, DWORD dwHeadersLength, LPVOID lpOptional, DWORD dwOptionalLength) {
-        DEBUG_LOG("[WinApi::HttpSendRequestW] Calling HttpSendRequestW");
-        EnsureModuleLoaded("wininet.dll");
-        return LI_FN(HttpSendRequestW)(hRequest, lpszHeaders, dwHeadersLength, lpOptional, dwOptionalLength);
-    }
-
-    inline BOOL InternetReadFile(HINTERNET hFile, LPVOID lpBuffer, DWORD dwNumberOfBytesToRead, LPDWORD lpdwNumberOfBytesRead) {
-        DEBUG_LOG("[WinApi::InternetReadFile] Calling InternetReadFile");
-        EnsureModuleLoaded("wininet.dll");
-        return LI_FN(InternetReadFile)(hFile, lpBuffer, dwNumberOfBytesToRead, lpdwNumberOfBytesRead);
-    }
-
-    inline BOOL InternetCloseHandle(HINTERNET hInternet) {
-        DEBUG_LOG("[WinApi::InternetCloseHandle] Calling InternetCloseHandle");
-        EnsureModuleLoaded("wininet.dll");
-        return LI_FN(InternetCloseHandle)(hInternet);
     }
 
     inline HANDLE CreateNamedPipeW(LPCWSTR lpName, DWORD dwOpenMode, DWORD dwPipeMode, DWORD nMaxInstances, DWORD nOutBufferSize, DWORD nInBufferSize, DWORD nDefaultTimeOut, LPSECURITY_ATTRIBUTES lpSecurityAttributes) {

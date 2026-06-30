@@ -75,6 +75,7 @@ from .routes.v1.graph_resource import *  # noqa: F403, E402
 from .routes.v1.health_resource import *  # noqa: F403, E402
 from .routes.v1.implant_resource import *  # noqa: F403, E402
 from .routes.v1.listener_resource import *  # noqa: F403, E402
+from .routes.v1.profile_resource import *  # noqa: F403, E402
 
 logger = structlog.getLogger("server")
 

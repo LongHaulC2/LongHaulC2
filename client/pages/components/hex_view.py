@@ -4,6 +4,7 @@ import hexdump
 from nicegui import ui
 
 from client.pages.custom import BongoSpinner
+from client.utils.helpers import notify
 
 
 class GenericHexViewer:
@@ -51,7 +52,7 @@ class GenericHexViewer:
 
         except Exception as e:
             self.viewer.value = f"ERROR processing hexdump: {e}"
-            ui.notify("Failed to generate hexdump", type="negative")
+            notify("Failed to generate hexdump", type="negative")
 
         finally:
             self.spinner.stop()

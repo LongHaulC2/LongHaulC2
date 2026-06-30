@@ -29,6 +29,7 @@ import client.pages.node.payload  # noqa: F401
 # also, use full paths due to nicegui being picky about relative paths
 import client.pages.operations  # noqa: F401
 import client.pages.payloads  # noqa: F401
+import client.pages.profile_preview  # noqa: F401
 import client.pages.scripts  # noqa: F401
 import client.pages.status  # noqa: F401
 import client.pages.user_settings  # noqa: F401

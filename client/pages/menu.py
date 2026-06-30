@@ -101,6 +101,7 @@ def setup_menu(title: str):
             ui.separator().classes("bg-white/5 mt-4 mb-2")
             ui.label("RESOURCES").classes("tech-label-sub")
             nav_btn("FILESTORE", "folder", "/filestore")
+            nav_btn("PROFILES", "tune", "/profile-preview")
 
             ui.separator().classes("bg-white/5 mt-4 mb-2")
             ui.label("ADMIN").classes("tech-label-sub")

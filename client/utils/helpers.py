@@ -48,3 +48,11 @@ def get_time_ago(target_timestamp: datetime) -> str:
         return "just now"
 
     return ", ".join(parts) + " ago"
+
+
+def notify(message: str, **kwargs) -> None:
+    from nicegui import app, ui
+
+    if "position" not in kwargs:
+        kwargs["position"] = app.storage.user.get("notification_position", "bottom")
+    ui.notify(message, **kwargs)

@@ -62,8 +62,6 @@ set(SOURCES
     "defense/winapi.h"
     "protocols/smb/smb.h"
     "protocols/smb/smb.cpp"
-    "protocols/http_wininet/http.cpp"
-    "protocols/http_wininet/http.h"
     "_debug/debug.cpp"
 )
 
@@ -132,15 +130,8 @@ add_compile_definitions(WIN32_LEAN_AND_MEAN)
 if(WIN32)
     # Both MSVC and MinGW (Cross-compile) enter here
     
-    # Add Windows-specific sources
-    #target_sources(Implant_v01 PRIVATE 
-    #    "protocols/http_wininet/http.cpp"
-    #    "protocols/http_wininet/http.h"
-    #)
-
     target_link_libraries(Implant_v01_exe PRIVATE
         BofRunner # ALWYAS FIRST
-        wininet
         iphlpapi
         ws2_32
         crypt32
@@ -149,7 +140,6 @@ if(WIN32)
 
     target_link_libraries(Implant_v01_dll PRIVATE
         BofRunner
-        wininet
         iphlpapi
         ws2_32
         crypt32

@@ -232,12 +232,12 @@ Search implants by hostname, IP, UUID, or any indexed field.
 **Request body:**
 ```json
 {
-  "listener_name": "http_corp_traffic",
-  "listener_type": "http",
+  "listener_name": "http_mimicry",
+  "listener_type": "raw",
   "listener_host": "0.0.0.0",
-  "listener_port": 443,
-  "listener_profile_name": "amazon",
-  "listener_profile_contents": "http-get { ... }",
+  "listener_port": 80,
+  "listener_profile_name": "raw_http_profile.toml",
+  "listener_profile_contents": "<contents of raw_http_profile.toml>",
   "listener_notes": "Optional notes"
 }
 ```
@@ -362,6 +362,47 @@ Returns the implant topology and network graph data used to populate the **Graph
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/graph/` | Get all nodes and relationships in the graph |
+
+---
+
+## Profiles — `/api/v1/profiles/`
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/profiles/preview` | Parse and render a profile TOML, returning structured output with per-step transform chains |
+
+### POST `/profiles/preview`
+
+Always returns HTTP 200. Parse failures are returned as data (check `data.validation.parse_ok`), not as HTTP errors.
+
+**Request body:**
+```json
+{ "profile_contents": "<raw TOML string>" }
+```
+
+**Response `data`:**
+```json
+{
+  "profile_name": "HTTP Mimicry",
+  "profile_author": "LongHaul Team",
+  "smb": null,
+  "raw_profiles": [
+    {
+      "name": "default",
+      "get": { "proto": "tcp", "client": { ... }, "server": { ... } },
+      "post": { "proto": "tcp", "client": { ... }, "server": { ... } }
+    }
+  ],
+  "validation": {
+    "parse_ok": true,
+    "parse_error": null,
+    "missing_fields": [],
+    "warnings": []
+  }
+}
+```
+
+See [Mimicry](../06%20Network%20Profiles/Overview.md) for the full response shape and field descriptions.
 
 ---
 

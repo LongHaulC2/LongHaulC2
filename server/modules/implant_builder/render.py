@@ -6,7 +6,8 @@ from pathlib import Path
 import structlog
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from .context_generators.context_toml import generate_toml_http_context, generate_toml_smb_context
+from .context_generators.context_raw import generate_toml_raw_context
+from .context_generators.context_toml import generate_toml_smb_context
 from .types import ListenerProfile  # Import your types
 
 server_logger = structlog.getLogger("server")
@@ -105,38 +106,10 @@ def render_implant(
 
 def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dict[str, str]:
     """
-    Handles the logic for a specific listener type (e.g. HTTP).
-    Renders the comms code and returns the UNIFIED function/namespace name.
+    Renders per-listener comms code and returns the unified namespace name.
+    Supported types: raw, pivot_smb.
     """
     listener_type = listener.get("listener_type")
-
-    # Render based on type
-    if listener_type == "http":
-        # grab specific items for this listener
-        host = listener.get("listener_host")
-        port = listener.get("listener_port")
-        prof_name = listener.get("listener_profile_name")
-
-        # Generate ONE unified name for the namespace
-        base_name = f"{host}_{port}_{prof_name}"
-        unified_namespace = sanitize_cpp_name(f"http_{base_name}")
-
-        # Generate Context (all the vars to fill in via the template)
-        context = _get_listener_context(listener)
-
-        # Inject the unified name into the context so the comms.cpp jinja template knows its name
-        context["http_profile_namespace"] = unified_namespace
-
-        # render the file
-        _render_file(
-            output_dir / "comms/comms.h",
-            "wininet_comms_http.h.j2",
-            context,
-            mode="a",  # append to comms.h if it exists, allows for cascading adds of profiles
-        )
-
-        # Return just the one unified namespace
-        return {"namespace": unified_namespace}
 
     if listener_type == "pivot_smb":
         # grab specific items for this listener
@@ -164,6 +137,25 @@ def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dic
         # Return just the one unified namespace
         return {"namespace": unified_namespace}
 
+    if listener_type == "raw":
+        host = listener.get("listener_host")
+        port = listener.get("listener_port")
+        prof_name = listener.get("listener_profile_name")
+
+        unified_namespace = sanitize_cpp_name(f"raw_{host}_{port}_{prof_name}")
+
+        context = _get_listener_context(listener)
+        context["raw_profile_namespace"] = unified_namespace
+
+        _render_file(
+            output_dir / "comms/comms.h",
+            "raw_comms.h.j2",
+            context,
+            mode="a",
+        )
+
+        return {"namespace": unified_namespace}
+
     raise ValueError(f"Unsupported listener type: {listener_type}")
 
 
@@ -171,17 +163,17 @@ def _get_listener_context(listener: ListenerProfile) -> dict:
     """Delegates context generation to specific modules."""
     listener_type = listener.get("listener_type")
 
-    if listener_type == "http":
-        return generate_toml_http_context(
-            profile_toml=listener.get("listener_profile_contents"),
-            host=listener.get("listener_host"),
-            port=listener.get("listener_port"),
-            profile_name=listener.get("listener_profile_name"),
-        )
-
     if listener_type == "pivot_smb":
         return generate_toml_smb_context(
             profile_toml=listener.get("listener_profile_contents"),
+            profile_name=listener.get("listener_profile_name"),
+        )
+
+    if listener_type == "raw":
+        return generate_toml_raw_context(
+            profile_toml=listener.get("listener_profile_contents"),
+            host=listener.get("listener_host"),
+            port=listener.get("listener_port"),
             profile_name=listener.get("listener_profile_name"),
         )
 

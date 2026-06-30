@@ -5,6 +5,7 @@ from nicegui import app, ui
 from client.info import LOGIN_BANNER
 from client.modules.api_calls import authenticate_to_server
 from client.pages.formatted_tooltip import formatted_tooltip
+from client.utils.helpers import notify
 
 
 def _validate_server_address(v: str) -> str | None:
@@ -116,13 +117,13 @@ def login_page():
 
     async def handle_login(host_value, user, password):
         if not host_value:
-            ui.notify("Please enter a server address", type="warning")
+            notify("Please enter a server address", type="warning")
             return
 
         error = _validate_server_address(host_value)
         if error:
             host.validate()  # trigger inline display of the error
-            ui.notify(error, type="warning")
+            notify(error, type="warning")
             return
 
         app.storage.user["api_host"] = host_value
@@ -130,7 +131,7 @@ def login_page():
         tokens = await authenticate_to_server(username=user, password=password)
 
         if not tokens:
-            ui.notify(f"Authentication to {host_value} failed", type="negative")
+            notify(f"Authentication to {host_value} failed", type="negative")
             return
 
         refresh_token = tokens.get("data", {}).get("refresh_token")
@@ -140,8 +141,8 @@ def login_page():
             app.storage.user["refresh_token"] = refresh_token
             app.storage.user["access_token"] = access_token
 
-            ui.notify(f"Connected to {host_value}", type="positive")
+            notify(f"Connected to {host_value}", type="positive")
             ui.navigate.to("/operations")
             return
 
-        ui.notify(f"Authentication to {host_value} failed", type="negative")
+        notify(f"Authentication to {host_value} failed", type="negative")

@@ -8,67 +8,42 @@ The functions here also demo how to use the API, etc.
 """
 
 profile = """
-# make our C2 look like a Google Web Bug
-# https://developers.google.com/analytics/resources/articles/gaTrackingTroubleshooting
-#
-# Author: @armitagehacker
+[profile]
+name = "Demo HTTP Mimicry"
+author = "demo"
 
-set sleeptime "5000";
+[raw.get]
+proto = "tcp"
+body = "<METADATA>"
 
+[raw.get.client.metadata]
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = "GET /update?sid=" },
+    { op = "append",  val = " HTTP/1.1\\r\\nHost: example.com\\r\\nAccept: */*\\r\\n\\r\\n" },
+]
 
-http-get {
-	set uri "/___utm.gif";
-	client {
-		parameter "utmac" "UA-2202604-2";
-		parameter "utmcn" "1";
-		parameter "utmcs" "ISO-8859-1";
-		parameter "utmsr" "1280x1024";
-		parameter "utmsc" "32-bit";
-		parameter "utmul" "en-US";
+[raw.get.server]
+body = "<OUTPUT>"
 
-		metadata {
-			base64url;
-			header "utmcc";
-		}
-	}
+[raw.get.server.output]
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = "HTTP/1.1 200 OK\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\n" },
+]
 
-	server {
-		header "Content-Type" "image/gif";
+[raw.post]
+proto = "tcp"
+body = "<OUTPUT>"
 
-		output {
-			print;
-		}
-	}
-}
+[raw.post.client.output]
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = "POST /upload HTTP/1.1\\r\\nHost: example.com\\r\\nContent-Type: application/x-www-form-urlencoded\\r\\n\\r\\ndata=" },
+]
 
-http-post {
-	set uri "/__utm.gif";
-	set verb "GET";
-	client {
-		id {
-			parameter "utmac";
-		}
-
-		parameter "utmcn" "1";
-		parameter "utmcs" "ISO-8859-1";
-		parameter "utmsr" "1280x1024";
-		parameter "utmsc" "32-bit";
-		parameter "utmul" "en-US";
-
-		output {
-			base64url;
-			header "utmcc";
-		}
-	}
-
-	server {
-		header "Content-Type" "image/gif";
-
-		output {
-			print;
-		}
-	}
-}
+[raw.post.server]
+body = "HTTP/1.1 200 OK\\r\\n\\r\\n"
 """
 
 
@@ -76,7 +51,7 @@ http-post {
 api_url = URL("http://10.0.0.30:45045/api/v1")
 
 
-def start_listener(host, port, type="http", name="http_listener"):
+def start_listener(host, port, type="raw", name="raw_listener"):
     """
     Start a listener
     """
@@ -113,7 +88,7 @@ def generate_implants():
         listener_uuid = listener.get("listener_uuid")
 
         req_data = {
-            "implant_variant": "http_wininet",
+            "implant_variant": "raw",
             "output_format": "exe",
             "implant_name": "my_implant",
             "implant_listener_uuid": listener_uuid,

@@ -45,7 +45,7 @@ web = [
     "nicegui",
     "pywebview",
     "httpx",
-    "hexdump",
+    "hexdump"
 ]
 # Development reqs
 dev = [

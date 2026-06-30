@@ -213,12 +213,12 @@ class ImplantTask(Resource):
         check_type(uuid, str, "uuid")
 
         if request.content_type == "application/msgpack":
-            data = msgpack.unpackb(request.data, raw=False)
+            body = msgpack.unpackb(request.data, raw=False)
         else:
-            data = request.json
+            body = request.get_json(force=True, silent=True) or {}
 
         task_uuid = str(uuid7())
-        task = Task(**data, task_uuid=task_uuid)
+        task = Task(**body, task_uuid=task_uuid)
 
         with get_mysql_session() as session:
             task_service = TaskService(task=task, session=session)
@@ -227,9 +227,9 @@ class ImplantTask(Resource):
         task_uuid = task_service.task.task_uuid
         data = {"task_uuid": task_uuid}
 
-        task_name = (request.json or {}).get("task", {}).get("task_name")
+        task_name = body.get("task", {}).get("task_name")
         if task_name == "sleep":
-            sleep_time = (request.json or {}).get("task", {}).get("args", {}).get("sleep_time")
+            sleep_time = body.get("task", {}).get("args", {}).get("sleep_time")
             if isinstance(sleep_time, int) and sleep_time > 0:
                 Neo4jImplantNodeService.update_sleep_value(uuid, sleep_time)
 

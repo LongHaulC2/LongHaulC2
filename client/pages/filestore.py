@@ -8,6 +8,7 @@ from client.pages.dialogues import upload_to_server_filestore_dialog
 from client.pages.footer import build_footer
 from client.pages.formatted_tooltip import formatted_tooltip
 from client.pages.menu import setup_menu
+from client.utils.helpers import notify
 
 server_log = structlog.getLogger("server")
 payload_stats = {"total": "0", "active_listeners": "0", "latest": "N/A"}
@@ -174,6 +175,6 @@ async def download_file(file_uuid, name):
     file_bytes = await get_file_bytes(file_uuid)
     if file_bytes:
         ui.download(file_bytes, filename=f"{name}")
-        ui.notify("Transfer Complete", type="positive")
+        notify("Transfer Complete", type="positive")
     else:
-        ui.notify("Transfer Failed", type="negative")
+        notify("Transfer Failed", type="negative")

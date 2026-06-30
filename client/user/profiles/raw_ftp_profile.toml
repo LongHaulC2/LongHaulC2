@@ -1,0 +1,108 @@
+[profile]
+name = "FTP Mimicry"
+author = "LongHaul Team"
+
+# ==========================================================================
+# RAW - FTP Protocol Mimicry (RFC 959, TCP port 21)
+# ==========================================================================
+#
+# Usage:
+#   1. Create a raw listener: POST /api/v1/listeners with
+#        listener_type = "raw"
+#        listener_port = 21  (or any port for testing)
+#        listener_profile_contents = <contents of this file>
+#
+# Wire format — client to server:
+#
+#   GET (beacon):  RETR <base64url(msgpack)>\r\n
+#   POST (exfil):  STOR <base64url(msgpack)>\r\n
+#
+# Wire format — server to client:
+#
+#   GET response:  150 Opening BINARY mode data connection.\r\n
+#                  <base64url(tasks)>\r\n
+#                  226 Transfer complete.\r\n
+#   POST ACK:      226 Transfer complete.\r\n
+#
+# Mimicry level:
+#   This models RFC 959 FTP command channel verbs (RETR/STOR) and standard
+#   FTP reply codes (150, 226). It does NOT include the 220 server banner or
+#   the USER/PASS authentication exchange that precede a real FTP session.
+#   The raw listener is client-speaks-first; FTP's server-speaks-first model
+#   (220 banner) cannot be reproduced without extending the listener.
+#
+#   Passes basic protocol signature matching (port 21, RETR/STOR verbs, 1xx/2xx
+#   reply codes). Will not survive deep session reconstruction that expects a
+#   preceding 220 banner.
+#
+# Disambiguation:
+#   GET packets start with "RETR " (0x52 0x45 0x54 0x52 0x20).
+#   POST packets start with "STOR " (0x53 0x54 0x4F 0x52 0x20).
+#   Byte 0 differs (R=0x52 vs S=0x53), so prefix routing is unambiguous.
+# ==========================================================================
+
+
+# --------------------------------------------------------------------------
+# GET — Beacon check-in (implant → server)
+# --------------------------------------------------------------------------
+[raw.get]
+proto = "tcp"
+body = "<METADATA>"
+
+[raw.get.client.metadata]
+# Transform chain applied to msgpack beacon metadata before wire send:
+#   1. base64url-encode
+#   2. prepend "RETR "  (FTP retrieve command)
+#   3. append \r\n      (FTP command terminator)
+#
+# Wire result: RETR <base64url>\r\n
+# Server reverses: strip \r\n, strip "RETR ", base64url-decode.
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = 'RETR ' },
+    { op = "append",  val = '\x0D\x0A' },
+]
+
+[raw.get.server]
+body = "<OUTPUT>"
+
+[raw.get.server.output]
+# Transform chain applied to task bytes before the server sends them back:
+#   1. base64url-encode
+#   2. prepend FTP 150 reply
+#   3. append \r\n + FTP 226 reply
+#
+# Wire result:
+#   150 Opening BINARY mode data connection.\r\n<base64url>\r\n226 Transfer complete.\r\n
+# Implant reverses: strip suffix, strip prefix, base64url-decode.
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = '150 Opening BINARY mode data connection.\x0D\x0A' },
+    { op = "append",  val = '\x0D\x0A226 Transfer complete.\x0D\x0A' },
+]
+
+
+# --------------------------------------------------------------------------
+# POST — Task exfil (implant → server)
+# --------------------------------------------------------------------------
+[raw.post]
+proto = "tcp"
+body = "<OUTPUT>"
+
+[raw.post.client.output]
+# Transform chain applied to msgpack exfil payload before wire send:
+#   1. base64url-encode
+#   2. prepend "STOR "  (FTP store/upload command)
+#   3. append \r\n
+#
+# Wire result: STOR <base64url>\r\n
+transforms = [
+    { op = "base64url" },
+    { op = "prepend", val = 'STOR ' },
+    { op = "append",  val = '\x0D\x0A' },
+]
+
+[raw.post.server]
+# Standard FTP 226 "Transfer complete" reply.
+# TOML \r\n escapes produce the correct CR LF bytes on the wire.
+body = "226 Transfer complete.\r\n"

@@ -11,6 +11,7 @@ from client.pages.components.metadata_view import MetadataView
 from client.pages.components.notes_editor import GenericNotesEditor
 from client.pages.footer import build_footer
 from client.pages.menu import setup_menu
+from client.utils.helpers import notify
 
 server_log = structlog.getLogger("server")
 
@@ -63,13 +64,13 @@ async def render_dashboard(file_data: dict, file_uuid: str):
         file_bytes = await get_file_bytes(file_uuid)
         if file_bytes:
             ui.download(file_bytes, filename=file_name)
-            ui.notify("Transfer Complete", type="positive")
+            notify("Transfer Complete", type="positive")
         else:
-            ui.notify("Transfer Failed", type="negative")
+            notify("Transfer Failed", type="negative")
 
     async def handle_delete():
         await delete_file_from_server_filestore(file_uuid)
-        ui.notify("File deleted from server", type="warning")
+        notify("File deleted from server", type="warning")
         ui.navigate.to("/filestore")
 
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):

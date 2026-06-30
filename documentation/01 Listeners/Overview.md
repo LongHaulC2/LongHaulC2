@@ -1,30 +1,14 @@
 # Listeners
 
-A **listener** is a network process that handles inbound implant traffic. Each listener is bound to a port and a Malleable C2 profile that defines the traffic shape. Multiple listeners can run simultaneously with different profiles.
+A **listener** is a network process that handles inbound implant traffic. Each listener is bound to a port and a network profile that defines the traffic shape. Multiple listeners can run simultaneously with different profiles.
 
 ---
 
 ## How Listeners Work
 
-Listeners run as **daemon multiprocesses** managed by `server/listeners/supervisor.py`. They are separate OS processes (not threads) so a crash in one listener does not affect the server or other listeners.
+Listeners run as **daemon multiprocesses** managed by a supervisor system. They are separate OS processes (not threads) so a crash in one listener does not affect the server or other listeners.
 
-On server startup, `restart_active_listeners()` queries Neo4j and re-spawns any listener marked as active — listeners survive server restarts automatically.
-
-All listener types share the same bridge into the server core:
-
-```
-Implant (GET/POST)
-      ↓
-  Listener Process
-      ↓
-  listener_bridge.py
-      ↓
-  handle_beacon()  /  handle_exfil()
-      ↓
-  Redis (task queue / response inbox)
-```
-
-`listener_bridge.py` is protocol-agnostic — any listener calls the same two functions regardless of transport.
+On server startup, previously running listeners get respawned. This allows listeners to survive server restarts automatically.
 
 ---
 
@@ -32,128 +16,89 @@ Implant (GET/POST)
 
 | Type | Status | Transport |
 |---|---|---|
-| `http` | **Implemented** | HTTP/HTTPS via FastAPI, traffic shaped by Malleable C2 profiles |
-| `ntp` | In progress (skeleton) | NTP tunneling via custom socket implementation |
+| `raw` | **Implemented** | Plain TCP or UDP. The profile's `[raw.*]` body templates define the **complete wire format** — the listener adds nothing beyond what the TOML specifies. HTTP/1.1 mimicry, NTP, DNS, FTP, any binary protocol — all defined by the profile. `raw_http_profile.toml` ships as a ready-to-use HTTP/1.1 example. |
 | `pivot_smb` | Placeholder | No process is started. Used as an internal marker for implants that connect via SMB chains rather than direct egress. |
+
+> **This is different than most C2 suites. The raw listener is the only C2 channel.** Protocols/Traffic are defined by Network Profiles, see [Mimicry](../06%20Network%20Profiles/Overview.md) for more details.
 
 ---
 
 ## Creating a Listener
 
-Listeners are created through the UI (**Listeners** page) or via the API (`POST /api/v1/listeners/`).
+Listeners are created through the UI (**Listeners** page) or via the [API](../04%20API%20Reference/Overview#listeners--apiv1listeners)
 
-### Required Fields
+...link to creating a listener video here...
+
+### Field Reference
 
 | Field | Type | Description |
 |---|---|---|
 | `listener_name` | string | Human-readable name. Used to identify the listener and to derive strategy names in the implant. |
-| `listener_type` | string | One of: `http`, `ntp`, `pivot_smb` |
+| `listener_type` | string | One of: `raw`, `pivot_smb` |
 | `listener_host` | string | IP or hostname the listener binds to (e.g., `0.0.0.0`) |
-| `listener_port` | integer | Port to listen on (e.g., `443`, `80`, `8080`) |
-| `listener_profile_name` | string | Name of the Malleable C2 profile to use |
-| `listener_profile_contents` | string | Full text of the Malleable C2 profile |
+| `listener_port` | integer | Port to listen on (e.g., `80`, `123`, `53`) |
+| `listener_profile_name` | string | Filename of the network profile (e.g., `raw_http_profile.toml`) |
+| `listener_profile_contents` | string | Full TOML text of the network profile |
 | `listener_notes` | string | Optional operator notes |
 
-### Example API Call
 
-```bash
-curl -s -X POST http://localhost:45045/api/v1/listeners/ \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "listener_name": "http_corp_traffic",
-    "listener_type": "http",
-    "listener_host": "0.0.0.0",
-    "listener_port": 443,
-    "listener_profile_name": "amazon",
-    "listener_profile_contents": "...",
-    "listener_notes": "Mimics Amazon browsing traffic"
-  }'
+
+## Mimicry
+
+Each listener is paired with a **network profile** that controls exactly what bytes go on the wire. See [Mimicry](../06%20Network%20Profiles/Overview.md) for more details. For now, just think of these profiles as malleable c2 on steroids.
+
+Each listener gets **one** profile. Implants can be built with **multiple** profiles (aka strategies) and can switch between them at runtime with `strat set get` / `strat set post`.
+
+### Strategies
+
+Strategies are the name of the profiles after they are baked into an implant. The strategy names are derived from the listener data that said strategy corresponds to. 
+
+For example:
+
 ```
+raw_<host>_<port>_<profile_name>
+```
+
+Where `<profile_name>` is taken from the `[profile] name = "..."` field in the TOML, with non-alphanumeric characters replaced by underscores. For example, a listener on `0.0.0.0:80` using a profile named `"HTTP Mimicry"` produces the strategy name `raw_0_0_0_0_80_HTTP_Mimicry` in the binary. 
+
+You can see available strategy names for the current implant by running `strat list` in the implant terminal:
+
+```
+--- SESSION ESTABLISHED ---
+019f101d > strat list
+--- Ingress (GET) ---
+  > raw_10_0_0_30_9021_new_ftp_dev_422_9021
+--- Egress (POST) ---
+  > raw_10_0_0_30_9021_new_ftp_dev_422_9021
+```
+
+> Dev note - "Strategies" sounded cool when designing the switching/profile split logic, so I stuck with that naming. Feel free to call them "Profiles/Network Profiles/Mimicry Profiles, etc" as well. i.e. "I'm moving the implant to the FTP profile from the HTTP profile". 
 
 ---
 
-## Managing Listeners
+## Raw Listener
 
-| Action | API |
+The raw listener is the only "real" listener type in LongHaul. It sends and receives arbitrary bytes over TCP or UDP. The network profile's `[raw.*]` section defines the **complete wire format** — the listener adds no framing beyond what the profile specifies. Not a byte more, not a byte less.
+
+What protocol your traffic looks like is entirely your decision. Default profiles ship in `client/user/profiles/`:
+
+| Profile | Looks like |
 |---|---|
-| List all listeners | `GET /api/v1/listeners/` |
-| Get one listener | `GET /api/v1/listeners/<uuid>` |
-| Create listener | `POST /api/v1/listeners/` |
-| Start / Stop listener | `PATCH /api/v1/listeners/<uuid>` with `{"active": true/false}` |
-| Delete listener | `DELETE /api/v1/listeners/<uuid>` |
+| `raw_http_profile.toml` | HTTP/1.1 (default starting point) |
+| `raw_ntp_profile.toml` | NTPv4 over UDP |
+| `raw_ftp_profile.toml` | FTP RETR/STOR |
+| `raw_dns_profile.toml` | DNS EDNS0 over UDP |
+| `raw_snmp_profile.toml` | SNMPv1/v2c |
+| `raw_debug_profile.toml` | Bare msgpack (no transforms, intended for debugging) |
 
-### Start/Stop Example
-
-```bash
-# Stop a listener
-curl -X PATCH http://localhost:45045/api/v1/listeners/<uuid> \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"active": false}'
-
-# Restart it
-curl -X PATCH http://localhost:45045/api/v1/listeners/<uuid> \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"active": true}'
-```
-
----
-
-## Malleable C2 Profiles
-
-LongHaul implements the **network layer** of Malleable C2 profiles: URI patterns, HTTP headers, and body transforms for `http-get` and `http-post` blocks. Payload-staging configuration (specific to Cobalt Strike artifacts) is not supported.
-
-Each listener gets one profile. Implants can be built with multiple listeners/profiles baked in and can switch between them at runtime with `strat set get` / `strat set post`.
-
-### Strategy Naming
-
-When a listener is created, strategy names are automatically derived from the listener's metadata and baked into built implants. Strategy names follow the pattern:
-
-```
-http_get_<host>_<port>_<profile_suffix>
-http_post_<host>_<port>_<profile_suffix>
-```
-
-You can see available strategy names by running `strat list` in the implant terminal.
-
----
-
-## HTTP Listener
-
-The HTTP listener is built on **FastAPI** and runs as a daemon process. It handles:
-
-- **Beacon (GET):** Implant checks in, provides metadata, receives pending tasks as a msgpack array.
-- **Exfil (POST):** Implant delivers task results as a msgpack array.
-
-Traffic shape is fully controlled by the Malleable C2 profile assigned at listener creation time.
-
----
-
-## NTP Listener
-
-In progress. A custom socket-based implementation for tunneling C2 traffic inside NTP packets. Not yet ready for operational use.
+Again, see [Mimicry](../06%20Network%20Profiles/Overview.md) for full documentation.
 
 ---
 
 ## SMB Pivot Listener (`pivot_smb`)
 
-The `pivot_smb` type is a marker — no network process is started. It exists to represent implants in the graph that communicate via SMB named pipes through a parent implant, rather than reaching the server directly.
+The `pivot_smb` type is a placeholder only — no listener/network process is started. It exists to represent implants in the graph that communicate via SMB named pipes through a parent implant, rather than reaching the server directly.
 
-When you create a `pivot_smb` listener, the server registers it in Neo4j and makes it available as a build target so you can generate an implant that is configured to communicate over the SMB chain. The parent implant (with an `http` listener) acts as the egress node.
+When you create a `pivot_smb` listener, the server registers it in Neo4j and makes it available as a build target so you can generate an implant that is configured to communicate over the SMB chain. The parent implant (with a `raw` listener) acts as the egress node.
 
 ---
-
-## Supervisor & Process Management
-
-`server/listeners/supervisor.py` maintains an in-memory dictionary of `listener_uuid → Process`. Thread-safe access is enforced with a lock.
-
-| Function | Description |
-|---|---|
-| `start_listener(listener_data)` | Spawns the appropriate process for the listener type |
-| `stop_listener(listener_uuid)` | Terminates and joins the process |
-| `stop_all()` | Terminates all running listeners |
-| `restart_active_listeners()` | Called at server startup — re-spawns anything marked active in Neo4j |
-
-Listener processes are `daemon=True`, so they are automatically killed when the server process exits.

@@ -2,6 +2,7 @@ from nicegui import events, ui
 
 from client.modules.api_calls import post_new_file_to_server_filestore, queue_task
 from client.modules.task_definitions import FileUpload, MemStoreUpload
+from client.utils.helpers import notify
 
 
 async def upload_to_implant_dialog(implant_uuids: list):
@@ -34,7 +35,7 @@ async def upload_to_implant_dialog(implant_uuids: list):
             file_bytes = await e.file.read()
             state["file_bytes"] = file_bytes
 
-            # ui.notify(
+            # notify(
             #     f"Staged: {e.file.name} ({len(file_bytes)} bytes)",
             #     type="positive",
             #     color="emerald",
@@ -42,7 +43,7 @@ async def upload_to_implant_dialog(implant_uuids: list):
             # )
             check_ready()
         except Exception as err:
-            ui.notify(f"Failed to read file: {err}", type="negative")
+            notify(f"Failed to read file: {err}", type="negative")
 
     async def submit_tasks():
         submit_btn.props("loading")
@@ -63,7 +64,7 @@ async def upload_to_implant_dialog(implant_uuids: list):
 
                 await queue_task(implant_uuid=uuid, task=task.to_task())
 
-            ui.notify(
+            notify(
                 f"Queued upload for {len(implant_uuids)} targets",
                 type="positive",
                 color="emerald",
@@ -71,7 +72,7 @@ async def upload_to_implant_dialog(implant_uuids: list):
             dialog.close()
 
         except Exception as err:
-            ui.notify(f"Task Error: {str(err)}", type="negative")
+            notify(f"Task Error: {str(err)}", type="negative")
             submit_btn.props(remove="loading")
 
     # UI Layout
@@ -92,7 +93,7 @@ async def upload_to_implant_dialog(implant_uuids: list):
         with ui.column().classes("p-6 gap-5 w-full"):
             # Validation
             if len(implant_uuids) == 0:
-                ui.notify("Please select at least one implant to upload to", type="warning")
+                notify("Please select at least one implant to upload to", type="warning")
                 return None
 
             # Target List
@@ -175,7 +176,7 @@ async def upload_to_server_filestore_dialog():
             file_bytes = await e.file.read()
             state["files"].append({"filename": e.file.name, "file_bytes": file_bytes})
 
-            # ui.notify(
+            # notify(
             #     f"Staged: {e.file.name} ({len(file_bytes)} bytes)",
             #     type="positive",
             #     color="emerald",
@@ -183,7 +184,7 @@ async def upload_to_server_filestore_dialog():
             # )
             check_ready()
         except Exception as err:
-            ui.notify(f"Failed to read file: {err}", type="negative")
+            notify(f"Failed to read file: {err}", type="negative")
 
     async def submit_upload():
         if not state["files"]:
@@ -206,13 +207,13 @@ async def upload_to_server_filestore_dialog():
                 failed_files.append(f"{f['filename']} ({str(e)})")
 
         if success_count == len(state["files"]):
-            ui.notify(f"Successfully uploaded {success_count} files", type="positive")
+            notify(f"Successfully uploaded {success_count} files", type="positive")
             dialog.submit(True)
         elif success_count > 0:
-            ui.notify(f"Uploaded {success_count} files, but {len(failed_files)} failed.", type="warning")
+            notify(f"Uploaded {success_count} files, but {len(failed_files)} failed.", type="warning")
             dialog.submit(True)
         else:
-            ui.notify("Failed to upload files.", type="negative")
+            notify("Failed to upload files.", type="negative")
             submit_btn.enable()
             check_ready()
 

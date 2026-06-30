@@ -427,9 +427,9 @@ async def get_listener_data(listener_uuid: str) -> dict | None:
             "listener_name": "C2_Primary",
             "listener_host": "0.0.0.0",
             "listener_port": 8080,
-            "listener_type": "http",
-            "listener_profile_name": "default",
-            "listener_profile_contents": "http-get {\n  ... \n}..."
+            "listener_type": "raw",
+            "listener_profile_name": "raw_http_profile.toml",
+            "listener_profile_contents": "[raw.get]\nproto = \"tcp\"\nbody = \"<METADATA>\"\n..."
         }
     """
     check_type(listener_uuid, str, "listener_uuid")
@@ -577,19 +577,14 @@ async def start_listener(
     Args:
         listener_host (str): Host/IP the listener will bind to.
         listener_port (int): Port for the listener.
-        listener_type (str): Type of listener (e.g., 'http').
+        listener_type (str): Type of listener ('raw', 'pivot_smb').
         listener_name (str): Friendly name for the listener.
         listener_notes (str): Additional notes.
-        listener_profile_name (str): Malleable C2 profile name.
-        listener_profile_contents (str): The raw string content of the C2 profile.
+        listener_profile_name (str): Network profile filename.
+        listener_profile_contents (str): The raw TOML content of the network profile.
 
     Returns:
         dict: The created listener's details, including its new UUID.
-        Example structure:
-        {
-            "listener_uuid": "019baffa-c8c7-76ff-a40d-d2ec6c99306e",
-            "status": "running"
-        }
     """
     # validate inputs
     check_type(listener_host, str, "listener_host")
@@ -958,4 +953,25 @@ async def delete_single_node(node_type: str, node_uuid: str) -> dict | None:
     return await safe_api_request(
         method="DELETE",
         endpoint=f"/api/v1/graph/node/{node_type}/{node_uuid}",
+    )
+
+
+async def preview_profile(profile_contents: str) -> dict | None:
+    """Submit raw TOML profile contents to the server for preview rendering.
+
+    Returns a structured breakdown of request/response templates, header lists,
+    and step-by-step transform chain output for each protocol section.
+
+    Args:
+        profile_contents (str): Raw TOML string of the network profile.
+
+    Returns:
+        dict | None: Structured preview data including transform chains and validation info.
+    """
+    check_type(profile_contents, str, "profile_contents")
+    api_log.debug("Requesting profile preview")
+    return await safe_api_request(
+        method="POST",
+        endpoint="/api/v1/profiles/preview",
+        json={"profile_contents": profile_contents},
     )

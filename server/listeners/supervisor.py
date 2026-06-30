@@ -8,8 +8,7 @@ from ..db.neo4j_functions import Neo4jListenerNodeService
 from ..instance import active_processes
 from ..schemas.listeners import ListenerCreate
 from ..utils.checks import check_type
-from .http.http import run as http_run
-from .ntp.ntp import run as ntp_run
+from .raw.raw import run as raw_run
 
 
 class InvalidListenerType(Exception):
@@ -54,25 +53,6 @@ def start_listener(
         # could be less code, but for explicity/expandability it's not.
         # Also this allows for per listener kwargs if needed.
         match listener_data.listener_type:
-            case "http":
-                p = multiprocessing.Process(
-                    target=http_run,
-                    kwargs={
-                        "listener_uuid": listener_data.listener_uuid,
-                        "listener_host": listener_data.listener_host,
-                        "listener_port": listener_data.listener_port,
-                        "listener_profile_contents": listener_data.listener_profile_contents,
-                    },
-                    daemon=True,  # shuts down listeners at program exit.
-                )
-                # toss in global active processes dict
-                active_processes[listener_data.listener_name] = p
-                p.start()
-                # THREAD-SAFE ADDITION
-                with listeners_lock:
-                    listeners[listener_data.listener_uuid] = p
-                server_logger.info("Listener started", listener_uuid=listener_data.listener_uuid, pid=p.pid)
-
             case "pivot_smb":
                 # smb is a pivot listener, so we don't need to actually start one.
                 # it's used for a placeholder/interal for templating.
@@ -82,21 +62,19 @@ def start_listener(
                 # throw custom error if invalid listener type
                 # raise InvalidListenerType
 
-            case "ntp":
+            case "raw":
                 p = multiprocessing.Process(
-                    target=ntp_run,
+                    target=raw_run,
                     kwargs={
                         "listener_uuid": listener_data.listener_uuid,
                         "listener_host": listener_data.listener_host,
                         "listener_port": listener_data.listener_port,
                         "listener_profile_contents": listener_data.listener_profile_contents,
                     },
-                    daemon=True,  # shuts down listeners at program exit.
+                    daemon=True,
                 )
-                # toss in global active processes dict
                 active_processes[listener_data.listener_name] = p
                 p.start()
-                # THREAD-SAFE ADDITION
                 with listeners_lock:
                     listeners[listener_data.listener_uuid] = p
                 server_logger.info(

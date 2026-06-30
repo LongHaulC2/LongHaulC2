@@ -27,7 +27,7 @@ The team is relatively new to offensive tooling. Prioritize:
 - SMB Chaining (lateral movement / peer-to-peer)
 
 **UI/Server functionality:**
-- Network Profile creation and editing
+- Network Profile creation, editing, and preview/rendering
 - BOF storage (and a market, later)
 - BYOL: Bring Your Own Loader support
 
@@ -96,11 +96,62 @@ Listeners run as **daemon multiprocesses** (not threads) managed by `server/list
 
 | Type | Status |
 |---|---|
-| `http` | Implemented — FastAPI, traffic shaped by Malleable C2 profiles |
-| `ntp` | Skeleton / in progress |
+| `raw` | Implemented — plain Python `socket`, wire format fully defined by profile TOML |
 | `pivot_smb` | Placeholder only (no process started) |
 
+HTTP/1.1 traffic mimicry is handled by `raw_http_profile.toml` — there is no separate HTTP listener type. The WinINet-based HTTP implant and FastAPI HTTP listener have been removed.
+
 Listeners survive server restarts: `restart_active_listeners()` in `main.py` re-spawns anything marked active in Neo4j on startup.
+
+## Raw Listener
+
+The `raw` listener type sends and receives arbitrary bytes over TCP or UDP. The profile TOML defines the exact wire format — no bytes are added outside what the profile specifies. This is the forward-looking path for new protocol mimicry (NTP, DNS, FTP, etc.).
+
+**Profile schema:**
+```toml
+# Simple (unnamed) — one get/post pair
+[raw.get]
+proto = "tcp"          # or "udp"
+body = "<METADATA>"    # wire body template; <METADATA> replaced with encoded beacon
+
+[raw.get.client.metadata]
+transforms = [{ op = "base64" }]
+
+[raw.get.server.output]
+transforms = []
+
+[raw.post]
+proto = "tcp"
+body = "<OUTPUT>"      # <CLIENT_ID> and <OUTPUT> tokens available
+
+[raw.post.client.output]
+transforms = [{ op = "base64" }]
+
+[raw.post.server]
+body = ""              # ACK sent back to implant
+```
+
+**Wire format:** `body_template` with tokens replaced by (un)transformed payload bytes. No framing overhead. For TCP: one message per connection (connect → send → EOF → server responds → close). For UDP: one datagram.
+
+**Disambiguation (beacon vs exfil):** Primary method: the server reads the outermost `prepend` value from each transform chain and checks whether the incoming packet's leading bytes match the GET or POST prepend. If they're distinct (as in the NTP profile, where GET ends with `\xF0\x01` and POST ends with `\xF0\x02`), the packet is routed directly. Fallback: if no distinct prepend exists, the server tries the GET decode chain first, then the POST decode chain. **Do not rely on msgpack shape to disambiguate** — both beacon and exfil payloads are lists of dicts with `implant_uuid`, so `handle_beacon` will not raise on exfil data.
+
+**One protocol per file:** Each raw profile file defines exactly one protocol via top-level `[raw.get]` / `[raw.post]`. To run multiple protocols, create multiple profile files and a listener for each. The profile name (from `[profile] name = "..."`) identifies what it is.
+
+**Binary values in transform `val` fields:** Use TOML literal strings (single-quoted) with `\xNN` hex escapes. The server's `malleable_string_to_bytes` processes them. Example: `{ op = "prepend", val = '\x23\x00\x06\xEC' }` prepends 4 bytes. Do NOT use TOML basic string (double-quoted) `\xNN` — TOML rejects `\x` as an invalid escape. Use `\uXXXX` in basic strings only if you prefer Unicode escaping.
+
+**Available profiles (`client/user/profiles/`):**
+
+| File | Protocol | Transport | Port | Notes |
+|---|---|---|---|---|
+| `raw_http_profile.toml` | HTTP/1.1 mimicry | TCP | 80 | GET/POST with full HTTP headers; Wireshark-visible as HTTP |
+| `raw_ntp_profile.toml` | NTP (RFC 5905) | UDP | 123 | 48-byte header + private extension field (0xF001/0xF002) + base64url |
+| `raw_ntp_profile_but_tcp.toml` | NTP over TCP | TCP | any | Same as above, proto changed to tcp |
+| `raw_ftp_profile.toml` | FTP (RFC 959, simplified) | TCP | 21 | RETR/STOR command verbs + 150/226 replies; no 220 banner or auth phase |
+| `raw_dns_profile.toml` | DNS EDNS0 (RFC 1035 + RFC 6891) | UDP | 53 | TXT query for `data.c2.local`; payload in private OPT option 0xFFFE/0xFFFF |
+| `raw_snmp_profile.toml` | SNMP (RFC 1157 / RFC 3416) | UDP | 161 | Payload in community string; GET=SNMPv1 GetRequest, POST=SNMPv2c InformRequest |
+| `raw_debug_profile.toml` | None (bare msgpack) | TCP | any | Zero transforms; for pipeline testing only, not operational use |
+
+ICMP mimicry (RFC 792) is not yet supported — it requires `SOCK_RAW` / `IPPROTO_ICMP` and elevated privileges, which the raw listener doesn't implement yet.
 
 ---
 
@@ -161,9 +212,9 @@ PYTHONPATH=. venv/bin/python -m pytest -v -s tests/server/test_auth.py
 **Prerequisites for `make server_tests`:**
 1. Docker containers running: `make start_docker_images`
 2. Server running: `PYTHONPATH=. python -m server.main`
-3. Port **19099** must be free on localhost — listener tests bind there and fail if it's in use
+3. Ports **19099** and **19100** must be free on localhost — listener tests bind there and fail if either is in use
 
-If you hit connection errors, that's almost always the server not running or a stale listener process holding 19099.
+If you hit connection errors, that's almost always the server not running or a stale listener process holding 19099 or 19100.
 
 **Environment overrides for `make server_tests`:**
 ```bash
@@ -172,19 +223,20 @@ SERVER_URL=http://myhost:45045 TEST_API_USER=admin TEST_API_PASS=hunter2 make se
 Defaults: `http://localhost:45045` / `longhaul` / `P@ssw0rd1!` (from `.env`).
 
 **Server test file coverage (`tests/server/`):**
-- `conftest.py` — `FullC2APIClient` (adds auth + missing methods on top of the integration-test base), session-scoped `api_client` fixture (auto-authenticates on startup), function-scoped `listener_uuid` / `implant_uuid` / `file_uuid` fixtures (create resource, yield UUID, delete on teardown)
+- `conftest.py` — `FullC2APIClient` (adds auth + missing methods on top of the integration-test base), session-scoped `api_client` fixture (auto-authenticates on startup), function-scoped `listener_uuid` / `raw_listener_uuid` / `implant_uuid` / `file_uuid` fixtures (create resource, yield UUID, delete on teardown)
 - `test_auth.py` — login, token refresh, register (authed/unauthed), rejected/malformed tokens
 - `test_health.py` — health check success and 401 on no token
 - `test_implants.py` — full CRUD, task queuing, task history, search
-- `test_listeners.py` — full CRUD, start/stop via PATCH, missing-field validation
+- `test_listeners.py` — full CRUD, start/stop via PATCH, missing-field validation; raw listener create/start/stop on port 19100
 - `test_filestore.py` — upload/download/delete, missing-field validation, nonexistent file handling
 - `test_build.py` — submits a build job and verifies acceptance only (HTTP 200 + `build_uuid`); does **not** poll for completion since the cross-compiler toolchain is not present on dev machines
+- `test_profiles.py` — profile preview endpoint: valid raw profile (`raw_http_profile.toml`, asserts `raw_profiles` populated), raw simple TOML (one `"default"` entry), minimal TOML with no `[raw]` section returns empty `raw_profiles`, malformed TOML (HTTP 200 with parse_ok=false), missing profile_contents (HTTP 400), unauthenticated (HTTP 401)
 
 **Web smoke tests (`tests/web/web_tests.py`) — need to know:**
 
 These run against a real in-process NiceGUI app (no browser, no server needed). They verify pages render without crashing and key static labels are present.
 
-Three pages (Operations, Listeners, Payloads) are auth-gated: `setup_menu()` redirects to `/login` when `app.storage.user["api_host"]` is unset. These tests verify the redirect fires by asserting the login page labels appear — they do **not** test page content directly.
+Auth-gated pages (Operations, Listeners, Payloads, Profile Preview): `setup_menu()` redirects to `/login` when `app.storage.user["api_host"]` is unset. These tests verify the redirect fires by asserting the login page labels appear — they do **not** test page content directly.
 
 Pages excluded from smoke tests (graph, all node detail pages): they make unconditional API calls on load and throw an unhandled exception without a live server. Smoke-testing them without a server is not useful; use the integration test suite for those.
 
@@ -216,6 +268,12 @@ make create_docker_images  # rebuild from setup/docker_images/
 **Adding a new UI page:** Create the file under `client/pages/`, decorate with `@ui.page('/your-path')`, and import it in `client/main.py`.
 
 **Environment config:** All secrets and service addresses come from `.env` via `dotenv_values(".env")` in `server/instance.py`. The `.env` is loaded at server startup — no runtime reloads.
+
+**User preferences** are stored in `app.storage.user` and initialized in `client/pages/user_settings.py:initialize_default_settings()`. Known keys:
+- `auto_refresh_rate` (int, default `1`) — polling interval in seconds for timers throughout the UI
+- `notification_position` (str, default `"bottom"`) — where `ui.notify()` banners appear; valid values: `top-left`, `top-right`, `top`, `bottom-left`, `bottom-right`, `bottom`, `left`, `right`, `center`
+
+**Notifications:** Never call `ui.notify()` directly in `client/`. Use `notify()` from `client.utils.helpers` instead — it reads `notification_position` from user storage so the user's preference is applied everywhere.
 
 ---
 

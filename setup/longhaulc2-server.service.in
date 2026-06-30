@@ -21,7 +21,7 @@ Environment=PYTHONUNBUFFERED=1
 EnvironmentFile=@DEPLOY_DIR@/.env
 
 # old, non-gunicorn way of starting the api
-#ExecStart=@DEPLOY_DIR@/server/venv/bin/python -m server.src.server.main
+#ExecStart=@DEPLOY_DIR@/server/venv/bin/python -m server.main
 
 # The Gunicorn call (using systemd's ${VAR} syntax to read from the EnvironmentFile)
 # sticking to one thread/worker for now until the API is threadsafe. 
@@ -31,7 +31,7 @@ ExecStart=/bin/bash -c '@DEPLOY_DIR@/server/venv/bin/gunicorn \
     --certfile="${API_CERT_FILE}" \
     --keyfile="${API_CERT_KEY}" \
     --bind 0.0.0.0:45045 \
-    "server.src.server.main:run_api_with_gunicorn()"'
+    "server.main:run_api_with_gunicorn()"'
 
 Restart=always
 RestartSec=5
