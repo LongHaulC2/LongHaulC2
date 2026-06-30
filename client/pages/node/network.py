@@ -58,33 +58,28 @@ async def render_dashboard(network_data: dict, network_uuid: str):
             flat_stat("TYPE", network_type, "dns", "orange")
             flat_stat("NET UUID", network_uuid[:8] + "...", "fingerprint", "purple")
 
-        with ui.row().classes("w-full flex-grow p-4 gap-4 overflow-hidden no-wrap items-stretch"):  # noqa
-            with ui.column().classes(
-                "flex-grow min-w-0 bg-black/20 border border-white/5 rounded overflow-hidden flex-nowrap gap-0"
+        with ui.row().classes("w-full border-b border-white/5 bg-black/40 px-2 shrink-0"):
+            tabs = (
+                ui.tabs()
+                .classes("w-full text-left")
+                .props(
+                    "dense indicator-color=emerald text-color=grey-5 active-color=emerald-400 align=left "
+                    "narrow-indicator"
+                )
+            )
+            with tabs:
+                ui.tab("metadata_tab", label="NETWORK DATA").classes("h-10 min-h-0 tech-label-sub")
+                ui.tab("notes_tab", label="NOTES").classes("h-10 min-h-0 tech-label-sub")
+
+        with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0 overflow-hidden"):
+            with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):
+                MetadataView(network_data)
+
+            with (
+                ui.tab_panel("notes_tab").classes("w-full h-full p-0"),
+                ui.column().classes("w-full h-full relative"),
             ):
-                with ui.row().classes("w-full border-b border-white/5 bg-black/40 px-2 shrink-0"):
-                    tabs = (
-                        ui.tabs()
-                        .classes("w-full text-left")
-                        .props(
-                            "dense indicator-color=emerald text-color=grey-5 active-color=emerald-400 align=left "
-                            "narrow-indicator"
-                        )
-                    )
-                    with tabs:
-                        ui.tab("metadata_tab", label="NETWORK DATA").classes("h-10 min-h-0 tech-label-sub")
-                        ui.tab("notes_tab", label="NOTES").classes("h-10 min-h-0 tech-label-sub")
-
-                with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0"):
-                    with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):  # noqa
-                        MetadataView(network_data)
-
-                    with ui.tab_panel("notes_tab").classes("w-full h-full p-0"):  # noqa
-                        with ui.column().classes("w-full h-full relative"):
-                            GenericNotesEditor(
-                                node_type="network",
-                                node_id=network_uuid,
-                            )
-
-                with ui.column().classes("w-full p-4 gap-2 border-t border-white/5 shrink-0 bg-black/20"):
-                    ui.label("ACTIONS").classes("tech-label-sub")
+                GenericNotesEditor(
+                    node_type="network",
+                    node_id=network_uuid,
+                )

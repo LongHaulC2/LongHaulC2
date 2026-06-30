@@ -128,101 +128,52 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
             flat_stat("NETWORK PROFILE", listener_data.get("listener_profile_name", "0.0.0.0"), "code", "green")
             # flat_stat("CONNECTED IMPLANTS", listener_data.get("?", "?"), "lan", "blue")
 
-        # ====================
-        #   3. BODY
-        # ====================
-        with ui.row().classes("w-full flex-grow p-4 gap-4 overflow-hidden no-wrap items-stretch"):  # noqa - nicegui nested
-            # --------------------
-            # LEFT: WORKSPACE / TABS (Removed ui.card)
-            # --------------------
-            with ui.column().classes(
-                "flex-grow min-w-0 bg-black/20 border border-white/5 rounded overflow-hidden flex-nowrap gap-0"
+        with ui.row().classes("w-full border-b border-white/5 bg-black/40 px-2 shrink-0"):
+            tabs = (
+                ui.tabs()
+                .classes("w-full text-left")
+                .props(
+                    "dense indicator-color=emerald text-color=grey-5 active-color=emerald-400 align=left "
+                    "narrow-indicator"
+                )
+            )
+            with tabs:
+                ui.tab("metadata_tab", label="METADATA").classes("h-10 min-h-0 tech-label-sub")
+                ui.tab("network_profile_tab", label="NET PROFILE [CONFIG]").classes("h-10 min-h-0 tech-label-sub")
+                ui.tab("network_profile_wire_tab", label="NET PROFILE [ON WIRE]").classes("h-10 min-h-0 tech-label-sub")
+                ui.tab("notes_tab", label="NOTES").classes("h-10 min-h-0 tech-label-sub")
+
+        with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0 overflow-hidden"):
+            with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):
+                MetadataView(listener_data)
+
+            with ui.tab_panel("network_profile_tab").classes("w-full h-full p-0"):
+                code_panel = ui.codemirror(profile_toml, theme="androidstudio", language="TOML").classes(
+                    "w-full h-full"
+                )
+                code_panel.set_enabled(False)
+
+            with ui.tab_panel("network_profile_wire_tab").classes("w-full h-full p-0"):
+                wire_container = ui.column().classes("w-full h-full overflow-auto")
+                if profile_toml.strip():
+                    result = await preview_profile(profile_toml)
+                    if result and result.get("data"):
+                        with wire_container:
+                            from client.pages.profile_preview import _render_output
+
+                            _render_output(result["data"])
+                    else:
+                        with wire_container:
+                            ui.label("Failed to render profile preview").classes("tech-label-sub text-red-400 p-4")
+                else:
+                    with wire_container:
+                        ui.label("No profile data available").classes("tech-label-sub text-neutral-500 p-4")
+
+            with (
+                ui.tab_panel("notes_tab").classes("w-full h-full p-0"),
+                ui.column().classes("w-full h-full relative"),
             ):
-                # Tabs Header
-                with ui.row().classes("w-full border-b border-white/5 bg-black/40 px-2 shrink-0"):
-                    tabs = (
-                        ui.tabs()
-                        .classes("w-full text-left")
-                        .props(
-                            "dense indicator-color=emerald text-color=grey-5 active-color=emerald-400 align=left narrow-indicator"  # noqa
-                        )
-                    )
-                    with tabs:
-                        ui.tab("metadata_tab", label="METADATA").classes("h-10 min-h-0 tech-label-sub")
-
-                        ui.tab("network_profile_tab", label="NET PROFILE [CONFIG]").classes(
-                            "h-10 min-h-0 tech-label-sub"
-                        )
-                        ui.tab("network_profile_wire_tab", label="NET PROFILE [ON WIRE]").classes(
-                            "h-10 min-h-0 tech-label-sub"
-                        )
-
-                        ui.tab("notes_tab", label="NOTES").classes("h-10 min-h-0 tech-label-sub")
-
-                        # ui.tab("graph_tab", label="GRAPH").classes("h-10 min-h-0 tech-label-sub")
-
-                # Tabs Content
-                with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0"):
-                    # Metadata Tab
-                    with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):  # noqa
-                        MetadataView(listener_data)
-
-                    # Connected Implants Tab
-                    with ui.tab_panel("connected_implants_tab").classes(
-                        "w-full h-full items-center justify-center text-neutral-600"
-                    ):  # noqa
-                        ui.icon("hub", size="xl").classes("mb-2 opacity-50")
-                        ui.label("connected implants NOT IMPLEMENTED").classes("tech-label-sub")
-
-                    # network_profile_tab
-                    with ui.tab_panel("network_profile_tab").classes("w-full h-full p-0"):
-                        # using a UI log, it has builtins like scrolling, etc to make this easier.
-                        # not a permanent solution, but works for now.
-                        code_panel = ui.codemirror(profile_toml, theme="androidstudio", language="TOML").classes(
-                            "w-full h-full"
-                        )  # noqa
-                        # sets panel to readonly
-                        code_panel.set_enabled(False)
-
-                    with ui.tab_panel("network_profile_wire_tab").classes("w-full h-full p-0"):
-                        wire_container = ui.column().classes("w-full h-full overflow-auto")
-                        if profile_toml.strip():
-                            result = await preview_profile(profile_toml)
-                            if result and result.get("data"):
-                                with wire_container:
-                                    from client.pages.profile_preview import _render_output
-
-                                    _render_output(result["data"])
-                            else:
-                                with wire_container:
-                                    ui.label("Failed to render profile preview").classes(
-                                        "tech-label-sub text-red-400 p-4"
-                                    )
-                        else:
-                            with wire_container:
-                                ui.label("No profile data available").classes("tech-label-sub text-neutral-500 p-4")
-
-                    with ui.tab_panel("notes_tab").classes("w-full h-full p-0"):  # noqa - nicegui
-                        # hook me into genetic update func that takes node type, and contents?
-                        with ui.column().classes("w-full h-full relative"):
-                            GenericNotesEditor(
-                                node_type="listener",
-                                node_id=listener_uuid,
-                            )
-                    # Graph Tab
-                    # with ui.tab_panel("graph_tab").classes(
-                    #     "w-full h-full items-center justify-center text-neutral-600"
-                    # ):
-                    #     ui.icon("hub", size="xl").classes("mb-2 opacity-50")
-                    #     ui.label("GRAPH MODULE NOT IMPLEMENTED").classes("tech-label-sub")
-
-                # Footer Actions
-                with ui.column().classes("w-full p-4 gap-2 border-t border-white/5 shrink-0 bg-black/20"):
-                    ui.label("ACTIONS").classes("tech-label-sub")
-                    # with ui.row().classes("w-full gap-2"):
-                    # ui.button("KILL", icon="bolt").classes(
-                    #     "flex-1 bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-colors"  # noqa
-                    # ).props("unelevated dense")
-                    # ui.button("EXIT", icon="logout").classes(
-                    #     "!tech-btn-action w-full"  # noqa
-                    # ).props("unelevated dense")
+                GenericNotesEditor(
+                    node_type="listener",
+                    node_id=listener_uuid,
+                )

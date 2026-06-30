@@ -65,7 +65,7 @@ async def render_dashboard(payload_metadata: dict, payload_hash: str):
                 )
                 with ui.column().classes("gap-0"):
                     ui.label(f"{payload_name}").classes("tech-label-header-bold")
-                    ui.label(f"payload_hash // {payload_hash}").classes("tech-label-sub text-emerald-500")
+                    ui.label(f"PAYLOAD_HASH // {payload_hash}").classes("tech-label-sub text-emerald-500")
 
             # Actions right side area
             with ui.row().classes("items-center gap-2"):
@@ -87,75 +87,39 @@ async def render_dashboard(payload_metadata: dict, payload_hash: str):
             flat_stat("OS TARGET", payload_metadata.get("os", "Windows"), "desktop_windows", "purple")
             flat_stat("ARCH", payload_metadata.get("arch", "x64"), "dns", "grey")
 
-        with ui.row().classes("w-full flex-grow p-4 gap-4 overflow-hidden no-wrap items-stretch"):  # noqa
-            with ui.column().classes(
-                "flex-grow min-w-0 bg-black/20 border border-white/5 rounded overflow-hidden flex-nowrap gap-0"
-            ):
-                with ui.row().classes("w-full border-b border-white/5 bg-black/40 px-2 shrink-0"):
-                    tabs = (
-                        ui.tabs()
-                        .classes("w-full text-left")
-                        .props(
-                            "dense indicator-color=emerald text-color=grey-5 active-color=emerald-400 align=left "
-                            "narrow-indicator"
-                        )
-                    )
-                    with tabs:
-                        ui.tab("metadata_tab", label="METADATA").classes("h-10 min-h-0 tech-label-sub")
-                        ui.tab("hexdump_tab", label="HEXDUMP").classes("h-10 min-h-0 tech-label-sub")
-                        # ui.tab("strings_tab", label="STRINGS").classes("h-10 min-h-0 tech-label-sub")
+        with ui.row().classes("w-full border-b border-white/5 bg-black/40 px-2 shrink-0"):
+            tabs = (
+                ui.tabs()
+                .classes("w-full text-left")
+                .props(
+                    "dense indicator-color=emerald text-color=grey-5 active-color=emerald-400 align=left "
+                    "narrow-indicator"
+                )
+            )
+            with tabs:
+                ui.tab("metadata_tab", label="METADATA").classes("h-10 min-h-0 tech-label-sub")
+                ui.tab("hexdump_tab", label="HEXDUMP").classes("h-10 min-h-0 tech-label-sub")
 
-                with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0"):
-                    # --- METADATA TAB ---
-                    with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):  # noqa - nicegui
-                        MetadataView(payload_metadata)
+        with ui.tab_panels(tabs, value="metadata_tab").classes("w-full flex-grow bg-transparent p-0 overflow-hidden"):
+            with ui.tab_panel("metadata_tab").classes("w-full h-full p-0"):
+                MetadataView(payload_metadata)
 
-                    # --- HEXDUMP TAB ---
-                    with ui.tab_panel("hexdump_tab").classes("w-full h-full p-0 flex flex-col"):
-                        with ui.column().classes("w-full"):
-                            spinner = BongoSpinner("Processing hexdump (this may take a moment)...")
-                            code_mirror = ui.codemirror(
-                                value="Loading data...", theme="androidstudio", language="yaml"
-                            ).classes("w-full h-full bg-transparent text-emerald-400 font-mono text-xs")
+            with ui.tab_panel("hexdump_tab").classes("w-full h-full p-0 flex flex-col"):
+                with ui.column().classes("w-full"):
+                    spinner = BongoSpinner("Processing hexdump (this may take a moment)...")
+                    code_mirror = ui.codemirror(
+                        value="Loading data...", theme="androidstudio", language="yaml"
+                    ).classes("w-full h-full bg-transparent text-emerald-400 font-mono text-xs")
 
-                            async def load_hexdump():
-                                # gives control back to nicegui, so the tab can be switched to
-                                # THEN, it does the whole "fetching/processing" message, so the user can see it
-                                await asyncio.sleep(0.1)
+                    async def load_hexdump():
+                        await asyncio.sleep(0.1)
+                        data = await get_payload_bytes(payload_hash=payload_hash)
+                        spinner.start()
+                        hex_str = await asyncio.to_thread(hexdump.hexdump, data, result="return")
+                        spinner.stop()
+                        code_mirror.value = hex_str
 
-                                # code_mirror.value = "Fetching bytes..."
-
-                                # get data
-                                data = await get_payload_bytes(payload_hash=payload_hash)
-
-                                # once done, show that we are now processing
-                                # code_mirror.value = "Processing hexdump (this may take a moment)..."
-                                # throw a spinner in there for dramatic effect lol
-                                # with ui.element().classes("w-full h-full items-center justify-center"):
-                                spinner.start()
-
-                                # yeet to a thread so this can happen in the background, and not freeze UI
-                                hex_str = await asyncio.to_thread(hexdump.hexdump, data, result="return")
-                                spinner.stop()
-
-                                # update it back in main thread
-                                code_mirror.value = hex_str
-
-                        # Trigger load once directly on the main event loop
-                        ui.timer(0, load_hexdump, once=True)
-
-                    # payloads don't have a uuid... cuz they are in mysql
-                    # with ui.tab_panel("notes_tab").classes("w-full h-full p-0"):  # noqa - nicegui
-                    #     # hook me into genetic update func that takes node type, and contents?
-                    #     with ui.column().classes("w-full h-full relative"):
-                    #         GenericNotesEditor(
-                    #             node_type="payload",
-                    #             node_id=payload_uuid,
-                    #         )
-
-                with ui.column().classes("w-full p-4 gap-2 border-t border-white/5 shrink-0 bg-black/20"):
-                    ui.label("ACTIONS").classes("tech-label-sub")
-                    # Put payload-specific actions here, like "Generate Shellcode", "Download", "Delete"
+                ui.timer(0, load_hexdump, once=True)
 
 
 def get_payload_type(payload_metadata: dict) -> str:
