@@ -1,4 +1,5 @@
 import io
+import zipfile
 
 import structlog
 from edwh_uuid7 import uuid7
@@ -313,8 +314,56 @@ class SourceActions(Resource):
             )
 
 
+class BuildPackage(Resource):
+    @build_ns.doc(
+        summary="Download build package",
+        description="Download all binary artifacts for a build as a single zip archive.",
+        params={"build_uuid": {"description": "The UUID of the build", "in": "path"}},
+        responses=COMMON_ERRORS,
+        security="Bearer Auth",
+    )
+    @build_ns.produces(["application/zip"])
+    @build_ns.response(200, "Build Package (ZIP)")
+    @build_ns.response(404, "Build Not Found")
+    @jwt_required()
+    def get(self, build_uuid):
+        """Download all binary artifacts for a build as a zip package."""
+        check_type(build_uuid, str, "build_uuid")
+        api_logger.info("Package download requested", build_uuid=build_uuid, caller_ip=request.remote_addr)
+
+        with get_mysql_session() as session:
+            service = MySQLImplantPayloadService(session)
+            artifacts = service.get_all_artifacts_for_build(build_uuid)
+
+            if not artifacts:
+                return {"message": "No artifacts found for this build"}, 404
+
+            zip_buffer = io.BytesIO()
+            base_name = None
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as z:
+                for artifact in artifacts:
+                    if artifact.payload_bytes:
+                        z.writestr(
+                            artifact.payload_name or f"artifact_{artifact.id}",
+                            artifact.payload_bytes,
+                        )
+                        if not base_name and artifact.payload_name:
+                            base_name = artifact.payload_name.rsplit(".", 1)[0]
+
+            zip_buffer.seek(0)
+            download_name = f"{base_name or build_uuid}_package.zip"
+
+            return send_file(
+                zip_buffer,
+                mimetype="application/zip",
+                as_attachment=True,
+                download_name=download_name,
+            )
+
+
 build_ns.add_resource(Build, "/")
 build_ns.add_resource(BuildJobs, "/jobs/<string:build_uuid>")
+build_ns.add_resource(BuildPackage, "/jobs/<string:build_uuid>/package")
 build_ns.add_resource(BinaryActions, "/<string:hash>")
 build_ns.add_resource(SourceActions, "/<string:hash>/source")
 

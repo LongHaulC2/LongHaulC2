@@ -4,6 +4,7 @@ from nicegui import ui
 from client.modules.api_calls import (
     build_implant,
     get_all_listener_data,
+    get_build_package,
     get_build_status,
     get_payload_bytes,
     get_payload_data,
@@ -127,15 +128,17 @@ async def render_payloads_table():
         rows = []
         listeners_seen = set()
         for p in payloads:
-            l_uuid = p.get("payload_listener_uuid")
-            listeners_seen.add(l_uuid)
+            l_uuids = p.get("payload_listener_uuids", []) or []
+            for lu in l_uuids:
+                listeners_seen.add(lu)
+            listener_names = [l_map.get(lu, "Unknown") for lu in l_uuids]
             rows.append(
                 {
                     "id": p.get("id"),
                     "name": p.get("payload_name", "Unnamed"),
                     "fmt": get_fmt(p.get("payload_name", "")),
                     "hash": p.get("payload_hash", ""),
-                    "listener": l_map.get(l_uuid, "Unknown"),
+                    "listener": ", ".join(listener_names) if listener_names else "None",
                 }
             )
 
@@ -316,18 +319,18 @@ async def start_payload_dialogue():
 
             if status == "complete":
                 payload_hash = result.get("data", {}).get("payload_hash")
-                payload_name = result.get("data", {}).get("payload_name")
+                base_name = name_input.value
 
                 progress_bar.set_value(1)
                 progress_bar.props("color=emerald-4")
                 build_btn.props("loading=false")
 
-                download_payload_button.enable()
-                download_payload_button.on_click(lambda: download_payload(hash=payload_hash, name=payload_name))
+                download_package_button.enable()
+                download_package_button.on_click(lambda: download_build_package(build_uuid=build_uuid, name=base_name))
 
                 download_payload_source_button.enable()
                 download_payload_source_button.on_click(
-                    lambda: download_payload_source(hash=payload_hash, name=payload_name)
+                    lambda: download_payload_source(hash=payload_hash, name=base_name)
                 )
 
                 status_timer.deactivate()
@@ -492,12 +495,12 @@ async def start_payload_dialogue():
                 ui.space()
 
                 # Right side: buttons
-                download_payload_button = (
-                    ui.button("BINARY", icon="download")
+                download_package_button = (
+                    ui.button("PACKAGE", icon="inventory_2")
                     .props("dense flat size=sm")
                     .classes("font-bold tracking-wide disabled:opacity-50 tech-btn-action-2")
                 )
-                download_payload_button.disable()
+                download_package_button.disable()
 
                 download_payload_source_button = (
                     ui.button("SOURCE", icon="code")
@@ -530,6 +533,15 @@ async def download_payload_source(hash, name):
     file_bytes = await get_payload_source_bytes(hash)
     if file_bytes:
         ui.download(file_bytes, filename=f"{name}_source.zip")
+        notify("Transfer Complete", type="positive")
+    else:
+        notify("Transfer Failed", type="negative")
+
+
+async def download_build_package(build_uuid, name):
+    file_bytes = await get_build_package(build_uuid)
+    if file_bytes:
+        ui.download(file_bytes, filename=f"{name}_package.zip")
         notify("Transfer Complete", type="positive")
     else:
         notify("Transfer Failed", type="negative")

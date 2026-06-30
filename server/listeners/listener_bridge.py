@@ -66,6 +66,16 @@ def handle_beacon(data_from_implant: bytes, external_ip: str, listener_uuid: str
 
         Neo4jImplantNodeService.update_last_checkin(implant_uuid)
 
+        get_strat = implant_get_request.get("get_strategy")
+        post_strat = implant_get_request.get("post_strategy")
+        if get_strat or post_strat:
+            strategy_update = {}
+            if get_strat:
+                strategy_update["get_strategy"] = get_strat
+            if post_strat:
+                strategy_update["post_strategy"] = post_strat
+            Neo4jImplantNodeService.update_by_uuid(implant_uuid, strategy_update)
+
     # find the egress node of one of the implant UUID's
     one_of_the_uuids_from_checkin = implant_get_request_array[0].get("implant_uuid")
     egress_uuid = Neo4jChainingService.find_egress_node_in_chain(one_of_the_uuids_from_checkin)

@@ -84,7 +84,7 @@ Operator (UI) → API → Redis (task queue)
 ```
 
 - Tasks are **msgpack-encoded** throughout (not JSON).
-- Beacons are lightweight ("do I have work?"). Full data transfer only happens when tasks are pending.
+- Beacons carry full metadata (including current `get_strategy` / `post_strategy`). Strategy fields are updated in Neo4j on every checkin, not just first registration.
 - `listener_bridge.py` is the single handoff point between any listener protocol and the core server logic.
 - The response pipeline (`server/modules/response_pipeline/`) polls Redis every second and bulk-writes to MySQL.
 

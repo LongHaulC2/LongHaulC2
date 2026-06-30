@@ -76,6 +76,7 @@ def build_implant(
         payload_service.register_build_start(
             payload_name=implant_name,
             build_uuid=build_uuid,
+            listener_uuids=listener_uuids,
         )
         payload_service.update_build_status(build_uuid=build_uuid, build_status="building")
 
@@ -130,7 +131,7 @@ def build_implant(
 
             # Compile
             if _run_docker_build(build_dir, options=options):
-                _store_artifacts(build_dir, implant_name, build_uuid)
+                _store_artifacts(build_dir, implant_name, build_uuid, listener_uuids)
 
             else:
                 raise RuntimeError("Compilation failed")
@@ -288,7 +289,7 @@ def _run_docker_build(build_dir: Path, options: dict) -> bool:
 
 
 # updated to store multiple artifacts
-def _store_artifacts(build_dir: Path, implant_name: str, build_uuid: str):
+def _store_artifacts(build_dir: Path, implant_name: str, build_uuid: str, listener_uuids: list | None = None):
     """Zips source and uploads individual binary artifacts to DB."""
     output_dir = build_dir / "output"
     zip_path = build_dir / f"{implant_name}_source.zip"
@@ -328,6 +329,7 @@ def _store_artifacts(build_dir: Path, implant_name: str, build_uuid: str):
                 payload_bytes=artifact.read_bytes(),
                 source_code_bytes=zip_bytes,
                 build_uuid=build_uuid,
+                listener_uuids=listener_uuids,
             )
             server_logger.debug("Stored individual artifact", artifact_name=artifact.name)
 

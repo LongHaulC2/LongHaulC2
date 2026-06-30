@@ -1,4 +1,5 @@
 import hashlib
+import json
 import re
 import time
 from dataclasses import asdict
@@ -326,6 +327,7 @@ class MySQLImplantPayloadService:
         payload_bytes: bytes,
         source_code_bytes: bytes,
         build_uuid: str = None,
+        listener_uuids: list | None = None,
     ) -> str:
         """
         Create an entry for a new payload.
@@ -382,6 +384,7 @@ class MySQLImplantPayloadService:
             payload_source_code_bytes=source_code_bytes,
             build_uuid=build_uuid,
             build_status="complete",
+            payload_listener_uuids=json.dumps(listener_uuids) if listener_uuids else None,
         )
 
         self.session.add(payload_entry)
@@ -391,7 +394,7 @@ class MySQLImplantPayloadService:
 
         return hash_str
 
-    def register_build_start(self, payload_name: str, build_uuid: str) -> str:
+    def register_build_start(self, payload_name: str, build_uuid: str, listener_uuids: list | None = None) -> str:
         """
         Creates an initial 'placeholder' entry for a new payload build.
         Generates a UUID to track the build job, allowing the API to return immediately
@@ -401,16 +404,15 @@ class MySQLImplantPayloadService:
         """
         server_logger.info("Registering new build task for payload", payload_name=payload_name)
 
-        # check_type(listener_uuid, str, "listener_uuid")
         check_type(payload_name, str, "payload_name")
 
         # Create the row with the UUID, but leave the payload bytes Empty/Null for now.
         payload_entry = ImplantPayload(
-            build_uuid=build_uuid,  # Saving the UUID instead of a Hash
+            build_uuid=build_uuid,
             payload_name=payload_name,
-            # payload_listener_uuid=None,  # switch to a list of uuids
-            payload_bytes=None,  # Data not ready yet
-            payload_source_code_bytes=None,  # Data not ready yet
+            payload_listener_uuids=json.dumps(listener_uuids) if listener_uuids else None,
+            payload_bytes=None,
+            payload_source_code_bytes=None,
         )
 
         self.session.add(payload_entry)
@@ -478,12 +480,28 @@ class MySQLImplantPayloadService:
 
         server_logger.info("Retrieving build job status", build_uuid=build_uuid)
 
-        payload = self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid).first()  # .first()
+        payload = self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid).first()
 
         if payload:
-            return payload.to_dict()
+            data = payload.to_dict()
+            data["payload_listener_uuids"] = self._parse_listener_uuids(data.get("payload_listener_uuids"))
+            return data
         server_logger.warning("No build job found", build_uuid=build_uuid)
         return None
+
+    @staticmethod
+    def _parse_listener_uuids(raw) -> list:
+        if raw:
+            try:
+                return json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                return []
+        return []
+
+    def get_all_artifacts_for_build(self, build_uuid: str) -> list:
+        """Retrieve all artifact ORM objects for a build (with deferred bytes loaded)."""
+        check_type(build_uuid, str, "build_uuid")
+        return self.session.query(ImplantPayload).filter_by(build_uuid=build_uuid).all()
 
     def get_payloads_by_listener(self, listener_uuid: str) -> list:
         """
@@ -522,15 +540,12 @@ class MySQLImplantPayloadService:
             if isinstance(data.get("payload_hash"), bytes):
                 data["payload_hash"] = data["payload_hash"].hex()
 
-            # Remove payload bytes cuz flask can't handle it as its bytes.
-            # payloads canbe downloaded with dedicated donwload endpoint.
             if "payload_bytes" in data:
                 del data["payload_bytes"]
             if "payload_source_code_bytes" in data:
                 del data["payload_source_code_bytes"]
 
-            # Optional: Don't send the massive 4GB bytes field if this is just for a UI list
-            # data.pop("payload_bytes", None)
+            data["payload_listener_uuids"] = self._parse_listener_uuids(data.get("payload_listener_uuids"))
 
             results.append(data)
 

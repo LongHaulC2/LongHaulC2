@@ -67,6 +67,11 @@ BUILD_GET_MODEL = api.model(
             example="7f3df637f39704c04d49d12906407ce8",
             description="The MD5 hash of the Payload after it is build.",
         ),
+        "payload_listener_uuids": fields.List(
+            fields.String,
+            description="Listener UUIDs (strategies) compiled into this payload",
+            default=[],
+        ),
     },
 )
 BUILD_GET_RESPONSE = wrap_response_list(api, BUILD_GET_MODEL)
@@ -157,6 +162,11 @@ BUILDJOBS_GET_MODEL = api.model(
         "payload_hash": fields.String(
             example="7f3df637f39704c04d49d12906407ce8",
             description="The MD5 hash of the Payload.",
+        ),
+        "payload_listener_uuids": fields.List(
+            fields.String,
+            description="Listener UUIDs (strategies) compiled into this payload",
+            default=[],
         ),
     },
 )

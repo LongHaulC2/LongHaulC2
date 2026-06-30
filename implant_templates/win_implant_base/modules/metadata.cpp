@@ -8,6 +8,7 @@
 #include <filesystem>
 #include "defense/winapi.h"
 #include "_debug/debug.h"
+#include "core/settings.h"
 
 //placeholder, move me to a diff file later, that has the ability to get this data
 //void populate_metadata(std::map<std::string, std::string>& metadata) {
@@ -44,7 +45,10 @@ nlohmann::json populate_metadata() {
     metadata["pid"] = get_current_process_pid().data;
     //str arch
     metadata["arch"] = "x64";// TODO: Check system architecture
-    
+
+    metadata["get_strategy"] = SettingsManager::instance().get<std::string>("comms_get_function", "");
+    metadata["post_strategy"] = SettingsManager::instance().get<std::string>("comms_post_function", "");
+
     return metadata;
 
 }

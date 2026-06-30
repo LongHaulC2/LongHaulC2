@@ -58,9 +58,14 @@ IMPLANTS_GET_MODEL = api.model(
         ),
         "internal_ip": fields.String(description="Internal network IP", example="192.168.1.50", allow_null=True),
         "last_checkin": fields.Integer(description="Last check-in timestamp", example=None, allow_null=True),
-        "listener": fields.String(
-            description="Associated listener name",
-            example="http_listener",
+        "get_strategy": fields.String(
+            description="Current ingress (GET) strategy",
+            example="raw_http",
+            allow_null=True,
+        ),
+        "post_strategy": fields.String(
+            description="Current egress (POST) strategy",
+            example="raw_http",
             allow_null=True,
         ),
         "notes": fields.String(description="User notes", example="placeholder", allow_null=True),
@@ -104,9 +109,14 @@ IMPLANT_GET_MODEL = api.model(
         ),
         "internal_ip": fields.String(description="Internal network IP", example="192.168.1.50", allow_null=True),
         "last_checkin": fields.Integer(description="Last check-in timestamp", example=None, allow_null=True),
-        "listener": fields.String(
-            description="Associated listener name",
-            example="http_listener",
+        "get_strategy": fields.String(
+            description="Current ingress (GET) strategy",
+            example="raw_http",
+            allow_null=True,
+        ),
+        "post_strategy": fields.String(
+            description="Current egress (POST) strategy",
+            example="raw_http",
             allow_null=True,
         ),
         "notes": fields.String(description="User notes", example="placeholder", allow_null=True),
@@ -126,7 +136,10 @@ IMPLANT_PUT_INPUT = api.model(
     {
         "external_ip": fields.String(description="External IP address", example="203.0.113.10", required=False),
         "internal_ip": fields.String(description="Internal IP address", example="10.0.0.15", required=False),
-        "listener": fields.String(description="Listener address", example="c2.example.com:443", required=False),
+        "get_strategy": fields.String(description="Current ingress (GET) strategy", example="raw_http", required=False),
+        "post_strategy": fields.String(
+            description="Current egress (POST) strategy", example="raw_http", required=False
+        ),
         "user": fields.String(description="User account name", example="SYSTEM", required=False),
         "system_hostname": fields.String(description="Hostname", example="WIN-ABC123", required=False),
         "notes": fields.String(description="Operator notes", example="Initial check-in", required=False),
@@ -241,7 +254,8 @@ IMPLANT_SEARCH_POST_MODEL = api.model(
         "implant_uuid": fields.String(example="019c6536..."),
         "external_ip": fields.String(example="203.0.113.42"),
         "internal_ip": fields.String(example="192.168.1.15"),
-        "listener": fields.String(example="c2.example.com"),
+        "get_strategy": fields.String(example="raw_http"),
+        "post_strategy": fields.String(example="raw_http"),
         "user": fields.String(example="SYSTEM"),
         "system_hostname": fields.String(example="DESKTOP"),
         "notes": fields.String(example="Initial access"),
