@@ -244,28 +244,6 @@ msgpack task results
   → (no ACK from server — NTP does not acknowledge a second packet)
 ```
 
-### Creating the Listener
-
-```bash
-curl -s -X POST http://localhost:45045/api/v1/listeners/ \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "listener_name":             "ntp_egress",
-    "listener_type":             "raw",
-    "listener_host":             "0.0.0.0",
-    "listener_port":             123,
-    "listener_profile_name":     "raw_ntp_profile.toml",
-    "listener_profile_contents": "<contents of raw_ntp_profile.toml>"
-  }'
-```
-
----
-
-## ICMP
-
-ICMP mimicry (RFC 792) is **not yet supported**. ICMP requires raw IP sockets (`SOCK_RAW` / `IPPROTO_ICMP`), which need elevated privileges (root on Linux, Administrator on Windows) on both the implant and the server. The raw listener currently supports TCP and UDP only. Extend with `proto = "icmp"` when that support is implemented.
-
 ---
 
 ## Common Mistakes
@@ -377,24 +355,6 @@ Note: `\r` and `\n` ARE valid in TOML basic strings. For binary null bytes or ot
 
 ---
 
-## SMB Configuration
-
-The optional `[smb]` section sets named pipe names for SMB pivot implants:
-
-```toml
-[smb]
-
-[smb.get]
-pipe_name = "msrpc_svr"
-
-[smb.post]
-pipe_name = "msrpc_svc"
-```
-
-These names are baked into implants built with an SMB listener target. The parent implant (with raw egress) connects to the child over the named pipe.
-
----
-
 ## Profile Preview Tool
 
 The **Profile Preview** page (`/profile-preview`) visualizes what a profile produces before attaching it to a live listener.
@@ -423,71 +383,3 @@ Use the preview to confirm the transform chain produces what you expect before d
 | Save As | Enter a filename, saves to `/var/lib/longhaulc2/profiles/`. Auto-appends `.toml` if omitted. |
 
 ---
-
-## API — Profile Preview
-
-### `POST /api/v1/profiles/preview`
-
-Parses and renders a profile. Always returns HTTP 200 — parse failures are returned as structured data, not 4xx errors.
-
-**Request:**
-```json
-{ "profile_contents": "<raw TOML string>" }
-```
-
-**Response (success):**
-```json
-{
-  "status": "200",
-  "data": {
-    "profile_name": "HTTP Mimicry",
-    "profile_author": "LongHaul Team",
-    "smb": null,
-    "raw_profiles": [
-      {
-        "name": "default",
-        "get": {
-          "proto": "tcp",
-          "client": { "body": "<METADATA>", "metadata_token_location": "body", "metadata_transforms": [...] },
-          "server": { "body": "<OUTPUT>", "output_transforms": [...] }
-        },
-        "post": {
-          "proto": "tcp",
-          "client": { "body": "<OUTPUT>", "output_token_location": "body", "output_transforms": [...] },
-          "server": { "body": "HTTP/1.1 200 OK\r\n\r\n", "output_transforms": [] }
-        }
-      }
-    ],
-    "validation": {
-      "parse_ok": true,
-      "parse_error": null,
-      "missing_fields": [],
-      "warnings": []
-    }
-  }
-}
-```
-
-**Response (parse failure):**
-```json
-{
-  "status": "200",
-  "data": {
-    "smb": null,
-    "raw_profiles": [],
-    "validation": {
-      "parse_ok": false,
-      "parse_error": "Invalid TOML at line 7: ...",
-      "missing_fields": [], "warnings": []
-    }
-  }
-}
-```
-
-**curl example:**
-```bash
-curl -s -X POST http://localhost:45045/api/v1/profiles/preview \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d "{\"profile_contents\": $(jq -Rs . < /var/lib/longhaulc2/profiles/my_profile.toml)}"
-```
