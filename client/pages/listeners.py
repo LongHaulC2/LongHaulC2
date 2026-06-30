@@ -224,7 +224,7 @@ async def render_listeners_table():
         "body-cell-transport",
         r"""
         <q-td :props="props">
-            <q-badge v-if="props.value" :color="props.value === 'UDP' ? 'orange-10' : 'teal-10'" class="font-mono text-[9px] px-1 rounded-sm">{{ props.value }}</q-badge>
+            <q-badge v-if="props.value" :color="props.value === 'UDP' ? 'purple-10' : 'blue-10'" class="font-mono text-[9px] px-1 rounded-sm">{{ props.value }}</q-badge>
         </q-td>
     """,  # noqa
     )
