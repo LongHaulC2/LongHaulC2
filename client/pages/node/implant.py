@@ -1,4 +1,5 @@
 import json
+import time
 
 import structlog
 from nicegui import app, ui
@@ -87,7 +88,36 @@ async def render_dashboard(implant_metadata: dict, implant_uuid: str):
                 "memory",
                 "purple",
             )
-            flat_stat("LAST SEEN", str(implant_metadata.get("last_seen", "Unknown")), "schedule", "orange")
+
+            last_checkin = implant_metadata.get("last_checkin")
+            sleep_value = implant_metadata.get("sleep_value")
+            checkin_state = {"text": str(implant_metadata.get("last_seen", "Unknown"))}
+
+            def update_checkin_display():
+                if last_checkin and sleep_value:
+                    now = int(time.time())
+                    diff = (last_checkin + sleep_value) - now
+                    if diff > 0:
+                        checkin_state["text"] = f"Next in {diff}s"
+                    else:
+                        checkin_state["text"] = f"OVERDUE ({abs(diff)}s)"
+
+            update_checkin_display()
+
+            with ui.element("div").classes("tech-stat-pill flex-1 min-w-max"):
+                ui.icon("schedule", size="14px", color="orange-500").classes("opacity-70")
+                ui.label("NEXT CHECKIN").classes("tech-label-sub")
+                checkin_label = ui.label(checkin_state["text"]).classes("tech-data-mono")
+
+            if last_checkin and sleep_value:
+
+                def tick_checkin():
+                    update_checkin_display()
+                    checkin_label.text = checkin_state["text"]
+
+                update_time = app.storage.user.get("auto_refresh_rate", 1)
+                ui.timer(update_time, tick_checkin)
+
             flat_stat("ARCH", implant_metadata.get("arch", "x64"), "dns", "grey")
 
         with ui.row().classes("w-full flex-grow p-4 gap-4 overflow-hidden no-wrap items-stretch"):  # noqa - nicegu

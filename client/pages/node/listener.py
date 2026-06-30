@@ -4,11 +4,11 @@ from nicegui import app, ui
 from client.modules.api_calls import (
     delete_listener,
     get_listener_data,
+    preview_profile,
     restart_listener,
     start_listener_from_existing,
     stop_listener,
 )
-from client.modules.profile_visualizer import raw_view
 from client.pages.components.metadata_view import MetadataView
 from client.pages.components.notes_editor import GenericNotesEditor
 from client.pages.footer import build_footer
@@ -216,12 +216,22 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
                         code_panel.set_enabled(False)
 
                     with ui.tab_panel("network_profile_wire_tab").classes("w-full h-full p-0"):
-                        # using a UI log, it has builtins like scrolling, etc to make this easier.
-                        # not a permanent solution, but works for now.
-                        code_panel = ui.log().classes("w-full h-full")  # noqa
-                        profile_rep = raw_view(profile_toml)
-                        for line in profile_rep:
-                            code_panel.push(line)
+                        wire_container = ui.column().classes("w-full h-full overflow-auto")
+                        if profile_toml.strip():
+                            result = await preview_profile(profile_toml)
+                            if result and result.get("data"):
+                                with wire_container:
+                                    from client.pages.profile_preview import _render_output
+
+                                    _render_output(result["data"])
+                            else:
+                                with wire_container:
+                                    ui.label("Failed to render profile preview").classes(
+                                        "tech-label-sub text-red-400 p-4"
+                                    )
+                        else:
+                            with wire_container:
+                                ui.label("No profile data available").classes("tech-label-sub text-neutral-500 p-4")
 
                     with ui.tab_panel("notes_tab").classes("w-full h-full p-0"):  # noqa - nicegui
                         # hook me into genetic update func that takes node type, and contents?

@@ -1,3 +1,5 @@
+import tomllib
+
 import structlog
 from nicegui import app, ui
 
@@ -103,6 +105,7 @@ async def render_listeners_table():
             "sortable": True,
         },
         {"name": "type", "label": "PROTOCOL", "field": "type", "align": "left", "sortable": True},
+        {"name": "transport", "label": "TRANSPORT", "field": "transport", "align": "left", "sortable": True},
         {"name": "bind", "label": "BIND ADDRESS", "field": "bind", "align": "left", "sortable": True},
         {"name": "profile", "label": "PROFILE", "field": "profile", "align": "left", "sortable": True},
         {"name": "notes", "label": "NOTES", "field": "notes", "align": "left"},
@@ -148,12 +151,21 @@ async def render_listeners_table():
                 if active:
                     o_count += 1
 
+                transport = ""
+                if l_type == "raw":
+                    try:
+                        profile_data = tomllib.loads(listener.get("listener_profile_contents", ""))
+                        transport = profile_data.get("raw", {}).get("get", {}).get("proto", "tcp").upper()
+                    except Exception:
+                        transport = "?"
+
                 new_rows.append(
                     {
                         "id": listener.get("listener_uuid"),
                         "status": active,
                         "name": listener.get("listener_name", "Unknown"),
                         "type": l_type,
+                        "transport": transport,
                         "bind": f"{listener.get('listener_host', '0.0.0.0')}:{listener.get('listener_port', '0')}",
                         "profile": listener.get("listener_profile_name", "Default"),
                         "notes": listener.get("listener_notes", ""),
@@ -204,6 +216,15 @@ async def render_listeners_table():
         r"""
         <q-td :props="props">
             <q-badge :color="props.value === 'raw' ? 'blue-10' : 'purple-10'" class="font-mono text-[9px] px-1 rounded-sm">{{ props.value.toUpperCase() }}</q-badge>
+        </q-td>
+    """,  # noqa
+    )
+
+    table.add_slot(
+        "body-cell-transport",
+        r"""
+        <q-td :props="props">
+            <q-badge v-if="props.value" :color="props.value === 'UDP' ? 'orange-10' : 'teal-10'" class="font-mono text-[9px] px-1 rounded-sm">{{ props.value }}</q-badge>
         </q-td>
     """,  # noqa
     )

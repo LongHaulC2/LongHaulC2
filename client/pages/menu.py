@@ -2,7 +2,7 @@ import asyncio
 
 from nicegui import app, ui
 
-from client.info import VERSION_NUMBER
+from client.info import EXTERNAL_DOC_ENDPOINT, VERSION_NUMBER
 
 # F403, fine, lots of styles that could be imported from here
 # this needs to be cleaned up in due time though, all styes are in the .css now
@@ -95,7 +95,17 @@ def setup_menu(title: str):
 
             ui.separator().classes("bg-white/5 mt-4 mb-2")
             ui.label("RESOURCES").classes("tech-label-sub")
-            nav_btn("DOCS", "info", "/docs")
+
+            base_classes = (
+                "w-full rounded transition-all duration-300 font-mono text-xs tracking-wide px-4 py-3 border-l-2"
+            )
+            ext_classes = f"{base_classes} text-neutral-400 hover:text-emerald-400 hover:bg-white/5 border-transparent hover:border-emerald-500"  # noqa: E501
+            ui.button(
+                "DOCS",
+                icon="open_in_new",
+                on_click=lambda: ui.navigate.to(EXTERNAL_DOC_ENDPOINT, new_tab=True),
+            ).props("flat no-caps align=left color=grey").classes(ext_classes)
+
             nav_btn("FILESTORE", "folder", "/filestore")
             nav_btn("PROFILES", "tune", "/profile-preview")
 
