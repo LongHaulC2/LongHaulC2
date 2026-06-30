@@ -26,6 +26,19 @@ Several reference profiles ship out of the box:
 
 ---
 
+## Profile Storage
+
+Profiles are stored **server-side** in a database and managed through the API. The UI reads and writes profiles exclusively through the server — there is no local filesystem dependency.
+
+- **Upload:** Use the upload button on the **Listeners** or **Profile Preview** page to upload `.toml` files from your machine to the server.
+- **Auto-save:** When you create a listener, its profile is automatically saved to the server. No manual upload needed for profiles already attached to a listener.
+- **Seed Defaults:** On a fresh install, use the "Seed Defaults" button on the Profile Preview page to populate the server with the reference profiles that ship with LongHaul.
+- **Multi-operator:** Because profiles live on the server, all operators on the team see the same profile library. Upload once, available everywhere.
+
+See the [API Reference](../04%20API%20Reference/Overview.md#profiles--apiv1profiles) for the full CRUD API if you want to manage profiles programmatically.
+
+---
+
 ## Profile Type
 
 There is one profile type: **Raw**. Raw profiles define the complete wire format for any TCP or UDP protocol — body templates, transforms, tokens. The listener adds zero framing beyond what the TOML specifies.

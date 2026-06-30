@@ -1,8 +1,6 @@
-# Scripting Overview
+# Automation & Scripting
 
-LongHaul exposes all of its functionality through a RESTful API, enabling full automation of C2 operations. Everything you can do in the UI, you can script.
-
-The built-in **Scripts** page (`/scripts` in the UI) provides an in-browser editor and terminal for running Python scripts directly against the server — no separate tools needed.
+LongHaul exposes all of its functionality through a RESTful API, enabling full automation of C2 operations. Everything you can do in the UI, you can script from any language or tool that speaks HTTP.
 
 ---
 
@@ -84,32 +82,11 @@ curl -s -X POST http://localhost:45045/api/v1/authentication/refresh \
 | Listeners | `/api/v1/listeners/` | Create, start, stop, delete listeners |
 | Build | `/api/v1/build/` | Build implant payloads, download artifacts |
 | Filestore | `/api/v1/filestore/` | Upload/download staging files |
+| Profiles | `/api/v1/profiles/` | Profile CRUD, preview, and bulk seed |
 | Graph | `/api/v1/graph/` | Implant topology and network graph data |
 | Health | `/api/v1/health/` | Server health check |
 
 For the full endpoint reference, see [API Reference](../04%20API%20Reference/Overview.md).
-
----
-
-## The Scripts Page
-
-The `/scripts` page in the UI provides:
-
-- **File browser** — reads scripts from `/var/lib/longhaulc2/` (configured at deploy time)
-- **Code editor** — syntax-highlighted Python editor with save/save-as/reload
-- **Inline terminal** — run `.py` scripts and stream stdout/stderr in real time
-
-This lets you write and execute automation scripts without leaving the browser. Scripts run as subprocesses using the same Python environment as the client.
-
-### Default Script Location
-
-```
-/var/lib/longhaulc2/
-├── scripts/
-│   ├── list_implants.py
-│   ├── demo.py
-│   └── ...
-```
 
 ---
 

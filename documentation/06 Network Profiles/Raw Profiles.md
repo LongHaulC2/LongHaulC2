@@ -361,8 +361,14 @@ The **Profile Preview** page (`/profile-preview`) visualizes what a profile prod
 
 ### Loading a Profile
 
-- **From disk:** Select a `.toml` file from the dropdown.
+- **From server:** Select a profile from the dropdown. The list is populated from the server's profile library.
 - **Manual paste:** Type or paste TOML directly into the textarea.
+
+### Uploading a Profile
+
+Click the **upload** button (next to refresh) to upload a `.toml` file from your machine to the server. The uploaded profile appears in the dropdown immediately and is available to all operators.
+
+You can also upload profiles from the **Listeners** page when creating a new listener.
 
 ### Rendering
 
@@ -379,7 +385,7 @@ Use the preview to confirm the transform chain produces what you expect before d
 
 | Button | Behavior |
 |---|---|
-| Save | Overwrites the file currently loaded from disk. Opens Save As if no file is selected. |
-| Save As | Enter a filename, saves to `/var/lib/longhaulc2/profiles/`. Auto-appends `.toml` if omitted. |
+| Save | Uploads the current contents to the server, overwriting the profile with the same name. Opens Save As if no profile is selected. |
+| Save As | Enter a filename and save as a new profile on the server. Auto-appends `.toml` if omitted. |
 
 ---

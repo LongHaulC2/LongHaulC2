@@ -80,7 +80,7 @@ You can see available strategy names for the current implant by running `strat l
 
 The raw listener is the only "real" listener type in LongHaul. It sends and receives arbitrary bytes over TCP or UDP. The network profile's `[raw.*]` section defines the **complete wire format** — the listener adds no framing beyond what the profile specifies. Not a byte more, not a byte less.
 
-What protocol your traffic looks like is entirely your decision. Default profiles ship in `client/user/profiles/`:
+What protocol your traffic looks like is entirely your decision. Profiles are stored on the server and managed through the UI or API. On a fresh install, use "Seed Defaults" on the Profile Preview page to load the reference profiles:
 
 | Profile | Looks like |
 |---|---|
@@ -91,7 +91,7 @@ What protocol your traffic looks like is entirely your decision. Default profile
 | `raw_snmp_profile.toml` | SNMPv1/v2c |
 | `raw_debug_profile.toml` | Bare msgpack (no transforms, intended for debugging) |
 
-Again, see [Mimicry](../06%20Network%20Profiles/Overview.md) for full documentation.
+You can upload your own profiles from the Listeners page or the Profile Preview page. See [Mimicry](../06%20Network%20Profiles/Overview.md) for full documentation.
 
 ---
 
