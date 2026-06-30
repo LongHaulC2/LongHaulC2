@@ -17,6 +17,8 @@ from ...api_models.listener import (
     LISTENERS_POST_INPUT,
     LISTENERS_POST_RESPONSE,
 )
+from ...db.mysql_connector import get_mysql_session
+from ...db.mysql_functions import MySQLArtifactService
 from ...db.neo4j_functions import Neo4jListenerNodeService
 from ...instance import api
 from ...listeners.supervisor import start_listener, stop_listener
@@ -225,6 +227,19 @@ class Listeners(Resource):
         listener_service.set_active(listener_id, active=True)
         # and in the dataclass for the response
         listener_dataclass.listener_active = True
+
+        if listener_dataclass.listener_profile_name and listener_dataclass.listener_profile_contents:
+            try:
+                with get_mysql_session() as session:
+                    artifact_service = MySQLArtifactService(session)
+                    artifact_service.upsert_artifact(
+                        artifact_type="profile",
+                        artifact_name=listener_dataclass.listener_profile_name,
+                        artifact_contents=listener_dataclass.listener_profile_contents,
+                        artifact_uuid=str(uuid7()),
+                    )
+            except Exception:
+                server_logger.warning("Failed to save profile to artifact store", listener_uuid=listener_id)
 
         data = asdict(listener_dataclass)
 

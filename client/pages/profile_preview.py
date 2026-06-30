@@ -3,7 +3,13 @@ from pathlib import Path
 import structlog
 from nicegui import ui
 
-from client.modules.api_calls import preview_profile
+from client.modules.api_calls import (
+    get_all_profiles,
+    get_profile_by_name,
+    preview_profile,
+    seed_profiles,
+    upload_profile,
+)
 from client.pages.footer import build_footer
 from client.pages.menu import setup_menu
 from client.utils.helpers import notify
@@ -11,7 +17,7 @@ from client.utils.helpers import notify
 server_log = structlog.getLogger("server")
 server_log.info("Loading /profile-preview page")
 
-PROFILES_DIR = Path("/var/lib/longhaulc2/profiles")
+_LOCAL_PROFILES_DIR = Path(__file__).resolve().parent.parent / "user" / "profiles"
 
 
 @ui.page("/profile-preview")
@@ -42,30 +48,41 @@ async def profile_preview_view():
 
 _output_container: ui.column | None = None
 _textarea: ui.textarea | None = None
-_current_file_path: Path | None = None
+_current_profile_name: str | None = None
 _file_select: ui.select | None = None
+
+
+async def _fetch_profile_names() -> list[str]:
+    try:
+        resp = await get_all_profiles()
+        if resp and resp.get("data"):
+            return sorted([p["artifact_name"] for p in resp["data"]], key=str.lower)
+    except Exception:
+        pass
+    return []
 
 
 async def _input_panel():
     global _textarea, _file_select
 
-    PROFILES_DIR.mkdir(parents=True, exist_ok=True)
-    profile_map = {p.name: str(p) for p in sorted(PROFILES_DIR.glob("*.toml"))}
+    profile_names = await _fetch_profile_names()
 
     async def on_file_select(e):
-        global _current_file_path
+        global _current_profile_name
         if not e.value or _textarea is None:
             return
-        path = Path(profile_map[e.value])
-        if path.is_file():
-            _current_file_path = path
-            _textarea.value = path.read_text()
+        resp = await get_profile_by_name(e.value)
+        if resp and resp.get("data", {}).get("artifact_contents"):
+            _current_profile_name = e.value
+            _textarea.value = resp["data"]["artifact_contents"]
             notify(f"Loaded {e.value}", type="positive", color="emerald-9")
+        else:
+            notify(f"Failed to load {e.value}", type="negative")
 
-    def refresh_files():
-        nonlocal profile_map
-        profile_map = {p.name: str(p) for p in sorted(PROFILES_DIR.glob("*.toml"))}
-        file_select.options = list(profile_map.keys())
+    async def refresh_files():
+        nonlocal profile_names
+        profile_names = await _fetch_profile_names()
+        file_select.options = profile_names
         file_select.update()
 
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
@@ -78,7 +95,7 @@ async def _input_panel():
         with ui.row().classes("w-full items-center gap-2 px-3 pt-3 pb-1 shrink-0"):
             file_select = (
                 ui.select(
-                    options=list(profile_map.keys()),
+                    options=profile_names,
                     label="Load Existing Profile",
                     value=None,
                     on_change=on_file_select,
@@ -87,7 +104,20 @@ async def _input_panel():
                 .classes("flex-grow tech-select")
             )
             _file_select = file_select
+            ui.button(icon="upload_file", on_click=lambda: _upload_profile_file(file_select)).props(
+                "flat dense size=xs color=emerald"
+            ).tooltip("Upload Profile")
             ui.button(icon="refresh", on_click=refresh_files).props("flat dense size=xs color=grey")
+
+        # Seed banner — shown when server has no profiles
+        if not profile_names:
+            with ui.row().classes("w-full items-center gap-2 px-3 py-2 bg-amber-500/10 border-b border-amber-500/20"):
+                ui.icon("info", size="xs", color="amber-400")
+                ui.label("No profiles on server.").classes("tech-label-sub text-amber-400 text-xs")
+                ui.button(
+                    "SEED DEFAULTS",
+                    on_click=lambda: _do_seed_defaults(file_select),
+                ).props("flat dense size=xs color=amber no-caps")
 
         with ui.column().classes("flex-grow overflow-hidden px-3 pb-3 pt-2 w-full gap-0"):
             _textarea = (
@@ -114,26 +144,131 @@ async def _input_panel():
 
 
 # ---------------------------------------------------------------------------
+# Seed defaults
+# ---------------------------------------------------------------------------
+
+
+async def _do_seed_defaults(file_select_widget):
+    if not _LOCAL_PROFILES_DIR.is_dir():
+        notify("No local profile directory found", type="warning", color="orange-9")
+        return
+
+    profiles = []
+    for p in sorted(_LOCAL_PROFILES_DIR.glob("*.toml")):
+        try:
+            profiles.append({"profile_name": p.name, "profile_contents": p.read_text()})
+        except Exception:
+            continue
+
+    if not profiles:
+        notify("No local .toml files found to seed", type="warning", color="orange-9")
+        return
+
+    resp = await seed_profiles(profiles)
+    if resp and resp.get("data"):
+        d = resp["data"]
+        notify(
+            f"Seeded: {d.get('created', 0)} new, {d.get('updated', 0)} updated, {d.get('unchanged', 0)} unchanged",
+            type="positive",
+            color="emerald-9",
+        )
+        new_names = await _fetch_profile_names()
+        file_select_widget.options = new_names
+        file_select_widget.update()
+    else:
+        notify("Seed failed — check server connection", type="negative")
+
+
+# ---------------------------------------------------------------------------
+# Upload profile file
+# ---------------------------------------------------------------------------
+
+
+def _upload_profile_file(file_select_widget):
+    """Open a dialog to upload a .toml profile file to the server."""
+    state = {"filename": "", "contents": ""}
+
+    async def handle_upload(e):
+        try:
+            file_bytes = await e.file.read()
+            state["filename"] = e.file.name
+            state["contents"] = file_bytes.decode("utf-8")
+            submit_btn.enable()
+        except Exception as err:
+            notify(f"Failed to read file: {err}", type="negative")
+
+    async def submit():
+        if not state["contents"]:
+            return
+        name = state["filename"]
+        if not name.endswith(".toml"):
+            name += ".toml"
+
+        submit_btn.props("loading")
+        resp = await upload_profile(name, state["contents"])
+        submit_btn.props(remove="loading")
+
+        if resp:
+            notify(f"Uploaded {name}", type="positive", color="emerald-9")
+            dlg.close()
+            new_names = await _fetch_profile_names()
+            file_select_widget.options = new_names
+            file_select_widget.set_value(name)
+            file_select_widget.update()
+        else:
+            notify("Upload failed", type="negative")
+
+    with ui.dialog() as dlg, ui.card().classes("tech-dialog w-[500px] p-0 rounded overflow-hidden"):
+        with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
+            with ui.row().classes("gap-2 items-center"):
+                ui.icon("upload_file", color="emerald-500")
+                ui.label("UPLOAD PROFILE").classes("tech-label-sub")
+            ui.button(icon="close", on_click=dlg.close).props("dense flat size=sm color=grey")
+
+        with ui.column().classes("p-5 gap-4 w-full"):
+            ui.upload(
+                label="SELECT .TOML PROFILE",
+                auto_upload=True,
+                max_files=1,
+                on_upload=handle_upload,
+            ).props("flat bordered dark color=emerald accept=.toml").classes("w-full bg-black/20")
+
+        with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"):
+            ui.button("CANCEL", on_click=dlg.close).props("flat dense color=grey no-caps")
+            submit_btn = (
+                ui.button("UPLOAD", on_click=submit)
+                .props("unelevated dense color=emerald text-color=white no-caps")
+                .classes("font-bold tracking-wide")
+            )
+            submit_btn.disable()
+
+    dlg.open()
+
+
+# ---------------------------------------------------------------------------
 # Save helpers
 # ---------------------------------------------------------------------------
 
 
-def _do_quick_save():
+async def _do_quick_save():
     if _textarea is None or not (_textarea.value or "").strip():
         notify("Nothing to save", type="warning", color="orange-9")
         return
-    if _current_file_path is not None:
-        _current_file_path.write_text(_textarea.value)
-        notify(f"Saved {_current_file_path.name}", type="positive", color="emerald-9")
+    if _current_profile_name:
+        resp = await upload_profile(_current_profile_name, _textarea.value)
+        if resp:
+            notify(f"Saved {_current_profile_name}", type="positive", color="emerald-9")
+        else:
+            notify("Save failed", type="negative")
     else:
-        _do_save_as()
+        await _do_save_as()
 
 
-def _do_save_as():
+async def _do_save_as():
     if _textarea is None or not (_textarea.value or "").strip():
         notify("Nothing to save", type="warning", color="orange-9")
         return
-    default_name = _current_file_path.name if _current_file_path else "profile.toml"
+    default_name = _current_profile_name or "profile.toml"
 
     with ui.dialog() as d, ui.card().classes("tech-dialog w-96 p-0 rounded overflow-hidden"):
         with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
@@ -156,8 +291,8 @@ def _do_save_as():
     d.open()
 
 
-def _finalize_save_as(dialog, name_input):
-    global _current_file_path, _file_select
+async def _finalize_save_as(dialog, name_input):
+    global _current_profile_name, _file_select
 
     filename = (name_input.value or "").strip()
     if not filename:
@@ -166,17 +301,17 @@ def _finalize_save_as(dialog, name_input):
     if not filename.endswith(".toml"):
         filename += ".toml"
 
-    new_path = PROFILES_DIR / filename
-    if not new_path.resolve().is_relative_to(PROFILES_DIR.resolve()):
-        notify("Invalid filename", type="negative")
+    resp = await upload_profile(filename, _textarea.value)
+    if not resp:
+        notify("Save failed", type="negative")
         return
 
-    new_path.write_text(_textarea.value)
-    _current_file_path = new_path
+    _current_profile_name = filename
     dialog.close()
 
     if _file_select is not None:
-        _file_select.options = [p.name for p in sorted(PROFILES_DIR.glob("*.toml"))]
+        new_names = await _fetch_profile_names()
+        _file_select.options = new_names
         _file_select.set_value(filename)
         _file_select.update()
 
@@ -245,9 +380,6 @@ async def _do_render(render_btn):
 
 
 def _render_output(data: dict):
-    # Determine which protocol sections are present in the response.
-    # New protocols (e.g. NTP) will be picked up automatically once the server
-    # returns them — just add an entry here and a corresponding render function.
     protocol_sections = []
     for i, entry in enumerate(data.get("raw_profiles", [])):
         name = entry.get("name", f"raw_{i}")
@@ -290,7 +422,6 @@ def _render_output(data: dict):
 
 
 def _render_raw_side(label: str, side: dict | None):
-    """Render one side (get or post) of a raw profile entry."""
     if not side:
         ui.label(f"No {label} configured").classes("tech-label-sub text-neutral-500 italic")
         return
@@ -334,7 +465,6 @@ def _render_raw_side(label: str, side: dict | None):
 
 
 def _render_raw_entry(entry: dict):
-    """Render a full raw profile entry (both GET and POST sides)."""
     _render_raw_side("GET (BEACON)", entry.get("get"))
     ui.separator().classes("bg-white/10 my-2")
     _render_raw_side("POST (EXFIL)", entry.get("post"))
@@ -355,7 +485,6 @@ def _render_kv_list(items: list):
             if not isinstance(item, dict):
                 continue
             for k, v in item.items():
-                # Highlight token placeholders in amber
                 val_str = str(v)
                 val_classes = "tech-data-mono text-xs break-all "
                 val_classes += (

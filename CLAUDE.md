@@ -139,7 +139,9 @@ body = ""              # ACK sent back to implant
 
 **Binary values in transform `val` fields:** Use TOML literal strings (single-quoted) with `\xNN` hex escapes. The server's `malleable_string_to_bytes` processes them. Example: `{ op = "prepend", val = '\x23\x00\x06\xEC' }` prepends 4 bytes. Do NOT use TOML basic string (double-quoted) `\xNN` — TOML rejects `\x` as an invalid escape. Use `\uXXXX` in basic strings only if you prefer Unicode escaping.
 
-**Available profiles (`client/user/profiles/`):**
+**Profile storage:** Profiles are stored server-side in MySQL (`artifact_store` table) and managed via the `/api/v1/profiles/` CRUD API. The client reads profile lists and contents from the API. Default/seed profiles live in `client/user/profiles/` (git-tracked) and can be bulk-uploaded to the server via the "Seed Defaults" button on the profile preview page or the `POST /api/v1/profiles/seed` endpoint. Profiles are also auto-saved to the artifact store when a listener is created.
+
+**Default profiles (`client/user/profiles/`):**
 
 | File | Protocol | Transport | Port | Notes |
 |---|---|---|---|---|
@@ -230,7 +232,7 @@ Defaults: `http://localhost:45045` / `longhaul` / `P@ssw0rd1!` (from `.env`).
 - `test_listeners.py` — full CRUD, start/stop via PATCH, missing-field validation; raw listener create/start/stop on port 19100
 - `test_filestore.py` — upload/download/delete, missing-field validation, nonexistent file handling
 - `test_build.py` — submits a build job and verifies acceptance only (HTTP 200 + `build_uuid`); does **not** poll for completion since the cross-compiler toolchain is not present on dev machines
-- `test_profiles.py` — profile preview endpoint: valid raw profile (`raw_http_profile.toml`, asserts `raw_profiles` populated), raw simple TOML (one `"default"` entry), minimal TOML with no `[raw]` section returns empty `raw_profiles`, malformed TOML (HTTP 200 with parse_ok=false), missing profile_contents (HTTP 400), unauthenticated (HTTP 401)
+- `test_profiles.py` — profile preview endpoint: valid raw profile (`raw_http_profile.toml`, asserts `raw_profiles` populated), raw simple TOML (one `"default"` entry), minimal TOML with no `[raw]` section returns empty `raw_profiles`, malformed TOML (HTTP 200 with parse_ok=false), missing profile_contents (HTTP 400), unauthenticated (HTTP 401). Profile CRUD: upload, list, get-by-name, upsert-same-hash (no-op), upsert-different-content (hash changes), delete, bulk seed, unauthenticated list (401)
 
 **Web smoke tests (`tests/web/web_tests.py`) — need to know:**
 

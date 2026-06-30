@@ -975,3 +975,54 @@ async def preview_profile(profile_contents: str) -> dict | None:
         endpoint="/api/v1/profiles/preview",
         json={"profile_contents": profile_contents},
     )
+
+
+# ---------------------------------------------------------------------------
+# Profile CRUD
+# ---------------------------------------------------------------------------
+
+
+async def get_all_profiles() -> dict | None:
+    """Fetch list of all profiles from the server (metadata only, no contents)."""
+    return await safe_api_request(
+        method="GET",
+        endpoint="/api/v1/profiles/",
+    )
+
+
+async def get_profile_by_name(profile_name: str) -> dict | None:
+    """Fetch full profile contents by name."""
+    check_type(profile_name, str, "profile_name")
+    return await safe_api_request(
+        method="GET",
+        endpoint=f"/api/v1/profiles/{profile_name}",
+    )
+
+
+async def upload_profile(profile_name: str, profile_contents: str) -> dict | None:
+    """Upload or update a profile on the server."""
+    check_type(profile_name, str, "profile_name")
+    check_type(profile_contents, str, "profile_contents")
+    return await safe_api_request(
+        method="POST",
+        endpoint="/api/v1/profiles/",
+        json={"profile_name": profile_name, "profile_contents": profile_contents},
+    )
+
+
+async def delete_profile(profile_name: str) -> dict | None:
+    """Delete a profile from the server."""
+    check_type(profile_name, str, "profile_name")
+    return await safe_api_request(
+        method="DELETE",
+        endpoint=f"/api/v1/profiles/{profile_name}",
+    )
+
+
+async def seed_profiles(profiles: list[dict]) -> dict | None:
+    """Bulk-upload seed profiles to the server."""
+    return await safe_api_request(
+        method="POST",
+        endpoint="/api/v1/profiles/seed",
+        json={"profiles": profiles},
+    )

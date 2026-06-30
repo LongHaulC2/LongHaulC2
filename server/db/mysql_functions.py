@@ -1,5 +1,6 @@
 import hashlib
 import re
+import time
 from dataclasses import asdict
 from typing import Literal
 
@@ -10,7 +11,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from ..schemas.implant import Task
 from ..utils.checks import check_type
-from .mysql_models import FileStore, ImplantPayload, ImplantTask, UserLogin
+from .mysql_models import ArtifactStore, FileStore, ImplantPayload, ImplantTask, UserLogin
 
 server_logger = structlog.getLogger("server")
 
@@ -654,6 +655,88 @@ class MySQLImplantFileService:
             server_logger.info("file deleted successfully.")
         else:
             server_logger.warning("Attempted to delete non-existent file", file_uuid=file_uuid)
+
+
+class MySQLArtifactService:
+    def __init__(self, session):
+        self.session = session
+
+    def upsert_artifact(
+        self, artifact_type: str, artifact_name: str, artifact_contents: str, artifact_uuid: str
+    ) -> dict:
+        check_type(artifact_type, str, "artifact_type")
+        check_type(artifact_name, str, "artifact_name")
+        check_type(artifact_contents, str, "artifact_contents")
+
+        content_hash = hashlib.sha256(artifact_contents.encode()).hexdigest()
+        now_ms = int(time.time() * 1000)
+
+        existing = (
+            self.session.query(ArtifactStore)
+            .filter_by(artifact_type=artifact_type, artifact_name=artifact_name)
+            .first()
+        )
+
+        if existing:
+            if existing.content_hash == content_hash:
+                return existing.to_dict()
+            existing.artifact_contents = artifact_contents
+            existing.content_hash = content_hash
+            existing.updated_at = now_ms
+            self.session.commit()
+            server_logger.info("Artifact updated", artifact_name=artifact_name, artifact_type=artifact_type)
+            return existing.to_dict()
+
+        entry = ArtifactStore(
+            artifact_uuid=artifact_uuid,
+            artifact_type=artifact_type,
+            artifact_name=artifact_name,
+            artifact_contents=artifact_contents,
+            content_hash=content_hash,
+            created_at=now_ms,
+            updated_at=now_ms,
+        )
+        self.session.add(entry)
+        self.session.commit()
+        server_logger.info("Artifact created", artifact_name=artifact_name, artifact_type=artifact_type)
+        return entry.to_dict()
+
+    def get_artifact_by_name(self, artifact_type: str, artifact_name: str):
+        check_type(artifact_type, str, "artifact_type")
+        check_type(artifact_name, str, "artifact_name")
+        return (
+            self.session.query(ArtifactStore)
+            .filter_by(artifact_type=artifact_type, artifact_name=artifact_name)
+            .first()
+        )
+
+    def get_all_artifacts_by_type(self, artifact_type: str) -> list[dict]:
+        check_type(artifact_type, str, "artifact_type")
+        artifacts = self.session.query(ArtifactStore).filter_by(artifact_type=artifact_type).all()
+        results = []
+        for a in artifacts:
+            d = a.to_dict()
+            del d["artifact_contents"]
+            results.append(d)
+        return results
+
+    def delete_artifact(self, artifact_type: str, artifact_name: str) -> bool:
+        check_type(artifact_type, str, "artifact_type")
+        check_type(artifact_name, str, "artifact_name")
+        artifact = (
+            self.session.query(ArtifactStore)
+            .filter_by(artifact_type=artifact_type, artifact_name=artifact_name)
+            .first()
+        )
+        if artifact:
+            self.session.delete(artifact)
+            self.session.commit()
+            server_logger.info("Artifact deleted", artifact_name=artifact_name, artifact_type=artifact_type)
+            return True
+        server_logger.warning(
+            "Artifact not found for deletion", artifact_name=artifact_name, artifact_type=artifact_type
+        )
+        return False
 
 
 class MySQLUserService:

@@ -1,6 +1,8 @@
+import re
 import tomllib
 
 import structlog
+from edwh_uuid7 import uuid7
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restx import Namespace, Resource
@@ -8,10 +10,19 @@ from werkzeug.exceptions import abort
 
 from ...api_models.error import COMMON_ERRORS
 from ...api_models.profile import (
+    PROFILE_DELETE_RESPONSE,
+    PROFILE_GET_RESPONSE,
+    PROFILE_LIST_RESPONSE,
     PROFILE_PREVIEW_INPUT,
     PROFILE_PREVIEW_RESPONSE,
     PROFILE_RAW_ENTRY_MODEL,  # noqa: F401 — imported to ensure model is registered
+    PROFILE_SEED_INPUT,
+    PROFILE_SEED_RESPONSE,
+    PROFILE_UPLOAD_INPUT,
+    PROFILE_UPLOAD_RESPONSE,
 )
+from ...db.mysql_connector import get_mysql_session
+from ...db.mysql_functions import MySQLArtifactService
 from ...instance import api
 from ...listeners.transform import apply_python_transforms
 from ...utils.response import APIResponse
@@ -181,5 +192,156 @@ class ProfilePreview(Resource):
         )
 
 
+_VALID_PROFILE_NAME = re.compile(r"^[a-zA-Z0-9_\-\.]+$")
+_RESERVED_NAMES = {"preview", "seed"}
+
+
+def _validate_profile_name(name: str) -> str | None:
+    if not name or name.lower() in _RESERVED_NAMES:
+        return "Reserved or empty profile name"
+    if not _VALID_PROFILE_NAME.match(name):
+        return "Profile name must contain only alphanumeric characters, dashes, underscores, and dots"
+    return None
+
+
+class ProfileCollection(Resource):
+    @profile_ns.doc(
+        summary="List all profiles",
+        responses=COMMON_ERRORS,
+        security="Bearer Auth",
+    )
+    @profile_ns.response(200, "List of profiles", PROFILE_LIST_RESPONSE)
+    @profile_ns.marshal_with(PROFILE_LIST_RESPONSE)
+    @jwt_required()
+    def get(self):
+        """List all stored profiles (metadata only, no contents)."""
+        with get_mysql_session() as session:
+            service = MySQLArtifactService(session)
+            data = service.get_all_artifacts_by_type("profile")
+        return APIResponse(status="200", message="Success", data=data)
+
+    @profile_ns.doc(
+        summary="Upload or update a profile",
+        responses=COMMON_ERRORS,
+        security="Bearer Auth",
+    )
+    @profile_ns.expect(PROFILE_UPLOAD_INPUT, validate=True)
+    @profile_ns.response(200, "Profile saved", PROFILE_UPLOAD_RESPONSE)
+    @profile_ns.marshal_with(PROFILE_UPLOAD_RESPONSE)
+    @jwt_required()
+    def post(self):
+        """Upload a new profile or update an existing one by name."""
+        payload = profile_ns.payload
+        profile_name = payload.get("profile_name", "").strip()
+        profile_contents = payload.get("profile_contents", "")
+
+        err = _validate_profile_name(profile_name)
+        if err:
+            abort(400, err)
+
+        if not profile_contents:
+            abort(400, "Missing profile_contents")
+
+        with get_mysql_session() as session:
+            service = MySQLArtifactService(session)
+            data = service.upsert_artifact(
+                artifact_type="profile",
+                artifact_name=profile_name,
+                artifact_contents=profile_contents,
+                artifact_uuid=str(uuid7()),
+            )
+
+        return APIResponse(status="200", message="Profile saved", data=data)
+
+
+class ProfileItem(Resource):
+    @profile_ns.doc(
+        summary="Get a profile by name",
+        responses=COMMON_ERRORS,
+        security="Bearer Auth",
+    )
+    @profile_ns.response(200, "Profile contents", PROFILE_GET_RESPONSE)
+    @profile_ns.marshal_with(PROFILE_GET_RESPONSE)
+    @jwt_required()
+    def get(self, profile_name):
+        """Download full profile contents by name."""
+        with get_mysql_session() as session:
+            service = MySQLArtifactService(session)
+            artifact = service.get_artifact_by_name("profile", profile_name)
+            if not artifact:
+                return APIResponse(status="404", message="Profile not found", data={})
+            return APIResponse(status="200", message="Success", data=artifact.to_dict())
+
+    @profile_ns.doc(
+        summary="Delete a profile by name",
+        responses=COMMON_ERRORS,
+        security="Bearer Auth",
+    )
+    @profile_ns.response(200, "Deletion successful", PROFILE_DELETE_RESPONSE)
+    @profile_ns.marshal_with(PROFILE_DELETE_RESPONSE)
+    @jwt_required()
+    def delete(self, profile_name):
+        """Delete a profile by name."""
+        with get_mysql_session() as session:
+            service = MySQLArtifactService(session)
+            deleted = service.delete_artifact("profile", profile_name)
+            if not deleted:
+                return APIResponse(status="404", message="Profile not found")
+        return APIResponse(status="200", message="Profile deleted")
+
+
+class ProfileSeed(Resource):
+    @profile_ns.doc(
+        summary="Bulk-upload default profiles",
+        responses=COMMON_ERRORS,
+        security="Bearer Auth",
+    )
+    @profile_ns.expect(PROFILE_SEED_INPUT, validate=True)
+    @profile_ns.response(200, "Seed complete", PROFILE_SEED_RESPONSE)
+    @profile_ns.marshal_with(PROFILE_SEED_RESPONSE)
+    @jwt_required()
+    def post(self):
+        """Bulk-upload a batch of profiles. Existing profiles with matching content are skipped."""
+        payload = profile_ns.payload
+        profiles = payload.get("profiles", [])
+        created = 0
+        unchanged = 0
+        updated = 0
+
+        with get_mysql_session() as session:
+            service = MySQLArtifactService(session)
+            for entry in profiles:
+                name = entry.get("profile_name", "").strip()
+                contents = entry.get("profile_contents", "")
+                if not name or not contents:
+                    continue
+                err = _validate_profile_name(name)
+                if err:
+                    continue
+
+                existing = service.get_artifact_by_name("profile", name)
+                result = service.upsert_artifact(
+                    artifact_type="profile",
+                    artifact_name=name,
+                    artifact_contents=contents,
+                    artifact_uuid=str(uuid7()),
+                )
+                if existing is None:
+                    created += 1
+                elif existing.content_hash == result["content_hash"]:
+                    unchanged += 1
+                else:
+                    updated += 1
+
+        return APIResponse(
+            status="200",
+            message="Seed complete",
+            data={"created": created, "unchanged": unchanged, "updated": updated},
+        )
+
+
 profile_ns.add_resource(ProfilePreview, "/preview")
+profile_ns.add_resource(ProfileSeed, "/seed")
+profile_ns.add_resource(ProfileCollection, "/")
+profile_ns.add_resource(ProfileItem, "/<string:profile_name>")
 api.add_namespace(profile_ns)

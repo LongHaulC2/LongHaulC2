@@ -15,6 +15,28 @@ def wrap_response_single(api, inner_model):
     )
 
 
+def wrap_response_list(api, inner_model):
+    name = f"{inner_model.name}ListWrapper"
+    return api.model(
+        name,
+        {
+            "data": fields.List(fields.Nested(inner_model), default=[]),
+            "message": fields.String(example="Success"),
+            "status": fields.String(example="200"),
+        },
+    )
+
+
+def wrap_response_empty(api, model_name):
+    return api.model(
+        model_name,
+        {
+            "message": fields.String(example="Success"),
+            "status": fields.String(example="200"),
+        },
+    )
+
+
 ######################################################################
 # Shared
 ######################################################################
@@ -183,3 +205,73 @@ PROFILE_PREVIEW_INPUT = api.model(
 )
 
 PROFILE_PREVIEW_RESPONSE = wrap_response_single(api, PROFILE_PREVIEW_DATA_MODEL)
+
+
+######################################################################
+# Profile CRUD models
+######################################################################
+
+PROFILE_LIST_ITEM_MODEL = api.model(
+    "PROFILE_LIST_ITEM_MODEL",
+    {
+        "artifact_uuid": fields.String(description="UUID of the profile", example="019abc12-..."),
+        "artifact_name": fields.String(description="Profile filename", example="raw_http_profile.toml"),
+        "content_hash": fields.String(description="SHA256 of profile contents"),
+        "created_at": fields.Integer(description="Creation time (epoch ms)"),
+        "updated_at": fields.Integer(description="Last update time (epoch ms)"),
+    },
+)
+PROFILE_LIST_RESPONSE = wrap_response_list(api, PROFILE_LIST_ITEM_MODEL)
+
+PROFILE_UPLOAD_INPUT = api.model(
+    "PROFILE_UPLOAD_INPUT",
+    {
+        "profile_name": fields.String(required=True, description="Profile filename", example="raw_http_profile.toml"),
+        "profile_contents": fields.String(required=True, description="Raw TOML content of the profile"),
+    },
+)
+PROFILE_UPLOAD_RESPONSE = wrap_response_single(api, PROFILE_LIST_ITEM_MODEL)
+
+PROFILE_GET_MODEL = api.model(
+    "PROFILE_GET_MODEL",
+    {
+        "artifact_uuid": fields.String(description="UUID of the profile"),
+        "artifact_name": fields.String(description="Profile filename"),
+        "artifact_contents": fields.String(description="Full TOML text of the profile"),
+        "content_hash": fields.String(description="SHA256 of profile contents"),
+        "created_at": fields.Integer(description="Creation time (epoch ms)"),
+        "updated_at": fields.Integer(description="Last update time (epoch ms)"),
+    },
+)
+PROFILE_GET_RESPONSE = wrap_response_single(api, PROFILE_GET_MODEL)
+
+PROFILE_DELETE_RESPONSE = wrap_response_empty(api, "PROFILE_DELETE_RESPONSE")
+
+PROFILE_SEED_ENTRY = api.model(
+    "PROFILE_SEED_ENTRY",
+    {
+        "profile_name": fields.String(required=True, description="Profile filename"),
+        "profile_contents": fields.String(required=True, description="Raw TOML content"),
+    },
+)
+PROFILE_SEED_INPUT = api.model(
+    "PROFILE_SEED_INPUT",
+    {
+        "profiles": fields.List(
+            fields.Nested(PROFILE_SEED_ENTRY),
+            required=True,
+            description="List of profiles to seed",
+        ),
+    },
+)
+PROFILE_SEED_RESPONSE = wrap_response_single(
+    api,
+    api.model(
+        "PROFILE_SEED_RESULT",
+        {
+            "created": fields.Integer(description="Number of new profiles created"),
+            "unchanged": fields.Integer(description="Number of profiles already up to date"),
+            "updated": fields.Integer(description="Number of profiles updated"),
+        },
+    ),
+)

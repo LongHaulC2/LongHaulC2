@@ -157,6 +157,19 @@ class FileStore(Base):
     )
 
 
+class ArtifactStore(Base):
+    __tablename__ = "artifact_store"
+    artifact_uuid = Column(String(36), primary_key=True)
+    artifact_type = Column(String(64), nullable=False)
+    artifact_name = Column(String(255), nullable=False)
+    artifact_contents = Column(Text, nullable=False)
+    content_hash = Column(String(64), nullable=False)
+    created_at = Column(BigInteger, nullable=False)
+    updated_at = Column(BigInteger, nullable=False)
+
+    __table_args__ = (UniqueConstraint("artifact_type", "artifact_name", name="_type_name_uc"),)
+
+
 class UserLogin(Base):
     __tablename__ = "users"
 
