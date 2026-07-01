@@ -612,6 +612,13 @@ web_tests:
 	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
 		$(DIR_OF_THIS_SCRIPT)/tests/web/web_tests.py
 
+.PHONY: test_implant_responses
+test_implant_responses:
+	# Run implant response validation tests against a live beaconing implant.
+	# Requires: server running, Docker DBs up, live implant beaconing.
+	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
+		$(DIR_OF_THIS_SCRIPT)/tests/integration_test/test_implant_responses.py
+
 .PHONY: local_tests
 local_tests: server_tests web_tests
 	# Run all non-implant tests (server API + UI smoke).

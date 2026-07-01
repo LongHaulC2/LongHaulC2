@@ -210,6 +210,7 @@ PYTHONPATH=. venv/bin/python -m pytest -v -s tests/server/test_auth.py
 | `make local_tests` | Both above | Server + Docker DBs |
 | `make test` | `tests/integration_test/deploy_implant.py` | Full CI stack + Windows implant |
 | `make integration_test` | `tests/integration_test/run_implant_tasks.py` | Live implant running |
+| `make test_implant_responses` | `tests/integration_test/test_implant_responses.py` | Server + Docker DBs + live implant |
 
 **Prerequisites for `make server_tests`:**
 1. Docker containers running: `make start_docker_images`
@@ -233,6 +234,19 @@ Defaults: `http://localhost:45045` / `longhaul` / `P@ssw0rd1!` (from `.env`).
 - `test_filestore.py` — upload/download/delete, missing-field validation, nonexistent file handling
 - `test_build.py` — submits a build job and verifies acceptance only (HTTP 200 + `build_uuid`); does **not** poll for completion since the cross-compiler toolchain is not present on dev machines
 - `test_profiles.py` — profile preview endpoint: valid raw profile (`raw_http_profile.toml`, asserts `raw_profiles` populated), raw simple TOML (one `"default"` entry), minimal TOML with no `[raw]` section returns empty `raw_profiles`, malformed TOML (HTTP 200 with parse_ok=false), missing profile_contents (HTTP 400), unauthenticated (HTTP 401). Profile CRUD: upload, list, get-by-name, upsert-same-hash (no-op), upsert-different-content (hash changes), delete, bulk seed, unauthenticated list (401)
+
+**Implant response tests (`tests/integration_test/test_implant_responses.py`) — need to know:**
+
+Requires a live implant beaconing against the server. Tests validate both success and response *content* — not just `error_code == 0`. Organized as 5 test classes:
+- `TestStrategy` — strat list returns strategy names, strat active returns both channel fields
+- `TestMemStore` — full lifecycle: clear → upload → list → download (round-trip verify) → delete → verify gone
+- `TestFileSystem` — ls (CWD and C:\\), cd, file upload/download round-trip, memstore deref upload
+- `TestBofExecution` — ARP BOF from base64 and from memstore, verifies output is non-empty
+- `TestSystem` — sleep set/restore
+
+Run with: `PYTHONPATH=. python -m pytest -v -s tests/integration_test/test_implant_responses.py`
+
+Replaces the older `run_implant_tasks.py` which only asserted `error_code == 0` without checking response data. Does NOT run `exit` — leaves the implant alive for subsequent test runs.
 
 **Web smoke tests (`tests/web/web_tests.py`) — need to know:**
 
