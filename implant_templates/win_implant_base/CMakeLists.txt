@@ -45,10 +45,9 @@ set(SOURCES
     "core/c2.cpp"
     "core/commandtree.cpp"
     "core/commandtree.h"
-    "modules/cd.cpp" 
-    "modules/cd.h" 
-    "modules/strategy.cpp" 
-    "modules/ls.cpp" 
+    "modules/cd.cpp"
+    "modules/cd.h"
+    "modules/ls.cpp"
     "modules/files.cpp" 
     "modules/files.h" 
     "data/structs.h"  
@@ -89,7 +88,6 @@ target_precompile_headers(ImplantCore PRIVATE
     <vector>
     <map>
     <windows.h>
-    <fstream>
     <mutex>
     "protocols/json/json.h"
     "data/msgpack/msgpack.h"
@@ -206,17 +204,11 @@ if(WIN32)
             -fuse-ld=lld
         )
 
-        # set some stuff for optimizations
         set(CMAKE_CXX_FLAGS_RELEASE "-Os")
         set(CMAKE_C_FLAGS_RELEASE "-Os")
 
-        # strip 
-        set(CMAKE_EXE_LINKER_FLAGS "-s")
-
-        # dead code elim
-        # this might knock out those extra funcs in comms... needs testing. 
-        #add_compile_options(-ffunction-sections -fdata-sections)
-        #add_link_options(-Wl,--gc-sections)
+        add_compile_options(-ffunction-sections -fdata-sections)
+        add_link_options(-Wl,--gc-sections)
 
         # notes, can switch to non-iostream/non-std libs for even smaller stuff if I need to. 
 

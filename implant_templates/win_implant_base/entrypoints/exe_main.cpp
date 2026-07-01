@@ -28,7 +28,6 @@
  * Macros           : SCREAMING_SNAKE   (e.g., MAX_BUFFER_SIZE, ENABLE_DEBUG)
  * * ======================================================================================
  */
-#include <iostream>
 #include "core/c2.h"
 #include "_debug/debug.h"
 

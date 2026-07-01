@@ -16,7 +16,6 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
-#include <netioapi.h>
 #include "_debug/debug.h"
 /**
  * @namespace WinApi
@@ -108,30 +107,6 @@ namespace WinApi {
         DEBUG_LOG("[WinApi::inet_ntop] Calling inet_ntop");
         EnsureModuleLoaded("ws2_32.dll");
         return LI_FN(inet_ntop)(Family, pAddr, pStringBuf, StringBufSize);
-    }
-
-    inline DWORD GetIpNetTable2(ADDRESS_FAMILY Family, PMIB_IPNET_TABLE2* Table) {
-        DEBUG_LOG("[WinApi::GetIpNetTable2] Calling GetIpNetTable2");
-        EnsureModuleLoaded("Iphlpapi.dll");
-        return LI_FN(GetIpNetTable2)(Family, Table);
-    }
-
-    inline VOID FreeMibTable(PVOID Memory) {
-        DEBUG_LOG("[WinApi::FreeMibTable] Calling FreeMibTable");
-        EnsureModuleLoaded("Iphlpapi.dll");
-        LI_FN(FreeMibTable)(Memory);
-    }
-
-    inline PCWSTR InetNtopW(INT Family, const VOID* pAddr, PWSTR pStringBuf, size_t StringBufSize) {
-        DEBUG_LOG("[WinApi::InetNtopW] Calling InetNtopW");
-        EnsureModuleLoaded("Ws2_32.dll");
-        return LI_FN(InetNtopW)(Family, pAddr, pStringBuf, StringBufSize);
-    }
-
-    inline INT GetNameInfoW(const SOCKADDR* pSockaddr, socklen_t SockaddrLength, PWSTR pNodeBuffer, DWORD NodeBufferSize, PWSTR pServiceBuffer, DWORD ServiceBufferSize, INT Flags) {
-        DEBUG_LOG("[WinApi::GetNameInfoW] Calling GetNameInfoW");
-        EnsureModuleLoaded("Ws2_32.dll");
-        return LI_FN(GetNameInfoW)(pSockaddr, SockaddrLength, pNodeBuffer, NodeBufferSize, pServiceBuffer, ServiceBufferSize, Flags);
     }
 
     inline DWORD FormatMessageA(DWORD dwFlags, LPCVOID lpSource, DWORD dwMessageId, DWORD dwLanguageId, LPSTR lpBuffer, DWORD nSize, va_list *Arguments) {

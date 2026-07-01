@@ -1,9 +1,5 @@
 #include <string>
 #include <vector>
-#include <stdexcept>
-#include <algorithm> // for std::transform if needed
-
-#include <iostream>
 #include "protocols/base64/base64.h"
 #include "_debug/debug.h"
 
@@ -12,28 +8,16 @@
 // ==========================================
 
 void transform_prepend(std::string& data, const std::string& value) {
-    // Inserts value at index 0. This involves moving existing memory.
     data.insert(0, value);
 }
 
-// void undo_transform_prepend(std::string& data, const std::string& value) {
-//     if (data.size() < value.size()) {
-//         throw std::runtime_error("undo_prepend: Data shorter than value");
-//     }
-//     DEBUG_LOG("undo_transform_prepend: Before: " << data);
-//     // Erase from index 0, count of value.size()
-//     data.erase(0, value.size());
-//     DEBUG_LOG("undo_transform_prepend: After: " << data);
-
-// }
-
 void undo_transform_prepend(std::string& data, const std::string& value) {
-    if (!data.starts_with(value)) {
-        std::cerr << "undo_transform_prepend: prefix mismatch\n";
-        std::cerr << "Expected prefix:\n" << value << "\n\n";
-        std::cerr << "Actual prefix:\n" 
-                  << data.substr(0, value.size()) << "\n";
-        throw std::runtime_error("undo_prepend: prefix does not match");
+    if (data.size() < value.size() || !data.starts_with(value)) {
+        DEBUG_LOG("undo_transform_prepend: prefix mismatch, erasing by length");
+        if (data.size() >= value.size()) {
+            data.erase(0, value.size());
+        }
+        return;
     }
     data.erase(0, value.size());
 }
@@ -45,14 +29,10 @@ void transform_append(std::string& data, const std::string& value) {
 
 void undo_transform_append(std::string& data, const std::string& value) {
     if (data.size() < value.size()) {
-        throw std::runtime_error("undo_append: Data shorter than value");
+        DEBUG_LOG("undo_transform_append: data shorter than suffix, skipping");
+        return;
     }
-    DEBUG_LOG("undo_transform_append: Before: " << data);
-
-    // Resize to cut off the end
     data.resize(data.size() - value.size());
-    DEBUG_LOG("undo_transform_append: After: " << data);
-
 }
 
 // ==========================================
@@ -84,16 +64,6 @@ void base64_decode_inplace(std::string& data) {
     data = base64_decode(data, false);
 }
 
-// void base64url_encode_inplace(std::string& data) {
-//     // 1. Encode with URL safe chars
-//     data = base64_encode(data, true);
-
-//     // 2. Remove padding '=' from the end
-//     while (!data.empty() && data.back() == '=') {
-//         data.pop_back();
-//     }
-// }
-//hotfic
 void base64url_encode_inplace(std::string& data) {
     // 1. Encode with URL safe chars
     // This library appears to use '.' for padding when bool url_safe=true
@@ -143,21 +113,17 @@ void netbios_encode(std::string& data) {
 
 void netbios_decode(std::string& data) {
     if (data.length() % 2 != 0) {
-        throw std::runtime_error("netbios_decode: Invalid length");
+        DEBUG_LOG("netbios_decode: odd length input, truncating last byte");
+        data.resize(data.length() - 1);
     }
+    if (data.empty()) return;
 
-    // We can do this truly in-place by maintaining a read and write index
-    // because the data shrinks by half.
     size_t write_idx = 0;
-
     for (size_t read_idx = 0; read_idx < data.length(); read_idx += 2) {
         unsigned char high = static_cast<unsigned char>(data[read_idx]) - 'a';
         unsigned char low = static_cast<unsigned char>(data[read_idx + 1]) - 'a';
-
         data[write_idx++] = (high << 4) | low;
     }
-
-    // Shrink the string to the new size
     data.resize(write_idx);
 }
 
@@ -180,8 +146,10 @@ void netbiosu_encode(std::string& data) {
 
 void netbiosu_decode(std::string& data) {
     if (data.length() % 2 != 0) {
-        throw std::runtime_error("netbiosu_decode: Invalid length");
+        DEBUG_LOG("netbiosu_decode: odd length input, truncating last byte");
+        data.resize(data.length() - 1);
     }
+    if (data.empty()) return;
 
     size_t write_idx = 0;
     for (size_t read_idx = 0; read_idx < data.length(); read_idx += 2) {

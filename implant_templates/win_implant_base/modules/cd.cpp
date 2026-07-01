@@ -1,5 +1,4 @@
 #include <windows.h>
-#include <iostream>
 #include "data/structs.h"
 #include "cd.h"
 #include "defense/winapi.h"

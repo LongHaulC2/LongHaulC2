@@ -1,6 +1,4 @@
 #pragma once
-// WIN32_LEAN_AND_MEAN prevents windows.h from pulling in winsock.h (v1),
-// which conflicts with winsock2.h used by the raw socket transport.
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -10,7 +8,6 @@
 #include "protocols/json/json.h"
 #include "core/settings.h"
 #include "protocols/smb/smb.h"
-#include <optional>
 #include "modules/metadata.h"
 #include "comms/queues.h"
 #include "comms/comms.h"
@@ -41,21 +38,11 @@ protected:
 
     nlohmann::json unpack_to_json(const std::vector<uint8_t> msgpack_data) {
         try {
-            nlohmann::json result = nlohmann::json::from_msgpack(msgpack_data);
-            return result;
+            return nlohmann::json::from_msgpack(msgpack_data);
         }
         catch (nlohmann::json::parse_error& e) {
-            std::cerr << "JSON Parse Error: " << e.what() << std::endl;
-            std::cerr << "Byte position of error: " << e.byte << std::endl;
-
-            // PRINT THE RAW HEX to see what you actually received
-            std::cerr << "Raw Buffer (Hex): ";
-            for (auto byte : msgpack_data) {
-                printf("%02X ", (unsigned char)byte);
-            }
-            std::cout << std::endl;
-
-            return nlohmann::json(); // Return null json to prevent crash
+            DEBUG_LOG("[unpack_to_json] MsgPack parse error: " << e.what() << " at byte " << e.byte);
+            return nlohmann::json();
         }
     }
 };

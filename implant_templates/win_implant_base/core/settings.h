@@ -8,8 +8,6 @@
 #include <variant>
 #include <string>
 #include <vector>
-#include <iostream>
-#include "c2.h" //ingress,egress definitions
 #include <windows.h>
 #include <mutex>
 #include "_debug/debug.h"
@@ -75,8 +73,8 @@ public:
      * @param key The unique string identifier for the setting.
      * @param value A const char* string literal, which will be implicitly converted to std::string.
      */
-    // Special overload for string literals
     void set(const std::string& key, const char* value) {
+        std::lock_guard<std::mutex> lock(settingsMutex_);
         settingsMap_[key] = std::string(value);
     }
 

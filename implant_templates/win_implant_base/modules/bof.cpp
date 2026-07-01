@@ -1,9 +1,8 @@
-extern "C" { //tldr, compield in c, so we need to use those names, not the c++ mangled ones
+extern "C" {
     #include "libs/bof_launcher_api.h"
 }
 #include "data/structs.h"
 #include <vector>
-#include <iostream>
 #include <windows.h>
 #include "_debug/debug.h"
 
