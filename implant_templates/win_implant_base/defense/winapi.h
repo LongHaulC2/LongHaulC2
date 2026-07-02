@@ -16,6 +16,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
+#include <bcrypt.h>
 #include "_debug/debug.h"
 /**
  * @namespace WinApi
@@ -187,5 +188,40 @@ namespace WinApi {
     inline BOOL WaitNamedPipeW(LPCWSTR lpNamedPipeName, DWORD nTimeOut) {
         DEBUG_LOG("[WinApi::WaitNamedPipeW] Calling WaitNamedPipeW");
         return LI_FN(WaitNamedPipeW)(lpNamedPipeName, nTimeOut);
+    }
+
+    // --- BCrypt (CNG) — AES-256-GCM support ---
+
+    inline NTSTATUS BCryptOpenAlgorithmProvider(BCRYPT_ALG_HANDLE* phAlgorithm, LPCWSTR pszAlgId, LPCWSTR pszImplementation, ULONG dwFlags) {
+        EnsureModuleLoaded("bcrypt.dll");
+        return LI_FN(BCryptOpenAlgorithmProvider)(phAlgorithm, pszAlgId, pszImplementation, dwFlags);
+    }
+
+    inline NTSTATUS BCryptCloseAlgorithmProvider(BCRYPT_ALG_HANDLE hAlgorithm, ULONG dwFlags) {
+        return LI_FN(BCryptCloseAlgorithmProvider)(hAlgorithm, dwFlags);
+    }
+
+    inline NTSTATUS BCryptSetProperty(BCRYPT_HANDLE hObject, LPCWSTR pszProperty, PUCHAR pbInput, ULONG cbInput, ULONG dwFlags) {
+        return LI_FN(BCryptSetProperty)(hObject, pszProperty, pbInput, cbInput, dwFlags);
+    }
+
+    inline NTSTATUS BCryptGenerateSymmetricKey(BCRYPT_ALG_HANDLE hAlgorithm, BCRYPT_KEY_HANDLE* phKey, PUCHAR pbKeyObject, ULONG cbKeyObject, PUCHAR pbSecret, ULONG cbSecret, ULONG dwFlags) {
+        return LI_FN(BCryptGenerateSymmetricKey)(hAlgorithm, phKey, pbKeyObject, cbKeyObject, pbSecret, cbSecret, dwFlags);
+    }
+
+    inline NTSTATUS BCryptDestroyKey(BCRYPT_KEY_HANDLE hKey) {
+        return LI_FN(BCryptDestroyKey)(hKey);
+    }
+
+    inline NTSTATUS BCryptEncrypt(BCRYPT_KEY_HANDLE hKey, PUCHAR pbInput, ULONG cbInput, VOID* pPaddingInfo, PUCHAR pbIV, ULONG cbIV, PUCHAR pbOutput, ULONG cbOutput, ULONG* pcbResult, ULONG dwFlags) {
+        return LI_FN(BCryptEncrypt)(hKey, pbInput, cbInput, pPaddingInfo, pbIV, cbIV, pbOutput, cbOutput, pcbResult, dwFlags);
+    }
+
+    inline NTSTATUS BCryptDecrypt(BCRYPT_KEY_HANDLE hKey, PUCHAR pbInput, ULONG cbInput, VOID* pPaddingInfo, PUCHAR pbIV, ULONG cbIV, PUCHAR pbOutput, ULONG cbOutput, ULONG* pcbResult, ULONG dwFlags) {
+        return LI_FN(BCryptDecrypt)(hKey, pbInput, cbInput, pPaddingInfo, pbIV, cbIV, pbOutput, cbOutput, pcbResult, dwFlags);
+    }
+
+    inline NTSTATUS BCryptGenRandom(BCRYPT_ALG_HANDLE hAlgorithm, PUCHAR pbBuffer, ULONG cbBuffer, ULONG dwFlags) {
+        return LI_FN(BCryptGenRandom)(hAlgorithm, pbBuffer, cbBuffer, dwFlags);
     }
 }

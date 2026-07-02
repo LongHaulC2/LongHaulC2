@@ -133,6 +133,7 @@ if(WIN32)
         iphlpapi
         ws2_32
         crypt32
+        bcrypt
         ntdll
     )
 
@@ -141,6 +142,7 @@ if(WIN32)
         iphlpapi
         ws2_32
         crypt32
+        bcrypt
         ntdll
     )
 

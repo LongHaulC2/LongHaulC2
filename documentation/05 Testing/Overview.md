@@ -91,6 +91,7 @@ PYTHONPATH=. venv/bin/python -m pytest -v -s tests/server/test_auth.py
 | `test_listeners.py` | 10 | Full CRUD, start/stop via PATCH `{"active": true/false}`, 400 on missing `active` field |
 | `test_filestore.py` | 7 | Upload, download (binary), delete, missing-field 400, nonexistent UUID handling |
 | `test_build.py` | 5 | Submit a build job and verify acceptance (HTTP 200 + `build_uuid`). Does **not** poll for completion — the cross-compiler toolchain is not present on dev machines. Use the integration test for build validation. |
+| `test_transforms.py` | 14 | Unit tests for the `symcrypt` (AES-256-GCM) transform: encrypt/decrypt round-trips (basic, empty, 64KB), wire format verification, nonce uniqueness, wrong-key/tampered/short-data rejection, and transform chain integration (val/key fields, combo with base64/prepend/append). No server needed — tests the Python transform functions directly. |
 
 ### Shared fixtures (`tests/server/conftest.py`)
 

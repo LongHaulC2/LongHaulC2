@@ -1,7 +1,9 @@
 import base64
+import os
 import re
 
 import structlog
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from ..utils.checks import check_type
 
@@ -43,6 +45,10 @@ def apply_python_transforms(data: bytes, transforms_list: list[dict] | None) -> 
             current_data = netbios_encode(current_data)
         elif op == "netbiosu":
             current_data = netbiosu_encode(current_data)
+        elif op == "symcrypt":
+            key_val = val or step.get("key")
+            key_bytes = key_val if isinstance(key_val, bytes) else malleable_string_to_bytes(str(key_val))
+            current_data = symcrypt_encrypt(current_data, key_bytes)
         else:
             server_logger.warning("Unknown transform operation requested for encoding", op=op)
 
@@ -79,6 +85,10 @@ def reverse_python_transforms(data: bytes, transforms_list: list[dict] | None) -
             current_data = netbios_decode(current_data)
         elif op == "netbiosu":
             current_data = netbiosu_decode(current_data)
+        elif op == "symcrypt":
+            key_val = val or step.get("key")
+            key_bytes = key_val if isinstance(key_val, bytes) else malleable_string_to_bytes(str(key_val))
+            current_data = symcrypt_decrypt(current_data, key_bytes)
         else:
             server_logger.warning("Unknown transform operation requested for decoding", op=op)
 
@@ -209,6 +219,59 @@ def xor_mask(data: bytes, key: bytes) -> bytes:
     except Exception as e:
         server_logger.exception("Error in xor_mask")
         raise ValueError(f"Error in xor_mask: {e}") from e
+
+
+SYMCRYPT_NONCE_LEN = 12
+SYMCRYPT_TAG_LEN = 16
+
+
+def symcrypt_encrypt(data: bytes, key: bytes) -> bytes:
+    """AES-256-GCM encrypt. Wire format: [nonce (12)][tag (16)][ciphertext]."""
+    check_type(data, bytes, "data")
+    check_type(key, bytes, "key")
+
+    try:
+        if len(key) != 32:
+            raise ValueError(f"symcrypt key must be 32 bytes, got {len(key)}")
+
+        nonce = os.urandom(SYMCRYPT_NONCE_LEN)
+        aesgcm = AESGCM(key)
+        # cryptography lib returns ciphertext + 16-byte tag appended
+        ct_and_tag = aesgcm.encrypt(nonce, data, None)
+        ciphertext = ct_and_tag[:-SYMCRYPT_TAG_LEN]
+        tag = ct_and_tag[-SYMCRYPT_TAG_LEN:]
+        out = nonce + tag + ciphertext
+        server_logger.debug("symcrypt_encrypt: %d bytes in, %d bytes out", len(data), len(out))
+        return out
+    except Exception as e:
+        server_logger.exception("Error in symcrypt_encrypt")
+        raise ValueError(f"Error in symcrypt_encrypt: {e}") from e
+
+
+def symcrypt_decrypt(data: bytes, key: bytes) -> bytes:
+    """AES-256-GCM decrypt. Wire format: [nonce (12)][tag (16)][ciphertext]."""
+    check_type(data, bytes, "data")
+    check_type(key, bytes, "key")
+
+    try:
+        if len(key) != 32:
+            raise ValueError(f"symcrypt key must be 32 bytes, got {len(key)}")
+
+        min_len = SYMCRYPT_NONCE_LEN + SYMCRYPT_TAG_LEN
+        if len(data) < min_len:
+            raise ValueError(f"symcrypt data too short ({len(data)} bytes, need >={min_len})")
+
+        nonce = data[:SYMCRYPT_NONCE_LEN]
+        tag = data[SYMCRYPT_NONCE_LEN : SYMCRYPT_NONCE_LEN + SYMCRYPT_TAG_LEN]
+        ciphertext = data[SYMCRYPT_NONCE_LEN + SYMCRYPT_TAG_LEN :]
+        # cryptography lib expects ciphertext + tag concatenated
+        aesgcm = AESGCM(key)
+        out = aesgcm.decrypt(nonce, ciphertext + tag, None)
+        server_logger.debug("symcrypt_decrypt: %d bytes in, %d bytes out", len(data), len(out))
+        return out
+    except Exception as e:
+        server_logger.exception("Error in symcrypt_decrypt")
+        raise ValueError(f"Error in symcrypt_decrypt: {e}") from e
 
 
 # def netbios_encode(data: bytes) -> bytes:

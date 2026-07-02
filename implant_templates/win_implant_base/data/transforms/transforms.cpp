@@ -1,7 +1,8 @@
 #include <string>
 #include <vector>
+#include <bcrypt.h>
 #include "protocols/base64/base64.h"
-#include "_debug/debug.h"
+#include "defense/winapi.h"
 
 // ==========================================
 // Prepend / Append (In-Place)
@@ -158,4 +159,143 @@ void netbiosu_decode(std::string& data) {
         data[write_idx++] = (high << 4) | low;
     }
     data.resize(write_idx);
+}
+
+// ==========================================
+// AES-256-GCM via Windows BCrypt (In-Place)
+// ==========================================
+
+static constexpr ULONG SYMCRYPT_NONCE_LEN = 12;
+static constexpr ULONG SYMCRYPT_TAG_LEN   = 16;
+static constexpr ULONG SYMCRYPT_KEY_LEN   = 32;
+
+void symcrypt_encrypt(std::string& data, const std::string& key) {
+    if (key.size() != SYMCRYPT_KEY_LEN) {
+        DEBUG_LOG("symcrypt_encrypt: key must be 32 bytes");
+        return;
+    }
+
+    WinApi::EnsureModuleLoaded("bcrypt.dll");
+
+    BCRYPT_ALG_HANDLE hAlg = nullptr;
+    BCRYPT_KEY_HANDLE hKey = nullptr;
+
+    NTSTATUS status = WinApi::BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_AES_ALGORITHM, nullptr, 0);
+    if (status != 0) { DEBUG_LOG("symcrypt_encrypt: BCryptOpenAlgorithmProvider failed"); return; }
+
+    status = WinApi::BCryptSetProperty(hAlg, BCRYPT_CHAINING_MODE,
+        (PUCHAR)BCRYPT_CHAIN_MODE_GCM, sizeof(BCRYPT_CHAIN_MODE_GCM), 0);
+    if (status != 0) { WinApi::BCryptCloseAlgorithmProvider(hAlg, 0); return; }
+
+    status = WinApi::BCryptGenerateSymmetricKey(hAlg, &hKey, nullptr, 0,
+        (PUCHAR)key.data(), SYMCRYPT_KEY_LEN, 0);
+    if (status != 0) { WinApi::BCryptCloseAlgorithmProvider(hAlg, 0); return; }
+
+    // Generate random nonce
+    UCHAR nonce[SYMCRYPT_NONCE_LEN];
+    status = WinApi::BCryptGenRandom(nullptr, nonce, SYMCRYPT_NONCE_LEN, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+    if (status != 0) {
+        WinApi::BCryptDestroyKey(hKey);
+        WinApi::BCryptCloseAlgorithmProvider(hAlg, 0);
+        return;
+    }
+
+    UCHAR tag[SYMCRYPT_TAG_LEN];
+    BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO authInfo;
+    BCRYPT_INIT_AUTH_MODE_INFO(authInfo);
+    authInfo.pbNonce = nonce;
+    authInfo.cbNonce = SYMCRYPT_NONCE_LEN;
+    authInfo.pbTag   = tag;
+    authInfo.cbTag   = SYMCRYPT_TAG_LEN;
+
+    ULONG plainLen = static_cast<ULONG>(data.size());
+    std::string ciphertext(plainLen, '\0');
+    ULONG bytesWritten = 0;
+
+    status = WinApi::BCryptEncrypt(hKey,
+        (PUCHAR)data.data(), plainLen,
+        &authInfo, nullptr, 0,
+        (PUCHAR)ciphertext.data(), plainLen, &bytesWritten, 0);
+
+    WinApi::BCryptDestroyKey(hKey);
+    WinApi::BCryptCloseAlgorithmProvider(hAlg, 0);
+
+    if (status != 0) {
+        DEBUG_LOG("symcrypt_encrypt: BCryptEncrypt failed");
+        return;
+    }
+
+    // Output: [nonce][tag][ciphertext]
+    std::string result;
+    result.reserve(SYMCRYPT_NONCE_LEN + SYMCRYPT_TAG_LEN + bytesWritten);
+    result.append(reinterpret_cast<char*>(nonce), SYMCRYPT_NONCE_LEN);
+    result.append(reinterpret_cast<char*>(tag), SYMCRYPT_TAG_LEN);
+    result.append(ciphertext.data(), bytesWritten);
+    data = std::move(result);
+}
+
+void symcrypt_decrypt(std::string& data, const std::string& key) {
+    const ULONG overhead = SYMCRYPT_NONCE_LEN + SYMCRYPT_TAG_LEN;
+    if (key.size() != SYMCRYPT_KEY_LEN) {
+        DEBUG_LOG("symcrypt_decrypt: key must be 32 bytes");
+        data.clear();
+        return;
+    }
+    if (data.size() < overhead) {
+        DEBUG_LOG("symcrypt_decrypt: data too short");
+        data.clear();
+        return;
+    }
+
+    WinApi::EnsureModuleLoaded("bcrypt.dll");
+
+    BCRYPT_ALG_HANDLE hAlg = nullptr;
+    BCRYPT_KEY_HANDLE hKey = nullptr;
+
+    NTSTATUS status = WinApi::BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_AES_ALGORITHM, nullptr, 0);
+    if (status != 0) { data.clear(); return; }
+
+    status = WinApi::BCryptSetProperty(hAlg, BCRYPT_CHAINING_MODE,
+        (PUCHAR)BCRYPT_CHAIN_MODE_GCM, sizeof(BCRYPT_CHAIN_MODE_GCM), 0);
+    if (status != 0) { WinApi::BCryptCloseAlgorithmProvider(hAlg, 0); data.clear(); return; }
+
+    status = WinApi::BCryptGenerateSymmetricKey(hAlg, &hKey, nullptr, 0,
+        (PUCHAR)key.data(), SYMCRYPT_KEY_LEN, 0);
+    if (status != 0) { WinApi::BCryptCloseAlgorithmProvider(hAlg, 0); data.clear(); return; }
+
+    // Parse: [nonce (12)][tag (16)][ciphertext]
+    UCHAR nonce[SYMCRYPT_NONCE_LEN];
+    UCHAR tag[SYMCRYPT_TAG_LEN];
+    memcpy(nonce, data.data(), SYMCRYPT_NONCE_LEN);
+    memcpy(tag, data.data() + SYMCRYPT_NONCE_LEN, SYMCRYPT_TAG_LEN);
+
+    ULONG ctLen = static_cast<ULONG>(data.size() - overhead);
+    const PUCHAR ctPtr = (PUCHAR)data.data() + overhead;
+
+    BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO authInfo;
+    BCRYPT_INIT_AUTH_MODE_INFO(authInfo);
+    authInfo.pbNonce = nonce;
+    authInfo.cbNonce = SYMCRYPT_NONCE_LEN;
+    authInfo.pbTag   = tag;
+    authInfo.cbTag   = SYMCRYPT_TAG_LEN;
+
+    std::string plaintext(ctLen, '\0');
+    ULONG bytesWritten = 0;
+
+    status = WinApi::BCryptDecrypt(hKey,
+        ctPtr, ctLen,
+        &authInfo, nullptr, 0,
+        (PUCHAR)plaintext.data(), ctLen, &bytesWritten, 0);
+
+    WinApi::BCryptDestroyKey(hKey);
+    WinApi::BCryptCloseAlgorithmProvider(hAlg, 0);
+
+    if (status != 0) {
+        DEBUG_LOG("symcrypt_decrypt: BCryptDecrypt failed (bad key or tampered data)");
+        data.clear();
+        return;
+    }
+
+    plaintext.resize(bytesWritten);
+    data = std::move(plaintext);
 }

@@ -85,14 +85,85 @@ The server response body is defined in `[raw.get.server]`. If `body = "<OUTPUT>"
 
 ---
 
+## Body Template Scope
+
+**Transforms apply only to the token value, not the surrounding body template.**
+
+This is a critical concept. When you write:
+
+```toml
+body = "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n<METADATA>"
+
+[raw.get.client.metadata]
+transforms = [
+    { op = "symcrypt", key = '\xDE\xAD\xBE\xEF...' },
+    { op = "base64" }
+]
+```
+
+The transform chain operates on the raw metadata bytes *before* they replace the `<METADATA>` token:
+
+1. Raw metadata (msgpack bytes) → `symcrypt` encrypts → encrypted bytes
+2. Encrypted bytes → `base64` encodes → printable ASCII string
+3. The ASCII result replaces `<METADATA>` in the body template
+4. Final wire payload: `GET / HTTP/1.1\r\nHost: example.com\r\n\r\n<base64 string here>`
+
+The `GET / HTTP/1.1\r\nHost: example.com\r\n\r\n` framing stays **plaintext**. Only the token's content is transformed. This is by design:
+
+- Protocol framing must remain readable by network devices and the listener's disambiguation logic
+- The payload within the framing is the sensitive data that needs protection
+- Mixing framing and payload in the same encryption would break protocol mimicry
+
+The same applies to `<OUTPUT>` and `<CLIENT_ID>` tokens.
+
+---
+
 ## Transform Chains for Binary Data
 
 Transforms work the same way as in HTTP profiles: they encode or modify the token data before it is placed into the body template. The critical difference for raw profiles is that the **transform output often contains binary bytes**, not printable ASCII.
+
+### Available Transform Operations
+
+| Operation | TOML syntax | Description |
+|---|---|---|
+| `base64` | `{ op = "base64" }` | Standard Base64 encode/decode |
+| `base64url` | `{ op = "base64url" }` | URL-safe Base64 (no padding) |
+| `prepend` | `{ op = "prepend", val = '\xAA\xBB' }` | Prepend literal bytes before the data |
+| `append` | `{ op = "append", val = '\xCC\xDD' }` | Append literal bytes after the data |
+| `mask` | `{ op = "mask", val = '\xFF' }` | XOR with a repeating key (self-reversing) |
+| `netbios` | `{ op = "netbios" }` | NetBIOS encoding (lowercase a-p) |
+| `netbiosu` | `{ op = "netbiosu" }` | NetBIOS encoding (uppercase A-P) |
+| `symcrypt` | `{ op = "symcrypt", key = '\x...' }` | AES-256-GCM symmetric encryption (32-byte key required) |
+
+### symcrypt (AES-256-GCM Encryption)
+
+The `symcrypt` transform encrypts and authenticates token data using AES-256-GCM. The `key` field must be exactly 32 bytes specified as hex escapes in a TOML literal string (single-quoted).
+
+**Wire format:** `[nonce (12 bytes)][auth tag (16 bytes)][ciphertext]`
+
+- A fresh random 12-byte nonce is generated for every encryption call — no nonce reuse
+- The 16-byte GCM authentication tag provides tamper detection
+- Overhead: 28 bytes per encrypted payload (12 nonce + 16 tag)
+
+**Transform ordering:** Place `symcrypt` **first** in the transform chain (innermost) so it encrypts the raw payload bytes. Outer transforms then handle encoding and framing:
+
+```toml
+transforms = [
+    { op = "symcrypt", key = '\xDE\xAD\xBE\xEF\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C' },
+    { op = "base64" },
+    { op = "prepend", val = '\xF0\x01' }
+]
+```
+
+This chain: encrypts raw → base64 encodes → prepends a type marker. On the reverse path, operations undo in reverse order.
+
+**Key management:** The same 32-byte key is compiled into the implant binary and configured in the profile TOML on the server. Generate a random key per engagement — do not reuse keys across unrelated deployments.
 
 ### Recommended Encoding for Raw Protocols
 
 | Use case | Recommended chain |
 |---|---|
+| Encrypted + protocol mimicry | `symcrypt` → `base64url` → `prepend <binary header>` |
 | Protocol mimicry where payload must fit in a specific field | `base64url` → `prepend <binary header>` |
 | Protocol that already carries arbitrary binary | `prepend <binary header>` only |
 | Protocol that requires printable payload | `base64` or `base64url` |

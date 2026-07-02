@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include "_debug/debug.h"
 
@@ -14,3 +15,5 @@ void netbios_encode(std::string& data);
 void netbios_decode(std::string& data);
 void netbiosu_encode(std::string& data);
 void netbiosu_decode(std::string& data);
+void symcrypt_encrypt(std::string& data, const std::string& key);
+void symcrypt_decrypt(std::string& data, const std::string& key);

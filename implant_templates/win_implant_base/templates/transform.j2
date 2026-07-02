@@ -35,21 +35,26 @@
     netbiosu_encode([[ target ]]);
 [% endmacro %]
 
+[% macro trans_symcrypt(target, key) %]
+    // [Transform] AES-256-GCM Encrypt
+    symcrypt_encrypt([[ target ]], "[[ key ]]"s);
+[% endmacro %]
+
 [# --- THE GENERIC DISPATCHER --- #]
 [% macro render_transform(transform_object, target_var) %]
 
     [% if transform_object.statement == 'base64' %]
         [[ trans_base64(target_var) ]]
-        
+
     [% elif transform_object.statement == 'base64url' %]
         [[ trans_base64url(target_var) ]]
-        
+
     [% elif transform_object.statement == 'mask' %]
         [[ trans_mask(target_var) ]]
-        
+
     [% elif transform_object.statement == 'append' %]
         [[ trans_append(target_var, transform_object.value) ]]
-        
+
     [% elif transform_object.statement == 'prepend' %]
         [[ trans_prepend(target_var, transform_object.value) ]]
 
@@ -58,6 +63,9 @@
 
     [% elif transform_object.statement == 'netbiosu' %]
         [[ trans_netbiosu(target_var) ]]
+
+    [% elif transform_object.statement == 'symcrypt' %]
+        [[ trans_symcrypt(target_var, transform_object.value) ]]
 
     [% endif %]
 [% endmacro %]
