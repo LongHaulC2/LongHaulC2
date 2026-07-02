@@ -276,10 +276,10 @@ async def handle_click(e, nodes, sidebar_container):
                     on_click=lambda: navigate(uri, prev_uri),
                 ).classes("w-full tech-btn-action")
 
-            if node_type in ["File", "MemstoreFile"]:
-                with ui.row().classes("w-full gap-2"):
-                    ui.button("DL").classes("flex-grow tech-btn-action")
-                    ui.button("DEL", color="red").classes("flex-grow tech-btn-action")
+            # if node_type in ["File", "MemstoreFile"]:
+            # with ui.row().classes("w-full gap-2"):
+            # ui.button("DL").classes("flex-grow tech-btn-action")
+            # ui.button("DEL", color="red").classes("flex-grow tech-btn-action")
 
 
 def build_chart_options(nodes, links, categories, node_wiggle_wiggle: bool):
