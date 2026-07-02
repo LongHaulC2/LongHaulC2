@@ -91,21 +91,23 @@ ModuleResult put_file(std::vector<uint8_t> file_contents, std::string file_path)
 		return { "Invalid handle to file", WinApi::GetLastError()};
 	}
 
-	LPDWORD bytes_written = 0;
+	DWORD bytes_written = 0;
 
 	BOOL write_file = WinApi::WriteFile(
 		h_file,
-		static_cast<LPCVOID>(file_contents.data()), //get pointer of array, then cast to LPCVOID
+		static_cast<LPCVOID>(file_contents.data()),
 		static_cast<DWORD>(file_contents.size()),
-		bytes_written,
-		NULL //lpoverlapped, optional, not including
-
+		&bytes_written,
+		NULL
 	);
 
-	//check if bytes written != array.size, throw something/err. 
+	if (!write_file) {
+		DWORD err = WinApi::GetLastError();
+		WinApi::CloseHandle(h_file);
+		return { "File write failed", err };
+	}
 
 	WinApi::CloseHandle(h_file);
-	//success
 	return { "File written successfully", 0 };
 
 }

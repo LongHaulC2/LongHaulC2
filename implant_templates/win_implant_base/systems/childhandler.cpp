@@ -15,7 +15,6 @@ this implant has linked to it.
 
 #include "childhandler.h"
 #include "protocols/json/json.h"
-#include <iostream>
 #include <windows.h>
 #include "protocols/smb/smb.h"
 #include "_debug/debug.h"
@@ -93,6 +92,7 @@ bool ChildHandler::remove_child(const std::string& uuid) {
  * * @return std::unordered_map<std::string, ChildRouteInfo> A copy of the internal routing map.
  */
 std::unordered_map<std::string, ChildRouteInfo> ChildHandler::get_all_children() {
+    std::lock_guard<std::mutex> lock(table_mutex_);
     DEBUG_LOG("[ChildHandler::get_all_children] Dumping entire routing table. Total children: " + std::to_string(routing_table_.size()));
     return routing_table_;
 }

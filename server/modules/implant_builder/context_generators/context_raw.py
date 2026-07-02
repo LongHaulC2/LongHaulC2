@@ -30,7 +30,15 @@ def _val_to_cpp_octal(val_str: str) -> str:
 
 
 def _cpp_safe_transforms(transforms: list) -> list:
-    return [{**t, "val": _val_to_cpp_octal(t["val"])} if "val" in t else t for t in transforms]
+    out = []
+    for t in transforms:
+        t = {**t}
+        if "key" in t and "val" not in t:
+            t["val"] = t.pop("key")
+        if "val" in t:
+            t["val"] = _val_to_cpp_octal(t["val"])
+        out.append(t)
+    return out
 
 
 def sanitize_cpp_name(name: str) -> str:

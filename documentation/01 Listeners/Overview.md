@@ -89,6 +89,7 @@ What protocol your traffic looks like is entirely your decision. Profiles are st
 | `raw_ftp_profile.toml` | FTP RETR/STOR |
 | `raw_dns_profile.toml` | DNS EDNS0 over UDP |
 | `raw_snmp_profile.toml` | SNMPv1/v2c |
+| `raw_encrypted_http_profile.toml` | Encrypted HTTP/1.1 (AES-256-GCM + base64url) |
 | `raw_debug_profile.toml` | Bare msgpack (no transforms, intended for debugging) |
 
 You can upload your own profiles from the Listeners page or the Profile Preview page. See [Mimicry](../06%20Network%20Profiles/Overview.md) for full documentation.

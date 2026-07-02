@@ -137,7 +137,24 @@ body = ""              # ACK sent back to implant
 
 **One protocol per file:** Each raw profile file defines exactly one protocol via top-level `[raw.get]` / `[raw.post]`. To run multiple protocols, create multiple profile files and a listener for each. The profile name (from `[profile] name = "..."`) identifies what it is.
 
-**Binary values in transform `val` fields:** Use TOML literal strings (single-quoted) with `\xNN` hex escapes. The server's `malleable_string_to_bytes` processes them. Example: `{ op = "prepend", val = '\x23\x00\x06\xEC' }` prepends 4 bytes. Do NOT use TOML basic string (double-quoted) `\xNN` — TOML rejects `\x` as an invalid escape. Use `\uXXXX` in basic strings only if you prefer Unicode escaping.
+**Body template scope:** Transforms apply **only to the token value** (`<METADATA>`, `<OUTPUT>`, `<CLIENT_ID>`), not the surrounding body template. For example, with `body = "GET / HTTP/1.1\r\n\r\n<METADATA>"` and `transforms = [{ op = "symcrypt", key = '...' }, { op = "base64" }]`, the transform chain encrypts and then base64-encodes the raw metadata bytes. The result replaces the `<METADATA>` token — the `GET / HTTP/1.1\r\n\r\n` framing stays plaintext. This is by design: protocol framing must remain readable by network devices and the listener's disambiguation logic, while the payload within is protected.
+
+**Available transform operations:**
+
+| Operation | TOML | Description |
+|---|---|---|
+| `base64` | `{ op = "base64" }` | Standard Base64 encode/decode |
+| `base64url` | `{ op = "base64url" }` | URL-safe Base64 (no padding) |
+| `prepend` | `{ op = "prepend", val = '\xAA\xBB' }` | Prepend literal bytes |
+| `append` | `{ op = "append", val = '\xCC\xDD' }` | Append literal bytes |
+| `mask` | `{ op = "mask", val = '\xFF' }` | XOR with repeating key |
+| `netbios` | `{ op = "netbios" }` | NetBIOS encoding (lowercase) |
+| `netbiosu` | `{ op = "netbiosu" }` | NetBIOS encoding (uppercase) |
+| `symcrypt` | `{ op = "symcrypt", key = '\x...' }` | AES-256-GCM encryption (32-byte key required) |
+
+**symcrypt (AES-256-GCM):** Symmetric encryption transform. The `key` field must be exactly 32 bytes of hex escapes in a TOML literal string. Wire format: `[nonce (12 bytes)][auth tag (16 bytes)][ciphertext]`. A fresh random nonce is generated per encryption call. Server-side uses Python `cryptography` (AESGCM); implant-side uses Windows BCrypt (CNG). Place `symcrypt` **first** in the transform chain (before base64/prepend/append) so it encrypts the raw payload and outer transforms handle encoding/framing.
+
+**Binary values in transform `val`/`key` fields:** Use TOML literal strings (single-quoted) with `\xNN` hex escapes. The server's `malleable_string_to_bytes` processes them. Example: `{ op = "prepend", val = '\x23\x00\x06\xEC' }` prepends 4 bytes. Do NOT use TOML basic string (double-quoted) `\xNN` — TOML rejects `\x` as an invalid escape. Use `\uXXXX` in basic strings only if you prefer Unicode escaping.
 
 **Profile storage:** Profiles are stored server-side in MySQL (`artifact_store` table) and managed via the `/api/v1/profiles/` CRUD API. The client reads profile lists and contents from the API. Default/seed profiles live in `client/user/profiles/` (git-tracked) and can be bulk-uploaded to the server via the "Seed Defaults" button on the profile preview page or the `POST /api/v1/profiles/seed` endpoint. Profiles are also auto-saved to the artifact store when a listener is created.
 
@@ -151,6 +168,7 @@ body = ""              # ACK sent back to implant
 | `raw_ftp_profile.toml` | FTP (RFC 959, simplified) | TCP | 21 | RETR/STOR command verbs + 150/226 replies; no 220 banner or auth phase |
 | `raw_dns_profile.toml` | DNS EDNS0 (RFC 1035 + RFC 6891) | UDP | 53 | TXT query for `data.c2.local`; payload in private OPT option 0xFFFE/0xFFFF |
 | `raw_snmp_profile.toml` | SNMP (RFC 1157 / RFC 3416) | UDP | 161 | Payload in community string; GET=SNMPv1 GetRequest, POST=SNMPv2c InformRequest |
+| `raw_encrypted_http_profile.toml` | Encrypted HTTP/1.1 | TCP | 80 | Same as HTTP mimicry but with AES-256-GCM (`symcrypt`) on all payloads |
 | `raw_debug_profile.toml` | None (bare msgpack) | TCP | any | Zero transforms; for pipeline testing only, not operational use |
 
 ICMP mimicry (RFC 792) is not yet supported — it requires `SOCK_RAW` / `IPPROTO_ICMP` and elevated privileges, which the raw listener doesn't implement yet.
@@ -210,6 +228,7 @@ PYTHONPATH=. venv/bin/python -m pytest -v -s tests/server/test_auth.py
 | `make local_tests` | Both above | Server + Docker DBs |
 | `make test` | `tests/integration_test/deploy_implant.py` | Full CI stack + Windows implant |
 | `make integration_test` | `tests/integration_test/run_implant_tasks.py` | Live implant running |
+| `make test_implant_responses` | `tests/integration_test/test_implant_responses.py` | Server + Docker DBs + live implant |
 
 **Prerequisites for `make server_tests`:**
 1. Docker containers running: `make start_docker_images`
@@ -233,6 +252,20 @@ Defaults: `http://localhost:45045` / `longhaul` / `P@ssw0rd1!` (from `.env`).
 - `test_filestore.py` — upload/download/delete, missing-field validation, nonexistent file handling
 - `test_build.py` — submits a build job and verifies acceptance only (HTTP 200 + `build_uuid`); does **not** poll for completion since the cross-compiler toolchain is not present on dev machines
 - `test_profiles.py` — profile preview endpoint: valid raw profile (`raw_http_profile.toml`, asserts `raw_profiles` populated), raw simple TOML (one `"default"` entry), minimal TOML with no `[raw]` section returns empty `raw_profiles`, malformed TOML (HTTP 200 with parse_ok=false), missing profile_contents (HTTP 400), unauthenticated (HTTP 401). Profile CRUD: upload, list, get-by-name, upsert-same-hash (no-op), upsert-different-content (hash changes), delete, bulk seed, unauthenticated list (401)
+- `test_transforms.py` — symcrypt (AES-256-GCM) unit tests: encrypt/decrypt round-trip (basic, empty, 64KB), wire format layout verification, nonce uniqueness, wrong-key rejection, tampered-ciphertext detection, bad key/data length errors. Transform chain tests: `val` and `key` field support, symcrypt+base64 combo, symcrypt+prepend+append combo
+
+**Implant response tests (`tests/integration_test/test_implant_responses.py`) — need to know:**
+
+Requires a live implant beaconing against the server. Tests validate both success and response *content* — not just `error_code == 0`. Organized as 5 test classes:
+- `TestStrategy` — strat list returns strategy names, strat active returns both channel fields
+- `TestMemStore` — full lifecycle: clear → upload → list → download (round-trip verify) → delete → verify gone
+- `TestFileSystem` — ls (CWD and C:\\), cd, file upload/download round-trip, memstore deref upload
+- `TestBofExecution` — ARP BOF from base64 and from memstore, verifies output is non-empty
+- `TestSystem` — sleep set/restore
+
+Run with: `PYTHONPATH=. python -m pytest -v -s tests/integration_test/test_implant_responses.py`
+
+Replaces the older `run_implant_tasks.py` which only asserted `error_code == 0` without checking response data. Does NOT run `exit` — leaves the implant alive for subsequent test runs.
 
 **Web smoke tests (`tests/web/web_tests.py`) — need to know:**
 

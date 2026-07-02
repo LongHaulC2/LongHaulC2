@@ -1,39 +1,24 @@
 #include <string>
 #include <vector>
-#include <stdexcept>
-#include <algorithm> // for std::transform if needed
-
-#include <iostream>
+#include <bcrypt.h>
 #include "protocols/base64/base64.h"
-#include "_debug/debug.h"
+#include "defense/winapi.h"
 
 // ==========================================
 // Prepend / Append (In-Place)
 // ==========================================
 
 void transform_prepend(std::string& data, const std::string& value) {
-    // Inserts value at index 0. This involves moving existing memory.
     data.insert(0, value);
 }
 
-// void undo_transform_prepend(std::string& data, const std::string& value) {
-//     if (data.size() < value.size()) {
-//         throw std::runtime_error("undo_prepend: Data shorter than value");
-//     }
-//     DEBUG_LOG("undo_transform_prepend: Before: " << data);
-//     // Erase from index 0, count of value.size()
-//     data.erase(0, value.size());
-//     DEBUG_LOG("undo_transform_prepend: After: " << data);
-
-// }
-
 void undo_transform_prepend(std::string& data, const std::string& value) {
-    if (!data.starts_with(value)) {
-        std::cerr << "undo_transform_prepend: prefix mismatch\n";
-        std::cerr << "Expected prefix:\n" << value << "\n\n";
-        std::cerr << "Actual prefix:\n" 
-                  << data.substr(0, value.size()) << "\n";
-        throw std::runtime_error("undo_prepend: prefix does not match");
+    if (data.size() < value.size() || !data.starts_with(value)) {
+        DEBUG_LOG("undo_transform_prepend: prefix mismatch, erasing by length");
+        if (data.size() >= value.size()) {
+            data.erase(0, value.size());
+        }
+        return;
     }
     data.erase(0, value.size());
 }
@@ -45,14 +30,10 @@ void transform_append(std::string& data, const std::string& value) {
 
 void undo_transform_append(std::string& data, const std::string& value) {
     if (data.size() < value.size()) {
-        throw std::runtime_error("undo_append: Data shorter than value");
+        DEBUG_LOG("undo_transform_append: data shorter than suffix, skipping");
+        return;
     }
-    DEBUG_LOG("undo_transform_append: Before: " << data);
-
-    // Resize to cut off the end
     data.resize(data.size() - value.size());
-    DEBUG_LOG("undo_transform_append: After: " << data);
-
 }
 
 // ==========================================
@@ -84,16 +65,6 @@ void base64_decode_inplace(std::string& data) {
     data = base64_decode(data, false);
 }
 
-// void base64url_encode_inplace(std::string& data) {
-//     // 1. Encode with URL safe chars
-//     data = base64_encode(data, true);
-
-//     // 2. Remove padding '=' from the end
-//     while (!data.empty() && data.back() == '=') {
-//         data.pop_back();
-//     }
-// }
-//hotfic
 void base64url_encode_inplace(std::string& data) {
     // 1. Encode with URL safe chars
     // This library appears to use '.' for padding when bool url_safe=true
@@ -143,21 +114,17 @@ void netbios_encode(std::string& data) {
 
 void netbios_decode(std::string& data) {
     if (data.length() % 2 != 0) {
-        throw std::runtime_error("netbios_decode: Invalid length");
+        DEBUG_LOG("netbios_decode: odd length input, truncating last byte");
+        data.resize(data.length() - 1);
     }
+    if (data.empty()) return;
 
-    // We can do this truly in-place by maintaining a read and write index
-    // because the data shrinks by half.
     size_t write_idx = 0;
-
     for (size_t read_idx = 0; read_idx < data.length(); read_idx += 2) {
         unsigned char high = static_cast<unsigned char>(data[read_idx]) - 'a';
         unsigned char low = static_cast<unsigned char>(data[read_idx + 1]) - 'a';
-
         data[write_idx++] = (high << 4) | low;
     }
-
-    // Shrink the string to the new size
     data.resize(write_idx);
 }
 
@@ -180,8 +147,10 @@ void netbiosu_encode(std::string& data) {
 
 void netbiosu_decode(std::string& data) {
     if (data.length() % 2 != 0) {
-        throw std::runtime_error("netbiosu_decode: Invalid length");
+        DEBUG_LOG("netbiosu_decode: odd length input, truncating last byte");
+        data.resize(data.length() - 1);
     }
+    if (data.empty()) return;
 
     size_t write_idx = 0;
     for (size_t read_idx = 0; read_idx < data.length(); read_idx += 2) {
@@ -190,4 +159,143 @@ void netbiosu_decode(std::string& data) {
         data[write_idx++] = (high << 4) | low;
     }
     data.resize(write_idx);
+}
+
+// ==========================================
+// AES-256-GCM via Windows BCrypt (In-Place)
+// ==========================================
+
+static constexpr ULONG SYMCRYPT_NONCE_LEN = 12;
+static constexpr ULONG SYMCRYPT_TAG_LEN   = 16;
+static constexpr ULONG SYMCRYPT_KEY_LEN   = 32;
+
+void symcrypt_encrypt(std::string& data, const std::string& key) {
+    if (key.size() != SYMCRYPT_KEY_LEN) {
+        DEBUG_LOG("symcrypt_encrypt: key must be 32 bytes");
+        return;
+    }
+
+    WinApi::EnsureModuleLoaded("bcrypt.dll");
+
+    BCRYPT_ALG_HANDLE hAlg = nullptr;
+    BCRYPT_KEY_HANDLE hKey = nullptr;
+
+    NTSTATUS status = WinApi::BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_AES_ALGORITHM, nullptr, 0);
+    if (status != 0) { DEBUG_LOG("symcrypt_encrypt: BCryptOpenAlgorithmProvider failed"); return; }
+
+    status = WinApi::BCryptSetProperty(hAlg, BCRYPT_CHAINING_MODE,
+        (PUCHAR)BCRYPT_CHAIN_MODE_GCM, sizeof(BCRYPT_CHAIN_MODE_GCM), 0);
+    if (status != 0) { WinApi::BCryptCloseAlgorithmProvider(hAlg, 0); return; }
+
+    status = WinApi::BCryptGenerateSymmetricKey(hAlg, &hKey, nullptr, 0,
+        (PUCHAR)key.data(), SYMCRYPT_KEY_LEN, 0);
+    if (status != 0) { WinApi::BCryptCloseAlgorithmProvider(hAlg, 0); return; }
+
+    // Generate random nonce
+    UCHAR nonce[SYMCRYPT_NONCE_LEN];
+    status = WinApi::BCryptGenRandom(nullptr, nonce, SYMCRYPT_NONCE_LEN, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+    if (status != 0) {
+        WinApi::BCryptDestroyKey(hKey);
+        WinApi::BCryptCloseAlgorithmProvider(hAlg, 0);
+        return;
+    }
+
+    UCHAR tag[SYMCRYPT_TAG_LEN];
+    BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO authInfo;
+    BCRYPT_INIT_AUTH_MODE_INFO(authInfo);
+    authInfo.pbNonce = nonce;
+    authInfo.cbNonce = SYMCRYPT_NONCE_LEN;
+    authInfo.pbTag   = tag;
+    authInfo.cbTag   = SYMCRYPT_TAG_LEN;
+
+    ULONG plainLen = static_cast<ULONG>(data.size());
+    std::string ciphertext(plainLen, '\0');
+    ULONG bytesWritten = 0;
+
+    status = WinApi::BCryptEncrypt(hKey,
+        (PUCHAR)data.data(), plainLen,
+        &authInfo, nullptr, 0,
+        (PUCHAR)ciphertext.data(), plainLen, &bytesWritten, 0);
+
+    WinApi::BCryptDestroyKey(hKey);
+    WinApi::BCryptCloseAlgorithmProvider(hAlg, 0);
+
+    if (status != 0) {
+        DEBUG_LOG("symcrypt_encrypt: BCryptEncrypt failed");
+        return;
+    }
+
+    // Output: [nonce][tag][ciphertext]
+    std::string result;
+    result.reserve(SYMCRYPT_NONCE_LEN + SYMCRYPT_TAG_LEN + bytesWritten);
+    result.append(reinterpret_cast<char*>(nonce), SYMCRYPT_NONCE_LEN);
+    result.append(reinterpret_cast<char*>(tag), SYMCRYPT_TAG_LEN);
+    result.append(ciphertext.data(), bytesWritten);
+    data = std::move(result);
+}
+
+void symcrypt_decrypt(std::string& data, const std::string& key) {
+    const ULONG overhead = SYMCRYPT_NONCE_LEN + SYMCRYPT_TAG_LEN;
+    if (key.size() != SYMCRYPT_KEY_LEN) {
+        DEBUG_LOG("symcrypt_decrypt: key must be 32 bytes");
+        data.clear();
+        return;
+    }
+    if (data.size() < overhead) {
+        DEBUG_LOG("symcrypt_decrypt: data too short");
+        data.clear();
+        return;
+    }
+
+    WinApi::EnsureModuleLoaded("bcrypt.dll");
+
+    BCRYPT_ALG_HANDLE hAlg = nullptr;
+    BCRYPT_KEY_HANDLE hKey = nullptr;
+
+    NTSTATUS status = WinApi::BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_AES_ALGORITHM, nullptr, 0);
+    if (status != 0) { data.clear(); return; }
+
+    status = WinApi::BCryptSetProperty(hAlg, BCRYPT_CHAINING_MODE,
+        (PUCHAR)BCRYPT_CHAIN_MODE_GCM, sizeof(BCRYPT_CHAIN_MODE_GCM), 0);
+    if (status != 0) { WinApi::BCryptCloseAlgorithmProvider(hAlg, 0); data.clear(); return; }
+
+    status = WinApi::BCryptGenerateSymmetricKey(hAlg, &hKey, nullptr, 0,
+        (PUCHAR)key.data(), SYMCRYPT_KEY_LEN, 0);
+    if (status != 0) { WinApi::BCryptCloseAlgorithmProvider(hAlg, 0); data.clear(); return; }
+
+    // Parse: [nonce (12)][tag (16)][ciphertext]
+    UCHAR nonce[SYMCRYPT_NONCE_LEN];
+    UCHAR tag[SYMCRYPT_TAG_LEN];
+    memcpy(nonce, data.data(), SYMCRYPT_NONCE_LEN);
+    memcpy(tag, data.data() + SYMCRYPT_NONCE_LEN, SYMCRYPT_TAG_LEN);
+
+    ULONG ctLen = static_cast<ULONG>(data.size() - overhead);
+    const PUCHAR ctPtr = (PUCHAR)data.data() + overhead;
+
+    BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO authInfo;
+    BCRYPT_INIT_AUTH_MODE_INFO(authInfo);
+    authInfo.pbNonce = nonce;
+    authInfo.cbNonce = SYMCRYPT_NONCE_LEN;
+    authInfo.pbTag   = tag;
+    authInfo.cbTag   = SYMCRYPT_TAG_LEN;
+
+    std::string plaintext(ctLen, '\0');
+    ULONG bytesWritten = 0;
+
+    status = WinApi::BCryptDecrypt(hKey,
+        ctPtr, ctLen,
+        &authInfo, nullptr, 0,
+        (PUCHAR)plaintext.data(), ctLen, &bytesWritten, 0);
+
+    WinApi::BCryptDestroyKey(hKey);
+    WinApi::BCryptCloseAlgorithmProvider(hAlg, 0);
+
+    if (status != 0) {
+        DEBUG_LOG("symcrypt_decrypt: BCryptDecrypt failed (bad key or tampered data)");
+        data.clear();
+        return;
+    }
+
+    plaintext.resize(bytesWritten);
+    data = std::move(plaintext);
 }

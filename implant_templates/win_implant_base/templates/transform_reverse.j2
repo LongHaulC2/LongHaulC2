@@ -43,6 +43,11 @@ IMPORTANT:
     netbiosu_decode([[ target ]]);
 [% endmacro %]
 
+[% macro rev_symcrypt(target, key) %]
+    // [Reverse Transform] AES-256-GCM Decrypt
+    symcrypt_decrypt([[ target ]], "[[ key ]]"s);
+[% endmacro %]
+
 [# --- THE REVERSE DISPATCHER --- #]
 [# Acts like a reverse switch statement #]
 [% macro render_reverse_transform(transform_object, target_var) %]
@@ -67,6 +72,9 @@ IMPORTANT:
 
     [% elif transform_object.statement == 'netbiosu' %]
         [[ rev_netbiosu(target_var) ]]
+
+    [% elif transform_object.statement == 'symcrypt' %]
+        [[ rev_symcrypt(target_var, transform_object.value) ]]
 
     [% endif %]
 

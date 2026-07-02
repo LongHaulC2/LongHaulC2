@@ -6,9 +6,7 @@
 #pragma once
 
 #include <windows.h>
-#include <iostream>
 #include <vector>
-#include <queue>
 #include <mutex>
 #include "comms/queues.h"
 #include "_debug/debug.h"

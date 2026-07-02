@@ -4,7 +4,6 @@
 #include <queue>
 #include <mutex>
 #include "protocols/json/json.h"
-#include <iostream>
 #include "_debug/debug.h"
 
 /*

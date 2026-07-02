@@ -5,7 +5,6 @@
 #include <mutex>
 #include "protocols/json/json.h"
 #include <windows.h>
-#include <queue>
 #include "_debug/debug.h"
 
 /*
@@ -88,10 +87,6 @@ private:
     std::unordered_map<std::string, ChildRouteInfo> routing_table_;
     std::mutex table_mutex_;
 
-    std::map<std::string, std::queue<nlohmann::json>> child_task_queues_;
-    std::mutex queue_mutex_;
-
-    // Private constructor for Singleton pattern
     ChildHandler() = default;
 
 public:

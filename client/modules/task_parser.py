@@ -203,21 +203,27 @@ def build_cli_parser(implant_uuid: str):
         func=lambda args: (ResultType.TASK, MemStoreClear(implant_uuid=implant_uuid).to_task())  # noqa - args needed for return
     )
 
-    for action, cls in [("upload", MemStoreUpload), ("download", MemStoreDownload), ("delete", MemStoreDelete)]:
+    for action, cls in [("download", MemStoreDownload), ("delete", MemStoreDelete)]:
         mp = mem_p.add_parser(action)
         mp.add_argument("file_name")
-        if action == "upload":
-            mp.add_argument("file_contents")
         mp.set_defaults(
-            func=lambda args, c=cls, a=action: (
+            func=lambda args, c=cls: (
                 ResultType.TASK,
-                c(
-                    implant_uuid=implant_uuid,
-                    file_name=args.file_name,
-                    file_contents=args.file_contents if a == "upload" else None,
-                ).to_task(),
+                c(implant_uuid=implant_uuid, file_name=args.file_name).to_task(),
             )
         )
+
+    mem_upload = mem_p.add_parser("upload")
+    mem_upload.add_argument("file_name")
+    mem_upload.add_argument("file_contents")
+    mem_upload.set_defaults(
+        func=lambda args: (
+            ResultType.TASK,
+            MemStoreUpload(
+                implant_uuid=implant_uuid, file_name=args.file_name, file_contents=args.file_contents
+            ).to_task(),
+        )
+    )
 
     # BOF
     bof = subparsers.add_parser("bof")
