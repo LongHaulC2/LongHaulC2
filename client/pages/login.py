@@ -128,21 +128,92 @@ def login_page():
 
         app.storage.user["api_host"] = host_value
 
-        tokens = await authenticate_to_server(username=user, password=password)
+        await _do_login(host_value, user, password)
+
+    async def _do_login(host_value, user, pwd, totp_code=None):
+        tokens = await authenticate_to_server(username=user, password=pwd, totp_code=totp_code)
 
         if not tokens:
             notify(f"Authentication to {host_value} failed", type="negative")
             return
 
-        refresh_token = tokens.get("data", {}).get("refresh_token")
-        access_token = tokens.get("data", {}).get("access_token")
+        data = tokens.get("data", {})
+
+        if data.get("totp_required"):
+            _show_totp_dialog(host_value, user, pwd)
+            return
+
+        refresh_token = data.get("refresh_token")
+        access_token = data.get("access_token")
 
         if refresh_token and access_token:
             app.storage.user["refresh_token"] = refresh_token
             app.storage.user["access_token"] = access_token
+            app.storage.user["username"] = user
 
             notify(f"Connected to {host_value}", type="positive")
-            ui.navigate.to("/operations")
+
+            if user.lower() == "longhaul":
+                _show_default_account_warning()
+            else:
+                ui.navigate.to("/operations")
             return
 
-        notify(f"Authentication to {host_value} failed", type="negative")
+        notify(
+            tokens.get("message", f"Authentication to {host_value} failed"),
+            type="negative",
+        )
+
+    def _show_totp_dialog(host_value, user, pwd):
+        with ui.dialog() as dlg, ui.card().classes(  # noqa: SIM117
+            "w-[400px] bg-[#0a0a0a] border border-emerald-500/30 p-0 gap-0"
+        ), ui.column().classes("w-full p-6 gap-4"):
+            with ui.row().classes("items-center gap-3"):
+                ui.icon("security", color="emerald-500").classes("text-2xl")
+                ui.label("2FA REQUIRED").classes("text-sm font-mono font-bold tracking-widest text-emerald-400")
+            ui.label("Enter the 6-digit code from your authenticator app.").classes(
+                "text-sm font-mono text-neutral-300"
+            )
+            code_input = (
+                ui.input("TOTP CODE")
+                .props("outlined dense dark color=emerald input-class='font-mono text-sm'")
+                .classes("w-full")
+            )
+
+            async def submit_totp():
+                if not code_input.value or not code_input.value.strip():
+                    notify("Enter a TOTP code", type="warning")
+                    return
+                dlg.close()
+                await _do_login(host_value, user, pwd, totp_code=code_input.value.strip())
+
+            code_input.on("keydown.enter", submit_totp)
+            ui.button("VERIFY", on_click=submit_totp).props("unelevated dense color=emerald").classes(
+                "w-full font-mono text-xs font-bold tracking-wider"
+            )
+        dlg.open()
+
+
+def _show_default_account_warning():
+    with ui.dialog() as dialog, ui.card().classes(  # noqa: SIM117
+        "w-[500px] bg-[#0a0a0a] border border-amber-500/30 p-0 gap-0"
+    ), ui.column().classes("w-full p-6 gap-4"):
+        with ui.row().classes("items-center gap-3"):
+            ui.icon("warning", color="amber-500").classes("text-2xl")
+            ui.label("DEFAULT ACCOUNT").classes("text-sm font-mono font-bold tracking-widest text-amber-400")
+        ui.label(
+            "You're using the default 'longhaul' account. "
+            "For accountability and tracking, create your own operator account "
+            "via Settings > Users."
+        ).classes("text-sm font-mono text-neutral-300 leading-relaxed")
+
+        with ui.row().classes("w-full justify-end gap-3 mt-2"):
+            ui.button(
+                "CREATE ACCOUNT",
+                on_click=lambda: (dialog.close(), ui.navigate.to("/settings/users")),
+            ).props("unelevated dense color=amber").classes("font-mono text-xs font-bold tracking-wider")
+            ui.button(
+                "DISMISS",
+                on_click=lambda: (dialog.close(), ui.navigate.to("/operations")),
+            ).props("outline dense color=grey").classes("font-mono text-xs tracking-wider")
+    dialog.open()

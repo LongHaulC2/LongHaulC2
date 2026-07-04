@@ -30,6 +30,8 @@ The team is relatively new to offensive tooling. Prioritize:
 - Network Profile creation, editing, and preview/rendering
 - BOF storage (and a market, later)
 - BYOL: Bring Your Own Loader support
+- User Management (operator accounts, TOTP 2FA via `pyotp`)
+- Operator Chat (server-backed team messaging)
 
 ---
 
@@ -307,6 +309,33 @@ make create_docker_images  # rebuild from setup/docker_images/
 **User preferences** are stored in `app.storage.user` and initialized in `client/pages/user_settings.py:initialize_default_settings()`. Known keys:
 - `auto_refresh_rate` (int, default `1`) — polling interval in seconds for timers throughout the UI
 - `notification_position` (str, default `"bottom"`) — where `ui.notify()` banners appear; valid values: `top-left`, `top-right`, `top`, `bottom-left`, `bottom-right`, `bottom`, `left`, `right`, `center`
+- `username` (str) — set on login, used by chat and profile pages
+
+**User Management API** (`server/routes/v1/user_resource.py`, namespace `users`):
+- `GET /api/v1/users/` — list all users (returns `[{username, has_totp}, ...]`)
+- `GET /api/v1/users/me` — current user profile (includes `has_totp`)
+- `DELETE /api/v1/users/me` — delete own account
+- `DELETE /api/v1/users/<username>` — delete a user (admin action)
+- `PUT /api/v1/users/password` — change own password (requires `old_password` + `new_password`)
+- `POST /api/v1/users/totp` — generate TOTP secret + provisioning URI
+- `DELETE /api/v1/users/totp` — disable TOTP
+- `POST /api/v1/users/totp/verify` — verify a 6-digit TOTP code
+
+**Chat API** (`server/routes/v1/chat_resource.py`, namespace `chat`):
+- `GET /api/v1/chat/?since_id=N` — fetch messages (optionally since a given ID)
+- `POST /api/v1/chat/` — send a message (body: `{"message": "..."}`)
+
+**User-related UI pages:**
+- `/settings` (`client/pages/user_settings.py`) — tabbed settings: Preferences, Profile (password/TOTP 2FA/delete account), Users (create, table with 2FA status column, multi-select delete)
+- `/settings/{tab}` — deep-link to a specific tab (e.g. `/settings/users`)
+- `/profile` (`client/pages/profile.py`) — thin redirect to `/settings/profile`
+- `/admin/users` (`client/pages/admin_users.py`) — thin redirect to `/settings/users`
+- `/comms` (`client/pages/comms.py`) — operator chat, polls server for messages, uses `ui.markdown` for rendering
+- Login page shows a soft warning popup when logging in as the default `longhaul` account; enforces TOTP at login if the user has it configured
+
+**Database models added:**
+- `UserLogin.totp_secret` (nullable String) — stores TOTP secret for 2FA
+- `ChatMessage` (id, sender, message, timestamp) — chat message storage
 
 **Notifications:** Never call `ui.notify()` directly in `client/`. Use `notify()` from `client.utils.helpers` instead — it reads `notification_position` from user storage so the user's preference is applied everywhere.
 

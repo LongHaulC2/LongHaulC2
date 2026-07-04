@@ -38,7 +38,10 @@ server = [
     "docker",
     "flask-jwt-extended",
     "bcrypt",
-    "gunicorn"
+    "gunicorn",
+    "pyotp",
+    "qrcode",
+    "pillow"
 ]
 # GUI reqs
 web = [

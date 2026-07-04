@@ -1,131 +1,106 @@
 import datetime
 
 import structlog
-from nicegui import ui
+from nicegui import app, ui
 
-# Assuming these exist based on your architecture
+from client.modules.api_calls import get_chat_messages, send_chat_message
 from client.pages.footer import build_footer
 from client.pages.menu import setup_menu
+from client.utils.helpers import notify
 
 server_log = structlog.getLogger("server")
 
 
 @ui.page("/comms")
 async def comms_page():
-    # Force full height to prevent weird scrolling overlaps
     ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
     )
 
-    setup_menu("[POC - COMMS]")
+    setup_menu("Chat")
     await chat_view()
     await build_footer()
 
 
 async def chat_view():
-    # Mock state
-    state = {
-        "messages": [
-            {
-                "sender": "SYSTEM",
-                "text": "Encrypted channel established. Logging active.",
-                "time": "00:00",
-                "color": "orange",
-            },
-            {"sender": "IMPLANT_01", "text": "Checking in. Awaiting tasking.", "time": "00:01", "color": "blue"},
-            {"sender": "IMPLANT_02", "text": "Heartbeat OK. Uploading loot.", "time": "00:03", "color": "purple"},
-        ]
-    }
+    username = app.storage.user.get("username", "operator")
+    state = {"last_id": 0, "messages": []}
 
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
-        # --- HEADER ---
-        with ui.row().classes("tech-header-bar flex w-full items-center justify-between shrink-0"):
-            with ui.row().classes("items-center gap-4"):
-                ui.icon("terminal", size="sm", color="emerald-500").classes(
-                    "p-2 bg-emerald-500/10 rounded border border-emerald-500/20"
-                )
-                with ui.column().classes("gap-0"):
-                    ui.label("SECURE COMMS").classes("tech-label-header-bold")
-                    ui.label("CHANNEL // GLOBAL_OP").classes("tech-label-sub text-emerald-500")
+        # Header
+        with ui.row().classes(  # noqa: SIM117
+            "tech-header-bar flex w-full items-center justify-between shrink-0"
+        ), ui.row().classes("items-center gap-4"):
+            ui.icon("chat", size="sm", color="emerald-500").classes(
+                "p-2 bg-emerald-500/10 rounded border border-emerald-500/20"
+            )
+            with ui.column().classes("gap-0"):
+                ui.label("OPERATOR CHAT").classes("tech-label-header-bold")
+                ui.label(f"LOGGED IN AS // {username.upper()}").classes("tech-label-sub text-emerald-500")
 
-            with ui.row().classes("items-center gap-2"):
-                ui.button(icon="delete_sweep", on_click=lambda: clear_chat()).props(
-                    "flat dense square size=sm"
-                ).classes("text-red-400 hover:text-red-200 transition-colors tech-btn-action-2")
-
-                with ui.element("div").classes(
-                    "flex items-center gap-2 px-3 py-1 bg-black/40 border border-white/5 rounded"
-                ):
-                    ui.icon("circle", size="8px", color="emerald-500").classes("animate-pulse")
-                    ui.label("3 ONLINE").classes("tech-label-sub")
-
-        # --- MESSAGES AREA ---
-        # bg-black/40 creates that terminal depth feeling
+        # Messages area
         with ui.scroll_area().classes("w-full flex-grow p-4 bg-black/40") as scroll_area:
             message_container = ui.column().classes("w-full gap-1")
 
-        # --- INPUT AREA ---
+        # Input area
         with ui.row().classes("w-full p-4 gap-4 border-t border-white/5 shrink-0 bg-[#0c0c0c] items-center no-wrap"):
             ui.label(">").classes("tech-label-header-bold text-emerald-500 text-xl")
 
             chat_input = (
-                ui.input(placeholder="Enter command or message...")
+                ui.input(placeholder="Type a message...")
                 .props("dense dark border color=emerald input-class=text-emerald-400 hide-bottom-space")
                 .classes("flex-grow tech-input items-center")
             )
 
-            send_btn = (  # noqa
-                ui.button("TRANSMIT", icon="send", on_click=lambda: send_message())
-                .classes("tech-btn-action px-4 font-bold tracking-wide")
-                .props("unelevated dense")
-            )
+            ui.button("SEND", icon="send", on_click=lambda: handle_send()).classes(
+                "tech-btn-action px-4 font-bold tracking-wide"
+            ).props("unelevated dense")
 
-    # --- LOGIC ---
     def render_messages():
-        """Re-renders the message list and forces the scroll area to the bottom."""
         message_container.clear()
         with message_container:
             for msg in state["messages"]:
-                with ui.row().classes(
-                    "w-full items-baseline gap-2 hover:bg-white/5 p-1 rounded transition-colors no-wrap"
-                ):
-                    # Timestamp
-                    ui.label(f"[{msg['time']}]").classes("tech-label-sub text-neutral-500 min-w-max")
-                    # Sender
-                    ui.label(f"<{msg['sender']}>").classes(
-                        f"tech-label-sub text-{msg['color']}-500 font-bold min-w-max"
-                    )
-                    # Content
-                    ui.label(msg["text"]).classes("tech-data-mono text-neutral-300 break-words flex-grow")
+                ts_ms = msg.get("timestamp", 0)
+                ts_str = datetime.datetime.fromtimestamp(ts_ms / 1000, tz=datetime.UTC).strftime("%H:%M:%S")
+                sender = msg.get("sender", "?")
+                text = msg.get("message", "")
 
-        # UI hack to auto-scroll to bottom after render
+                is_self = sender == username
+                sender_color = "emerald" if is_self else "blue"
+
+                with ui.column().classes("w-full gap-0 hover:bg-white/5 px-2 py-1 rounded transition-colors"):
+                    with ui.row().classes("items-center gap-2"):
+                        ui.label(sender).classes(f"font-mono text-xs font-bold text-{sender_color}-500")
+                        ui.label(ts_str).classes("font-mono text-[10px] text-neutral-600")
+                    ui.separator().classes("bg-white/5 my-0.5")
+                    ui.markdown(text).classes("text-sm text-neutral-300 break-words [&>p]:m-0")
+
         ui.timer(0.05, lambda: scroll_area.scroll_to(percent=1.0), once=True)
 
-    def send_message():
+    async def handle_send():
         text = chat_input.value.strip()
         if not text:
             return
-
-        now = datetime.datetime.now().strftime("%H:%M:%S")
-        state["messages"].append({"sender": "LOCAL_ADMIN", "text": text, "time": now, "color": "emerald"})
-
         chat_input.value = ""
+        result = await send_chat_message(text)
+        if not result or result.get("status") != "200":
+            notify("Failed to send message", type="negative")
+            return
+        await poll_messages()
+
+    async def poll_messages():
+        result = await get_chat_messages(since_id=state["last_id"])
+        if not result or result.get("status") != "200":
+            return
+        new_messages = result.get("data", [])
+        if not new_messages:
+            return
+        state["messages"].extend(new_messages)
+        state["last_id"] = new_messages[-1].get("id", state["last_id"])
         render_messages()
 
-    def clear_chat():
-        state["messages"] = [
-            {
-                "sender": "SYSTEM",
-                "text": "Buffer cleared.",
-                "time": datetime.datetime.now().strftime("%H:%M:%S"),
-                "color": "orange",
-            }
-        ]
-        render_messages()
+    chat_input.on("keydown.enter", handle_send)
 
-    # Bind the Enter key to the send function
-    chat_input.on("keydown.enter", send_message)
-
-    # Initial paint
-    render_messages()
+    await poll_messages()
+    ui.timer(app.storage.user.get("auto_refresh_rate", 2), poll_messages)

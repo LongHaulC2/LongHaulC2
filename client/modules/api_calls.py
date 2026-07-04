@@ -142,32 +142,19 @@ async def safe_api_request(
         return None
 
 
-async def authenticate_to_server(username: str, password: str) -> dict | None:
-    """
-    Authetnicates to the server
-    """
-    # validate inputs
-    # check_type(listener_host, str, "listener_host")
-    # check_type(listener_port, int, "listener_port")
-    # check_type(listener_type, str, "listener_type")
-
-    # # normalize / preprocess
-    # listener_host = listener_host.strip()
-    # listener_name = listener_name.strip()
-
+async def authenticate_to_server(username: str, password: str, totp_code: str | None = None) -> dict | None:
     request_data = {
         "username": username,
         "password": password,
     }
-
-    # core logic placeholder
-    api_log.debug("Getting data for listener")
+    if totp_code:
+        request_data["totp_code"] = totp_code
 
     return await safe_api_request(
         method="POST",
         endpoint="/api/v1/authentication/",
         json=request_data,
-        skip_auth=True,  # skip auth cuz this is login & it doesn't need it
+        skip_auth=True,
     )
 
 
@@ -1034,4 +1021,83 @@ async def seed_profiles(profiles: list[dict]) -> dict | None:
         method="POST",
         endpoint="/api/v1/profiles/seed",
         json={"profiles": profiles},
+    )
+
+
+# ---------------------------------------------------------------------------
+# User Management
+# ---------------------------------------------------------------------------
+
+
+async def get_all_users() -> dict | None:
+    return await safe_api_request(method="GET", endpoint="/api/v1/users/")
+
+
+async def get_current_user() -> dict | None:
+    return await safe_api_request(method="GET", endpoint="/api/v1/users/me")
+
+
+async def delete_user(username: str) -> dict | None:
+    check_type(username, str, "username")
+    return await safe_api_request(method="DELETE", endpoint=f"/api/v1/users/{username}")
+
+
+async def delete_own_account() -> dict | None:
+    return await safe_api_request(method="DELETE", endpoint="/api/v1/users/me")
+
+
+async def change_password(old_password: str, new_password: str) -> dict | None:
+    return await safe_api_request(
+        method="PUT",
+        endpoint="/api/v1/users/password",
+        json={"old_password": old_password, "new_password": new_password},
+    )
+
+
+async def register_user(username: str, password: str) -> dict | None:
+    return await safe_api_request(
+        method="POST",
+        endpoint="/api/v1/authentication/register",
+        json={"username": username, "password": password},
+    )
+
+
+async def setup_totp() -> dict | None:
+    return await safe_api_request(method="POST", endpoint="/api/v1/users/totp")
+
+
+async def verify_totp(code: str) -> dict | None:
+    return await safe_api_request(
+        method="POST",
+        endpoint="/api/v1/users/totp/verify",
+        json={"code": code},
+    )
+
+
+async def disable_totp() -> dict | None:
+    return await safe_api_request(method="DELETE", endpoint="/api/v1/users/totp")
+
+
+# ---------------------------------------------------------------------------
+# Chat
+# ---------------------------------------------------------------------------
+
+
+async def get_chat_messages(since_id: int = 0) -> dict | None:
+    params = {}
+    if since_id > 0:
+        params["since_id"] = since_id
+    return await safe_api_request(
+        method="GET",
+        endpoint="/api/v1/chat/",
+        params=params,
+    )
+
+
+async def send_chat_message(message: str) -> dict | None:
+    check_type(message, str, "message")
+    return await safe_api_request(
+        method="POST",
+        endpoint="/api/v1/chat/",
+        json={"message": message},
     )

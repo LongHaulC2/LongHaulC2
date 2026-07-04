@@ -205,7 +205,7 @@ body::before {
 }
 
 /* Label and Text styling */
-.tech-input .q-field__label, 
+.tech-input .q-field__label,
 .tech-input .q-field__native {
     font-size: 12px;
     letter-spacing: 0.05em;
@@ -215,6 +215,16 @@ body::before {
 .tech-input .q-field__native {
     /*color: #ffffff !important; */
     color: #a1a1aa !important;
+}
+
+/* Autocomplete ghost text must match the input's font so the overlay aligns */
+.tech-input .q-field__shadow {
+    font-size: 12px;
+    letter-spacing: 0.05em;
+}
+.tech-input-mono .q-field__native,
+.tech-input-mono .q-field__shadow {
+    font-family: monospace !important;
 }
 
 /* Quasar's outlined variant draws its border on a ::before pseudo-element,

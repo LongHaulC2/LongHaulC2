@@ -170,6 +170,15 @@ class ArtifactStore(Base):
     __table_args__ = (UniqueConstraint("artifact_type", "artifact_name", name="_type_name_uc"),)
 
 
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    sender = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    timestamp = Column(BigInteger, nullable=False)
+
+
 class UserLogin(Base):
     __tablename__ = "users"
 
@@ -178,3 +187,4 @@ class UserLogin(Base):
     # and text doesn't provide that
     username = Column(String(255), primary_key=True)
     password_hash = Column(Text)
+    totp_secret = Column(String(64), nullable=True)
