@@ -1,3 +1,4 @@
+import pyotp
 import structlog
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
 from flask_restx import Namespace, Resource
@@ -21,7 +22,6 @@ class Auth(Resource):
     )
     @auth_ns.expect(AUTH_POST_INPUT, validate=False)  # flip to True to enforce
     @auth_ns.response(200, "Build initiated", AUTH_LOGIN_RESPONSE)
-    @auth_ns.marshal_with(AUTH_LOGIN_RESPONSE)
     def post(self):
         """
         Login, returns a JWT if successful
@@ -29,27 +29,38 @@ class Auth(Resource):
 
         data = auth_ns.payload
 
-        # note - with flaskrestx, if/when these autothrow, they'll throw a
         username = data.get("username")
         password = data.get("password")
+        totp_code = data.get("totp_code")
 
         if not username or not password:
             abort(400, "Missing username or password in payload")
 
         with get_mysql_session() as session:
-            user_login = MySQLUserService(session)
-            user_login.validate_password(username=username, password=password)
+            svc = MySQLUserService(session)
+            valid = svc.validate_password(username=username, password=password)
 
-        if user_login:
-            access_token = create_access_token(identity=username)
-            refresh_token = create_refresh_token(identity=username)
+            if not valid:
+                return APIResponse(status="200", message="Login Failed", data={})
 
-            response = {"access_token": access_token, "refresh_token": refresh_token}
-            # Return immediately
-            return APIResponse(status="200", message="Login Successful", data=response)
+            totp_secret = svc.get_totp_secret(username)
 
-        # Return immediately
-        return APIResponse(status="200", message="Login Failed", data={})
+        if totp_secret:
+            if not totp_code:
+                return APIResponse(
+                    status="200",
+                    message="TOTP code required",
+                    data={"totp_required": True},
+                )
+            totp = pyotp.TOTP(totp_secret)
+            if not totp.verify(totp_code):
+                return APIResponse(status="200", message="Invalid TOTP code", data={})
+
+        access_token = create_access_token(identity=username)
+        refresh_token = create_refresh_token(identity=username)
+
+        response = {"access_token": access_token, "refresh_token": refresh_token}
+        return APIResponse(status="200", message="Login Successful", data=response)
 
 
 class Refresh(Resource):

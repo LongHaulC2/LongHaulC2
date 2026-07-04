@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from ..schemas.implant import Task
 from ..utils.checks import check_type
-from .mysql_models import ArtifactStore, FileStore, ImplantPayload, ImplantTask, UserLogin
+from .mysql_models import ArtifactStore, ChatMessage, FileStore, ImplantPayload, ImplantTask, UserLogin
 
 server_logger = structlog.getLogger("server")
 
@@ -904,6 +904,51 @@ class MySQLUserService:
             mysql_delete_user_logger.error("An error occurred", error=str(e))
             raise e
 
+    def change_password(self, username: str, old_password: str, new_password: str) -> bool:
+        check_type(username, str, "username")
+        check_type(old_password, str, "old_password")
+        check_type(new_password, str, "new_password")
+
+        if not self.validate_password(username, old_password):
+            return False
+
+        user_record = self.session.query(UserLogin).filter(UserLogin.username == username).first()
+        if user_record is None:
+            return False
+
+        new_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt())
+        user_record.password_hash = new_hash
+        self.session.commit()
+        server_logger.info("Password changed", username=username)
+        return True
+
+    def list_users(self) -> list[dict]:
+        users = self.session.query(UserLogin).all()
+        return [{"username": u.username, "has_totp": u.totp_secret is not None} for u in users]
+
+    def get_user(self, username: str) -> dict | None:
+        check_type(username, str, "username")
+        user = self.session.query(UserLogin).filter(UserLogin.username == username).first()
+        if user is None:
+            return None
+        return {"username": user.username, "has_totp": user.totp_secret is not None}
+
+    def set_totp_secret(self, username: str, secret: str | None) -> bool:
+        check_type(username, str, "username")
+        user = self.session.query(UserLogin).filter(UserLogin.username == username).first()
+        if user is None:
+            return False
+        user.totp_secret = secret
+        self.session.commit()
+        return True
+
+    def get_totp_secret(self, username: str) -> str | None:
+        check_type(username, str, "username")
+        user = self.session.query(UserLogin).filter(UserLogin.username == username).first()
+        if user is None:
+            return None
+        return user.totp_secret
+
     def create_initial_user(self, username, password) -> bool:
         """
         Creates initial user, only if there are no other users
@@ -919,3 +964,25 @@ class MySQLUserService:
             return self.register_user(username=username, password=password)
 
         return False
+
+
+class MySQLChatService:
+    def __init__(self, session):
+        self.session = session
+
+    def send_message(self, sender: str, message: str) -> dict:
+        check_type(sender, str, "sender")
+        check_type(message, str, "message")
+
+        now_ms = int(time.time() * 1000)
+        entry = ChatMessage(sender=sender, message=message, timestamp=now_ms)
+        self.session.add(entry)
+        self.session.commit()
+        return entry.to_dict()
+
+    def get_messages(self, since_id: int = 0, limit: int = 200) -> list[dict]:
+        query = self.session.query(ChatMessage)
+        if since_id > 0:
+            query = query.filter(ChatMessage.id > since_id)
+        messages = query.order_by(ChatMessage.id.asc()).limit(limit).all()
+        return [m.to_dict() for m in messages]

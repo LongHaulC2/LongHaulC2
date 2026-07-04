@@ -110,12 +110,17 @@ def setup_menu(title: str):
             nav_btn("PROFILES", "tune", "/profile-preview")
 
             ui.separator().classes("bg-white/5 mt-4 mb-2")
+            ui.label("COMMS").classes("tech-label-sub")
+            nav_btn("CHAT", "chat", "/comms")
+
+            ui.separator().classes("bg-white/5 mt-4 mb-2")
             ui.label("ADMIN").classes("tech-label-sub")
             nav_btn("STATUS", "arrow_circle_up", "/status")
             nav_btn("SETTINGS", "settings", "/settings")
 
             # FOOTER
-            ui.space()
+            ui.separator().classes("bg-white/5 mt-4 mb-2")
+
             nav_btn("DISCONNECT", "exit_to_app", "/logout")
 
             with ui.column().classes("w-full gap-1 opacity-50 mb-2"):

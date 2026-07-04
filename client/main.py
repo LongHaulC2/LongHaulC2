@@ -9,6 +9,7 @@ from nicegui import app, ui
 # imported to render the page/register it
 import client.log  # noqa: F401
 import client.modules.health_check  # noqa: F401
+import client.pages.admin_users  # noqa: F401
 import client.pages.comms  # noqa: F401
 import client.pages.docs  # noqa: F401
 import client.pages.error  # noqa: F401
@@ -29,6 +30,7 @@ import client.pages.node.payload  # noqa: F401
 # also, use full paths due to nicegui being picky about relative paths
 import client.pages.operations  # noqa: F401
 import client.pages.payloads  # noqa: F401
+import client.pages.profile  # noqa: F401
 import client.pages.profile_preview  # noqa: F401
 import client.pages.status  # noqa: F401
 import client.pages.user_settings  # noqa: F401
