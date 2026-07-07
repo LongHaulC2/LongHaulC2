@@ -51,15 +51,21 @@ Each listener gets **one** profile. Implants can be built with **multiple** prof
 
 ### Strategies
 
-Strategies are the name of the profiles after they are baked into an implant. The strategy names are derived from the listener data that said strategy corresponds to. 
+Strategies are the name of the profiles after they are baked into an implant. The strategy names are derived from the **callback host** (set at build time), the listener port, and the profile name.
 
-For example:
+The naming pattern is:
 
 ```
-raw_<host>_<port>_<profile_name>
+raw_<callback_host>_<port>_<profile_name>
 ```
 
-Where `<profile_name>` is taken from the `[profile] name = "..."` field in the TOML, with non-alphanumeric characters replaced by underscores. For example, a listener on `0.0.0.0:80` using a profile named `"HTTP Mimicry"` produces the strategy name `raw_0_0_0_0_80_HTTP_Mimicry` in the binary. 
+Where `<callback_host>` is the IP or hostname from the **Callback Host** field in the implant builder, `<port>` is the listener's port, and `<profile_name>` is taken from the `[profile] name = "..."` field in the TOML (non-alphanumeric characters replaced by underscores).
+
+For example, building with callback host `60.1.1.1` and a listener on port `80` using a profile named `"HTTP Mimicry"` produces:
+
+```
+raw_60_1_1_1_80_HTTP_Mimicry
+```
 
 You can see available strategy names for the current implant by running `strat list` in the implant terminal:
 
@@ -67,12 +73,53 @@ You can see available strategy names for the current implant by running `strat l
 --- SESSION ESTABLISHED ---
 019f101d > strat list
 --- Ingress (GET) ---
-  > raw_10_0_0_30_9021_new_ftp_dev_422_9021
+  > raw_60_1_1_1_80_HTTP_Mimicry
 --- Egress (POST) ---
-  > raw_10_0_0_30_9021_new_ftp_dev_422_9021
+  > raw_60_1_1_1_80_HTTP_Mimicry
 ```
 
-> Dev note - "Strategies" sounded cool when designing the switching/profile split logic, so I stuck with that naming. Feel free to call them "Profiles/Network Profiles/Mimicry Profiles, etc" as well. i.e. "I'm moving the implant to the FTP profile from the HTTP profile". 
+> Dev note - "Strategies" sounded cool when designing the switching/profile split logic, so I stuck with that naming. Feel free to call them "Profiles/Network Profiles/Mimicry Profiles, etc" as well. i.e. "I'm moving the implant to the FTP profile from the HTTP profile".
+
+### Callback Host
+
+The **Callback Host** field in the implant builder controls where the implant sends its traffic. This is intentionally decoupled from the listener's bind address to support common operational setups:
+
+- **CDNs** — listener binds to `10.0.0.2`, implant calls back to `cdn.example.com`
+- **Redirectors** — listener binds to `10.0.0.2`, implant calls back to `redirector.example.com` or a redirector's public IP
+- **NAT / cloud** — listener binds to `0.0.0.0` on a private subnet, implant calls back to the public IP `203.0.113.50`
+
+The callback host accepts an IP address or a hostname. The port is still determined by the listener — if the listener runs on port `443`, the implant calls back to `<callback_host>:443`.
+
+**Example: CDN fronting**
+
+| | Value |
+|---|---|
+| Listener bind address | `10.0.0.2` |
+| Listener port | `443` |
+| Callback Host (build field) | `cdn.example.com` |
+| Strategy name in implant | `raw_cdn_example_com_443_HTTP_Mimicry` |
+| Implant calls back to | `cdn.example.com:443` |
+
+**Example: Redirector with public IP**
+
+| | Value |
+|---|---|
+| Listener bind address | `10.0.0.2` |
+| Listener port | `80` |
+| Callback Host (build field) | `60.1.1.1` |
+| Strategy name in implant | `raw_60_1_1_1_80_HTTP_Mimicry` |
+| Implant calls back to | `60.1.1.1:80` |
+
+**Example: Multiple strategies with shared callback host**
+
+When building an implant with multiple listeners, each strategy gets the same callback host but keeps its own port:
+
+| Listener | Bind | Port | Strategy Name |
+|---|---|---|---|
+| HTTP listener | `10.0.0.2` | `80` | `raw_60_1_1_1_80_HTTP_Mimicry` |
+| NTP listener | `10.0.0.2` | `123` | `raw_60_1_1_1_123_NTP_Mimicry` |
+
+The implant can switch between these at runtime with `strat set get` / `strat set post`.
 
 ---
 

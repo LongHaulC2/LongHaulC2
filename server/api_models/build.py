@@ -102,6 +102,12 @@ BUILD_POST_INPUT = api.model(
             example="019c...",
             required=True,
         ),
+        "callback_host": fields.String(
+            required=True,
+            description="The host (IP or hostname) the implant calls back to. "
+            "Decoupled from the listener bind address to support CDNs, redirectors, etc.",
+            example="60.1.1.1",
+        ),
         "options": fields.Nested(
             api.model(
                 "BUILD_OPTIONS",

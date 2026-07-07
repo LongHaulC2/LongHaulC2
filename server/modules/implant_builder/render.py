@@ -38,6 +38,7 @@ def render_implant(
     listeners_data_dict: dict[str, ListenerProfile],
     initial_get_profile_listener_uuid: str,
     initial_post_profile_listener_uuid: str,
+    callback_host: str | None = None,
 ):
     # generate the clang format for the implant
     # Easier/faster to include it here than copy one in from root of project
@@ -49,7 +50,7 @@ def render_implant(
         structlog.contextvars.bind_contextvars(listener_type=listener["listener_type"])
 
         try:
-            mappings = _render_listener_variant(output_dir, listener)
+            mappings = _render_listener_variant(output_dir, listener, callback_host=callback_host)
 
             # Extract the unified namespace we created in the variant function
             ns_name = mappings["namespace"]
@@ -104,7 +105,9 @@ def render_implant(
     # maybe upload source here, instead of at end of compilation, incase it bugs out
 
 
-def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dict[str, str]:
+def _render_listener_variant(
+    output_dir: Path, listener: ListenerProfile, callback_host: str | None = None
+) -> dict[str, str]:
     """
     Renders per-listener comms code and returns the unified namespace name.
     Supported types: raw, pivot_smb.
@@ -138,13 +141,13 @@ def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dic
         return {"namespace": unified_namespace}
 
     if listener_type == "raw":
-        host = listener.get("listener_host")
+        host = callback_host or listener.get("listener_host")
         port = listener.get("listener_port")
         prof_name = listener.get("listener_profile_name")
 
         unified_namespace = sanitize_cpp_name(f"raw_{host}_{port}_{prof_name}")
 
-        context = _get_listener_context(listener)
+        context = _get_listener_context(listener, callback_host=callback_host)
         context["raw_profile_namespace"] = unified_namespace
 
         _render_file(
@@ -159,7 +162,7 @@ def _render_listener_variant(output_dir: Path, listener: ListenerProfile) -> dic
     raise ValueError(f"Unsupported listener type: {listener_type}")
 
 
-def _get_listener_context(listener: ListenerProfile) -> dict:
+def _get_listener_context(listener: ListenerProfile, callback_host: str | None = None) -> dict:
     """Delegates context generation to specific modules."""
     listener_type = listener.get("listener_type")
 
@@ -170,9 +173,10 @@ def _get_listener_context(listener: ListenerProfile) -> dict:
         )
 
     if listener_type == "raw":
+        host = callback_host or listener.get("listener_host")
         return generate_toml_raw_context(
             profile_toml=listener.get("listener_profile_contents"),
-            host=listener.get("listener_host"),
+            host=host,
             port=listener.get("listener_port"),
             profile_name=listener.get("listener_profile_name"),
         )

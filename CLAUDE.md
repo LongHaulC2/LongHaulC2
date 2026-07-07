@@ -89,6 +89,7 @@ Operator (UI) → API → Redis (task queue)
 - Beacons carry full metadata (including current `get_strategy` / `post_strategy`). Strategy fields are updated in Neo4j on every checkin, not just first registration.
 - `listener_bridge.py` is the single handoff point between any listener protocol and the core server logic.
 - The response pipeline (`server/modules/response_pipeline/`) polls Redis every second and bulk-writes to MySQL.
+- **Callback host is decoupled from listener bind address.** The build dialog has a `callback_host` field (IP or hostname) that specifies where the implant sends traffic. This supports CDNs, redirectors, and NAT — the listener can bind to a private IP while the implant calls back to a public one. The port still comes from the listener. Strategy names use the callback host, not the bind address (e.g., `raw_60_1_1_1_80_mylistener` instead of `raw_10_0_0_2_80_mylistener`).
 
 ---
 

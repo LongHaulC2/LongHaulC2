@@ -69,6 +69,7 @@ class Build(Resource):
 
         initial_get_profile_listener_uuid = data.get("initial_get_profile_listener_uuid", None)
         initial_post_profile_listener_uuid = data.get("initial_post_profile_listener_uuid", None)
+        callback_host = data.get("callback_host", None)
 
         options_dict = data.get("options", {})
         enable_debug: bool = options_dict.get("enable_debug", None)  # noqa
@@ -86,6 +87,7 @@ class Build(Resource):
             build_uuid,
             initial_get_profile_listener_uuid,
             initial_post_profile_listener_uuid,
+            callback_host=callback_host,
             options=options_dict,
         )
 
