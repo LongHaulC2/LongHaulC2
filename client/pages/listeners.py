@@ -16,6 +16,7 @@ from client.modules.api_calls import (
     upload_profile,
 )
 from client.modules.navigate_hook import get_current_uri, navigate
+from client.pages.components.dashboard_widgets import confirm_action, stat_widget
 from client.pages.footer import build_footer
 from client.pages.formatted_tooltip import formatted_tooltip
 from client.pages.menu import setup_menu
@@ -32,13 +33,6 @@ server_log.info("Loading /listeners page")
 # ====================
 
 
-def stat_widget(label: str, icon: str, color: str, key: str):
-    with ui.element("div").classes("flex-1 h-full px-4 gap-2 flex items-center border-r border-white/5 bg-white/2"):
-        ui.icon(icon, size="14px", color=f"{color}-500").classes("opacity-70")
-        ui.label(label).classes("tech-label-sub")
-        ui.label().bind_text_from(stats, key).classes("tech-label-sub")
-
-
 @ui.page("/listeners")
 async def listeners():
     ui.context.client.content.classes("h-full p-0 gap-0")
@@ -51,6 +45,8 @@ async def listeners():
 
 
 async def listener_view():
+    refresh_ref = [None]
+
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
             with ui.row().classes("items-center gap-3"):
@@ -65,23 +61,23 @@ async def listener_view():
                 ):
                     ui.icon("add", size="xs").classes("mr-1")
                     ui.label("LISTENER").classes("tech-label-sub")
-                    # ui.tooltip("Build New Payload")
                     formatted_tooltip(title="Start a new Listener")
-                ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/listeners")).props(
-                    "dense flat size=sm"
-                ).classes("tech-btn-action-2")
+                with (
+                    ui.button(icon="refresh", on_click=lambda: refresh_ref[0]())
+                    .props("dense flat size=sm")
+                    .classes("tech-btn-secondary")
+                ):
+                    formatted_tooltip("Refresh")
 
-        # Stats row
         with ui.row().classes("w-full h-8 gap-0 bg-[#0c0c0c] border-b border-white/5 items-center"):
-            stat_widget("Total:", "router", "emerald", "total")
-            stat_widget("Online:", "wifi", "green", "online")
-            # stat_widget("HTTP", "public", "blue", "http")
+            stat_widget("Total:", "router", "emerald", "total", stats)
+            stat_widget("Online:", "wifi", "green", "online", stats)
 
         with ui.column().classes("w-full p-0 flex-grow overflow-hidden"):
-            await render_listeners_table()
+            await render_listeners_table(refresh_ref)
 
 
-async def render_listeners_table():
+async def render_listeners_table(refresh_ref):
     # searchbar
     with ui.row().classes("w-full items-center px-2 py-1 bg-white/2"):
         filter_text = (
@@ -178,15 +174,16 @@ async def render_listeners_table():
         except Exception as e:
             server_log.error(f"Table Update Failed: {e}")
 
+    refresh_ref[0] = update_table_data
+
     update_time = app.storage.user.get("auto_refresh_rate", 2)
     ui.timer(update_time, update_table_data)
     await update_table_data()
 
-    # adds in space for checkbox in table
     table.add_slot(
         "header",
         r"""
-    <q-tr :props="props" class="bg-white/5 text-neutral-400 uppercase text-xs tracking-wider border-b border-white/10">
+    <q-tr :props="props" class="tech-table-head">
         <q-th auto-width>
             <q-checkbox dense size="sm" v-model="props.selected" />
         </q-th>
@@ -194,6 +191,16 @@ async def render_listeners_table():
             {{ col.label }}
         </q-th>
     </q-tr>
+    """,
+    )
+
+    table.add_slot(
+        "no-data",
+        r"""
+    <div class="tech-empty-state w-full">
+        <q-icon name="headphones" size="xl" color="emerald-5" />
+        <span class="tech-label-sub text-neutral-500">No listeners yet</span>
+    </div>
     """,
     )
 
@@ -231,29 +238,42 @@ async def render_listeners_table():
 
     with ui.row().classes("w-full p-1 px-2 justify-end gap-2 border-t border-white/5 bg-white/2"):
 
-        async def batch_action(action_func, msg, color):
+        async def batch_action(action_func, msg, notif_type):
             if not table.selected:
                 return notify("No Selection", type="warning")
             for row in table.selected:
                 await action_func(row["listener_uuid"])
-            notify(f"{msg} {len(table.selected)} listeners", type=color)
+            notify(f"{msg} {len(table.selected)} listener(s)", type=notif_type)
+            table.selected = []
             await update_table_data()
+            return None
+
+        async def batch_delete():
+            if not table.selected:
+                return notify("No Selection", type="warning")
+            count = len(table.selected)
+            confirm_action(
+                title="DELETE LISTENERS",
+                message=f"Permanently delete {count} listener(s)? This stops them and removes all data.",
+                on_confirm=lambda: batch_action(delete_listener, "Deleted", "positive"),
+                confirm_label="DELETE",
+            )
             return None
 
         with ui.button(
             "START",
             icon="play_arrow",
             on_click=lambda: batch_action(start_listener_from_existing, "Started", "positive"),
-        ).props("flat dense color=green no-caps size=sm"):
+        ).props("flat dense no-caps size=sm").classes("tech-btn-action"):
             formatted_tooltip(
                 title="Start a stopped listener",
-                body=("The listener must already exist to be restarted."),
+                body="The listener must already exist to be restarted.",
                 footer="To spawn a new listener, click the '+ listener' button",
             )
 
         with ui.button(
             "RESTART", icon="restart_alt", on_click=lambda: batch_action(restart_listener, "Restarted", "positive")
-        ).props("flat dense color=orange no-caps size=sm"):
+        ).props("flat dense no-caps size=sm").classes("tech-btn-secondary"):
             formatted_tooltip(
                 title="Restart the Listener",
                 body=(
@@ -262,9 +282,9 @@ async def render_listeners_table():
                 ),
             )
 
-        with ui.button("STOP", icon="stop", on_click=lambda: batch_action(stop_listener, "Stopped", "negative")).props(  # noqa
-            "flat dense color=red no-caps size=sm"
-        ):
+        with ui.button("STOP", icon="stop", on_click=lambda: batch_action(stop_listener, "Stopped", "negative")).props(
+            "flat dense no-caps size=sm"
+        ).classes("tech-btn-destructive"):
             formatted_tooltip(
                 title="Stop Listener",
                 body=(
@@ -276,17 +296,12 @@ async def render_listeners_table():
                 footer="(Acts like a pause button)",
             )
 
-        with ui.button(
-            "DELETE", icon="delete", on_click=lambda: batch_action(delete_listener, "Delete listener", "positive")
-        ).props("flat dense color=purple no-caps size=sm"):
-            # ui.tooltip("Stop, and DELETE a listener from the database. This listener will cease to exist.")
+        with ui.button("DELETE", icon="delete", on_click=lambda: batch_delete()).props(
+            "flat dense no-caps size=sm"
+        ).classes("tech-btn-destructive"):
             formatted_tooltip(
                 title="Delete Listener",
-                body=(
-                    "Stops, and deletes the listener from the Database.\n"
-                    "The listener will be nuked from existence via this action"
-                ),
-                footer="\n",  # add a \n so there's space at the bottom, and the whole message shows.
+                body="Stops, and deletes the listener from the Database permanently.",
             )
 
 

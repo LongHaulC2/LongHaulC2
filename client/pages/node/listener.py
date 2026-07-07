@@ -9,12 +9,13 @@ from client.modules.api_calls import (
     start_listener_from_existing,
     stop_listener,
 )
-from client.pages.components.dashboard_widgets import back_button, flat_stat
+from client.pages.components.dashboard_widgets import back_button, confirm_action, flat_stat
 from client.pages.components.metadata_view import MetadataView
 from client.pages.components.notes_editor import GenericNotesEditor
 from client.pages.footer import build_footer
 from client.pages.formatted_tooltip import formatted_tooltip
 from client.pages.menu import setup_menu
+from client.utils.helpers import notify
 
 server_log = structlog.getLogger("server")
 
@@ -71,16 +72,15 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
                     "START",
                     icon="play_arrow",
                     on_click=lambda: start_listener_from_existing(listener_uuid=listener_uuid),
-                ).props("flat dense color=green no-caps size=sm"):
+                ).props("flat dense no-caps size=sm").classes("tech-btn-action"):
                     formatted_tooltip(
                         title="Start a stopped listener",
-                        body=("The listener must already exist to be restarted."),
-                        footer="To spawn a new listener, click the '+ listener' button",
+                        body="The listener must already exist to be restarted.",
                     )
 
                 with ui.button(
                     "RESTART", icon="restart_alt", on_click=lambda: restart_listener(listener_uuid=listener_uuid)
-                ).props("flat dense color=orange no-caps size=sm"):
+                ).props("flat dense no-caps size=sm").classes("tech-btn-secondary"):
                     formatted_tooltip(
                         title="Restart the Listener",
                         body=(
@@ -89,31 +89,36 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
                         ),
                     )
 
-                with ui.button("STOP", icon="stop", on_click=lambda: stop_listener(listener_uuid=listener_uuid)).props(  # noqa
-                    "flat dense color=red no-caps size=sm"
-                ):
+                with ui.button("STOP", icon="stop", on_click=lambda: stop_listener(listener_uuid=listener_uuid)).props(
+                    "flat dense no-caps size=sm"
+                ).classes("tech-btn-destructive"):
                     formatted_tooltip(
                         title="Stop Listener",
                         body=(
                             "Stops the listener process without deleting it.\n"
-                            "The listener remains in the database,\n"
-                            "is still a valid compile target,\n"
-                            "and can be restarted at any time."
+                            "The listener remains in the database and can be restarted."
                         ),
                         footer="(Acts like a pause button)",
                     )
 
+                async def do_delete():
+                    await delete_listener(listener_uuid=listener_uuid)
+                    notify("Listener deleted", type="positive")
+                    ui.navigate.to("/listeners")
+
                 with ui.button(
-                    "DELETE", icon="delete", on_click=lambda: delete_listener(listener_uuid=listener_uuid)
-                ).props("flat dense color=purple no-caps size=sm"):
-                    # ui.tooltip("Stop, and DELETE a listener from the database. This listener will cease to exist.")
+                    "DELETE",
+                    icon="delete",
+                    on_click=lambda: confirm_action(
+                        title="DELETE LISTENER",
+                        message="Permanently delete this listener? This stops it and removes all data.",
+                        on_confirm=do_delete,
+                        confirm_label="DELETE",
+                    ),
+                ).props("flat dense no-caps size=sm").classes("tech-btn-destructive"):
                     formatted_tooltip(
                         title="Delete Listener",
-                        body=(
-                            "Stops, and deletes the listener from the Database.\n"
-                            "The listener will be nuked from existence via this action"
-                        ),
-                        footer="\n",  # add a \n so there's space at the bottom, and the whole message shows.
+                        body="Stops, and deletes the listener from the Database permanently.",
                     )
 
         # ====================

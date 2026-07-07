@@ -81,9 +81,12 @@ async def audit_view():
                     ui.label("ALL").classes("tech-label-sub")
                     formatted_tooltip("Download entire audit log as CSV")
 
-                ui.button(icon="refresh", on_click=lambda: load_data()).props("dense flat size=sm").classes(
-                    "tech-btn-action-2"
-                )
+                with (
+                    ui.button(icon="refresh", on_click=lambda: load_data())
+                    .props("dense flat size=sm")
+                    .classes("tech-btn-secondary")
+                ):
+                    formatted_tooltip("Refresh")
 
         # Filters row
         with ui.row().classes("w-full h-10 gap-4 bg-[#0c0c0c] border-b border-white/5 items-center px-4 shrink-0"):
@@ -202,8 +205,12 @@ async def audit_view():
                 ui.label("DETAIL").classes("tech-label-sub flex-grow")
 
             if not state["entries"]:
-                with ui.row().classes("w-full justify-center p-8"):
-                    ui.label("No audit entries found").classes("text-neutral-500 font-mono text-sm")
+                with ui.column().classes("tech-empty-state w-full"):
+                    ui.icon("policy", size="xl", color="emerald-5")
+                    ui.label("No audit entries found").classes("tech-label-sub text-neutral-500")
+                    ui.label("Activity will appear here as operators interact with the system").classes(
+                        "tech-label-sub text-neutral-600 text-[10px]"
+                    )
                 return
 
             for entry in state["entries"]:
@@ -224,7 +231,7 @@ async def audit_view():
                         "font-mono text-[11px] text-neutral-500 w-[80px] shrink-0"
                     )
                     ui.label(entry.get("target_uuid", "-") or "-").classes(
-                        "font-mono text-[11px] text-neutral-500 w-[280px] shrink-0 truncate"
+                        "font-mono text-[11px] text-neutral-500 w-[280px] shrink-0"
                     )
                     ui.label(entry.get("detail", "-") or "-").classes(
                         "font-mono text-[11px] text-neutral-400 flex-grow truncate"

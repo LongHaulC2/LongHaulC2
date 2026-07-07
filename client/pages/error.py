@@ -50,12 +50,13 @@ def generate_error(exception: Exception) -> None:
 
                 ui.run_javascript(f'window.open("{github_url}", "_blank")')
 
-            # Action buttons grouped in a neat row
             with ui.row().classes("w-full justify-center gap-4 mt-4"):
-                ui.button(
-                    "Go to Login", icon="login", color="primary", on_click=lambda: ui.navigate.to("/login")
-                ).props("outline")
-                ui.button("Report Issue on GitHub", icon="bug_report", color="negative", on_click=on_github_click)
+                ui.button("Go to Login", icon="login", on_click=lambda: ui.navigate.to("/login")).props(
+                    "outline dense no-caps color=emerald"
+                ).classes("font-mono text-xs font-bold tracking-wider")
+                ui.button("Report Issue on GitHub", icon="bug_report", on_click=on_github_click).props(
+                    "unelevated dense no-caps color=red"
+                ).classes("font-mono text-xs font-bold tracking-wider")
 
 
 @ui.page("/raise_runtime_error")

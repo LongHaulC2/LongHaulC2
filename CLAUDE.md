@@ -352,6 +352,30 @@ The audit helper (`server/db/audit.py`) exposes `log_audit(actor, action, target
 
 **Notifications:** Never call `ui.notify()` directly in `client/`. Use `notify()` from `client.utils.helpers` instead — it reads `notification_position` from user storage so the user's preference is applied everywhere.
 
+**UI Design System (`client/static/theme.css`):** All buttons, empty states, and confirmation dialogs use semantic CSS classes:
+
+| Class | Usage |
+|---|---|
+| `tech-btn-action` | Primary actions (start, create, save) — green border/bg |
+| `tech-btn-action-2` | Toolbar/secondary actions (open page, terminal, upload) — muted green |
+| `tech-btn-secondary` | Neutral actions (refresh, export, restart) — grey border |
+| `tech-btn-destructive` | Destructive actions (delete, stop) — red border/bg |
+| `tech-btn-ghost` | Invisible until hover (back button, subtle controls) |
+| `tech-empty-state` | Empty table/list placeholder (centered icon + message) |
+| `tech-confirm-dialog` | Destructive action confirmation dialog card |
+| `tech-table-head` | Standardized table header row styling |
+| `tech-table-base` | Base table class (no shadow, transparent bg, sticky headers) |
+
+**Shared UI components (`client/pages/components/dashboard_widgets.py`):**
+- `flat_stat(label, value, icon, color)` — inline stat pill for detail page headers
+- `stat_widget(label, icon, color, key, stats_dict)` — reactive stat widget with `bind_text_from`
+- `empty_state(icon, message, action_label, on_action)` — reusable empty state with optional CTA
+- `confirm_action(title, message, on_confirm, confirm_label, icon)` — standardized destructive action confirmation dialog
+- `info_row(key, value)` — key/value row for metadata panels
+- `back_button()` — async back navigation button using tab storage
+
+When adding destructive actions (delete, stop, remove), always wrap in `confirm_action()`. When adding tables, include a `no-data` slot using the `tech-empty-state` pattern. UUIDs and hashes must always be displayed in full — never truncate them.
+
 ---
 
 # Behavioral Rules

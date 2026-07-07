@@ -57,7 +57,7 @@ async def render_dashboard(nic_data: dict, nic_uuid: str):
             flat_stat("MAC ADDRESS", mac_address, "fingerprint", "emerald")
             flat_stat("IP ADDRESS", ip_address, "lan", "blue")
             flat_stat("STATUS", status, "info", "orange")
-            flat_stat("NIC UUID", nic_uuid[:8] + "...", "memory", "purple")
+            flat_stat("NIC UUID", nic_uuid, "memory", "purple")
 
         with ui.row().classes("w-full border-b border-white/5 bg-black/40 px-2 shrink-0"):
             tabs = (

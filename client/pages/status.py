@@ -93,13 +93,11 @@ async def status_page():
 
         with ui.scroll_area().classes("w-full flex-grow p-6"):  # noqa: SIM117
             with ui.row().classes("w-full items-start gap-8 flex-nowrap"):
-                # Column 1: Core
                 with ui.column().classes("w-1/2 gap-4"):
                     ui.label("CORE").classes("tech-label-header-section")
                     ui.separator()
                     core_container = ui.column().classes("w-full gap-2")
 
-                # Column 2: Listeners
                 with ui.column().classes("w-1/2 gap-4"):
                     ui.label("LISTENERS").classes("tech-label-header-section")
                     ui.separator()
@@ -168,19 +166,25 @@ async def status_page():
 
                 # Controls Side
                 with ui.row().classes("gap-1"):
-                    btn_start = ui.button(
-                        icon="play_arrow", on_click=lambda: handle_action(category, svc_name, "start")
-                    ).props("dense flat size=sm color=emerald-400")
+                    btn_start = (
+                        ui.button(icon="play_arrow", on_click=lambda: handle_action(category, svc_name, "start"))
+                        .props("dense flat size=sm")
+                        .classes("tech-btn-action")
+                    )
                     with btn_start:
                         formatted_tooltip("Start")
-                    btn_restart = ui.button(
-                        icon="restart_alt", on_click=lambda: handle_action(category, svc_name, "restart")
-                    ).props("dense flat size=sm color=blue-400")
+                    btn_restart = (
+                        ui.button(icon="restart_alt", on_click=lambda: handle_action(category, svc_name, "restart"))
+                        .props("dense flat size=sm")
+                        .classes("tech-btn-secondary")
+                    )
                     with btn_restart:
                         formatted_tooltip("Restart", body="Attempts to restart the given service")
 
-                    btn_stop = ui.button(icon="stop", on_click=lambda: handle_action(category, svc_name, "stop")).props(
-                        "dense flat size=sm color=red-400"
+                    btn_stop = (
+                        ui.button(icon="stop", on_click=lambda: handle_action(category, svc_name, "stop"))
+                        .props("dense flat size=sm")
+                        .classes("tech-btn-destructive")
                     )
                     with btn_stop:
                         formatted_tooltip("Stop", body="Attempts to stop the given service")

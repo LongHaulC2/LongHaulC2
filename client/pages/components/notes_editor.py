@@ -104,15 +104,22 @@ class GenericNotesEditor:
             self.status_label.text = "Save failed."
 
     def show_conflict_dialog(self):
-        """Displays a warning if the database was updated while the user was editing."""
-        with ui.dialog() as dialog, ui.card().classes("bg-slate-900 border border-red-500/50"):
-            ui.label("Conflict Detected").classes("text-lg text-red-400 font-bold")
-            ui.label("These notes were modified elsewhere since you opened them.")
-            ui.label("Saving now will overwrite the other changes.")
+        with ui.dialog() as dialog, ui.card().classes("tech-confirm-dialog w-[420px] p-0 rounded overflow-hidden"):
+            with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center gap-3"):
+                ui.icon("warning", color="red-500")
+                ui.label("CONFLICT DETECTED").classes("tech-label-sub text-red-400 font-bold")
 
-            with ui.row().classes("w-full justify-end mt-4"):
-                ui.button("Cancel", on_click=dialog.close).props("flat color=white")
-                ui.button("Force Overwrite", color="red", on_click=lambda: self._force_save(dialog))
+            with ui.column().classes("p-5 gap-2 w-full"):
+                ui.label(
+                    "These notes were modified elsewhere since you opened them. "
+                    "Saving now will overwrite the other changes."
+                ).classes("text-sm font-mono text-neutral-300 leading-relaxed")
+
+            with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"):
+                ui.button("CANCEL", on_click=dialog.close).props("flat dense color=grey no-caps")
+                ui.button("FORCE OVERWRITE", on_click=lambda: self._force_save(dialog)).props(
+                    "unelevated dense color=red no-caps"
+                ).classes("font-bold tracking-wide")
         dialog.open()
 
     async def _force_save(self, dialog):
