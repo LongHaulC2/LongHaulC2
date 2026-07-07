@@ -50,10 +50,9 @@ def setup_menu(title: str):
 
     # Drawer Content
     with left_drawer:  # noqa: SIM117
-        with ui.column().classes("h-full w-full p-6 gap-1"):
-            # BRANDING
-            with ui.row().classes("w-full items-center gap-3 mb-8 px-2 opacity-90 mt-2"):
-                # ui.icon("hub", size="md", color="emerald-500").classes("animate-pulse")
+        with ui.column().classes("h-full w-full gap-0"):
+            # BRANDING (pinned top)
+            with ui.row().classes("w-full items-center gap-3 px-8 pt-8 pb-4 opacity-90"):
                 ui.image("/static/world_outline.png").classes(
                     "p-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 w-12"
                 ).classes("animate-pulse")
@@ -61,14 +60,10 @@ def setup_menu(title: str):
                     ui.label("LONGHAUL").classes("tech-label-header")
                     ui.label("C2 FRAMEWORK").classes("tech-label-sub !text-emerald-500")
 
-            # NAVIGATION
+            # NAVIGATION (scrollable)
             def nav_btn(label, icon, target):
-                # Check if this is the active page (Simple string matching on title)
-                # You might need to adjust mapping if 'title' doesn't exactly match the button label
                 is_active = label.lower() in title.lower()
 
-                # Active Styling vs Inactive Styling
-                # #noqa: E501, HTML style
                 base_classes = (
                     "w-full rounded transition-all duration-300 font-mono text-xs tracking-wide px-4 py-3 border-l-2"  # noqa: E501
                 )
@@ -77,61 +72,56 @@ def setup_menu(title: str):
                     style_classes = f"{base_classes} text-emerald-400 bg-white/5 border-emerald-500 font-bold"
                     icon_color = "emerald"
                 else:
-                    # #noqa: E501, HTML style
                     style_classes = f"{base_classes} text-neutral-400 hover:text-emerald-400 hover:bg-white/5 border-transparent hover:border-emerald-500"  # noqa: E501
-                    icon_color = None  # Inherit
+                    icon_color = None
 
                 ui.button(label, icon=icon, on_click=lambda: smooth_navigate(target)).props(
                     f"flat no-caps align=left color={icon_color or 'grey'}"
                 ).classes(style_classes)
 
-            # Render Buttons
-            ui.separator().classes("bg-white/5 mt-2 mb-2")
-            ui.label("OPERATIONS").classes("tech-label-sub")
-            nav_btn("OPERATIONS", "terminal", "/operations")
-            nav_btn("ENGAGEMENT_MAP", "device_hub", "/graph")
-            nav_btn("PAYLOADS", "layers", "/payloads")
-            nav_btn("LISTENERS", "headphones", "/listeners")
+            with ui.scroll_area().classes("flex-grow w-full"), ui.column().classes("w-full px-6 gap-1"):
+                ui.separator().classes("bg-white/5 mt-2 mb-2")
+                ui.label("OPERATIONS").classes("tech-label-sub")
+                nav_btn("OPERATIONS", "terminal", "/operations")
+                nav_btn("ENGAGEMENT_MAP", "device_hub", "/graph")
+                nav_btn("PAYLOADS", "layers", "/payloads")
+                nav_btn("LISTENERS", "headphones", "/listeners")
 
-            ui.separator().classes("bg-white/5 mt-4 mb-2")
-            ui.label("RESOURCES").classes("tech-label-sub")
+                ui.separator().classes("bg-white/5 mt-4 mb-2")
+                ui.label("RESOURCES").classes("tech-label-sub")
 
-            base_classes = (
-                "w-full rounded transition-all duration-300 font-mono text-xs tracking-wide px-4 py-3 border-l-2"
-            )
-            ext_classes = f"{base_classes} text-neutral-400 hover:text-emerald-400 hover:bg-white/5 border-transparent hover:border-emerald-500"  # noqa: E501
-            ui.button(
-                "DOCS",
-                icon="open_in_new",
-                on_click=lambda: ui.navigate.to(EXTERNAL_DOC_ENDPOINT, new_tab=True),
-            ).props("flat no-caps align=left color=grey").classes(ext_classes)
-
-            nav_btn("FILESTORE", "folder", "/filestore")
-            nav_btn("PROFILES", "tune", "/profile-preview")
-
-            ui.separator().classes("bg-white/5 mt-4 mb-2")
-            ui.label("COMMS").classes("tech-label-sub")
-            nav_btn("CHAT", "chat", "/comms")
-
-            ui.separator().classes("bg-white/5 mt-4 mb-2")
-            ui.label("ADMIN").classes("tech-label-sub")
-            nav_btn("STATUS", "arrow_circle_up", "/status")
-            nav_btn("SETTINGS", "settings", "/settings")
-
-            # FOOTER
-            ui.separator().classes("bg-white/5 mt-4 mb-2")
-
-            nav_btn("DISCONNECT", "exit_to_app", "/logout")
-
-            with ui.column().classes("w-full gap-1 opacity-50 mb-2"):
-                ui.separator().classes("bg-white/10 mb-2")
-                # with ui.row().classes("w-full justify-between px-2"):
-                #     ui.label("SYS_STATUS:").classes(
-                #         "text-[9px] font-mono text-neutral-500"
-                #     )
-                #     ui.label("ONLINE").classes(
-                #         "text-[9px] font-bold font-mono text-emerald-500"
-                #     )
-                ui.label(f"LONGHAULC2 // {VERSION_NUMBER}").classes(
-                    "text-[12px] font-mono text-neutral-600 w-full text-center mt-1"
+                base_classes = (
+                    "w-full rounded transition-all duration-300 font-mono text-xs tracking-wide px-4 py-3 border-l-2"  # noqa: E501
                 )
+                ext_classes = f"{base_classes} text-neutral-400 hover:text-emerald-400 hover:bg-white/5 border-transparent hover:border-emerald-500"  # noqa: E501
+                ui.button(
+                    "DOCS",
+                    icon="open_in_new",
+                    on_click=lambda: ui.navigate.to(EXTERNAL_DOC_ENDPOINT, new_tab=True),
+                ).props("flat no-caps align=left color=grey").classes(ext_classes)
+
+                nav_btn("FILESTORE", "folder", "/filestore")
+                nav_btn("PROFILES", "tune", "/profile-preview")
+
+                ui.separator().classes("bg-white/5 mt-4 mb-2")
+                ui.label("COMMS").classes("tech-label-sub")
+                nav_btn("CHAT", "chat", "/comms")
+
+                ui.separator().classes("bg-white/5 mt-4 mb-2")
+                ui.label("SYSTEM").classes("tech-label-sub")
+                nav_btn("AUDIT LOG", "policy", "/audit")
+                nav_btn("STATUS", "arrow_circle_up", "/status")
+
+                ui.separator().classes("bg-white/5 mt-4 mb-2")
+                ui.label("ADMIN").classes("tech-label-sub")
+                nav_btn("SETTINGS", "settings", "/settings")
+
+            # FOOTER (pinned bottom)
+            with ui.column().classes("w-full px-6 pb-4 pt-2 gap-1"):
+                ui.separator().classes("bg-white/5 mb-2")
+                nav_btn("DISCONNECT", "exit_to_app", "/logout")
+                with ui.column().classes("w-full gap-1 opacity-50"):
+                    ui.separator().classes("bg-white/10 mb-2")
+                    ui.label(f"LONGHAULC2 // {VERSION_NUMBER}").classes(
+                        "text-[12px] font-mono text-neutral-600 w-full text-center mt-1"
+                    )

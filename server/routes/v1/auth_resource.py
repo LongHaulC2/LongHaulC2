@@ -6,6 +6,7 @@ from werkzeug.exceptions import abort
 
 from ...api_models.authentication import AUTH_LOGIN_RESPONSE, AUTH_POST_INPUT, AUTH_REGISTER_RESPONSE
 from ...api_models.error import COMMON_ERRORS
+from ...db.audit import log_audit
 from ...db.mysql_connector import get_mysql_session
 from ...db.mysql_functions import MySQLUserService
 from ...instance import api
@@ -41,6 +42,7 @@ class Auth(Resource):
             valid = svc.validate_password(username=username, password=password)
 
             if not valid:
+                log_audit(username, "login_failed", "user", username)
                 return APIResponse(status="200", message="Login Failed", data={})
 
             totp_secret = svc.get_totp_secret(username)
@@ -58,6 +60,8 @@ class Auth(Resource):
 
         access_token = create_access_token(identity=username)
         refresh_token = create_refresh_token(identity=username)
+
+        log_audit(username, "login_success", "user", username)
 
         response = {"access_token": access_token, "refresh_token": refresh_token}
         return APIResponse(status="200", message="Login Successful", data=response)
@@ -101,6 +105,8 @@ class Register(Resource):
         with get_mysql_session() as session:
             user_login = MySQLUserService(session)
             user_login.register_user(username=username, password=password)
+
+        log_audit(get_jwt_identity(), "user_registered", "user", username)
 
         return APIResponse(status="200", message="User registered successfully")
 

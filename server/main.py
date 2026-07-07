@@ -68,6 +68,7 @@ def parse_args():
 # noqa 402 as these need to be imported here, rather than earlier
 # last, explicitly setup errors
 from .api_extensions.error_definitions import *  # noqa: F403, E402
+from .routes.v1.audit_resource import *  # noqa: F403, E402
 from .routes.v1.auth_resource import *  # noqa: F403, E402
 from .routes.v1.build_resource import *  # noqa: F403, E402
 from .routes.v1.chat_resource import *  # noqa: F403, E402

@@ -255,6 +255,7 @@ Defaults: `http://localhost:45045` / `longhaul` / `P@ssw0rd1!` (from `.env`).
 - `test_build.py` — submits a build job and verifies acceptance only (HTTP 200 + `build_uuid`); does **not** poll for completion since the cross-compiler toolchain is not present on dev machines
 - `test_profiles.py` — profile preview endpoint: valid raw profile (`raw_http_profile.toml`, asserts `raw_profiles` populated), raw simple TOML (one `"default"` entry), minimal TOML with no `[raw]` section returns empty `raw_profiles`, malformed TOML (HTTP 200 with parse_ok=false), missing profile_contents (HTTP 400), unauthenticated (HTTP 401). Profile CRUD: upload, list, get-by-name, upsert-same-hash (no-op), upsert-different-content (hash changes), delete, bulk seed, unauthenticated list (401)
 - `test_transforms.py` — symcrypt (AES-256-GCM) unit tests: encrypt/decrypt round-trip (basic, empty, 64KB), wire format layout verification, nonce uniqueness, wrong-key rejection, tampered-ciphertext detection, bad key/data length errors. Transform chain tests: `val` and `key` field support, symcrypt+base64 combo, symcrypt+prepend+append combo
+- `test_audit.py` — pagination: default response shape, custom limit, offset, total_count consistency, limit clamping (min 1, max 1000), negative offset clamping, filter-by-action, filter-by-actor, newest-first ordering. Export: CSV format validation, filtered export, unauthenticated access (401). Auth: unauthenticated list (401)
 
 **Implant response tests (`tests/integration_test/test_implant_responses.py`) — need to know:**
 
@@ -333,7 +334,19 @@ make create_docker_images  # rebuild from setup/docker_images/
 - `/comms` (`client/pages/comms.py`) — operator chat, polls server for messages, uses `ui.markdown` for rendering
 - Login page shows a soft warning popup when logging in as the default `longhaul` account; enforces TOTP at login if the user has it configured
 
+**Audit Log API** (`server/routes/v1/audit_resource.py`, namespace `audit`):
+- `GET /api/v1/audit/?actor=&action=&target_type=&since=&limit=&offset=` — retrieve audit entries with pagination. Returns `{entries, total_count, limit, offset}`. Default limit 50, max 1000. Offset and limit are clamped to valid ranges.
+- `GET /api/v1/audit/export?actor=&action=&target_type=&since=` — download all matching audit entries as a CSV file (no limit). Returns `text/csv` with `Content-Disposition: attachment`.
+
+Tracked actions: `login_success`, `login_failed`, `task_queued`, `implant_deleted`, `listener_created`, `listener_started`, `listener_stopped`, `listener_deleted`, `file_uploaded`, `file_deleted`, `user_registered`, `user_deleted`.
+
+The audit helper (`server/db/audit.py`) exposes `log_audit(actor, action, target_type, target_uuid, detail)` — call it from any route handler to record an event. Entries are stored in MySQL (`audit_log` table) with millisecond timestamps.
+
+**Audit UI page:**
+- `/audit` (`client/pages/audit.py`) — filterable, paginated table of operator activity. Page controls at the bottom with configurable page size (25/50/100). Two export buttons: "CSV" exports the current page, "ALL" downloads the entire log via the `/export` endpoint.
+
 **Database models added:**
+- `AuditLog` (id, timestamp, actor, action, target_type, target_uuid, detail) — operator activity log
 - `UserLogin.totp_secret` (nullable String) — stores TOTP secret for 2FA
 - `ChatMessage` (id, sender, message, timestamp) — chat message storage
 
