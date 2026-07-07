@@ -11,24 +11,14 @@ from client.modules.api_calls import (
     get_payload_source_bytes,
 )
 from client.modules.navigate_hook import get_current_uri, navigate
+from client.pages.components.dashboard_widgets import stat_widget
 from client.pages.footer import build_footer
 from client.pages.formatted_tooltip import formatted_tooltip
 from client.pages.menu import setup_menu
-
-# Imports
 from client.utils.helpers import notify
 
 server_log = structlog.getLogger("server")
 payload_stats = {"total": "0", "active_listeners": "0", "latest": "N/A"}
-
-
-def stat_widget(label: str, icon: str, color: str, key: str):
-    """Compact telemetry widget for the sub-header bar"""
-    with ui.element("div").classes("flex-1 h-full px-4 gap-2 flex items-center border-r border-white/5 bg-white/2"):
-        ui.icon(icon, size="14px", color=f"{color}-500").classes("opacity-70")
-        ui.label(label).classes("tech-label-sub")
-        # .classes("text-[10px] font-mono tracking-tighter text-neutral-500 uppercase")
-        ui.label().bind_text_from(payload_stats, key).classes("tech-label-sub")
 
 
 @ui.page("/payloads")
@@ -43,6 +33,8 @@ async def payloads():
 
 
 async def payloads_view():
+    refresh_ref = [None]
+
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
         # HEADER
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
@@ -58,24 +50,25 @@ async def payloads_view():
                 ):
                     ui.icon("add", size="xs").classes("mr-1")
                     ui.label("PAYLOAD").classes("tech-label-sub")
-                    # ui.tooltip("Build New Payload")
                     formatted_tooltip(title="Build a new payload")
-                ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/payloads")).props(
-                    "dense flat size=sm"
-                ).classes("tech-btn-action-2")
+                with (
+                    ui.button(icon="refresh", on_click=lambda: refresh_ref[0]())
+                    .props("dense flat size=sm")
+                    .classes("tech-btn-secondary")
+                ):
+                    formatted_tooltip("Refresh")
 
-        # SUB-HEADER TELEMETRY (High & Tight)
         with ui.row().classes("w-full h-8 gap-0 bg-[#0c0c0c] border-b border-white/5 items-center"):
-            stat_widget("Total Artifacts:", "storage", "emerald", "total")
-            stat_widget("Active Listeners:", "hub", "blue", "active_listeners")
-            stat_widget("Latest Build:", "history", "purple", "latest")
+            stat_widget("Total Artifacts:", "storage", "emerald", "total", payload_stats)
+            stat_widget("Active Listeners:", "hub", "blue", "active_listeners", payload_stats)
+            stat_widget("Latest Build:", "history", "purple", "latest", payload_stats)
 
         # CONTENT
         with ui.column().classes("w-full p-0 flex-grow overflow-hidden"):
-            await render_payloads_table()
+            await render_payloads_table(refresh_ref)
 
 
-async def render_payloads_table():
+async def render_payloads_table(refresh_ref):
     # Header Search Strip
     with ui.row().classes("w-full items-center px-2 py-1 bg-white/2"):
         filter_text = (
@@ -151,15 +144,25 @@ async def render_payloads_table():
             }
         )
 
+    refresh_ref[0] = refresh_data
     await refresh_data()
 
-    # Table Slots
     table.add_slot(
         "header",
         r"""
-        <q-tr :props="props" class="bg-black/40 text-neutral-500 uppercase text-[10px] font-bold tracking-widest">
+        <q-tr :props="props" class="tech-table-head">
             <q-th v-for="col in props.cols" :key="col.name" :props="props">{{ col.label }}</q-th>
         </q-tr>
+    """,
+    )
+
+    table.add_slot(
+        "no-data",
+        r"""
+    <div class="tech-empty-state w-full">
+        <q-icon name="layers" size="xl" color="emerald-5" />
+        <span class="tech-label-sub text-neutral-500">No payloads built yet</span>
+    </div>
     """,
     )
 
@@ -177,7 +180,7 @@ async def render_payloads_table():
         "body-cell-hash",
         r"""
         <q-td :props="props">
-            <span class="font-mono text-[12px] opacity-40 hover:opacity-100 cursor-pointer">{{ props.value }}</span>
+            <span class="font-mono text-[11px] opacity-50 hover:opacity-100">{{ props.value }}</span>
         </q-td>
     """,
     )

@@ -13,6 +13,7 @@ from client.modules.api_calls import (
     search_server,
 )
 from client.modules.task_parser import ResultType, build_cli_parser, get_all_command_names, task_tree
+from client.pages.components.dashboard_widgets import confirm_action
 from client.pages.dialogues import upload_to_implant_dialog
 from client.pages.footer import build_footer
 from client.pages.formatted_tooltip import formatted_tooltip
@@ -139,48 +140,44 @@ async def implant_view(syntax_drawer):
 
                 ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
 
-                # Terminal (Open)
                 with (
                     ui.button(icon="terminal", on_click=lambda: action_open_terminal())
-                    .classes("tech-btn-action-2 tech-btn-action-2")
+                    .classes("tech-btn-action-2")
                     .props("dense flat size=sm square")
                 ):
                     formatted_tooltip("Open Terminal for Selected")
 
                 with (
                     ui.button(
-                        # get all selected to upload to
                         icon="present_to_all",
                         on_click=lambda: upload_to_implant_dialog([row["implant_uuid"] for row in table.selected]),
                     )
-                    .classes("text-orange-400 hover:text-orange-200 transition-colors tech-btn-action-2")
+                    .classes("tech-btn-action-2")
                     .props("dense flat size=sm square")
                 ):
-                    formatted_tooltip("Upload File To Host/Memstore of selected")
+                    formatted_tooltip("Upload File To Host/Memstore")
                 with (
                     ui.button(icon="open_in_new", on_click=lambda: action_open_implant_page())
-                    .classes("tech-btn-action-2 tech-btn-action-2")
+                    .classes("tech-btn-action-2")
                     .props("dense flat size=sm square")
                 ):
                     formatted_tooltip("Open Page for Selected")
 
-                # Refresh
                 with (
                     ui.button(icon="refresh", on_click=lambda: refresh())
-                    .classes("tech-btn-action-2 tech-btn-action-2")
+                    .classes("tech-btn-secondary")
                     .props("dense flat size=sm square")
                 ):
                     formatted_tooltip("Force Refresh")
 
                 ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
 
-                # Delete
                 with (
-                    ui.button(icon="delete", on_click=lambda: action_delete_rows())
-                    .classes("text-red-400 hover:text-red-200 transition-colors tech-btn-action-2")
+                    ui.button(icon="delete", on_click=lambda: action_confirm_delete())
+                    .classes("tech-btn-destructive")
                     .props("dense flat size=sm square")
                 ):
-                    formatted_tooltip("Nuke Selected")
+                    formatted_tooltip("Delete Selected Implants")
         # Table Container
         with ui.column().classes(" w-full flex-grow relative overflow-hidden bg-transparent"):
             table = (
@@ -274,7 +271,7 @@ async def implant_view(syntax_drawer):
             table.add_slot(
                 "header",
                 r"""
-<q-tr :props="props" class="bg-white/5 text-neutral-400 uppercase text-xs tracking-wider border-b border-white/10">
+<q-tr :props="props" class="tech-table-head">
     <q-th auto-width>
         <q-checkbox dense size="sm" v-model="props.selected" />
     </q-th>
@@ -294,20 +291,23 @@ async def implant_view(syntax_drawer):
 
     async def action_delete_rows():
         ids = [row["implant_uuid"] for row in table.selected]
-
-        # Remove rows locally
         table.rows = [row for row in table.rows if row["implant_uuid"] not in ids]
-
-        # Clear selected, this fixes a "selected but not in table" bug when opening a terminal
         table.selected = []
-
         table.update()
-
-        # Then delete from backend
         for implant_uuid in ids:
             await delete_implant(implant_uuid=implant_uuid)
-
         await refresh()
+
+    def action_confirm_delete():
+        if not table.selected:
+            return
+        count = len(table.selected)
+        confirm_action(
+            title="DELETE IMPLANTS",
+            message=f"Delete {count} implant(s)? This removes all associated data.",
+            on_confirm=action_delete_rows,
+            confirm_label="DELETE",
+        )
 
     async def action_open_implant_page():
         ids = [row["implant_uuid"] for row in table.selected]
@@ -348,7 +348,7 @@ async def terminal_view():
             with (
                 ui.button(icon="delete_sweep", on_click=terminal_close_all)
                 .props("flat dense square size=sm")
-                .classes("text-neutral-500 hover:text-red-400 transition-colors tech-btn-action-2")
+                .classes("tech-btn-destructive")
             ):
                 formatted_tooltip("Close All Terminals")
 
@@ -378,9 +378,9 @@ async def terminal_add_tab(implant_uuid: str):
             with ui.row().classes("items-center gap-2"):
                 # Display the short label visually
                 ui.label(tab_label).classes("tech-label-sub")
-                ui.button("✕", on_click=lambda: terminal_close_tab(implant_uuid)).props("flat dense size=xs").classes(
-                    "text-neutral-600 hover:text-white px-0"
-                )
+                ui.button(icon="close", on_click=lambda: terminal_close_tab(implant_uuid)).props(
+                    "flat dense square size=sm"
+                ).classes("text-neutral-600 hover:text-red-400")
 
     # Create Panel with matching 'name'
     with panels, ui.tab_panel(name=tab_id).classes("p-0 w-full h-full") as panel:

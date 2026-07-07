@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, Any
 
 import pytest
+import requests
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
@@ -150,6 +151,24 @@ class FullC2APIClient(C2APIClient):
             self._log_error(response, payload)
         response.raise_for_status()
         return response.json()
+
+    # -- Audit helpers --
+
+    def get_audit(self, **params) -> Dict[str, Any]:
+        url = str(self.base_url / "audit")
+        response = self.session.get(url, params=params)
+        if not response.ok:
+            self._log_error(response)
+        response.raise_for_status()
+        return response.json()
+
+    def get_audit_export(self, **params) -> requests.Response:
+        url = str(self.base_url / "audit" / "export")
+        response = self.session.get(url, params=params)
+        if not response.ok:
+            self._log_error(response)
+        response.raise_for_status()
+        return response
 
 
 _RAW_PROFILE_TOML = """

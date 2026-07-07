@@ -4,12 +4,13 @@ import io
 import structlog
 from edwh_uuid7 import uuid7
 from flask import request, send_file
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Namespace, Resource
 from werkzeug.exceptions import abort
 
 from ...api_models.error import COMMON_ERRORS
 from ...api_models.filestore import FILE_GET_RESPONSE, FILE_POST_INPUT, FILE_POST_RESPONSE, FILEACTIONS_DELETE_RESPONSE
+from ...db.audit import log_audit
 from ...db.mysql_connector import get_mysql_session
 from ...db.mysql_functions import MySQLImplantFileService
 from ...instance import api
@@ -54,6 +55,8 @@ class File(Resource):
             file_service = MySQLImplantFileService(session)
             # snag UUID
             file_uuid = file_service.register_file(file_name=file_name, file_bytes=file_bytes, file_uuid=file_uuid)
+
+        log_audit(get_jwt_identity(), "file_uploaded", "file", file_uuid, detail=file_name)
 
         response = {"file_uuid": file_uuid}
         # Return immediately
@@ -159,6 +162,8 @@ class FileActions(Resource):
         with get_mysql_session() as session:
             file_service = MySQLImplantFileService(session)
             file_service.delete_file(file_uuid=file_uuid)
+
+        log_audit(get_jwt_identity(), "file_deleted", "file", file_uuid)
 
         return APIResponse(
             status="200",

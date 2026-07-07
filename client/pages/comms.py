@@ -60,6 +60,12 @@ async def chat_view():
     def render_messages():
         message_container.clear()
         with message_container:
+            if not state["messages"]:
+                with ui.column().classes("tech-empty-state w-full mt-8"):
+                    ui.icon("chat_bubble_outline", size="xl", color="emerald-5")
+                    ui.label("No messages yet").classes("tech-label-sub text-neutral-500")
+                return
+
             for msg in state["messages"]:
                 ts_ms = msg.get("timestamp", 0)
                 ts_str = datetime.datetime.fromtimestamp(ts_ms / 1000, tz=datetime.UTC).strftime("%H:%M:%S")

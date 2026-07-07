@@ -13,6 +13,7 @@ from client.modules.api_calls import (
     setup_totp,
     verify_totp,
 )
+from client.pages.components.dashboard_widgets import confirm_action
 from client.pages.menu import setup_menu
 from client.utils.helpers import notify
 
@@ -370,25 +371,33 @@ async def _build_profile_tab() -> None:
                         else:
                             notify("Failed to delete account", type="negative")
 
-                    with ui.dialog() as confirm_dialog, ui.card().classes("bg-[#0a0a0a] border border-red-500/30"):
-                        ui.label("Are you sure? This will permanently delete your account.").classes(
-                            "text-sm font-mono text-neutral-300"
-                        )
-                        with ui.row().classes("w-full justify-end gap-3 mt-4"):
+                    with ui.dialog() as confirm_dialog, ui.card().classes(
+                        "tech-confirm-dialog w-[420px] p-0 rounded overflow-hidden"
+                    ):
+                        with ui.row().classes(
+                            "w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center gap-3"
+                        ):
+                            ui.icon("warning", color="red-500")
+                            ui.label("DELETE ACCOUNT").classes("tech-label-sub text-red-400 font-bold")
+
+                        with ui.column().classes("p-5 gap-2 w-full"):
+                            ui.label(
+                                "Are you sure? This will permanently delete your account " "and cannot be undone."
+                            ).classes("text-sm font-mono text-neutral-300 leading-relaxed")
+
+                        with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"):
+                            ui.button("CANCEL", on_click=confirm_dialog.close).props("flat dense color=grey no-caps")
                             ui.button(
                                 "DELETE",
                                 on_click=lambda: (
                                     confirm_dialog.close(),
                                     handle_delete_account(),
                                 ),
-                            ).props("unelevated dense color=red").classes("font-mono text-xs font-bold")
-                            ui.button("CANCEL", on_click=confirm_dialog.close).props(
-                                "outline dense color=grey"
-                            ).classes("font-mono text-xs")
+                            ).props("unelevated dense color=red no-caps").classes("font-bold tracking-wide")
 
-                    ui.button("DELETE MY ACCOUNT", on_click=confirm_dialog.open).props(
-                        "outline dense color=red"
-                    ).classes("font-mono text-xs font-bold tracking-wider")
+                    ui.button("DELETE MY ACCOUNT", on_click=confirm_dialog.open).props("outline dense no-caps").classes(
+                        "tech-btn-destructive font-mono text-xs font-bold tracking-wider"
+                    )
 
 
 # ---------------------------------------------------------------------------
@@ -459,10 +468,7 @@ async def _build_users_tab() -> None:
                         ui.icon("people", color="neutral-500").classes("text-sm")
                         ui.label("Current Users").classes("tech-label-sub")
 
-                    async def handle_delete_selected():
-                        if not selected_rows:
-                            notify("No users selected", type="warning")
-                            return
+                    async def do_delete_users():
                         names = [r["username"] for r in selected_rows if r["username"].lower() != "longhaul"]
                         if not names:
                             notify("Cannot delete the default account", type="warning")
@@ -475,10 +481,25 @@ async def _build_users_tab() -> None:
                                 notify(f"Failed to delete '{name}'", type="negative")
                         await refresh_user_list()
 
+                    def handle_delete_selected():
+                        if not selected_rows:
+                            notify("No users selected", type="warning")
+                            return
+                        names = [r["username"] for r in selected_rows if r["username"].lower() != "longhaul"]
+                        if not names:
+                            notify("Cannot delete the default account", type="warning")
+                            return
+                        confirm_action(
+                            title="DELETE USERS",
+                            message=f"Permanently delete {len(names)} user(s): {', '.join(names)}?",
+                            on_confirm=do_delete_users,
+                            confirm_label="DELETE",
+                        )
+
                     delete_btn = (
                         ui.button("DELETE SELECTED", icon="delete", on_click=handle_delete_selected)
-                        .props("outline dense color=red")
-                        .classes("font-mono text-xs font-bold tracking-wider")
+                        .props("flat dense no-caps size=sm")
+                        .classes("tech-btn-destructive font-bold tracking-wider")
                     )
                     delete_btn.set_visibility(False)
 

@@ -9,7 +9,7 @@ from client.modules.easter_eggs import run_random_easter_egg
 from client.modules.latency_tracker import latency_status
 
 # Using a dictionary with default values to prevent binding errors on first load
-shitty_stats: dict[str, Any] = {"implant_count": "0", "listener_count": "0"}
+footer_stats: dict[str, Any] = {"implant_count": "0", "listener_count": "0"}
 # also, this poller makes it so that only one timer is going per user session
 _poller_initialized = False
 
@@ -45,7 +45,7 @@ async def build_footer():
                     # Implant Count
                     with ui.row().classes("items-center gap-1"):
                         # ui.icon("sensors", size="12px").classes("text-neutral-600")
-                        ui.label().bind_text_from(shitty_stats, "implant_count").classes(
+                        ui.label().bind_text_from(footer_stats, "implant_count").classes(
                             "!text-emerald-500/80 tech-label-sub"
                         )
                         ui.label("IMPLANTS").classes("tech-label-sub")
@@ -53,7 +53,7 @@ async def build_footer():
                     # Listener Count
                     with ui.row().classes("items-center gap-1"):
                         # ui.icon("settings_input_antenna", size="12px").classes("text-neutral-600")
-                        ui.label().bind_text_from(shitty_stats, "listener_count").classes(
+                        ui.label().bind_text_from(footer_stats, "listener_count").classes(
                             "!text-amber-500/80 tech-label-sub"
                         )
                         ui.label("LISTENERS").classes("tech-label-sub")
@@ -67,13 +67,13 @@ async def build_footer():
 
 
 async def update_dashboard_stats():
-    """Function to update the local shitty_stats dictionary.  Meant to be called on a timer"""
+    """Function to update the local footer_stats dictionary.  Meant to be called on a timer"""
 
     # get both at once, rather than seperate events
     results = await asyncio.gather(get_all_implant_data(), get_all_listener_data(), return_exceptions=True)
 
     implant_res = results[0] if not isinstance(results[0], Exception) else None
-    shitty_stats["implant_count"] = str(len((implant_res or {}).get("data", [])))
+    footer_stats["implant_count"] = str(len((implant_res or {}).get("data", [])))
 
     listener_res = results[1] if not isinstance(results[1], Exception) else None
-    shitty_stats["listener_count"] = str(len((listener_res or {}).get("data", [])))
+    footer_stats["listener_count"] = str(len((listener_res or {}).get("data", [])))

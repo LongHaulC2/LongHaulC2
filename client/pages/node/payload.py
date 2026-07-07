@@ -73,10 +73,10 @@ async def render_dashboard(payload_metadata: dict, payload_hash: str):
                     "SOURCE",
                     icon="code",
                     on_click=lambda: download_payload_source(hash=payload_hash, name=payload_name),
-                ).props("dense flat size=sm").classes("tech-btn-action-2")
+                ).props("dense flat size=sm").classes("tech-btn-secondary")
                 ui.button(
                     "DOWNLOAD", icon="download", on_click=lambda: download_payload(hash=payload_hash, name=payload_name)
-                ).props("dense flat size=sm").classes("tech-btn-action-2")
+                ).props("dense flat size=sm").classes("tech-btn-action")
 
         with ui.row().classes(
             "w-full h-10 gap-0 bg-black/20 border-b border-white/5 items-center shrink-0 flex-nowrap overflow-x-auto"

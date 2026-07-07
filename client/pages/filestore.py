@@ -4,6 +4,7 @@ from nicegui import ui
 # Imports
 from client.modules.api_calls import delete_file_from_server_filestore, get_all_files, get_file_bytes
 from client.modules.navigate_hook import get_current_uri, navigate
+from client.pages.components.dashboard_widgets import confirm_action
 from client.pages.dialogues import upload_to_server_filestore_dialog
 from client.pages.footer import build_footer
 from client.pages.formatted_tooltip import formatted_tooltip
@@ -11,16 +12,6 @@ from client.pages.menu import setup_menu
 from client.utils.helpers import notify
 
 server_log = structlog.getLogger("server")
-payload_stats = {"total": "0", "active_listeners": "0", "latest": "N/A"}
-
-
-def stat_widget(label: str, icon: str, color: str, key: str):
-    """Compact telemetry widget for the sub-header bar"""
-    with ui.element("div").classes("flex-1 h-full px-4 gap-2 flex items-center border-r border-white/5 bg-white/2"):
-        ui.icon(icon, size="14px", color=f"{color}-500").classes("opacity-70")
-        ui.label(label).classes("tech-label-sub")
-        # .classes("text-[10px] font-mono tracking-tighter text-neutral-500 uppercase")
-        ui.label().bind_text_from(payload_stats, key).classes("tech-label-sub")
 
 
 @ui.page("/filestore")
@@ -39,7 +30,7 @@ async def filestore_view():
 
     async def upload_action():
         await upload_to_server_filestore_dialog()
-        ui.navigate.to("/filestore")
+        await refresh_data()
 
     async def refresh_data():
         if not table:
@@ -56,47 +47,55 @@ async def filestore_view():
         ]
         table.rows = rows
 
-    async def delete_selected():
+    async def do_delete():
         if not table:
             return
         file_uuids = [row["file_uuid"] for row in table.selected]
         for file_uuid in file_uuids:
             await delete_file_from_server_filestore(file_uuid)
+        notify(f"Deleted {len(file_uuids)} file(s)", type="positive")
         table.selected.clear()
         await refresh_data()
+
+    def delete_selected():
+        if not table or not table.selected:
+            notify("No files selected", type="warning")
+            return
+        count = len(table.selected)
+        confirm_action(
+            title="DELETE FILES",
+            message=f"Permanently delete {count} file(s) from the server filestore?",
+            on_confirm=do_delete,
+            confirm_label="DELETE",
+        )
 
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
             with ui.row().classes("items-center gap-3"):
-                ui.icon("layers", color="emerald-500").classes("text-xl")
+                ui.icon("folder", color="emerald-500").classes("text-xl")
                 ui.label("FILE STORE //").classes("tech-label-header-section")
 
             with ui.row().classes("items-center gap-2"):
-                with (
-                    ui.button("Upload", icon="upload", on_click=upload_action)
-                    .props("dense flat size=sm")
-                    .classes("tech-btn-action")
-                ):
+                with ui.button(on_click=upload_action).props("dense flat size=sm").classes("tech-btn-action px-2"):
+                    ui.icon("upload", size="xs").classes("mr-1")
+                    ui.label("UPLOAD").classes("tech-label-sub")
                     formatted_tooltip(
                         "Upload File To Server File Store", footer="<i>Allows for multiple files at once</i>"
                     )
 
                 with (
-                    ui.button(icon="refresh", on_click=lambda: ui.navigate.to("/filestore"))
+                    ui.button(icon="refresh", on_click=lambda: refresh_data())
                     .props("dense flat size=sm")
-                    .classes("tech-btn-action-2")
+                    .classes("tech-btn-secondary")
                 ):
-                    formatted_tooltip("Refresh File Table")
+                    formatted_tooltip("Refresh")
 
                 with (
                     ui.button(icon="delete", on_click=delete_selected)
                     .props("dense flat size=sm square")
-                    .classes("text-red-400 hover:text-red-200 transition-colors tech-btn-action-2")
+                    .classes("tech-btn-destructive")
                 ):
                     formatted_tooltip("Delete Selected Files")
-
-        # with ui.row().classes("w-full h-8 gap-0 bg-[#0c0c0c] border-b border-white/5 items-center"):
-        #     stat_widget("Total Files:", "storage", "emerald", "total")
 
         with ui.column().classes("w-full p-0 flex-grow overflow-hidden"):
             current_uri = await get_current_uri()
@@ -129,13 +128,23 @@ async def filestore_view():
             table.add_slot(
                 "header",
                 r"""
-                <q-tr :props="props" class="bg-black/40 text-neutral-500 uppercase text-[10px] font-bold tracking-widest">
+                <q-tr :props="props" class="tech-table-head">
                     <q-th auto-width>
                         <q-checkbox v-model="props.selected" dense color="emerald" dark />
                     </q-th>
                     <q-th v-for="col in props.cols" :key="col.name" :props="props">{{ col.label }}</q-th>
                 </q-tr>
-            """,  # noqa - table
+            """,
+            )
+
+            table.add_slot(
+                "no-data",
+                r"""
+            <div class="tech-empty-state w-full">
+                <q-icon name="folder_open" size="xl" color="emerald-5" />
+                <span class="tech-label-sub text-neutral-500">No files uploaded yet</span>
+            </div>
+            """,
             )
 
             table.add_slot(

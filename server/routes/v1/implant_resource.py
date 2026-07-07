@@ -5,7 +5,7 @@ import msgpack
 import structlog
 from edwh_uuid7 import uuid7
 from flask import request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Namespace, Resource, reqparse
 
 from ...api_models.error import COMMON_ERRORS
@@ -26,6 +26,7 @@ from ...api_models.implants import (
     TASK_SEARCH_POST_INPUT,
     TASK_SEARCH_POST_RESPONSE,
 )
+from ...db.audit import log_audit
 from ...db.mysql_connector import get_mysql_session
 from ...db.mysql_functions import MySQLImplantTaskService, MySQLSearchService
 from ...db.neo4j_functions import Neo4jImplantNodeService
@@ -187,6 +188,8 @@ class Implant(Resource):
         #     implant_service.delete(uuid)
         Neo4jImplantNodeService.delete_by_uuid(implant_uuid=uuid)
 
+        log_audit(get_jwt_identity(), "implant_deleted", "implant", uuid)
+
         api_logger.info("Implant deleted successfully", implant_uuid=uuid, caller_ip=ip)
         return APIResponse(status=200, message="Implant deleted successfully")
 
@@ -227,11 +230,13 @@ class ImplantTask(Resource):
         task_uuid = task_service.task.task_uuid
         data = {"task_uuid": task_uuid}
 
-        task_name = body.get("task", {}).get("task_name")
+        task_name = body.get("task", {}).get("task_name", "unknown")
         if task_name == "sleep":
             sleep_time = body.get("task", {}).get("args", {}).get("sleep_time")
             if isinstance(sleep_time, int) and sleep_time > 0:
                 Neo4jImplantNodeService.update_sleep_value(uuid, sleep_time)
+
+        log_audit(get_jwt_identity(), "task_queued", "implant", uuid, detail=task_name)
 
         api_logger.debug("Task enqueued", task_uuid=task_uuid, implant_uuid=uuid, caller_ip=ip)
         return APIResponse(status="200", message="Queued task successfully", data=data)

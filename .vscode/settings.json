@@ -18,4 +18,6 @@
         "useage",
         "winbase"
     ],
+    "snyk.advanced.autoSelectOrganization": true,
+    "snyk.advanced.organization": "2c660fa1-3d3f-4cda-9727-0102cd874726",
 }

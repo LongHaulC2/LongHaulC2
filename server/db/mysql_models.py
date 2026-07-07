@@ -179,6 +179,24 @@ class ChatMessage(Base):
     timestamp = Column(BigInteger, nullable=False)
 
 
+class AuditLog(Base):
+    __tablename__ = "audit_log"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    timestamp = Column(BigInteger, nullable=False)
+    actor = Column(String(64), nullable=False)
+    action = Column(String(64), nullable=False)
+    target_type = Column(String(32), nullable=True)
+    target_uuid = Column(String(64), nullable=True)
+    detail = Column(Text, nullable=True)
+
+    __table_args__ = (
+        Index("ix_audit_timestamp", "timestamp"),
+        Index("ix_audit_actor", "actor"),
+        Index("ix_audit_action", "action"),
+    )
+
+
 class UserLogin(Base):
     __tablename__ = "users"
 

@@ -6,7 +6,7 @@ from client.modules.api_calls import (
     get_all_files,
     get_file_bytes,
 )
-from client.pages.components.dashboard_widgets import back_button, flat_stat
+from client.pages.components.dashboard_widgets import back_button, confirm_action, flat_stat
 from client.pages.components.hex_view import GenericHexViewer
 from client.pages.components.metadata_view import MetadataView
 from client.pages.components.notes_editor import GenericNotesEditor
@@ -53,10 +53,18 @@ async def render_dashboard(file_data: dict, file_uuid: str):
         else:
             notify("Transfer Failed", type="negative")
 
-    async def handle_delete():
+    async def do_delete():
         await delete_file_from_server_filestore(file_uuid)
-        notify("File deleted from server", type="warning")
+        notify("File deleted from server", type="positive")
         ui.navigate.to("/filestore")
+
+    def handle_delete():
+        confirm_action(
+            title="DELETE FILE",
+            message=f"Permanently delete '{file_name}' from the server filestore?",
+            on_confirm=do_delete,
+            confirm_label="DELETE",
+        )
 
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
         with ui.row().classes("tech-header-bar flex w-full items-center justify-between shrink-0"):
@@ -75,8 +83,8 @@ async def render_dashboard(file_data: dict, file_uuid: str):
                     icon="download",
                     on_click=handle_download,
                 ).classes("tech-btn-action").props("dense flat size=sm")
-                ui.button("DELETE FILE", icon="delete", on_click=handle_delete).props("dense flat size=sm").classes(
-                    "tech-btn-action"
+                ui.button("DELETE", icon="delete", on_click=handle_delete).props("dense flat size=sm").classes(
+                    "tech-btn-destructive"
                 )
 
         with ui.row().classes(

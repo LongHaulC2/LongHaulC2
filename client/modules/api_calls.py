@@ -1101,3 +1101,59 @@ async def send_chat_message(message: str) -> dict | None:
         endpoint="/api/v1/chat/",
         json={"message": message},
     )
+
+
+# ---------------------------------------------------------------------------
+# Audit Log
+# ---------------------------------------------------------------------------
+
+
+async def get_audit_log(
+    actor: str | None = None,
+    action: str | None = None,
+    target_type: str | None = None,
+    since: int | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> dict | None:
+    params: dict = {}
+    if actor:
+        params["actor"] = actor
+    if action:
+        params["action"] = action
+    if target_type:
+        params["target_type"] = target_type
+    if since:
+        params["since"] = since
+    if limit != 50:
+        params["limit"] = limit
+    if offset:
+        params["offset"] = offset
+    return await safe_api_request(
+        method="GET",
+        endpoint="/api/v1/audit/",
+        params=params,
+    )
+
+
+async def get_audit_export(
+    actor: str | None = None,
+    action: str | None = None,
+    target_type: str | None = None,
+    since: int | None = None,
+) -> bytes | None:
+    params: dict = {}
+    if actor:
+        params["actor"] = actor
+    if action:
+        params["action"] = action
+    if target_type:
+        params["target_type"] = target_type
+    if since:
+        params["since"] = since
+    return await safe_api_request(
+        method="GET",
+        endpoint="/api/v1/audit/export",
+        params=params,
+        return_type="content",
+    )

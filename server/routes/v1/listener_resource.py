@@ -3,7 +3,7 @@ from dataclasses import asdict
 import structlog
 from edwh_uuid7 import uuid7
 from flask import request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Namespace, Resource
 from werkzeug.exceptions import abort
 
@@ -17,6 +17,7 @@ from ...api_models.listener import (
     LISTENERS_POST_INPUT,
     LISTENERS_POST_RESPONSE,
 )
+from ...db.audit import log_audit
 from ...db.mysql_connector import get_mysql_session
 from ...db.mysql_functions import MySQLArtifactService
 from ...db.neo4j_functions import Neo4jListenerNodeService
@@ -93,6 +94,8 @@ class Listener(Resource):
         listener_service = Neo4jListenerNodeService()
         listener_service.delete(uuid)
 
+        log_audit(get_jwt_identity(), "listener_deleted", "listener", uuid)
+
         api_logger.info("Listener deleted successfully", listener_uuid=uuid, caller_ip=ip)
 
         return APIResponse(status=200, message="Listener deleted successfully", data="")
@@ -153,12 +156,14 @@ class Listener(Resource):
             start_listener(listener_dataclass)
             listener_service.set_active(uuid, active=True)
             message = "Listener started successfully"
+            log_audit(get_jwt_identity(), "listener_started", "listener", uuid)
 
         else:
             # Stop listener workflow
             stop_listener(listener_uuid=uuid)
             listener_service.set_active(uuid, active=False)
             message = "Listener stopped successfully"
+            log_audit(get_jwt_identity(), "listener_stopped", "listener", uuid)
 
         return APIResponse(status=200, message=message), 200
 
@@ -247,6 +252,10 @@ class Listeners(Resource):
             status="200",
             message=f"Listener {listener_id} started",
             data=data,
+        )
+
+        log_audit(
+            get_jwt_identity(), "listener_created", "listener", listener_id, detail=listener_dataclass.listener_name
         )
 
         api_logger.info("Listener started", listener_uuid=listener_id, caller_ip=ip)

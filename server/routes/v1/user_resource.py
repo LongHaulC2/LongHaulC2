@@ -8,6 +8,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Namespace, Resource, fields
 from werkzeug.exceptions import abort
 
+from ...db.audit import log_audit
 from ...db.mysql_connector import get_mysql_session
 from ...db.mysql_functions import MySQLUserService
 from ...instance import api
@@ -91,6 +92,7 @@ class UserDelete(Resource):
             deleted = svc.delete_user(username)
         if not deleted:
             abort(404, "User not found")
+        log_audit(get_jwt_identity(), "user_deleted", "user", username)
         return APIResponse(status="200", message=f"User '{username}' deleted")
 
 

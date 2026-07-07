@@ -56,7 +56,7 @@ async def render_dashboard(host_data: dict, host_uuid: str):
             flat_stat("HOSTNAME", hostname, "dns", "emerald")
             flat_stat("FIRST SEEN", first_seen, "schedule", "orange")
             flat_stat("TIME SINCE", time_since, "history", "blue")
-            flat_stat("HOST UUID", host_uuid[:8] + "...", "fingerprint", "purple")
+            flat_stat("HOST UUID", host_uuid, "fingerprint", "purple")
 
         with ui.row().classes("w-full border-b border-white/5 bg-black/40 px-2 shrink-0"):
             tabs = (

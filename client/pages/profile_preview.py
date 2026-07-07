@@ -11,6 +11,7 @@ from client.modules.api_calls import (
     upload_profile,
 )
 from client.pages.footer import build_footer
+from client.pages.formatted_tooltip import formatted_tooltip
 from client.pages.menu import setup_menu
 from client.utils.helpers import notify
 
@@ -104,10 +105,18 @@ async def _input_panel():
                 .classes("flex-grow tech-select")
             )
             _file_select = file_select
-            ui.button(icon="upload_file", on_click=lambda: _upload_profile_file(file_select)).props(
-                "flat dense size=xs color=emerald"
-            ).tooltip("Upload Profile")
-            ui.button(icon="refresh", on_click=refresh_files).props("flat dense size=xs color=grey")
+            with (
+                ui.button(icon="upload_file", on_click=lambda: _upload_profile_file(file_select))
+                .props("flat dense size=xs")
+                .classes("tech-btn-action-2")
+            ):
+                formatted_tooltip("Upload Profile")
+            with (
+                ui.button(icon="refresh", on_click=refresh_files)
+                .props("flat dense size=xs")
+                .classes("tech-btn-secondary")
+            ):
+                formatted_tooltip("Refresh")
 
         # Seed banner — shown when server has no profiles
         if not profile_names:
@@ -132,10 +141,18 @@ async def _input_panel():
             ui.label("Sample payload: PREVIEW_PAYLOAD").classes("tech-label-sub text-neutral-600 text-[10px]")
 
             with ui.row().classes("items-center gap-1"):
-                ui.button(icon="save", on_click=_do_quick_save).props("flat dense size=sm color=grey").tooltip("Save")
-                ui.button(icon="save_as", on_click=_do_save_as).props("flat dense size=sm color=grey").tooltip(
-                    "Save As"
-                )
+                with (
+                    ui.button(icon="save", on_click=_do_quick_save)
+                    .props("flat dense size=sm")
+                    .classes("tech-btn-secondary")
+                ):
+                    formatted_tooltip("Save")
+                with (
+                    ui.button(icon="save_as", on_click=_do_save_as)
+                    .props("flat dense size=sm")
+                    .classes("tech-btn-secondary")
+                ):
+                    formatted_tooltip("Save As")
                 render_btn = (
                     ui.button("RENDER", icon="play_arrow", on_click=lambda: _do_render(render_btn))
                     .props("unelevated dense no-caps")

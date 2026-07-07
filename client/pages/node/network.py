@@ -56,7 +56,7 @@ async def render_dashboard(network_data: dict, network_uuid: str):
             flat_stat("SUBNET", subnet, "lan", "emerald")
             flat_stat("GATEWAY", gateway, "router", "blue")
             flat_stat("TYPE", network_type, "dns", "orange")
-            flat_stat("NET UUID", network_uuid[:8] + "...", "fingerprint", "purple")
+            flat_stat("NET UUID", network_uuid, "fingerprint", "purple")
 
         with ui.row().classes("w-full border-b border-white/5 bg-black/40 px-2 shrink-0"):
             tabs = (
