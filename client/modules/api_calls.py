@@ -612,6 +612,7 @@ async def build_implant(
     output_format: str,
     initial_get_profile_listener_uuid: str,
     initial_post_profile_listener_uuid: str,
+    callback_host: str,
     options: dict,
 ) -> dict | None:
     # print(initial_get_profile_listener_uuid)
@@ -652,12 +653,12 @@ async def build_implant(
     check_type(initial_post_profile_listener_uuid, str, "initial_post_profile_listener_uuid")
 
     build_request_data = {
-        # "implant_name": implant_name,
         "listener_uuids": listener_uuids,
         "implant_name": implant_name,
         "output_format": output_format,
         "initial_get_profile_listener_uuid": initial_get_profile_listener_uuid,
         "initial_post_profile_listener_uuid": initial_post_profile_listener_uuid,
+        "callback_host": callback_host,
         "options": options,
     }
 

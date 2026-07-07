@@ -256,6 +256,7 @@ async def start_payload_dialogue():
         if not all(
             [
                 name_input.value,
+                callback_host_input.value,
                 listener_select.value,
                 format_select.value,
                 profile_get_select.value,
@@ -298,6 +299,7 @@ async def start_payload_dialogue():
             output_format=format_select.value,
             initial_get_profile_listener_uuid=listener_uuid_map.get(profile_get_select.value),
             initial_post_profile_listener_uuid=listener_uuid_map.get(profile_post_select.value),
+            callback_host=callback_host_input.value,
             options=options,
         )
 
@@ -386,6 +388,19 @@ async def start_payload_dialogue():
                     formatted_tooltip(
                         title="[Not Implemented] The format of the implant output",
                     )
+
+            # CALLBACK HOST
+            callback_host_input = (
+                ui.input("Callback Host", placeholder="IP or hostname (e.g. 60.1.1.1, cdn.example.com)")
+                .props("outlined dense dark color=emerald")
+                .classes("w-full tech-input")
+            )
+            with callback_host_input:
+                formatted_tooltip(
+                    title="Callback Host",
+                    body="The host the implant calls back to. Use your public IP, CDN, or redirector address — "
+                    "not the listener's bind address. Port is still decided by the listener.",
+                )
 
             # LISTENER SELECTION
             listener_select = (

@@ -32,6 +32,7 @@ def build_implant(
     build_uuid: str,
     init_get_profile_listener_uuid: str,
     init_post_profile_listener_uuid: str,
+    callback_host: str | None = None,
     options: dict | None = None,
 ) -> dict:
     """Builds an implant  based on the provided parameters
@@ -127,6 +128,7 @@ def build_implant(
                 listeners=full_listeners_data,
                 init_get_uuid=init_get_profile_listener_uuid,
                 init_post_uuid=init_post_profile_listener_uuid,
+                callback_host=callback_host,
             )
 
             # Compile
@@ -167,6 +169,7 @@ def _generate_source_code(
     listeners: dict[str, ListenerProfile],
     init_get_uuid: str,
     init_post_uuid: str,
+    callback_host: str | None = None,
 ):
     """Copies base structure and renders templates."""
     server_logger.debug("Generating source code", build_dir=build_dir)
@@ -182,6 +185,7 @@ def _generate_source_code(
         listeners_data_dict=listeners,
         initial_get_profile_listener_uuid=init_get_uuid,
         initial_post_profile_listener_uuid=init_post_uuid,
+        callback_host=callback_host,
     )
 
 
