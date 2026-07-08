@@ -72,16 +72,16 @@ clean_for_release:
 	echo "=================================================="; \
 	echo "Cleaning project for release " \
 	echo "=================================================="; \
-	rm -rf ./.claude
-	rm -rf ./.claude
-	rm -rf ./.hypothesis
-	rm -rf ./.nicegui
-	rm -rf ./.pytest_cache
-	rm -rf ./.ruff_cache
-	rm -rf ./.venv
-	rm -rf ./.vscode
-	rm -rf ./development
-	rm -rf ./CLAUDE.md
+	sudo rm -rf ./.claude
+	sudo rm -rf ./.claude
+	sudo rm -rf ./.hypothesis
+	sudo rm -rf ./.nicegui
+	sudo rm -rf ./.pytest_cache
+	sudo rm -rf ./.ruff_cache
+	sudo rm -rf ./.venv
+	sudo rm -rf ./.vscode
+	sudo rm -rf ./development
+	sudo rm -rf ./CLAUDE.md
 
 
 # ======================================
