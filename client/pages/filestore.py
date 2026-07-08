@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import structlog
 from nicegui import ui
 
@@ -32,6 +34,11 @@ async def filestore_view():
         await upload_to_server_filestore_dialog()
         await refresh_data()
 
+    def _format_timestamp(ms: int | None) -> str:
+        if not ms:
+            return ""
+        return datetime.fromtimestamp(ms / 1000, tz=UTC).strftime("%Y-%m-%d %H:%M")
+
     async def refresh_data():
         if not table:
             return
@@ -42,6 +49,9 @@ async def filestore_view():
                 "file_name": p.get("file_name", "Unnamed"),
                 "file_uuid": p.get("file_uuid"),
                 "file_hash": p.get("file_hash", ""),
+                "uploaded_by": p.get("uploaded_by", ""),
+                "uploaded_at": _format_timestamp(p.get("uploaded_at")),
+                "source_implant": p.get("source_implant", ""),
             }
             for p in files
         ]
@@ -115,6 +125,27 @@ async def filestore_view():
                 {"name": "file_name", "label": "FILE NAME", "field": "file_name", "align": "left", "sortable": True},
                 {"name": "file_uuid", "label": "FILE UUID", "field": "file_uuid", "align": "left", "sortable": True},
                 {"name": "file_hash", "label": "HASH (MD5)", "field": "file_hash", "align": "left", "sortable": True},
+                {
+                    "name": "uploaded_by",
+                    "label": "UPLOADED BY",
+                    "field": "uploaded_by",
+                    "align": "left",
+                    "sortable": True,
+                },
+                {
+                    "name": "uploaded_at",
+                    "label": "UPLOADED AT",
+                    "field": "uploaded_at",
+                    "align": "left",
+                    "sortable": True,
+                },
+                {
+                    "name": "source_implant",
+                    "label": "SOURCE IMPLANT",
+                    "field": "source_implant",
+                    "align": "left",
+                    "sortable": True,
+                },
                 {"name": "actions", "label": "ACTIONS", "field": "actions", "align": "right"},
             ]
 

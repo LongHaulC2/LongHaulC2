@@ -4,6 +4,7 @@ import shlex
 from enum import Enum
 
 # Explicit imports from tasks.py to satisfy Ruff
+from client.modules.fs_resolver import is_fs_reference, resolve_fs_reference
 from client.modules.task_definitions import (
     BofRunner,
     Cd,
@@ -187,12 +188,14 @@ def build_cli_parser(implant_uuid: str):
     fu = file_p.add_parser("upload")
     fu.add_argument("file_path")
     fu.add_argument("file_contents")
-    fu.set_defaults(
-        func=lambda args: (
-            ResultType.TASK,
-            FileUpload(implant_uuid=implant_uuid, file_path=args.file_path, file_contents=args.file_contents).to_task(),
-        )
-    )
+
+    async def _file_upload_with_fs(args):
+        contents = args.file_contents
+        if is_fs_reference(contents):
+            contents = await resolve_fs_reference(contents)
+        return FileUpload(implant_uuid=implant_uuid, file_path=args.file_path, file_contents=contents).to_task()
+
+    fu.set_defaults(func=lambda args: (ResultType.TASK, _file_upload_with_fs(args)))
 
     # Memstore Nested
     mem_p = subparsers.add_parser("memstore").add_subparsers(dest="mem_cmd", parser_class=C2Parser)
@@ -216,27 +219,27 @@ def build_cli_parser(implant_uuid: str):
     mem_upload = mem_p.add_parser("upload")
     mem_upload.add_argument("file_name")
     mem_upload.add_argument("file_contents")
-    mem_upload.set_defaults(
-        func=lambda args: (
-            ResultType.TASK,
-            MemStoreUpload(
-                implant_uuid=implant_uuid, file_name=args.file_name, file_contents=args.file_contents
-            ).to_task(),
-        )
-    )
+
+    async def _memstore_upload_with_fs(args):
+        contents = args.file_contents
+        if is_fs_reference(contents):
+            contents = await resolve_fs_reference(contents)
+        return MemStoreUpload(implant_uuid=implant_uuid, file_name=args.file_name, file_contents=contents).to_task()
+
+    mem_upload.set_defaults(func=lambda args: (ResultType.TASK, _memstore_upload_with_fs(args)))
 
     # BOF
     bof = subparsers.add_parser("bof")
     bof.add_argument("bof_contents")
     bof.add_argument("bof_args", nargs=argparse.REMAINDER)
-    bof.set_defaults(
-        func=lambda args: (
-            ResultType.TASK,
-            BofRunner(
-                implant_uuid=implant_uuid, bof_contents=args.bof_contents, bof_args=" ".join(args.bof_args)
-            ).to_task(),
-        )
-    )
+
+    async def _bof_with_fs(args):
+        contents = args.bof_contents
+        if is_fs_reference(contents):
+            contents = await resolve_fs_reference(contents)
+        return BofRunner(implant_uuid=implant_uuid, bof_contents=contents, bof_args=" ".join(args.bof_args)).to_task()
+
+    bof.set_defaults(func=lambda args: (ResultType.TASK, _bof_with_fs(args)))
 
     # link
     link_parser = subparsers.add_parser("link", help="Link to a downstream implant")

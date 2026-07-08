@@ -108,7 +108,9 @@ async def upload_to_implant_dialog(implant_uuids: list):
             def _update_mode(e):
                 state["mode"] = e.value
                 dest_input.label = "REMOTE FILE PATH" if e.value == "disk" else "MEMSTORE KEY"
+                dest_input.placeholder = "C:\\\\Temp\\\\file.exe" if e.value == "disk" else ""
                 dest_input.value = ""
+                path_hint.set_visibility(e.value == "disk")
                 check_ready()
 
             # Mode Selector
@@ -123,7 +125,7 @@ async def upload_to_implant_dialog(implant_uuids: list):
             dest_input = (
                 ui.input(
                     label="REMOTE FILE PATH",
-                    # placeholder=r"C:\Windows\Temp\payload.exe",
+                    placeholder="C:\\\\Windows\\\\Temp\\\\payload.exe",
                     on_change=lambda e: (
                         state.update({"dest": e.value}),
                         check_ready(),
@@ -131,6 +133,9 @@ async def upload_to_implant_dialog(implant_uuids: list):
                 )
                 .props("outlined dense dark color=emerald")
                 .classes("w-full tech-input")
+            )
+            path_hint = ui.label("Use double backslashes for Windows paths (e.g. C:\\\\Temp\\\\file.exe)").classes(
+                "text-xs text-amber-400/80 -mt-3 ml-1"
             )
 
             # File Upload

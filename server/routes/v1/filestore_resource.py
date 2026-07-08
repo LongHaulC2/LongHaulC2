@@ -51,12 +51,15 @@ class File(Resource):
 
         file_uuid = str(uuid7())
 
+        operator = get_jwt_identity()
+
         with get_mysql_session() as session:
             file_service = MySQLImplantFileService(session)
-            # snag UUID
-            file_uuid = file_service.register_file(file_name=file_name, file_bytes=file_bytes, file_uuid=file_uuid)
+            file_uuid = file_service.register_file(
+                file_name=file_name, file_bytes=file_bytes, file_uuid=file_uuid, uploaded_by=operator
+            )
 
-        log_audit(get_jwt_identity(), "file_uploaded", "file", file_uuid, detail=file_name)
+        log_audit(operator, "file_uploaded", "file", file_uuid, detail=file_name)
 
         response = {"file_uuid": file_uuid}
         # Return immediately
