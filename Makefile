@@ -67,7 +67,7 @@ check_root:
 	fi
 
 .PHONY: clean_for_release
-check_root:
+clean_for_release:
 	# removing items that are great for dev but bloat the release
 	echo "=================================================="; \
 	echo "Cleaning project for release " \
