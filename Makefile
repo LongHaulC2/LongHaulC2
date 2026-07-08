@@ -66,6 +66,24 @@ check_root:
 		exit 1; \
 	fi
 
+.PHONY: clean_for_release
+check_root:
+	# removing items that are great for dev but bloat the release
+	echo "=================================================="; \
+	echo "Cleaning project for release " \
+	echo "=================================================="; \
+	rm -rf ./.claude
+	rm -rf ./.claude
+	rm -rf ./.hypothesis
+	rm -rf ./.nicegui
+	rm -rf ./.pytest_cache
+	rm -rf ./.ruff_cache
+	rm -rf ./.venv
+	rm -rf ./.vscode
+	rm -rf ./development
+	rm -rf ./CLAUDE.md
+
+
 # ======================================
 # Production Deployment
 # ======================================
