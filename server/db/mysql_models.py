@@ -150,6 +150,10 @@ class FileStore(Base):
     file_hash = Column(TINYBLOB(16))  # md5 hash
     file_bytes = deferred(Column(LONGBLOB))  # LONGBLOB is 4gb (massive, intentional for expandability)
 
+    uploaded_by = Column(String(255), nullable=True)  # operator username or "implant:<uuid>"
+    uploaded_at = Column(BigInteger, nullable=True)  # millisecond epoch timestamp
+    source_implant = Column(String(36), nullable=True)  # set when file came from an implant download
+
     __table_args__ = (
         # add file compression, this is going to be a big table, so it's worth the overhead.
         # note... have to do "''" due to mysql being picky

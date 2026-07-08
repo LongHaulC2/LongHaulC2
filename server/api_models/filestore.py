@@ -61,6 +61,18 @@ FILE_GET_MODEL = api.model(
             example="7f3df637f39704c04d49d12906407ce8",
             description="The MD5 hash of the file.",
         ),
+        "uploaded_by": fields.String(
+            example="longhaul",
+            description="Operator username or implant:<uuid>",
+        ),
+        "uploaded_at": fields.Integer(
+            example=1720000000000,
+            description="Upload timestamp in milliseconds since epoch",
+        ),
+        "source_implant": fields.String(
+            example="00000000-0000-0000-0000-000000000000",
+            description="Implant UUID if file came from a download",
+        ),
     },
 )
 FILE_GET_RESPONSE = wrap_response_list(api, FILE_GET_MODEL)

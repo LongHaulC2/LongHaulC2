@@ -583,7 +583,14 @@ class MySQLImplantFileService:
     def __init__(self, session):
         self.session = session
 
-    def register_file(self, file_name: str, file_bytes: bytes, file_uuid: str) -> str:
+    def register_file(
+        self,
+        file_name: str,
+        file_bytes: bytes,
+        file_uuid: str,
+        uploaded_by: str | None = None,
+        source_implant: str | None = None,
+    ) -> str:
         """
         Create an entry for a new file
         Returns the UUID of the file added in the DB.
@@ -604,6 +611,9 @@ class MySQLImplantFileService:
             file_bytes=file_bytes,
             file_name=file_name,
             file_uuid=file_uuid,
+            uploaded_by=uploaded_by,
+            uploaded_at=int(time.time() * 1000),
+            source_implant=source_implant,
         )
 
         self.session.add(file_entry)

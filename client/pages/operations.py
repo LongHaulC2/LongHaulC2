@@ -199,11 +199,13 @@ async def implant_view(syntax_drawer):
             # and select on single click
             def toggle_selection(e):
                 row_data = e.args[1]
-                if row_data in table.selected:
-                    table.selected.remove(row_data)
+                row_id = row_data.get("implant_uuid")
+                existing = next((r for r in table.selected if r.get("implant_uuid") == row_id), None)
+                if existing:
+                    table.selected.remove(existing)
                 else:
                     table.selected.append(row_data)
-                table.update()  # Refresh UI to show the checkmark
+                table.update()
 
             table.on("row-click", toggle_selection)
 

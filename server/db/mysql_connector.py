@@ -91,6 +91,21 @@ def _ensure_schema_updates(eng):
             conn.commit()
             logger.info("Schema migration: added payload_listener_uuids column")
 
+        for col in ("uploaded_by", "uploaded_at", "source_implant"):
+            result = conn.execute(
+                text(
+                    "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS "
+                    f"WHERE TABLE_NAME = 'filestore' AND COLUMN_NAME = '{col}'"
+                )
+            )
+            if not result.fetchone():
+                if col == "uploaded_at":
+                    conn.execute(text(f"ALTER TABLE filestore ADD COLUMN {col} BIGINT"))
+                else:
+                    conn.execute(text(f"ALTER TABLE filestore ADD COLUMN {col} VARCHAR(255)"))
+                conn.commit()
+                logger.info("Schema migration: added %s column to filestore", col)
+
 
 def mysql_setup():
     global engine, SessionLocal

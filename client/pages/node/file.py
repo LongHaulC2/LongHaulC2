@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import structlog
 from nicegui import ui
 
@@ -44,6 +46,12 @@ async def render_dashboard(file_data: dict, file_uuid: str):
     file_name = file_data.get("file_name", "UNKNOWN")
     file_size = len(file_contents) / 1000
     md5_hash = file_data.get("file_hash", "UNKNOWN")
+    uploaded_by = file_data.get("uploaded_by", "")
+    uploaded_at_ms = file_data.get("uploaded_at")
+    uploaded_at_str = (
+        datetime.fromtimestamp(uploaded_at_ms / 1000, tz=UTC).strftime("%Y-%m-%d %H:%M") if uploaded_at_ms else ""
+    )
+    source_implant = file_data.get("source_implant", "")
 
     async def handle_download():
         file_bytes = await get_file_bytes(file_uuid)
@@ -93,6 +101,12 @@ async def render_dashboard(file_data: dict, file_uuid: str):
             flat_stat("FILE NAME", file_name, "description", "emerald")
             flat_stat("SIZE (KB)", file_size, "save", "blue")
             flat_stat("MD5", md5_hash, "fingerprint", "purple")
+            if uploaded_by:
+                flat_stat("UPLOADED BY", uploaded_by, "person", "amber")
+            if uploaded_at_str:
+                flat_stat("UPLOADED AT", uploaded_at_str, "schedule", "cyan")
+            if source_implant:
+                flat_stat("SOURCE IMPLANT", source_implant, "memory", "red")
 
         with ui.row().classes("w-full border-b border-white/5 bg-black/40 px-2 shrink-0"):
             tabs = (

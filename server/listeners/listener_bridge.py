@@ -7,6 +7,21 @@ from ..db.redis_functions import RedisImplantTaskService
 core_logger = structlog.get_logger("core_handler")
 
 
+def _decode_bytes(obj):
+    """Recursively decode bytes to str where safe (valid UTF-8), after raw=True unpack.
+    Binary data that isn't valid UTF-8 stays as bytes."""
+    if isinstance(obj, dict):
+        return {_decode_bytes(k): _decode_bytes(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_decode_bytes(item) for item in obj]
+    if isinstance(obj, bytes):
+        try:
+            return obj.decode("utf-8")
+        except UnicodeDecodeError:
+            return obj
+    return obj
+
+
 def _register_new_implant(unpacked_metadata: dict, external_ip: str, listener_uuid: str):
     """
     Handles the creation of a new implant in Neo4j.
@@ -120,9 +135,17 @@ def handle_exfil(data_from_implant: bytes) -> None:
     """
     Processes incoming task responses (POST exfiltration).
     Splits the array of responses and routes each to the correct Redis queue.
+
+    Uses raw=True because the C++ msgpack library packs binary data (e.g. file
+    download responses) as msgpack str type, not bin type. With the default
+    raw=False, Python tries to UTF-8-decode those bytes, which crashes on
+    binary files (0x90 etc.). After raw=True unpack, _decode_bytes() attempts
+    UTF-8 on every bytes value: string fields like implant_uuid decode to str,
+    while binary file content (invalid UTF-8) stays as bytes.
     """
     try:
-        task_response_list: list[dict] = msgpack.unpackb(data_from_implant)
+        raw_list = msgpack.unpackb(data_from_implant, raw=True)
+        task_response_list: list[dict] = _decode_bytes(raw_list)
     except Exception as e:
         core_logger.error("post_output_unpack_error", error=str(e))
         raise ValueError("Malformed msgpack data") from e

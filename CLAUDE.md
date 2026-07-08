@@ -88,7 +88,8 @@ Operator (UI) → API → Redis (task queue)
 - Tasks are **msgpack-encoded** throughout (not JSON).
 - Beacons carry full metadata (including current `get_strategy` / `post_strategy`). Strategy fields are updated in Neo4j on every checkin, not just first registration.
 - `listener_bridge.py` is the single handoff point between any listener protocol and the core server logic.
-- The response pipeline (`server/modules/response_pipeline/`) polls Redis every second and bulk-writes to MySQL.
+- The response pipeline (`server/modules/response_pipeline/`) polls Redis every second and bulk-writes to MySQL. After writing to MySQL, it calls `correlate_task_results()` which dispatches to task-specific handlers in `neo4j_correlator.py`.
+- **File download auto-capture:** When a `file download` task completes successfully, the response pipeline automatically saves the downloaded file to the server filestore with `uploaded_by=implant:<uuid>` and `source_implant` set. The operator still sees the result in the UI, but the file is also persisted without manual intervention.
 - **Callback host is decoupled from listener bind address.** The build dialog has a `callback_host` field (IP or hostname) that specifies where the implant sends traffic. This supports CDNs, redirectors, and NAT — the listener can bind to a private IP while the implant calls back to a public one. The port still comes from the listener. Strategy names use the callback host, not the bind address (e.g., `raw_60_1_1_1_80_mylistener` instead of `raw_10_0_0_2_80_mylistener`).
 
 ---
@@ -306,6 +307,13 @@ make create_docker_images  # rebuild from setup/docker_images/
 
 **Adding a new UI page:** Create the file under `client/pages/`, decorate with `@ui.page('/your-path')`, and import it in `client/main.py`.
 
+**`fs:` prefix for filestore references:** Commands that accept base64 file content (`file upload`, `bof`, `memstore upload`) also accept `fs:<filename>` to reference files already in the server filestore. The resolver (`client/modules/fs_resolver.py`) lists all files, finds the UUID by name, downloads the bytes, and passes them to the command as raw bytes. Raw base64 and `*memstore_ref` still work — `fs:` is additive. Resolution is client-side and async (uses existing `get_all_files()` + `get_file_bytes()` API calls). Examples:
+- `file upload C:\Temp\m.exe fs:mimikatz.exe`
+- `bof fs:arp.o`
+- `memstore upload mykey fs:somefile.bin`
+
+**Filestore metadata:** Files in the filestore track provenance via three columns: `uploaded_by` (operator username or `implant:<uuid>`), `uploaded_at` (millisecond epoch), `source_implant` (nullable, set when file came from an implant download). These are set automatically by the API (operator uploads) and response pipeline (auto-captured downloads). The filestore table and file detail page display these fields.
+
 **Environment config:** All secrets and service addresses come from `.env` via `dotenv_values(".env")` in `server/instance.py`. The `.env` is loaded at server startup — no runtime reloads.
 
 **User preferences** are stored in `app.storage.user` and initialized in `client/pages/user_settings.py:initialize_default_settings()`. Known keys:
@@ -350,6 +358,9 @@ The audit helper (`server/db/audit.py`) exposes `log_audit(actor, action, target
 - `AuditLog` (id, timestamp, actor, action, target_type, target_uuid, detail) — operator activity log
 - `UserLogin.totp_secret` (nullable String) — stores TOTP secret for 2FA
 - `ChatMessage` (id, sender, message, timestamp) — chat message storage
+- `FileStore.uploaded_by` (nullable String) — operator username or `implant:<uuid>`
+- `FileStore.uploaded_at` (nullable BigInteger) — millisecond epoch timestamp
+- `FileStore.source_implant` (nullable String(36)) — implant UUID for auto-captured downloads
 
 **Notifications:** Never call `ui.notify()` directly in `client/`. Use `notify()` from `client.utils.helpers` instead — it reads `notification_position` from user storage so the user's preference is applied everywhere.
 
