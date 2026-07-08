@@ -157,3 +157,6 @@ wrapt==2.1.1
 wsproto==1.3.2
 yarl==1.22.0
 hexdump
+pyotp
+qrcode
+pillow
