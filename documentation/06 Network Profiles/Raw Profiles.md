@@ -79,6 +79,29 @@ No other substitution happens. `<ANYTHING_ELSE>` goes on the wire literally, inc
 
 For UDP with no pending tasks, the server sends nothing. The implant's recvfrom times out (5-second timeout) and the implant treats an empty response as "no tasks." This is correct and expected — do not add an ACK round-trip unless your protocol requires it.
 
+### UDP Size Constraint
+
+UDP datagrams have a hard size limit of approximately **65,507 bytes** (IPv4 max payload minus IP and UDP headers). There is currently no application-layer chunking or reassembly — each beacon or exfil is a single datagram. If the payload (after all transforms are applied) exceeds this limit, the send will fail and the data is lost.
+
+**Transform amplification makes this smaller than you'd expect.** Transforms expand the raw payload before it hits the wire:
+
+| Transform | Size multiplier |
+|---|---|
+| `base64` / `base64url` | ~1.33x |
+| `netbios` / `netbiosu` | 2x |
+| `symcrypt` | +28 bytes (nonce + tag) |
+| `prepend` / `append` | +N bytes |
+
+With a `base64url` + `prepend` chain (like the NTP profile), the practical raw payload limit is roughly **48KB** before the encoded datagram exceeds 64KB. Chaining `base64` + `netbios` drops the effective limit to around **24KB**.
+
+**What this means operationally:**
+
+- UDP profiles (NTP, DNS, SNMP) are designed for stealth on protocols that naturally carry small payloads. They work well for beaconing, short command output, and small file transfers.
+- Large file downloads, large BOF output, or bulk exfil should use a **TCP profile** (HTTP mimicry, FTP, or raw TCP). TCP has no inherent per-message size limit.
+- If a UDP exfil silently fails, the most likely cause is the payload exceeding the datagram limit after transform expansion. Switch to a TCP listener for that operation, or use strategy switching to move the implant to a TCP channel before queuing large tasks.
+
+Application-layer chunking for UDP (splitting large payloads across multiple datagrams with reassembly) is planned for a future version.
+
 ### Server Response
 
 The server response body is defined in `[raw.get.server]`. If `body = "<OUTPUT>"` and the server has tasks, it replaces `<OUTPUT>` with the encoded tasks and sends the full body. If `body = ""` or the server has nothing to send, nothing is transmitted.

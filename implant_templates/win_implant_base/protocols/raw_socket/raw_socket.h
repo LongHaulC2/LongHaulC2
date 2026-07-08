@@ -70,10 +70,17 @@ inline bool RAW_TCP_SEND_RECV(const std::wstring& host, int port, const std::vec
     }
     freeaddrinfo(result);
 
-    // Send request bytes then signal end-of-send so server knows when to respond
-    if (send(sock, reinterpret_cast<const char*>(request.data()), static_cast<int>(request.size()), 0) == SOCKET_ERROR) {
-        closesocket(sock);
-        return false;
+    // Send all request bytes, looping on partial sends
+    const char* send_ptr = reinterpret_cast<const char*>(request.data());
+    int remaining = static_cast<int>(request.size());
+    while (remaining > 0) {
+        int sent = send(sock, send_ptr, remaining, 0);
+        if (sent == SOCKET_ERROR) {
+            closesocket(sock);
+            return false;
+        }
+        send_ptr += sent;
+        remaining -= sent;
     }
     shutdown(sock, SD_SEND);
 
@@ -112,9 +119,13 @@ inline bool RAW_UDP_SEND_RECV(const std::wstring& host, int port, const std::vec
         return false;
     }
 
-    sendto(sock, reinterpret_cast<const char*>(request.data()), static_cast<int>(request.size()), 0, result->ai_addr,
-           static_cast<int>(result->ai_addrlen));
+    int udp_sent = sendto(sock, reinterpret_cast<const char*>(request.data()), static_cast<int>(request.size()), 0,
+                          result->ai_addr, static_cast<int>(result->ai_addrlen));
     freeaddrinfo(result);
+    if (udp_sent == SOCKET_ERROR || udp_sent != static_cast<int>(request.size())) {
+        closesocket(sock);
+        return false;
+    }
 
     // 5-second receive timeout — no response means the server had no tasks (204 equivalent)
     DWORD timeout_ms = 5000;

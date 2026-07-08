@@ -135,7 +135,7 @@ transforms = [{ op = "base64" }]
 body = ""              # ACK sent back to implant
 ```
 
-**Wire format:** `body_template` with tokens replaced by (un)transformed payload bytes. No framing overhead. For TCP: one message per connection (connect → send → EOF → server responds → close). For UDP: one datagram.
+**Wire format:** `body_template` with tokens replaced by (un)transformed payload bytes. No framing overhead. For TCP: one message per connection (connect → send all bytes in a loop → EOF → server responds → close). For UDP: one datagram. **UDP has a hard ~64KB datagram limit with no application-layer chunking** — large payloads (especially after transform expansion like base64/netbios) will fail. Use TCP profiles for file downloads and large exfil. See `documentation/06 Network Profiles/Raw Profiles.md` for size details.
 
 **Disambiguation (beacon vs exfil):** Primary method: the server reads the outermost `prepend` value from each transform chain and checks whether the incoming packet's leading bytes match the GET or POST prepend. If they're distinct (as in the NTP profile, where GET ends with `\xF0\x01` and POST ends with `\xF0\x02`), the packet is routed directly. Fallback: if no distinct prepend exists, the server tries the GET decode chain first, then the POST decode chain. **Do not rely on msgpack shape to disambiguate** — both beacon and exfil payloads are lists of dicts with `implant_uuid`, so `handle_beacon` will not raise on exfil data.
 
