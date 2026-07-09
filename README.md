@@ -6,7 +6,7 @@ Minimal by design. Extensible at runtime. The implant ships clean — no offensi
 
 Built for red teams that need to adapt fast and stay resident long.
 
-Get started here: [longhaulc2.github.io](https://longhaulc2.github.io)
+Get started here: [docs.longhaulc2.com](https://docs.longhaulc2.com)
 
 ---
 
