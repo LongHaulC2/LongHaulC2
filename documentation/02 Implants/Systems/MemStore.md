@@ -39,15 +39,15 @@ The MemStore is designed to minimize the proliferation of sensitive data copies 
 * **Ownership Transfer:** When a module passes data to the store, ownership is transferred rather than copied. This prevents "ghost copies" of the data from lingering in the memory of the calling function.
 * **Destructive Updates:** Overwriting a key completely replaces the underlying data, releasing the old memory block immediately.
 
-### Integration with C2 Commands [not implemented]
+### Integration with C2 Commands
 
 The MemStore is the backend that powers the **Dereference Operator (`*`)**. (see the `Commands` docs)
 
-When a user issues a command like `file upload C:\Target\out.exe *my_tool`, the implant:
+When a user issues a command like `file upload C:\\Target\\out.exe *my_tool`, the implant:
 
 1. Detects the `*` prefix.
 2. Looks up `my_tool` in the MemStore.
 3. Decodes the binary data on the fly.
-4. Uses that data for the upload.
+4. Uses that data for the upload. (or however it is needed for that specific command)
 
 This allows operators to upload tools to the implant *once*, and then deploy them to multiple locations or use them in multiple ways without re-transmitting data over the network.

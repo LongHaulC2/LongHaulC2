@@ -198,11 +198,11 @@ for implant in implants:
 
 ## Rate Limiting
 
-The API enforces a default rate limit of **5000 requests/minute per IP**. This is designed to accommodate high-frequency implant beacons while still protecting against abuse.
+The API enforces a default rate limit of **5000 requests/minute per IP** as a "just in case" safeguard from overloading the server.
 
-To disable rate limiting in dev mode:
+To disable rate limiting:
 ```bash
-PYTHONPATH=. python -m server.main --no-ratelimit
+python -m server.main --no-ratelimit
 ```
 
 ---

@@ -1,4 +1,4 @@
-# Raw Profiles
+# Profile Technical Reference
 
 A **raw profile** defines the complete wire format for a TCP or UDP connection. The body template is the packet. The listener adds nothing beyond what the profile specifies — not a byte more, not a byte less.
 
@@ -100,7 +100,7 @@ With a `base64url` + `prepend` chain (like the NTP profile), the practical raw p
 - Large file downloads, large BOF output, or bulk exfil should use a **TCP profile** (HTTP mimicry, FTP, or raw TCP). TCP has no inherent per-message size limit.
 - If a UDP exfil silently fails, the most likely cause is the payload exceeding the datagram limit after transform expansion. Switch to a TCP listener for that operation, or use strategy switching to move the implant to a TCP channel before queuing large tasks.
 
-Application-layer chunking for UDP (splitting large payloads across multiple datagrams with reassembly) is planned for a future version.
+Application-layer chunking for UDP (splitting large payloads across multiple datagrams with reassembly) is planned for a future version, but requires a lot of architectural thinking, so don't count on it for now. 
 
 ### Server Response
 
@@ -153,7 +153,6 @@ Transforms work the same way as in HTTP profiles: they encode or modify the toke
 | `base64url` | `{ op = "base64url" }` | URL-safe Base64 (no padding) |
 | `prepend` | `{ op = "prepend", val = '\xAA\xBB' }` | Prepend literal bytes before the data |
 | `append` | `{ op = "append", val = '\xCC\xDD' }` | Append literal bytes after the data |
-| `mask` | `{ op = "mask", val = '\xFF' }` | XOR with a repeating key (self-reversing) |
 | `netbios` | `{ op = "netbios" }` | NetBIOS encoding (lowercase a-p) |
 | `netbiosu` | `{ op = "netbiosu" }` | NetBIOS encoding (uppercase A-P) |
 | `symcrypt` | `{ op = "symcrypt", key = '\x...' }` | AES-256-GCM symmetric encryption (32-byte key required) |
@@ -182,16 +181,6 @@ This chain: encrypts raw → base64 encodes → prepends a type marker. On the r
 
 **Key management:** The same 32-byte key is compiled into the implant binary and configured in the profile TOML on the server. Generate a random key per engagement — do not reuse keys across unrelated deployments.
 
-### Recommended Encoding for Raw Protocols
-
-| Use case | Recommended chain |
-|---|---|
-| Encrypted + protocol mimicry | `symcrypt` → `base64url` → `prepend <binary header>` |
-| Protocol mimicry where payload must fit in a specific field | `base64url` → `prepend <binary header>` |
-| Protocol that already carries arbitrary binary | `prepend <binary header>` only |
-| Protocol that requires printable payload | `base64` or `base64url` |
-
-`base64url` is preferred over `base64` for raw profiles because it avoids `+`, `/`, and `=` characters that can appear semantically meaningful in text-based protocols.
 
 ---
 
@@ -252,6 +241,8 @@ The `\x00` bytes are literal null bytes. `\xEC` is byte 236 (Precision field = -
 
 The raw listener has no separate port or path for GET (beacon) vs POST (exfil) traffic. All packets arrive on the same socket. The listener uses a two-layer approach to tell them apart.
 
+> TLDR: Make your GET and POST implementtation in a profile *slighty* different or the server cannot tell them apart. 
+
 ### Layer 1: binary prefix matching (primary)
 
 If the GET and POST transform chains each end with a `prepend` operation that produces **distinct** byte sequences, the server reads the leading bytes of the incoming packet and routes directly:
@@ -284,8 +275,6 @@ No type byte is added to the wire in either case — the protocol format stays c
 ---
 
 ## Example: NTP Mimicry
-
-A working NTP profile ships at `client/user/profiles/raw_ntp_profile.toml`. Here is a walkthrough of how it works.
 
 ### Packet Design (RFC 5905)
 
@@ -435,7 +424,6 @@ The raw listener does not:
 - Handle protocol-level fragmentation
 - Manage connection state beyond a single connect/send/receive cycle
 
-If the protocol you are mimicking requires correct checksums (e.g., IP-layer ICMP), you need either a raw socket implementation or a different approach.
 
 ### 6. Multi-line body templates
 

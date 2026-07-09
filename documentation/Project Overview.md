@@ -4,30 +4,33 @@ slug: /
 
 # LongHaul C2 - Overview
 
-Most frameworks are built to compromise targets. LongHaul is built to stay on them.
+Most frameworks are built to get you in. LongHaul is built to keep you there.
 
-Minimal by design. Extensible at runtime. The implant ships clean — no offensive capability, no hardcoded protocols. BOFs load what you need mid-operation. Network profiles define your traffic shape in minutes. What your implant does, what it looks like on the wire, and how long it persists are all operator decisions made at runtime, not compile time.
-
-Built for red teams that need to adapt fast and stay resident long.
+The implant ships clean. You load what you need through BOFs when you need it. Network profiles let you reshape your traffic on the fly. What your implant does, how it does it, what it looks like on the wire, and how long it stays, is entirely up to you and your team.
 
 ---
 
 ## Key Features
 
-### **The implant isn't malware:** 
+### **The implant isn't "traditional" malware:** 
 ---
-...by default. The implant ships with basically zero offensive capability. Offensive tooling is loaded at runtime via BOFs. Add, swap or store a capability mid-operation without recompiling or redeploying the implant.
+...by default. The implant ships with basically zero offensive capability. If you need a capability, BOF it. Add, swap or store a capability mid-operation without recompiling or redeploying the implant.
 
 #### [Command Reference](./02%20Implants/1.%20Commands.md)
-
+#### [Memory Store](./02%20Implants/Systems/MemStore.md)
 
 ### **Small Footprint:** 
 ---
-Less implant code means less surface area. The built-in feature set is intentionally lean: BOF execution, filesystem access, file transfer, in-memory store, strategy switching, SMB chaining. That's the whole list. Additionally, thanks to mimicry, no networking libraries (save for sockets) are needed.
+Less implant code means less surface area. The built-in feature set is intentionally lean: BOF execution, filesystem access, file transfer, in-memory store, strategy switching, SMB chaining. That's the whole list. Additionally, thanks to mimicry, no networking libraries (save for sockets) are needed. 
+
+Additionally, the implant is built with some modularity in mind. Is a default command (like `ls`) getting you caught? Cool, tell that detection to ~~fuck off~~ "pound sand", and implement your own version. 
+
+#### [Command Modules](./02%20Implants/Modules/Overview%20&%20Modifications)
+
 
 ### **Mimicry:**
 ---
-Custom Traffic Creation. Implement new protocols in minutes. Define a network profile, load it into a listener, and your C2 traffic looks like whatever you need — HTTP, NTP, DNS, FTP, or something entirely custom. The framework imposes zero protocol constraints.
+Custom Traffic Creation. Implement new protocols in minutes. Define a network profile, load it into a listener, and your C2 traffic looks like whatever you need — HTTP, NTP, DNS, FTP, or something entirely custom.
 
 #### [Mimicry](./06%20Network%20Profiles/Overview.md)
 
@@ -41,16 +44,3 @@ Rotate traffic profiles at runtime without spawning new implants. Chain over SMB
 ---
 
 ... dive right in?
-
-<!-- ## Architecture
-
-### Domain Separation
-
-The product has two completely separate codebases. They communicate only via the REST API.
-
-| Domain | Path | Description |
-|---|---|---|
-| Server | `server/` | Python/Flask-RestX REST API, all C2 orchestration logic |
-| Client (UI) | `client/` | Python/NiceGUI web frontend |
-| Implant | `implant_templates/win_implant_base/` | C++ Windows implant, compiled server-side on demand |
-| Tests | `tests/` | Integration and schema tests | -->

@@ -14,7 +14,7 @@ sequenceDiagram
 
     loop Every sleep interval
         I->>S: GET — metadata (UUID, hostname, IP, sleep interval, etc)
-        S-->>I: tasks (msgpack)
+        S-->>I: task(s) (msgpack)
         I->>I: execute task
         I->>S: POST — task results (output, error code, task UUID)
         S->>DB: store results
