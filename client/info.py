@@ -1,5 +1,5 @@
 VERSION_NUMBER = "BETA v0.1.0"
-EXTERNAL_DOC_ENDPOINT = "https://LongHaulC2.github.io"
+EXTERNAL_DOC_ENDPOINT = "https://docs.longhaulc2.com"
 
 # just for fun
 # LOGIN_BANNER = """
@@ -15,4 +15,4 @@ EXTERNAL_DOC_ENDPOINT = "https://LongHaulC2.github.io"
 #  content of privileged communications, or work product, related to personal representation or services by attorneys,
 #  psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential.
 # """
-LOGIN_BANNER = "LONGHAULC2 BANNER"
+LOGIN_BANNER = ""
