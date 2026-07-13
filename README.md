@@ -10,4 +10,10 @@ Get started here: [docs.longhaulc2.com](https://docs.longhaulc2.com)
 
 ---
 
+# Bug Reports & Feature Requests:
+
+If you find a bug, or have a feature request, please open an issue, and use the appropriate template to fill out your request. Thanks!
+
+---
+
 ...add cool images...
