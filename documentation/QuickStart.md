@@ -4,8 +4,6 @@ id: LongHaul C2 - Quickstart Guide
 
 # Quickstart Guide
 
-Get rolling fast. This page covers the minimal path from zero to a running server.
-
 ## Quick Links
 
 - **[GitHub Org](https://github.com/LongHaulC2):** Source code, issues, PRs

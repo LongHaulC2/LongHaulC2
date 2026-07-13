@@ -2,7 +2,8 @@
 
 Most frameworks are built to get you in. LongHaul is built to keep you there.
 
-Minimal by design. Extensible at runtime. The implant ships clean — no offensive capability, no hardcoded protocols. BOFs load what you need mid-operation. Network profiles define your traffic shape in minutes. What your implant does, what it looks like on the wire, and how long it persists are all operator decisions.
+Minimal by design. Extensible at runtime. The implant ships clean, no "traditional" offensive capability, no hardcoded protocols. BOFs load what you need mid-operation. Network profiles define your traffic shape in minutes. What your implant does, and what it looks like on the wire, are all operator decisions.
+
 
 Built for red teams that need to adapt fast and stay resident long.
 
