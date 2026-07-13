@@ -2,6 +2,7 @@ from nicegui import events, ui
 
 from client.modules.api_calls import post_new_file_to_server_filestore, queue_task
 from client.modules.task_definitions import FileUpload, MemStoreUpload
+from client.pages.formatted_tooltip import formatted_tooltip
 from client.utils.helpers import notify
 
 
@@ -108,9 +109,10 @@ async def upload_to_implant_dialog(implant_uuids: list):
             def _update_mode(e):
                 state["mode"] = e.value
                 dest_input.label = "REMOTE FILE PATH" if e.value == "disk" else "MEMSTORE KEY"
-                dest_input.placeholder = "C:\\\\Temp\\\\file.exe" if e.value == "disk" else ""
+                dest_input.placeholder = "C:\\\\Temp\\\\file.exe" if e.value == "disk" else "name_of_file_for_memstore"
                 dest_input.value = ""
                 path_hint.set_visibility(e.value == "disk")
+                memstore_hint.set_visibility(e.value == "memstore")
                 check_ready()
 
             # Mode Selector
@@ -134,9 +136,19 @@ async def upload_to_implant_dialog(implant_uuids: list):
                 .props("outlined dense dark color=emerald")
                 .classes("w-full tech-input")
             )
+            with dest_input:
+                formatted_tooltip(
+                    title="Memstore Key",
+                    body="The name for this file/data in the memstore.\n"
+                    "Also used as the XOR key for the data in memstore.",
+                )
             path_hint = ui.label("Use double backslashes for Windows paths (e.g. C:\\\\Temp\\\\file.exe)").classes(
                 "text-xs text-amber-400/80 -mt-3 ml-1"
             )
+            memstore_hint = ui.label("Key name for memstore entry — also used as the XOR key for this data").classes(
+                "text-xs text-amber-400/80 -mt-3 ml-1"
+            )
+            memstore_hint.set_visibility(False)
 
             # File Upload
             ui.upload(

@@ -89,7 +89,6 @@ def generate_implants():
 
         req_data = {
             "implant_variant": "raw",
-            "output_format": "exe",
             "implant_name": "my_implant",
             "implant_listener_uuid": listener_uuid,
         }

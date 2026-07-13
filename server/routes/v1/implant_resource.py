@@ -231,12 +231,23 @@ class ImplantTask(Resource):
         data = {"task_uuid": task_uuid}
 
         task_name = body.get("task", {}).get("task_name", "unknown")
+        task_args = body.get("task", {}).get("args", {})
         if task_name == "sleep":
-            sleep_time = body.get("task", {}).get("args", {}).get("sleep_time")
+            sleep_time = task_args.get("sleep_time")
             if isinstance(sleep_time, int) and sleep_time > 0:
                 Neo4jImplantNodeService.update_sleep_value(uuid, sleep_time)
 
-        log_audit(get_jwt_identity(), "task_queued", "implant", uuid, detail=task_name)
+        binary_keys = ("bof_contents", "file_contents")
+        arg_parts = []
+        for k, v in task_args.items():
+            if k in binary_keys:
+                arg_parts.append(f"{k}=<binary>")
+            elif isinstance(v, str) and len(v) > 200:
+                arg_parts.append(f"{k}={v[:200]}...")
+            else:
+                arg_parts.append(f"{k}={v}")
+        detail = f"{task_name} {' '.join(arg_parts)}" if arg_parts else task_name
+        log_audit(get_jwt_identity(), "task_queued", "implant", uuid, detail=detail)
 
         api_logger.debug("Task enqueued", task_uuid=task_uuid, implant_uuid=uuid, caller_ip=ip)
         return APIResponse(status="200", message="Queued task successfully", data=data)

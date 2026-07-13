@@ -609,53 +609,33 @@ async def start_listener(
 async def build_implant(
     implant_name: str,
     listener_uuids: list,
-    output_format: str,
     initial_get_profile_listener_uuid: str,
     initial_post_profile_listener_uuid: str,
     callback_host: str,
     options: dict,
 ) -> dict | None:
-    # print(initial_get_profile_listener_uuid)
-    # print(initial_post_profile_listener_uuid)
     """
     Submit a task to build a new implant payload tailored to a specific listener.
 
     Args:
         implant_name (str): The name to give the built implant.
-        listener_dict: dict of listener data: {
-            listener_uuid: {"listener_variant":""},
-            listener_uuid: {"listener_variant":""},
-
-        }
-            implant_listener_uuid (str): The UUID of the listener this implant should connect to.
-            implant_variant (str): The variant or architecture of the implant.
-        output_format (str): The desired file format (e.g., 'exe', 'dll').
-
+        listener_uuids (list): List of listener UUIDs to compile into the implant.
         initial_get_profile_listener_uuid (str): The listener UUID to use for the initial GET profile.
-        initial_post_profile_listener_uuid (str): The listener UUID to use for the initial POST profile
+        initial_post_profile_listener_uuid (str): The listener UUID to use for the initial POST profile.
+        callback_host (str): IP or hostname for the implant to call back to.
+        options (dict): Build options (debug, clear_cache, etc.).
 
     Returns:
         dict: Details of the build job, including a 'build_uuid' to track status.
-        Example structure:
-        {
-            "build_uuid": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-            "status": "building"
-        }
     """
-    # validate inputs
     check_type(implant_name, str, "implant_name")
-    # check_type(implant_listener_uuid, str, "implant_listener_uuid")
-    # check_type(implant_variant, str, "implant_variant")
-    check_type(output_format, str, "output_format")
     check_type(listener_uuids, list, "listener_uuids")
-
     check_type(initial_get_profile_listener_uuid, str, "initial_get_profile_listener_uuid")
     check_type(initial_post_profile_listener_uuid, str, "initial_post_profile_listener_uuid")
 
     build_request_data = {
         "listener_uuids": listener_uuids,
         "implant_name": implant_name,
-        "output_format": output_format,
         "initial_get_profile_listener_uuid": initial_get_profile_listener_uuid,
         "initial_post_profile_listener_uuid": initial_post_profile_listener_uuid,
         "callback_host": callback_host,
