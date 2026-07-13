@@ -15,6 +15,7 @@ server_log = structlog.getLogger("server")
 
 ACTION_LABELS = {
     "task_queued": ("TASK QUEUED", "emerald"),
+    "implant_registered": ("IMPLANT REGISTERED", "blue"),
     "implant_deleted": ("IMPLANT DELETED", "red"),
     "listener_created": ("LISTENER CREATED", "blue"),
     "listener_started": ("LISTENER STARTED", "emerald"),
@@ -101,7 +102,7 @@ async def audit_view():
                     value="",
                     on_change=lambda: reset_and_load(),
                 )
-                .props("dense dark borderless options-dense emit-value map-options label=Action")
+                .props("dense dark borderless options-dense label=Action")
                 .classes("w-40 text-xs")
             )
             filter_target = (
@@ -110,7 +111,7 @@ async def audit_view():
                     value="",
                     on_change=lambda: reset_and_load(),
                 )
-                .props("dense dark borderless options-dense emit-value map-options label=Target")
+                .props("dense dark borderless options-dense label=Target")
                 .classes("w-32 text-xs")
             )
             ui.button("FILTER", on_click=lambda: reset_and_load()).props("dense flat size=sm color=emerald").classes(
@@ -131,7 +132,7 @@ async def audit_view():
                     options=PAGE_SIZES,
                     value=state["page_size"],
                     on_change=lambda e: on_page_size_change(e.value),
-                ).props("dense dark borderless options-dense emit-value map-options").classes("w-16 text-xs")
+                ).props("dense dark borderless options-dense").classes("w-16 text-xs")
 
             page_info_label = ui.label("").classes("font-mono text-[11px] text-neutral-400")
 

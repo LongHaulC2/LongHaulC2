@@ -509,7 +509,7 @@ async def terminal(implant_uuid: str):
 
             if task_request:
                 task_name = task_request.get("task", {}).get("task_name", "?")
-                args = task_response.get("task", {}).get("args", {})
+                args = task_request.get("task", {}).get("args", {})
                 fmt_req = task_name + (" " + " ".join(f"{k}={v}" for k, v in args.items()) if args else "")
                 await push_text_to_terminal(fmt_req)
 

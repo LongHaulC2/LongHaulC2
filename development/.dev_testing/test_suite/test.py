@@ -84,7 +84,6 @@ def step_3_build_payload(listener_uuid):
         "implant_name": f"build_{uuid.uuid4().hex[:4]}",
         "implant_listener_uuid": listener_uuid,
         "implant_variant": "http_wininet",
-        "output_format": "exe",
     }
 
     try:

@@ -258,7 +258,6 @@ async def start_payload_dialogue():
                 name_input.value,
                 callback_host_input.value,
                 listener_select.value,
-                format_select.value,
                 profile_get_select.value,
                 profile_post_select.value,
             ]
@@ -296,7 +295,6 @@ async def start_payload_dialogue():
         result = await build_implant(
             implant_name=name_input.value,
             listener_uuids=listener_uuids,
-            output_format=format_select.value,
             initial_get_profile_listener_uuid=listener_uuid_map.get(profile_get_select.value),
             initial_post_profile_listener_uuid=listener_uuid_map.get(profile_post_select.value),
             callback_host=callback_host_input.value,
@@ -362,32 +360,17 @@ async def start_payload_dialogue():
 
         # Body
         with ui.column().classes("p-6 gap-5 w-full"):
-            # IDENTITY & FORMAT
-            with ui.row().classes("w-full gap-4"):
-                name_input = (
-                    ui.input("Payload Name", placeholder="filename (no ext)")
-                    .props("outlined dense dark color=emerald")
-                    .classes("flex-grow tech-input")
+            # IDENTITY
+            name_input = (
+                ui.input("Payload Name", placeholder="filename (no ext)")
+                .props("outlined dense dark color=emerald")
+                .classes("w-full tech-input")
+            )
+            with name_input:
+                formatted_tooltip(
+                    title="Name for the payload",
+                    body="All generated payloads will have this name, and the appropriate extension added to it.",
                 )
-                with name_input:
-                    formatted_tooltip(
-                        title="Name for the payload",
-                        body="All generated payloads will have this name, and the appropriate extension added to it.",
-                    )
-
-                format_select = (
-                    ui.select(
-                        options=["exe", "dll", "ps1", "shellcode", "all"],
-                        value="exe",
-                        label="FORMAT",
-                    )
-                    .props("outlined dense dark color=emerald options-dense")
-                    .classes("w-1/3 tech-select")
-                )
-                with format_select:
-                    formatted_tooltip(
-                        title="[Not Implemented] The format of the implant output",
-                    )
 
             # CALLBACK HOST
             callback_host_input = (

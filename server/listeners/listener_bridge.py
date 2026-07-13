@@ -1,6 +1,7 @@
 import msgpack
 import structlog
 
+from ..db.audit import log_audit
 from ..db.neo4j_functions import Neo4jChainingService, Neo4jImplantNodeService
 from ..db.redis_functions import RedisImplantTaskService
 
@@ -38,13 +39,16 @@ def _register_new_implant(unpacked_metadata: dict, external_ip: str, listener_uu
         core_logger.warning("New implant came in without a UUID", unpacked_metadata=unpacked_metadata)
         return
 
-    # create in neo4j
-    # implant_node = Neo4jImplantNodeService(
-    #     implant_uuid=implant_uuid,
-    #     listener_uuid=listener_uuid,
-    # )
-    # pass ALL metadata to host
     Neo4jImplantNodeService.register_node(listener_uuid=listener_uuid, **unpacked_metadata)
+
+    hostname = unpacked_metadata.get("system_hostname", "unknown")
+    log_audit(
+        actor="system",
+        action="implant_registered",
+        target_type="implant",
+        target_uuid=implant_uuid,
+        detail=f"First connection from {hostname} ({external_ip})",
+    )
 
 
 def handle_beacon(data_from_implant: bytes, external_ip: str, listener_uuid: str) -> bytes | None:

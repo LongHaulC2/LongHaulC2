@@ -59,12 +59,7 @@ class Build(Resource):
 
         """
 
-        # print(data)
-        # listener_uuid = data["implant_listener_uuid"]
-        # variant = data["implant_variant"]
         implant_name = data["implant_name"]
-        # output_format = data["output_format"]
-        # listener_dict = data.get("listener_dict", {})
         listener_uuids = data.get("listener_uuids", [])
 
         initial_get_profile_listener_uuid = data.get("initial_get_profile_listener_uuid", None)
@@ -83,7 +78,6 @@ class Build(Resource):
         build_stats = build_implant(
             implant_name,
             listener_uuids,
-            # output_format,
             build_uuid,
             initial_get_profile_listener_uuid,
             initial_post_profile_listener_uuid,

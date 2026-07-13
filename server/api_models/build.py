@@ -82,7 +82,6 @@ BUILD_POST_INPUT = api.model(
     "BUILD_POST_INPUT",
     {
         "implant_name": fields.String(required=True, description="Name of the implant", example="implant_one"),
-        "output_format": fields.String(required=True, description="Output format (e.g., exe, bin)", example="exe"),
         "listener_uuids": fields.List(
             fields.String,
             required=True,

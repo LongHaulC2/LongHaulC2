@@ -41,13 +41,12 @@ def start_listener(api_client):
 def build_payload(api_client, listener_uuid):    
     build_data = {
         "implant_name": "pytest_implant",
-        "output_format": "exe",
         "listener_uuids": [listener_uuid],
         "initial_get_profile_listener_uuid": listener_uuid,
         "initial_post_profile_listener_uuid": listener_uuid
     }
-    
-    print(f"[*] Requesting '{build_data['implant_name']}' build (Format: {build_data['output_format']})")
+
+    print(f"[*] Requesting '{build_data['implant_name']}' build")
 
     build_data_response = api_client.post_build(payload=build_data)
 

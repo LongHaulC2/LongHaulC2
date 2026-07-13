@@ -347,7 +347,7 @@ make create_docker_images  # rebuild from setup/docker_images/
 - `GET /api/v1/audit/?actor=&action=&target_type=&since=&limit=&offset=` — retrieve audit entries with pagination. Returns `{entries, total_count, limit, offset}`. Default limit 50, max 1000. Offset and limit are clamped to valid ranges.
 - `GET /api/v1/audit/export?actor=&action=&target_type=&since=` — download all matching audit entries as a CSV file (no limit). Returns `text/csv` with `Content-Disposition: attachment`.
 
-Tracked actions: `login_success`, `login_failed`, `task_queued`, `implant_deleted`, `listener_created`, `listener_started`, `listener_stopped`, `listener_deleted`, `file_uploaded`, `file_deleted`, `user_registered`, `user_deleted`.
+Tracked actions: `login_success`, `login_failed`, `task_queued`, `implant_registered`, `implant_deleted`, `listener_created`, `listener_started`, `listener_stopped`, `listener_deleted`, `file_uploaded`, `file_deleted`, `user_registered`, `user_deleted`.
 
 The audit helper (`server/db/audit.py`) exposes `log_audit(actor, action, target_type, target_uuid, detail)` — call it from any route handler to record an event. Entries are stored in MySQL (`audit_log` table) with millisecond timestamps.
 
