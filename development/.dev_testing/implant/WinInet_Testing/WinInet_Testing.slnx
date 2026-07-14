@@ -1,7 +1,0 @@
-<Solution>
-  <Configurations>
-    <Platform Name="x64" />
-    <Platform Name="x86" />
-  </Configurations>
-  <Project Path="WinInet_Testing.vcxproj" Id="1eacd393-0ec7-4ccc-9841-e319effb7612" />
-</Solution>
