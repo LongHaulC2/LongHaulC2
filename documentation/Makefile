@@ -39,7 +39,8 @@ dev: $(NODE_BIN)/.installed
 ## build: Build the static site to ./build/
 build: $(NODE_BIN)/.installed
 	$(DOCUSAURUS) build
-
+	# hack to get cname in the build so docs.longhaulc2.com works
+	echo docs.longhaulc2.com >> ./build/CNAME
 ## serve: Build the static site and serve it locally
 serve: build
 	$(DOCUSAURUS) serve
