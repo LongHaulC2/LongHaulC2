@@ -51,6 +51,8 @@ INIT_API_PASS ?= P@ssw0rd1!
 CERT_DIR := /etc/ssl/certs/
 CERT_FILE := $(CERT_DIR)/longhaulc2_api_cert.pem
 KEY_FILE := $(CERT_DIR)/longhaulc2_api_key.pem
+UI_CERT_FILE := $(CERT_DIR)/longhaulc2_ui_cert.pem
+UI_KEY_FILE := $(CERT_DIR)/longhaulc2_ui_key.pem
 DAYS := 365
 
 # ======================================
@@ -419,7 +421,7 @@ certs:
 	@echo "=================================================="
 	@mkdir -p $(CERT_DIR)
 	@if [ ! -f $(CERT_FILE) ]; then \
-		echo "Generating self-signed certificates..."; \
+		echo "Generating API self-signed certificates..."; \
 		openssl req -x509 -newkey rsa:4096 -nodes \
 			-keyout $(KEY_FILE) \
 			-out $(CERT_FILE) \
@@ -431,9 +433,26 @@ certs:
 		sudo chown $(SVC_USER):$(SVC_USER) $(KEY_FILE); \
 		sudo chmod 644 $(CERT_FILE); \
 		sudo chmod 600 $(KEY_FILE); \
-		echo "Certificates generated successfully in $(CERT_DIR)/"; \
+		echo "API certificates generated successfully in $(CERT_DIR)/"; \
 	else \
-		echo "Certificates already exist. Skipping generation to prevent overwrite."; \
+		echo "API certificates already exist. Skipping generation to prevent overwrite."; \
+	fi
+	@if [ ! -f $(UI_CERT_FILE) ]; then \
+		echo "Generating UI self-signed certificates..."; \
+		openssl req -x509 -newkey rsa:4096 -nodes \
+			-keyout $(UI_KEY_FILE) \
+			-out $(UI_CERT_FILE) \
+			-days $(DAYS) \
+			-subj "/C=US/ST=State/L=City/O=LongHaulC2/CN=localhost"; \
+		chmod 600 $(UI_KEY_FILE); \
+		chmod 644 $(UI_CERT_FILE); \
+		sudo chown $(SVC_USER):$(SVC_USER) $(UI_CERT_FILE); \
+		sudo chown $(SVC_USER):$(SVC_USER) $(UI_KEY_FILE); \
+		sudo chmod 644 $(UI_CERT_FILE); \
+		sudo chmod 600 $(UI_KEY_FILE); \
+		echo "UI certificates generated successfully in $(CERT_DIR)/"; \
+	else \
+		echo "UI certificates already exist. Skipping generation to prevent overwrite."; \
 	fi
 
 .PHONY: clean-certs
@@ -479,6 +498,8 @@ create_env:
 	# cert stuff, put in path of certs
 	@echo "API_CERT_KEY=$(KEY_FILE)" >> .env
 	@echo "API_CERT_FILE=$(CERT_FILE)" >> .env
+	@echo "UI_CERT_KEY=$(UI_KEY_FILE)" >> .env
+	@echo "UI_CERT_FILE=$(UI_CERT_FILE)" >> .env
 
 	# init api user
 	@echo "INIT_API_USER=$(INIT_API_USER)" >> .env

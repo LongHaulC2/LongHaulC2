@@ -58,8 +58,16 @@ ui.add_head_html('<link rel="icon" type="image/x-icon" href="/static/favicon.ico
 app.native.settings["ALLOW_DOWNLOADS"] = True
 
 
+UI_CERT_FILE = os.getenv("UI_CERT_FILE")
+UI_CERT_KEY = os.getenv("UI_CERT_KEY")
+
+
 def main():
-    # ui.run(native=True, dark=True)
+    ssl_kwargs = {}
+    if UI_CERT_FILE and UI_CERT_KEY and Path(UI_CERT_FILE).exists() and Path(UI_CERT_KEY).exists():
+        ssl_kwargs["ssl_certfile"] = UI_CERT_FILE
+        ssl_kwargs["ssl_keyfile"] = UI_CERT_KEY
+
     ui.run(
         native=False,
         dark=True,
@@ -71,6 +79,7 @@ def main():
         reconnect_timeout=30,  # how long browser waits for server to re-connect, tldr, longer better for
         # heavy UI style tasks.
         loop="uvloop",  # use UVloop for uvicorn, apparently its a lot faster
+        **ssl_kwargs,
     )
     # reload=platform.system() != "Windows")
     # reload false to disable reload, which breaks async on windows
