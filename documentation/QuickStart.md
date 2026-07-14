@@ -7,8 +7,8 @@ id: LongHaul C2 - Quickstart Guide
 ## Quick Links
 
 - **[GitHub Org](https://github.com/LongHaulC2):** Source code, issues, PRs
-- **[Video Documentation](#):** *(Coming Soon)*
-- **[Latest Releases](#):** *(Coming Soon)*
+- **[Video Documentation](https://www.youtube.com/@longhaulc2)
+- **[Latest Releases](https://github.com/LongHaulC2/LongHaulC2/releases)
 
 ---
 
