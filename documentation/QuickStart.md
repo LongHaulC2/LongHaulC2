@@ -47,9 +47,9 @@ MYSQL_ROOT_PASSWORD=<strong_pass> REDIS_PASSWORD=<strong_pass> \
 NEO4J_PASSWORD=<strong_pass> JWT_SECRET_KEY=<strong_secret>
 ```
 
-**Access the UI:** `http://<server>:8083`
+**Access the UI:** `https://<server>:8083`
 
-**API + Swagger:** `http://<server>:45045/doc`
+**API + Swagger:** `https://<server>:45045/doc`
 
 ---
 
