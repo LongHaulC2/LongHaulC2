@@ -75,7 +75,7 @@ msgpack==1.1.2
 multidict==6.7.1
 neo4j==6.0.3
 neomodel==6.0.1
-nicegui==3.8.0
+nicegui==3.11.0
 nodeenv==1.10.0
 numpy==2.4.2
 ordered-set==4.1.0
