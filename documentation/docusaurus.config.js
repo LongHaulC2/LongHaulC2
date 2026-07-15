@@ -65,10 +65,22 @@ const config = {
         title: "LongHaulC2",
         items: [
           {
+            type: "doc",
+            docId: "Project Overview",
+            position: "left",
+            label: "Home",
+          },
+          {
             type: "docSidebar",
             sidebarId: "docs",
             position: "left",
-            label: "Docs",
+            label: "User Docs",
+          },
+          {
+            type: "docSidebar",
+            sidebarId: "development",
+            position: "left",
+            label: "Development",
           },
           {
             href: "https://github.com/LongHaulC2/LongHaulC2",
