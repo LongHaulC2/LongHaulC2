@@ -44,6 +44,18 @@ def page():
 # the card's children ARE the ordered transforms — no separate list needed
 transform_cards = {}
 
+last_extract = {"data": {}}
+
+transforms = {
+    "append":{"desc":"Append literal bytes after the data", "input":True},
+    "prepend":{"desc":"Prepend literal bytes before the data", "input":True},
+    "base64":{"desc":"URL-safe Base64 (no padding)", "input":False},
+    "base64url":{"desc":"Standard Base64 encode/decode", "input":False},
+    "netbios":{"desc":"NetBIOS encoding (lowercase a-p)", "input":False},
+    "netbiosu":{"desc":"NetBIOS encoding (uppercase A-P)", "input":False},
+    "symcrypt":{"desc":"AES-256-GCM symmetric encryption", "input":True}
+}
+
 def transform_parent():
     """parent element to hold all  transform  sub elements.
     
@@ -103,14 +115,37 @@ def transform_box(transform_chain_name:str="GET", sub_chain:str="req"):
                         ui.icon("drag_indicator").classes(
                             "drag-handle cursor-grab active:cursor-grabbing"
                         )
-                        ui.label("transform_example")
+                        expansion_name = ui.label("transform_example")
+
+                # list of all transforms:
+                key_list = list(transforms.keys())
 
                 # add new attribtue to each object to track the operation, and value of each transform. 
                 # this allows us to access them later with parent object
-                expansion.transform_op = ui.select(["Append", "Prepend", "..."], value="Append")
+                expansion.transform_op = ui.select(key_list, value="append", on_change=lambda: on_change_handler())
+                
+                target_transform = transforms.get(expansion.transform_op.value,{})
                 expansion.transform_val = ui.input("Value")
 
+                # store label object as well for updates to desc.
+                expansion.transform_desc = ui.label(target_transform.get("desc",""))
+
                 ui.button("delete transform", on_click=lambda: expansion.delete())
+        
+        def on_change_handler():
+            # update expansion name to current transform
+            expansion_name.set_text(expansion.transform_op.value)
+
+            # look up the *current* selection each time, not the stale initial capture
+            current_transform = transforms.get(expansion.transform_op.value, {})
+            needs_input = current_transform.get("input", False)
+
+            expansion.transform_val.set_visibility(needs_input)
+            if not needs_input:
+                expansion.transform_val.set_value("")
+
+            # add in desc to label object.
+            expansion.transform_desc.set_text(current_transform.get("desc",""))
 
 def extract_chain():
     '''
@@ -130,12 +165,17 @@ def extract_chain():
         result.setdefault(transform_chain_name, {})[sub_chain] = {"transforms": transforms}
 
     print(result)
+    #placeholdr add to global result dict for gui purposes
+    last_extract["data"] = result
+    render_box.refresh()
 
 
+@ui.refreshable
 def render_box():
     ''''''
     with ui.column().classes("w-full h-full outline"):
         ui.label("render preview")
+        ui.code(content=str(last_extract.get("data", {})), language="json").classes("w-full")
 
 ui.run()
 
