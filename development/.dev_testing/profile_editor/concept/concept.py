@@ -72,6 +72,8 @@ def transform_parent():
             transform_split("GET")
         with ui.tab_panel(post):
             transform_split("POST")
+        with ui.tab_panel(options):
+            options_box()
 
     ui.button("debug print dicts", on_click=lambda:extract_chain())
 
@@ -169,6 +171,14 @@ def extract_chain():
     last_extract["data"] = result
     render_box.refresh()
 
+def options_box():
+    '''
+    options
+    '''
+    ui.label("protocol")
+    ui.radio(["tcp", "udp"])
+    ui.input("Profile Name")
+    ui.input("Author")
 
 @ui.refreshable
 def render_box():
