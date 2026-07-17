@@ -510,7 +510,6 @@ def transform_chain_editor(chain: str, sub_chain: str):
         card = ui.card().classes("w-full min-h-[60px]").style(
             "border: 1px dashed #444; background: transparent; padding: 8px;"
         )
-        card.make_sortable(handle=".drag-handle")
 
         # Register in ui_refs for sync_model_from_ui
         ui_refs[f"{chain}_{sub_chain}_card"] = card
@@ -523,6 +522,11 @@ def transform_chain_editor(chain: str, sub_chain: str):
 
         for t in transforms:
             add_transform(card, op=t["op"], val=t.get("val", ""))
+
+        # make_sortable AFTER children are added — SortableJS must see
+        # existing children when it initializes, otherwise drag handles
+        # on pre-populated items don't bind.
+        card.make_sortable(handle=".drag-handle")
 
         ui.button(
             "Add Transform", icon="add",
