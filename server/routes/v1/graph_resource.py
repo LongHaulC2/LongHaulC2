@@ -63,7 +63,7 @@ class GraphSearch(Resource):
     @graph_ns.expect(GRAPH_SEARCH_POST_INPUT)
     @graph_ns.response(200, "A list of all found nodes", GRAPH_SEARCH_POST_RESPONSE)
     @graph_ns.marshal_with(GRAPH_SEARCH_POST_RESPONSE)
-    # @jwt_required()
+    @jwt_required()
     def post(self):
         """
         Search for an implant
