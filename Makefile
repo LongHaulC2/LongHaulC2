@@ -6,6 +6,8 @@ DEPLOY_DIR = $(PREFIX)/longhaulc2
 SVC_USER = longhaul
 DOCKER_DIR := setup/docker_images
 WORKSPACE_DIR = /var/lib/longhaulc2
+KEEP_DATA ?= 0
+GEN_PASSWORDS ?= 0
 
 
 # dev vars
@@ -14,11 +16,11 @@ DEV_VENV := $(DIR_OF_THIS_SCRIPT)/venv
 DEV_VENV_PATH ?= /venv
 
 # Dependencies
-APT_PACKAGES = python3 python3-pip python3-virtualenv docker.io redis-tools postgresql-client clang-format
+APT_PACKAGES = python3 python3-pip python3-virtualenv docker.io docker-compose-v2 redis-tools postgresql-client clang-format
 SYSTEMD_SERVICES = longhaulc2-server longhaulc2-web
 
 # Minimal packages for hosted runnersm tldr, they already have docker installed
-GH_RUNNER_PACKAGES = python3-virtualenv redis-tools postgresql-client clang-format
+GH_RUNNER_PACKAGES = python3-virtualenv docker-compose-v2 redis-tools postgresql-client clang-format
 
 # python shennanigans
 # where the pip deps lock file is stored, this is in the longhaulc2 dir at pull
@@ -114,12 +116,16 @@ deploy: check_root
 	sudo getent group docker || groupadd docker
 	# add user to docker group
 	sudo usermod -aG docker $(SVC_USER)
-	
+
 	@echo "=================================================="
 	@echo "Creating .env"
 	@echo "=================================================="
-	$(MAKE) create_env
-	
+	@if [ -f .env ]; then \
+		echo ".env already exists — keeping existing credentials"; \
+	else \
+		$(MAKE) create_env GEN_PASSWORDS=1; \
+	fi
+
 	@echo "=================================================="
 	@echo "Creating directories"
 	@echo "=================================================="
@@ -161,11 +167,10 @@ deploy: check_root
 	virtualenv $(DEPLOY_DIR)/server/venv/
 	#$(DEPLOY_DIR)/server/venv/bin/pip install "$(DIR_OF_THIS_SCRIPT)[server]" -c $(LOCK_FILE)
 	
-	-$(DEPLOY_DIR)/server/venv/bin/pip install -r $(LOCK_FILE) --no-deps
+	$(DEPLOY_DIR)/server/venv/bin/pip install -r $(LOCK_FILE)
 
 	virtualenv $(DEPLOY_DIR)/client/venv/
-	#$(DEPLOY_DIR)/client/venv/bin/pip install "$(DIR_OF_THIS_SCRIPT)[web]" -c $(LOCK_FILE)
-	-$(DEPLOY_DIR)/client/venv/bin/pip install -r $(LOCK_FILE) --no-deps
+	$(DEPLOY_DIR)/client/venv/bin/pip install -r $(LOCK_FILE)
 
 
 	@echo "=================================================="
@@ -202,18 +207,29 @@ deploy: check_root
 	@echo "=================================================="
 	@echo "Setting up docker containers"
 	@echo "=================================================="
-	# doing last, in case this fails, so everything else is setup
-	$(MAKE) pull_docker_images
-	$(MAKE) create_docker_images
+	# service containers via compose (doing last, in case this fails, so everything else is setup)
 	$(MAKE) start_docker_images
-	
+	# cross-compiler image for implant builds
+	$(MAKE) create_docker_images
+
 	@echo "=================================================="
 	@echo "Complete!"
 	@echo "=================================================="
 	$(MAKE) print_all_install_locations
-	@echo "Deployment complete."
 	sudo systemctl start longhaulc2-server
 	sudo systemctl start longhaulc2-web
+	@echo ""
+	@echo "=================================================="
+	@echo "  Deployment complete."
+	@echo "=================================================="
+	@echo ""
+	@echo "  Initial operator credentials:"
+	@echo "    Username: $$(grep '^INIT_API_USER=' .env | cut -d= -f2)"
+	@echo "    Password: $$(grep '^INIT_API_PASS=' .env | cut -d= -f2)"
+	@echo ""
+	@echo "  Save these credentials — they will not be shown again."
+	@echo "  All service passwords are stored in .env"
+	@echo "=================================================="
 
 .PHONY: undeploy
 undeploy: check_root
@@ -236,19 +252,23 @@ undeploy: check_root
 	@echo "=================================================="
 	@echo "Stopping and removing Docker containers"
 	@echo "=================================================="
-# 	-sudo docker stop $(MYSQL_CONTAINER) $(REDIS_CONTAINER) $(NEO4J_CONTAINER)
-# 	-sudo docker rm $(MYSQL_CONTAINER) $(REDIS_CONTAINER) $(NEO4J_CONTAINER)
-	
-	# hard nukes the containers
-	sudo docker rm -f $(MYSQL_CONTAINER) $(REDIS_CONTAINER) $(NEO4J_CONTAINER) 2>/dev/null || true
+ifeq ($(KEEP_DATA),1)
+	@echo "KEEP_DATA=1 — preserving Docker volumes and workspace data"
+	-docker compose down
+else
+	-docker compose down -v
+endif
 
 	@echo "=================================================="
 	@echo "Removing installed directories and files"
 	@echo "=================================================="
 	rm -rf $(DEPLOY_DIR)
+ifneq ($(KEEP_DATA),1)
 	rm -rf /var/lib/longhaulc2
+	rm -f .env
+endif
 	rm -rf /var/log/longhaulc2
-	rm -f .env install_reference
+	rm -f install_reference
 	
 	@echo "=================================================="
 	@echo "Removing system user"
@@ -261,9 +281,11 @@ undeploy: check_root
 	@echo "Note: APT packages ($(APT_PACKAGES)) and Docker base images were NOT removed to prevent breaking other tools on your system."
 
 .PHONY: redeploy
-redeploy: undeploy deploy
+redeploy:
+	$(MAKE) undeploy KEEP_DATA=1
+	$(MAKE) deploy
 	@echo "=================================================="
-	@echo "Re-Deploying LongHaulC2 Complete"
+	@echo "Re-Deploying LongHaulC2 Complete (data preserved)"
 	@echo "=================================================="
 
 # ======================================
@@ -315,10 +337,10 @@ dev_install:
 	@echo "=================================================="
 	# doing this LAST, so everything else gets setup in case these fail
 	sudo getent group docker || groupadd docker
-	
-	$(MAKE) pull_docker_images
-	$(MAKE) create_docker_images
+	# service containers via compose
 	$(MAKE) start_docker_images
+	# cross-compiler image for implant builds
+	$(MAKE) create_docker_images
 	
 	@echo "Activate the venv with 'source $(DEV_VENV_PATH)/bin/activate'"
 	@echo "Development env setup & ready to go"
@@ -332,8 +354,7 @@ dev_uninstall:
 	@echo "=================================================="
 	@echo "Stopping & removing docker containers"
 	@echo "=================================================="
-	-sudo docker stop $(MYSQL_CONTAINER) $(REDIS_CONTAINER) $(NEO4J_CONTAINER)
-	-sudo docker rm $(MYSQL_CONTAINER) $(REDIS_CONTAINER) $(NEO4J_CONTAINER)
+	-docker compose down
 	
 	@echo "=================================================="
 	@echo "Removing virtualenv and configurations"
@@ -377,31 +398,23 @@ create_docker_images:
 .PHONY: start_docker_images
 start_docker_images:
 	@echo "=================================================="
-	@echo "Starting docker containers..."
+	@echo "Starting docker containers via compose..."
 	@echo "=================================================="
-	
-	# https://hub.docker.com/_/mysql
-	@echo "Starting mysql"
-	sudo docker run --name $(MYSQL_CONTAINER) -p 0.0.0.0:3306:3306 -p 127.0.0.1:33060:33060 -e MYSQL_ROOT_PASSWORD=$(MYSQL_ROOT_PASSWORD) -d mysql:latest
-	
-	# https://hub.docker.com/_/redis
-	@echo "Starting redis"
-	# 8001: Redis Insight. Enabled for dev, can disable/put on localhost for prod.
-	sudo docker run -d --name $(REDIS_CONTAINER) -p 127.0.0.1:6379:6379 -p 0.0.0.0:8001:8001 -e REDIS_ARGS="--requirepass $(REDIS_PASSWORD)" redis/redis-stack:latest
-	
-	# https://hub.docker.com/_/neo4j
-	@echo "Starting neo4j"
-	sudo docker run -d --name $(NEO4J_CONTAINER) -p 7474:7474 -p 7687:7687 --volume=$(HOME)/neo4j/data:/data --env=NEO4J_AUTH=$(NEO4J_USER)/$(NEO4J_PASSWORD) neo4j:latest
+	docker compose up -d
+
+.PHONY: stop_docker_images
+stop_docker_images:
+	@echo "=================================================="
+	@echo "Stopping docker containers..."
+	@echo "=================================================="
+	docker compose down
 
 .PHONY: pull_docker_images
 pull_docker_images:
 	@echo "=================================================="
 	@echo "Pulling docker images..."
 	@echo "=================================================="
-	sudo docker pull mysql:latest & \
-	sudo docker pull redis:latest & \
-	sudo docker pull neo4j:latest & \
-	wait
+	docker compose pull
 
 # ======================================
 # Certs
@@ -467,43 +480,47 @@ clean-certs:
 
 .PHONY: create_env
 create_env:
-	@touch .env
-	@echo "MYSQL_HOST=$(MYSQL_HOST)" > .env
-	@echo "MYSQL_PORT=$(MYSQL_PORT)" >> .env
-	@echo "MYSQL_ROOT_USER=$(MYSQL_ROOT_USER)" >> .env
-	@echo "MYSQL_ROOT_PASSWORD=$(MYSQL_ROOT_PASSWORD)" >> .env
-	# Change this to like my_engagement_202X_month to track different engagements
-	@echo "MYSQL_DATABASE=c2_db" >> .env
-	@echo "REDIS_HOST=$(REDIS_HOST)" >> .env
-	@echo "REDIS_PORT=$(REDIS_PORT)" >> .env
-	@echo "REDIS_USER=$(REDIS_USER)" >> .env
-	@echo "REDIS_PASSWORD=$(REDIS_PASSWORD)" >> .env
-	@echo "NEO4J_HOST=$(NEO4J_HOST)" >> .env
-	@echo "NEO4J_WEB_PORT=$(NEO4J_WEB_PORT)" >> .env
-	@echo "NEO4J_DB_PORT=$(NEO4J_DB_PORT)" >> .env
-	@echo "NEO4J_USER=$(NEO4J_USER)" >> .env
-	@echo "NEO4J_PASSWORD=$(NEO4J_PASSWORD)" >> .env
-	
-	# nicegui storage secret - used for user sessions
-	@SECRET=$$(LC_ALL=C tr -dc 'A-Za-z0-9-_' < /dev/urandom | head -c 43); \
-	echo "NICEGUI_STORAGE_SECRET=$$SECRET" >> .env
-	
-	# add in docker container names
-	@echo "MYSQL_CONTAINER=$(MYSQL_CONTAINER)" >> .env
-	@echo "REDIS_CONTAINER=$(REDIS_CONTAINER)" >> .env
-	@echo "NEO4J_CONTAINER=$(NEO4J_CONTAINER)" >> .env
-	@echo "WORKSPACE_DIR=$(WORKSPACE_DIR)" >> .env
-	@echo "JWT_SECRET_KEY=$(JWT_SECRET_KEY)" >> .env
-
-	# cert stuff, put in path of certs
-	@echo "API_CERT_KEY=$(KEY_FILE)" >> .env
-	@echo "API_CERT_FILE=$(CERT_FILE)" >> .env
-	@echo "UI_CERT_KEY=$(UI_KEY_FILE)" >> .env
-	@echo "UI_CERT_FILE=$(UI_CERT_FILE)" >> .env
-
-	# init api user
-	@echo "INIT_API_USER=$(INIT_API_USER)" >> .env
-	@echo "INIT_API_PASS=$(INIT_API_PASS)" >> .env
+	@gen_pass() { LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 32; }; \
+	if [ "$(GEN_PASSWORDS)" = "1" ]; then \
+		MYSQL_ROOT_PASSWORD=$$(gen_pass); \
+		REDIS_PASSWORD=$$(gen_pass); \
+		NEO4J_PASSWORD=$$(gen_pass); \
+		JWT_SECRET_KEY=$$(gen_pass); \
+		INIT_API_PASS=$$(gen_pass); \
+	else \
+		MYSQL_ROOT_PASSWORD="$(MYSQL_ROOT_PASSWORD)"; \
+		REDIS_PASSWORD="$(REDIS_PASSWORD)"; \
+		NEO4J_PASSWORD="$(NEO4J_PASSWORD)"; \
+		JWT_SECRET_KEY="$(JWT_SECRET_KEY)"; \
+		INIT_API_PASS="$(INIT_API_PASS)"; \
+	fi; \
+	NICEGUI_SECRET=$$(LC_ALL=C tr -dc 'A-Za-z0-9-_' < /dev/urandom | head -c 43); \
+	echo "MYSQL_HOST=$(MYSQL_HOST)" > .env; \
+	echo "MYSQL_PORT=$(MYSQL_PORT)" >> .env; \
+	echo "MYSQL_ROOT_USER=$(MYSQL_ROOT_USER)" >> .env; \
+	echo "MYSQL_ROOT_PASSWORD=$$MYSQL_ROOT_PASSWORD" >> .env; \
+	echo "MYSQL_DATABASE=c2_db" >> .env; \
+	echo "REDIS_HOST=$(REDIS_HOST)" >> .env; \
+	echo "REDIS_PORT=$(REDIS_PORT)" >> .env; \
+	echo "REDIS_USER=$(REDIS_USER)" >> .env; \
+	echo "REDIS_PASSWORD=$$REDIS_PASSWORD" >> .env; \
+	echo "NEO4J_HOST=$(NEO4J_HOST)" >> .env; \
+	echo "NEO4J_WEB_PORT=$(NEO4J_WEB_PORT)" >> .env; \
+	echo "NEO4J_DB_PORT=$(NEO4J_DB_PORT)" >> .env; \
+	echo "NEO4J_USER=$(NEO4J_USER)" >> .env; \
+	echo "NEO4J_PASSWORD=$$NEO4J_PASSWORD" >> .env; \
+	echo "NICEGUI_STORAGE_SECRET=$$NICEGUI_SECRET" >> .env; \
+	echo "MYSQL_CONTAINER=$(MYSQL_CONTAINER)" >> .env; \
+	echo "REDIS_CONTAINER=$(REDIS_CONTAINER)" >> .env; \
+	echo "NEO4J_CONTAINER=$(NEO4J_CONTAINER)" >> .env; \
+	echo "WORKSPACE_DIR=$(WORKSPACE_DIR)" >> .env; \
+	echo "JWT_SECRET_KEY=$$JWT_SECRET_KEY" >> .env; \
+	echo "API_CERT_KEY=$(KEY_FILE)" >> .env; \
+	echo "API_CERT_FILE=$(CERT_FILE)" >> .env; \
+	echo "UI_CERT_KEY=$(UI_KEY_FILE)" >> .env; \
+	echo "UI_CERT_FILE=$(UI_CERT_FILE)" >> .env; \
+	echo "INIT_API_USER=$(INIT_API_USER)" >> .env; \
+	echo "INIT_API_PASS=$$INIT_API_PASS" >> .env
 
 
 .PHONY: print_all_install_locations

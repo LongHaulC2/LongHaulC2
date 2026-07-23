@@ -287,11 +287,23 @@ If you add a new page that makes API calls on load, guard it with a check for `a
 make prep_for_push   # lint, freeze, clean, dry-run install
 ```
 
-**Docker containers** (MySQL, Redis, Neo4j):
+**Docker Compose** (MySQL, Redis, Neo4j) — managed via `docker-compose.yml`, reads creds from `.env`:
 ```bash
-make start_docker_images   # start
-make create_docker_images  # rebuild from setup/docker_images/
+make start_docker_images   # docker compose up -d (all ports 127.0.0.1 only, auto-restart on reboot)
+make stop_docker_images    # docker compose down (keeps volumes)
+make pull_docker_images    # docker compose pull
+make create_docker_images  # builds cross-compiler images from setup/docker_images/ (separate from DB services)
 ```
+
+**Deploy / undeploy / redeploy:**
+```bash
+sudo make deploy                    # full production install (auto-generates random passwords, prints operator creds at end)
+sudo make undeploy                  # full teardown including DB volumes, workspace, and .env
+sudo make undeploy KEEP_DATA=1      # teardown but preserve DB volumes, /var/lib/longhaulc2, and .env
+sudo make redeploy                  # undeploy KEEP_DATA=1 + deploy (standard upgrade path, preserves creds)
+```
+
+`make deploy` generates random 32-char passwords for MySQL, Redis, Neo4j, JWT, and the operator account. All passwords are stored in `.env`. `make dev_install` still uses the hardcoded defaults.
 
 **Default dev credentials** (from `.env`): user `longhaul` / `P@ssw0rd1!`
 
