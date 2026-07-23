@@ -1,3 +1,4 @@
+import hexdump as hexdump_lib
 from nicegui import ui
 
 
@@ -44,16 +45,30 @@ def _wire_block(
         wire_html = ui.html("").classes("w-full")
 
         def update_content():
+            if pre_classes.get("hexdump", False):
+                raw_bytes = wire_text.encode("latin-1", errors="replace")
+                hex_str = hexdump_lib.hexdump(raw_bytes, result="return")
+                hex_escaped = hex_str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                html_str = (
+                    f'<pre style="margin:0;padding:12px;font-family:monospace;font-size:11px;'
+                    f"color:#d4d4d4;background:#0d1117;border:1px solid rgba(255,255,255,0.05);"
+                    f'border-radius:4px;white-space:pre;overflow-x:auto;">{hex_escaped}</pre>'
+                )
+                wire_html.set_content(html_str)
+                return
+
             wrap = pre_classes.get("wrap", False)
             escapes = pre_classes.get("escapes", True)
             ws_style = "white-space:pre-wrap;word-break:break-all;" if wrap else "white-space:pre;overflow-x:auto;"
             content = wire_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
             if escapes:
                 esc = '<span style="color:#ef5350;opacity:0.8;">'
-                content = content.replace("\\r\\n", f"{esc}\\r\\n</span>\n")
-                content = content.replace("\r\n", f"{esc}\\r\\n</span>\n")
-                content = content.replace("\r", f"{esc}\\r</span>")
-                content = content.replace("\n", f"{esc}\\n</span>\n")
+                sentinel = "\x00NL\x00"
+                content = content.replace("\\r\\n", f"{esc}\\r\\n</span>{sentinel}")
+                content = content.replace("\r\n", f"{esc}\\r\\n</span>{sentinel}")
+                content = content.replace("\r", f"{esc}\\r</span>{sentinel}")
+                content = content.replace("\n", f"{esc}\\n</span>{sentinel}")
+                content = content.replace(sentinel, "\n")
             else:
                 content = content.replace("\\r\\n", "\n")
                 content = content.replace("\r\n", "\n")
@@ -77,7 +92,7 @@ def render_wire_view(data: dict):
 
     # wrap on by default, so it wraps when items are too long, otherwise it goes off the edge and the show/wrap buttons
     # are hidden in a horizontal scroll
-    toggle_state = {"wrap": True, "escapes": True, "_updaters": []}
+    toggle_state = {"wrap": True, "escapes": True, "hexdump": False, "_updaters": []}
 
     with ui.row().classes("items-center gap-4 px-4 py-2 border-b border-white/5 bg-black/20 w-full shrink-0"):
         ui.icon("cable", size="xs", color="emerald-400").classes("opacity-60")
@@ -94,8 +109,14 @@ def render_wire_view(data: dict):
             for fn in toggle_state.get("_updaters", []):
                 fn()
 
+        def on_hexdump(e):
+            toggle_state["hexdump"] = e.value
+            for fn in toggle_state.get("_updaters", []):
+                fn()
+
         ui.switch("Wrap", value=True, on_change=on_wrap).props("dense size=sm color=emerald")
         ui.switch("Show \\r\\n", value=True, on_change=on_escapes).props("dense size=sm color=emerald")
+        ui.switch("Hexdump", value=False, on_change=on_hexdump).props("dense size=sm color=emerald")
 
     entries = data.get("raw_profiles", [])
     if not entries:
@@ -104,56 +125,57 @@ def render_wire_view(data: dict):
             ui.label("No raw profiles to visualize").classes("tech-label-sub text-neutral-500")
         return
 
-    for entry in entries:
-        get_data = entry.get("get") or {}
-        post_data = entry.get("post") or {}
+    with ui.scroll_area().classes("w-full flex-grow"):
+        for entry in entries:
+            get_data = entry.get("get") or {}
+            post_data = entry.get("post") or {}
 
-        with ui.column().classes("w-full gap-4 p-4"):
-            _wire_block(
-                label="GET Request",
-                direction="client → server",
-                icon="call_made",
-                body=get_data.get("client", {}).get("body", ""),
-                token="<METADATA>",
-                transforms=get_data.get("client", {}).get("metadata_transforms", []),
-                color="emerald",
-                pre_classes=toggle_state,
-            )
+            with ui.column().classes("w-full gap-4 p-4 pb-16"):
+                _wire_block(
+                    label="GET Request",
+                    direction="client → server",
+                    icon="call_made",
+                    body=get_data.get("client", {}).get("body", ""),
+                    token="<METADATA>",
+                    transforms=get_data.get("client", {}).get("metadata_transforms", []),
+                    color="emerald",
+                    pre_classes=toggle_state,
+                )
 
-            _wire_block(
-                label="GET Response",
-                direction="server → client",
-                icon="call_received",
-                body=get_data.get("server", {}).get("body", ""),
-                token="<OUTPUT>",
-                transforms=get_data.get("server", {}).get("output_transforms", []),
-                color="amber",
-                pre_classes=toggle_state,
-            )
+                _wire_block(
+                    label="GET Response",
+                    direction="server → client",
+                    icon="call_received",
+                    body=get_data.get("server", {}).get("body", ""),
+                    token="<OUTPUT>",
+                    transforms=get_data.get("server", {}).get("output_transforms", []),
+                    color="amber",
+                    pre_classes=toggle_state,
+                )
 
-            ui.separator().classes("bg-white/5")
+                ui.separator().classes("bg-white/5")
 
-            _wire_block(
-                label="POST Request",
-                direction="client → server",
-                icon="call_made",
-                body=post_data.get("client", {}).get("body", ""),
-                token="<OUTPUT>",
-                transforms=post_data.get("client", {}).get("output_transforms", []),
-                color="emerald",
-                pre_classes=toggle_state,
-            )
+                _wire_block(
+                    label="POST Request",
+                    direction="client → server",
+                    icon="call_made",
+                    body=post_data.get("client", {}).get("body", ""),
+                    token="<OUTPUT>",
+                    transforms=post_data.get("client", {}).get("output_transforms", []),
+                    color="emerald",
+                    pre_classes=toggle_state,
+                )
 
-            _wire_block(
-                label="POST Response (ACK)",
-                direction="server → client",
-                icon="call_received",
-                body=post_data.get("server", {}).get("body", ""),
-                token=None,
-                transforms=[],
-                color="amber",
-                pre_classes=toggle_state,
-            )
+                _wire_block(
+                    label="POST Response (ACK)",
+                    direction="server → client",
+                    icon="call_received",
+                    body=post_data.get("server", {}).get("body", ""),
+                    token=None,
+                    transforms=[],
+                    color="amber",
+                    pre_classes=toggle_state,
+                )
 
 
 def render_profile_output(data: dict):

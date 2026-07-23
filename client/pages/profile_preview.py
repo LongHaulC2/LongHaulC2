@@ -61,15 +61,6 @@ TRANSFORMS = {
         "val_hint": "See 'Input Reference' for additional input info",
         "val_example": "",
     },
-    "mask": {
-        "desc": "XOR with repeating key",
-        "input": True,
-        "field": "val",
-        "wire_in": "raw bytes",
-        "wire_out": "raw bytes (same length)",
-        "val_hint": "XOR key as \\xNN hex bytes. Key repeats over the data.",
-        "val_example": "'\\xFF' (single byte)  |  '\\xDE\\xAD' (two-byte repeating)",
-    },
     "netbios": {
         "desc": "NetBIOS encoding (lowercase a-p)",
         "input": False,
@@ -334,7 +325,7 @@ async def profile_preview_page():
     ui.context.client.page_container.default_slot.children[0].props(
         ':style-fn="o => ({ height: `calc(100vh - ${o}px)` })"'
     )
-    setup_menu("Profile Preview")
+    setup_menu("Profiles")
     await _profile_editor_view()
     await build_footer()
 
@@ -374,7 +365,11 @@ async def _profile_editor_view():
                 raw_toml_tab = ui.tab("PROFILE")
                 wire_tab = ui.tab("WIRE VIEW")
 
-            with ui.tab_panels(preview_tabs, value=raw_toml_tab).classes("w-full flex-grow"):
+            preview_tabs.on_value_change(lambda e: state.__setattr__("_active_preview_tab", e.value))
+            initial_tab = getattr(state, "_active_preview_tab", "PROFILE")
+            restore_tab = wire_tab if initial_tab == "WIRE VIEW" else raw_toml_tab
+
+            with ui.tab_panels(preview_tabs, value=restore_tab).classes("w-full flex-grow"):
                 with ui.tab_panel(raw_toml_tab):
                     ui.codemirror(
                         state.toml_text["value"],
@@ -382,8 +377,8 @@ async def _profile_editor_view():
                         theme="androidstudio",
                     ).classes("w-full h-full min-h-[400px]").props("readonly")
 
-                with ui.tab_panel(wire_tab).classes("p-0"):
-                    state.wire_container = ui.column().classes("w-full h-full overflow-auto")
+                with ui.tab_panel(wire_tab).classes("p-0 h-full"):
+                    state.wire_container = ui.column().classes("w-full h-full overflow-hidden")
                     with state.wire_container, ui.column().classes(
                         "w-full h-full items-center justify-center gap-3 opacity-30"
                     ):
@@ -397,16 +392,10 @@ async def _profile_editor_view():
         preview_panel.refresh()
         notify("Profile built", type="positive", color="emerald-9")
 
-    async def do_render(render_btn):
+    async def do_render():
         toml = state.toml_text["value"]
-        if not toml or toml.startswith("#"):
-            notify("Build the profile first", type="warning", color="orange-9")
-            return
-        render_btn.props("loading")
-        try:
-            result = await preview_profile(toml)
-        finally:
-            render_btn.props("loading=false")
+
+        result = await preview_profile(toml)
 
         if not result:
             notify("Failed to contact server", type="negative")
@@ -693,17 +682,11 @@ async def _profile_editor_view():
                             .classes("flex-grow tech-select")
                         )
                         with (
-                            ui.button(icon="upload_file", on_click=upload_profile_file)
+                            ui.button(icon="upload_file", on_click=show_load_dialog)
                             .props("flat dense size=xs")
                             .classes("tech-btn-action-2")
                         ):
                             formatted_tooltip("Upload Profile to Server")
-                        with (
-                            ui.button(icon="folder_open", on_click=show_load_dialog)
-                            .props("flat dense size=xs")
-                            .classes("tech-btn-action-2")
-                        ):
-                            formatted_tooltip("Load from File/Paste")
                         with (
                             ui.button(icon="refresh", on_click=refresh_profiles)
                             .props("flat dense size=xs")
@@ -753,22 +736,18 @@ async def _profile_editor_view():
                                 formatted_tooltip("Save As")
 
                         with ui.row().classes("items-center gap-1"):
-                            render_btn = (
-                                ui.button(
-                                    "RENDER",
-                                    icon="play_arrow",
-                                    on_click=lambda: do_render(render_btn),
-                                )
-                                .props("unelevated dense no-caps size=sm")
-                                .classes("bg-emerald-800 text-white font-bold tracking-wide text-xs px-3")
-                            )
                             ui.button(
                                 "BUILD",
                                 icon="build",
-                                on_click=do_build,
+                                on_click=lambda: _render_and_build(),
                             ).props("unelevated dense no-caps size=sm").classes(
                                 "bg-emerald-600 text-white font-bold tracking-wide text-xs px-4"
                             )
+
+                            # quick helper to run do_build and do_render in one shot
+                            async def _render_and_build():
+                                do_build()
+                                await do_render()
 
             with splitter.after:  # noqa: SIM117
                 with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
