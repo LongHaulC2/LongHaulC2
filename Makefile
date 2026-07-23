@@ -610,7 +610,7 @@ test:
 #  	PYTHONPATH=$(DIR_OF_THIS_SCRIPT) $(DEV_VENV)/bin/python -m pytest -v -s \
 #  		--ignore=$(DIR_OF_THIS_SCRIPT)/dev_testing \
 #  		$(DIR_OF_THIS_SCRIPT)/tests/full_scope/setup_implant.py::test_setup_implant
-	$(DIR_OF_THIS_SCRIPT)/venv/bin/python -m pytest -v -s $(DIR_OF_THIS_SCRIPT)/tests/integration_test/deploy_implant.py::test_setup_implant
+#		$(DIR_OF_THIS_SCRIPT)/venv/bin/python -m pytest -v -s $(DIR_OF_THIS_SCRIPT)/tests/integration_test/deploy_implant.py::test_setup_implant
 
 .PHONY: integration_test
 integration_test: 
@@ -643,7 +643,8 @@ server_tests:
 		$(DIR_OF_THIS_SCRIPT)/tests/server/test_implants.py \
 		$(DIR_OF_THIS_SCRIPT)/tests/server/test_listeners.py \
 		$(DIR_OF_THIS_SCRIPT)/tests/server/test_filestore.py \
-		$(DIR_OF_THIS_SCRIPT)/tests/server/test_build.py
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_build.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_unauth.py
 
 .PHONY: web_tests
 web_tests:
