@@ -15,6 +15,7 @@ server_logger = structlog.getLogger("server")
 
 
 class Health(Resource):
+    @jwt_required()
     @health_ns.doc(
         summary="Get health",
         description="Retrieves all the health data",
@@ -23,7 +24,6 @@ class Health(Resource):
     )
     @health_ns.response(200, "Retrieved health data successfully", LISTENER_GET_RESPONSE)
     # @health_ns.marshal_with(LISTENER_GET_RESPONSE)
-    @jwt_required()
     def get(self):
         """
         Gets graph data based on user supplied ID

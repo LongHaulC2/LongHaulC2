@@ -33,6 +33,7 @@ server_logger = structlog.getLogger("server")
 
 
 class Listener(Resource):
+    @jwt_required()
     @listener_ns.doc(
         summary="Get listener",
         description="Retrieve a single listener by its unique ID.",
@@ -42,7 +43,6 @@ class Listener(Resource):
     )
     @listener_ns.response(200, "Retrieved listener data successfully", LISTENER_GET_RESPONSE)
     @listener_ns.marshal_with(LISTENER_GET_RESPONSE)
-    @jwt_required()
     def get(self, uuid):
         """
         Gets one listener based on user supplied ID
@@ -69,6 +69,7 @@ class Listener(Resource):
             data=data,
         )
 
+    @jwt_required()
     @listener_ns.doc(
         summary="Stop a listener",
         description="Stops one listener based on user supplied ID",
@@ -78,7 +79,6 @@ class Listener(Resource):
     )
     @listener_ns.response(200, "The listener was deleted successfully", LISTENER_DELETE_RESPONSE)
     @listener_ns.marshal_with(LISTENER_DELETE_RESPONSE)
-    @jwt_required()
     def delete(self, uuid):  # delete one listener based on ID
         """
         Deletes/Stops one listener based on user supplied ID
@@ -100,6 +100,7 @@ class Listener(Resource):
 
         return APIResponse(status=200, message="Listener deleted successfully", data="")
 
+    @jwt_required()
     @listener_ns.doc(
         summary="Restart a listener",
         description="Restart a listener",
@@ -110,7 +111,6 @@ class Listener(Resource):
     @listener_ns.expect(LISTENER_PATCH_INPUT)
     @listener_ns.response(200, "The listener was restarted successfully", LISTENER_PATCH_RESPONSE)
     @listener_ns.marshal_with(LISTENER_PATCH_RESPONSE)
-    @jwt_required()
     def patch(self, uuid):
         """
         Update a listener's active state. Using PATCH as the resource is being updated.
@@ -169,6 +169,7 @@ class Listener(Resource):
 
 
 class Listeners(Resource):
+    @jwt_required()
     @listener_ns.doc(
         summary="Get all Listeners",
         description="Retrieve all listeners in the DB.",
@@ -177,7 +178,6 @@ class Listeners(Resource):
     )
     @listener_ns.response(200, "Retrieved all listener data successfully", LISTENERS_GET_RESPONSE)
     @listener_ns.marshal_with(LISTENERS_GET_RESPONSE)
-    @jwt_required()
     def get(self):
         """
         Gets all listeners
@@ -196,6 +196,7 @@ class Listeners(Resource):
             data=data,
         )
 
+    @jwt_required()
     @listener_ns.doc(
         summary="Spawn a new listener",
         description="Create a new listener. Returns a listener ID to use with that listener",
@@ -205,7 +206,6 @@ class Listeners(Resource):
     @listener_ns.expect(LISTENERS_POST_INPUT)
     @listener_ns.response(200, "Successfully created a new listener", LISTENERS_POST_RESPONSE)
     @listener_ns.marshal_with(LISTENERS_POST_RESPONSE)
-    @jwt_required()
     def post(self):
         """
         Spawn a new listener
