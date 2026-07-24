@@ -170,6 +170,82 @@ class FullC2APIClient(C2APIClient):
         response.raise_for_status()
         return response
 
+    # -- Chat helpers --
+
+    def get_chat(self, since_id: int = 0) -> Dict[str, Any]:
+        url = str(self.base_url / "chat")
+        response = self.session.get(url, params={"since_id": since_id})
+        if not response.ok:
+            self._log_error(response)
+        response.raise_for_status()
+        return response.json()
+
+    def post_chat(self, message: str) -> Dict[str, Any]:
+        url = str(self.base_url / "chat")
+        response = self.session.post(url, json={"message": message})
+        if not response.ok:
+            self._log_error(response)
+        response.raise_for_status()
+        return response.json()
+
+    # -- User management helpers --
+
+    def get_users(self) -> Dict[str, Any]:
+        url = str(self.base_url / "users")
+        response = self.session.get(url)
+        if not response.ok:
+            self._log_error(response)
+        response.raise_for_status()
+        return response.json()
+
+    def get_user_me(self) -> Dict[str, Any]:
+        url = str(self.base_url / "users" / "me")
+        response = self.session.get(url)
+        if not response.ok:
+            self._log_error(response)
+        response.raise_for_status()
+        return response.json()
+
+    def put_user_password(self, old_password: str, new_password: str) -> Dict[str, Any]:
+        url = str(self.base_url / "users" / "password")
+        response = self.session.put(url, json={"old_password": old_password, "new_password": new_password})
+        if not response.ok:
+            self._log_error(response)
+        response.raise_for_status()
+        return response.json()
+
+    def delete_user(self, username: str) -> Dict[str, Any]:
+        url = str(self.base_url / "users" / username)
+        response = self.session.delete(url)
+        if not response.ok:
+            self._log_error(response)
+        response.raise_for_status()
+        return response.json()
+
+    def post_totp_setup(self) -> Dict[str, Any]:
+        url = str(self.base_url / "users" / "totp")
+        response = self.session.post(url)
+        if not response.ok:
+            self._log_error(response)
+        response.raise_for_status()
+        return response.json()
+
+    def delete_totp(self) -> Dict[str, Any]:
+        url = str(self.base_url / "users" / "totp")
+        response = self.session.delete(url)
+        if not response.ok:
+            self._log_error(response)
+        response.raise_for_status()
+        return response.json()
+
+    def post_totp_verify(self, code: str) -> Dict[str, Any]:
+        url = str(self.base_url / "users" / "totp" / "verify")
+        response = self.session.post(url, json={"code": code})
+        if not response.ok:
+            self._log_error(response)
+        response.raise_for_status()
+        return response.json()
+
 
 _RAW_PROFILE_TOML = """
 [profile]

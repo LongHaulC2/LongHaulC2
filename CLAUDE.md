@@ -251,13 +251,16 @@ Defaults: `http://localhost:45045` / `longhaul` / `P@ssw0rd1!` (from `.env`).
 - `conftest.py` — `FullC2APIClient` (adds auth + missing methods on top of the integration-test base), session-scoped `api_client` fixture (auto-authenticates on startup), function-scoped `listener_uuid` / `raw_listener_uuid` / `implant_uuid` / `file_uuid` fixtures (create resource, yield UUID, delete on teardown)
 - `test_auth.py` — login, token refresh, register (authed/unauthed), rejected/malformed tokens
 - `test_health.py` — health check success and 401 on no token
-- `test_implants.py` — full CRUD, task queuing, task history, search
+- `test_implants.py` — full CRUD, task queuing, single task detail, task history, search, nonexistent implant handling
 - `test_listeners.py` — full CRUD, start/stop via PATCH, missing-field validation; raw listener create/start/stop on port 19100
 - `test_filestore.py` — upload/download/delete, missing-field validation, nonexistent file handling
 - `test_build.py` — submits a build job and verifies acceptance only (HTTP 200 + `build_uuid`); does **not** poll for completion since the cross-compiler toolchain is not present on dev machines
 - `test_profiles.py` — profile preview endpoint: valid raw profile (`raw_http_profile.toml`, asserts `raw_profiles` populated), raw simple TOML (one `"default"` entry), minimal TOML with no `[raw]` section returns empty `raw_profiles`, malformed TOML (HTTP 200 with parse_ok=false), missing profile_contents (HTTP 400), unauthenticated (HTTP 401). Profile CRUD: upload, list, get-by-name, upsert-same-hash (no-op), upsert-different-content (hash changes), delete, bulk seed, unauthenticated list (401)
 - `test_transforms.py` — symcrypt (AES-256-GCM) unit tests: encrypt/decrypt round-trip (basic, empty, 64KB), wire format layout verification, nonce uniqueness, wrong-key rejection, tampered-ciphertext detection, bad key/data length errors. Transform chain tests: `val` and `key` field support, symcrypt+base64 combo, symcrypt+prepend+append combo
 - `test_audit.py` — pagination: default response shape, custom limit, offset, total_count consistency, limit clamping (min 1, max 1000), negative offset clamping, filter-by-action, filter-by-actor, newest-first ordering. Export: CSV format validation, filtered export, unauthenticated access (401). Auth: unauthenticated list (401)
+- `test_chat.py` — send message, fetch messages, since_id filtering, empty message rejection (400), unauthenticated access (401)
+- `test_users.py` — list users, get /me, change password (wrong old password 401, missing fields 400), TOTP setup+verify+disable lifecycle, bad TOTP code (401), delete nonexistent user (404), register+delete user, unauthenticated access (401)
+- `test_graph.py` — get full graph, wildcard search, list implant nodes, invalid node type (400), unauthenticated access (401)
 
 **Implant response tests (`tests/integration_test/test_implant_responses.py`) — need to know:**
 
@@ -276,7 +279,9 @@ Replaces the older `run_implant_tasks.py` which only asserted `error_code == 0` 
 
 These run against a real in-process NiceGUI app (no browser, no server needed). They verify pages render without crashing and key static labels are present.
 
-Auth-gated pages (Operations, Listeners, Payloads, Profile Preview): `setup_menu()` redirects to `/login` when `app.storage.user["api_host"]` is unset. These tests verify the redirect fires by asserting the login page labels appear — they do **not** test page content directly.
+Auth-gated pages (Operations, Listeners, Payloads, Profile Preview, Audit, Admin Users, Profile, Logout): `setup_menu()` redirects to `/login` when `app.storage.user["api_host"]` is unset. These tests verify the redirect fires by asserting the login page labels appear — they do **not** test page content directly.
+
+Non-auth pages tested directly: Login (verifies form labels), Filestore, Status, Comms, Settings (verify page headings), Docs (redirects to /operations which requires auth).
 
 Pages excluded from smoke tests (graph, all node detail pages): they make unconditional API calls on load and throw an unhandled exception without a live server. Smoke-testing them without a server is not useful; use the integration test suite for those.
 

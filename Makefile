@@ -661,6 +661,12 @@ server_tests:
 		$(DIR_OF_THIS_SCRIPT)/tests/server/test_listeners.py \
 		$(DIR_OF_THIS_SCRIPT)/tests/server/test_filestore.py \
 		$(DIR_OF_THIS_SCRIPT)/tests/server/test_build.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_chat.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_users.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_graph.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_profiles.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_audit.py \
+		$(DIR_OF_THIS_SCRIPT)/tests/server/test_transforms.py \
 		$(DIR_OF_THIS_SCRIPT)/tests/server/test_unauth.py
 
 .PHONY: web_tests
