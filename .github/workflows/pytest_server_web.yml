@@ -5,9 +5,9 @@ name: Pytest - Ubuntu 22.04, 24.04, Python 3.10, 3.11, 3.12
 # ** should run on all
 on:
   push:
-    branches: [ "**" ]
+    branches: [] # [ "**" ]
   pull_request:
-    branches: [ "**" ]
+    branches: [] # [ "**" ]
 
 jobs:
   deployment:

@@ -4,9 +4,9 @@ name: Deployment Test - Ubuntu 22.04, 24.04, Python 3.10, 3.11, 3.12
 
 on:
   push:
-    branches: [ "main", "main-dev" ] # commented out to test pushes
+    branches: [] #[ "main", "main-dev" ] # commented out to test pushes
   pull_request:
-    branches: [ "main" , "main-dev" ]
+    branches: [] # [ "main" , "main-dev" ]
 
 jobs:
   deployment:
