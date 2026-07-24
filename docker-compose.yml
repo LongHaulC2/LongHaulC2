@@ -1,0 +1,51 @@
+services:
+  mysql:
+    image: mysql:latest
+    container_name: ${MYSQL_CONTAINER}
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "127.0.0.1:${MYSQL_PORT}:3306"
+      - "127.0.0.1:33060:33060"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - c2_internal
+
+  redis:
+    image: redis/redis-stack:latest
+    container_name: ${REDIS_CONTAINER}
+    restart: unless-stopped
+    environment:
+      REDIS_ARGS: "--requirepass ${REDIS_PASSWORD}"
+    ports:
+      - "127.0.0.1:${REDIS_PORT}:6379"
+      - "127.0.0.1:8001:8001"
+    volumes:
+      - redis_data:/data
+    networks:
+      - c2_internal
+
+  neo4j:
+    image: neo4j:latest
+    container_name: ${NEO4J_CONTAINER}
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: "${NEO4J_USER}/${NEO4J_PASSWORD}"
+    ports:
+      - "127.0.0.1:${NEO4J_WEB_PORT}:7474"
+      - "127.0.0.1:${NEO4J_DB_PORT}:7687"
+    volumes:
+      - neo4j_data:/data
+    networks:
+      - c2_internal
+
+volumes:
+  mysql_data:
+  redis_data:
+  neo4j_data:
+
+networks:
+  c2_internal:
+    driver: bridge

@@ -19,6 +19,7 @@ api_logger = structlog.getLogger("api")
 
 
 class AuditEntries(Resource):
+    @jwt_required()
     @audit_ns.doc(
         summary="Get audit log entries",
         description="Retrieve audit log entries with optional filters and pagination.",
@@ -34,7 +35,6 @@ class AuditEntries(Resource):
         },
     )
     @audit_ns.response(200, "Audit entries retrieved", AUDIT_GET_RESPONSE)
-    @jwt_required()
     def get(self):
         """Retrieve audit log entries with optional filters and pagination."""
         actor = request.args.get("actor")
@@ -72,6 +72,7 @@ class AuditEntries(Resource):
 
 
 class AuditExport(Resource):
+    @jwt_required()
     @audit_ns.doc(
         summary="Export full audit log as CSV",
         description="Download all audit entries matching filters as a CSV file.",
@@ -84,7 +85,6 @@ class AuditExport(Resource):
             "since": {"description": "Only entries after this timestamp (ms)", "in": "query"},
         },
     )
-    @jwt_required()
     def get(self):
         """Export all audit entries as CSV."""
         actor = request.args.get("actor")

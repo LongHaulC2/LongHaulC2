@@ -1,4 +1,4 @@
-VERSION_NUMBER = "BETA v0.1.0"
+VERSION_NUMBER = "BETA v1.1.0"
 EXTERNAL_DOC_ENDPOINT = "https://docs.longhaulc2.com"
 
 # just for fun

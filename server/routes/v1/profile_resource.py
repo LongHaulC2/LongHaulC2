@@ -128,6 +128,7 @@ def _validate(parsed: dict) -> dict:
 
 
 class ProfilePreview(Resource):
+    @jwt_required()
     @profile_ns.doc(
         summary="Preview a network profile",
         description=(
@@ -140,7 +141,6 @@ class ProfilePreview(Resource):
     @profile_ns.expect(PROFILE_PREVIEW_INPUT, validate=False)
     @profile_ns.response(200, "Preview rendered successfully", PROFILE_PREVIEW_RESPONSE)
     @profile_ns.marshal_with(PROFILE_PREVIEW_RESPONSE)
-    @jwt_required()
     def post(self):
         """Render a TOML network profile into a structured human-readable preview."""
         ip = request.remote_addr
@@ -205,6 +205,7 @@ def _validate_profile_name(name: str) -> str | None:
 
 
 class ProfileCollection(Resource):
+    @jwt_required()
     @profile_ns.doc(
         summary="List all profiles",
         responses=COMMON_ERRORS,
@@ -212,7 +213,6 @@ class ProfileCollection(Resource):
     )
     @profile_ns.response(200, "List of profiles", PROFILE_LIST_RESPONSE)
     @profile_ns.marshal_with(PROFILE_LIST_RESPONSE)
-    @jwt_required()
     def get(self):
         """List all stored profiles (metadata only, no contents)."""
         with get_mysql_session() as session:
@@ -220,6 +220,7 @@ class ProfileCollection(Resource):
             data = service.get_all_artifacts_by_type("profile")
         return APIResponse(status="200", message="Success", data=data)
 
+    @jwt_required()
     @profile_ns.doc(
         summary="Upload or update a profile",
         responses=COMMON_ERRORS,
@@ -228,7 +229,6 @@ class ProfileCollection(Resource):
     @profile_ns.expect(PROFILE_UPLOAD_INPUT, validate=True)
     @profile_ns.response(200, "Profile saved", PROFILE_UPLOAD_RESPONSE)
     @profile_ns.marshal_with(PROFILE_UPLOAD_RESPONSE)
-    @jwt_required()
     def post(self):
         """Upload a new profile or update an existing one by name."""
         payload = profile_ns.payload
@@ -255,6 +255,7 @@ class ProfileCollection(Resource):
 
 
 class ProfileItem(Resource):
+    @jwt_required()
     @profile_ns.doc(
         summary="Get a profile by name",
         responses=COMMON_ERRORS,
@@ -262,7 +263,6 @@ class ProfileItem(Resource):
     )
     @profile_ns.response(200, "Profile contents", PROFILE_GET_RESPONSE)
     @profile_ns.marshal_with(PROFILE_GET_RESPONSE)
-    @jwt_required()
     def get(self, profile_name):
         """Download full profile contents by name."""
         with get_mysql_session() as session:
@@ -272,6 +272,7 @@ class ProfileItem(Resource):
                 return APIResponse(status="404", message="Profile not found", data={})
             return APIResponse(status="200", message="Success", data=artifact.to_dict())
 
+    @jwt_required()
     @profile_ns.doc(
         summary="Delete a profile by name",
         responses=COMMON_ERRORS,
@@ -279,7 +280,6 @@ class ProfileItem(Resource):
     )
     @profile_ns.response(200, "Deletion successful", PROFILE_DELETE_RESPONSE)
     @profile_ns.marshal_with(PROFILE_DELETE_RESPONSE)
-    @jwt_required()
     def delete(self, profile_name):
         """Delete a profile by name."""
         with get_mysql_session() as session:
@@ -291,6 +291,7 @@ class ProfileItem(Resource):
 
 
 class ProfileSeed(Resource):
+    @jwt_required()
     @profile_ns.doc(
         summary="Bulk-upload default profiles",
         responses=COMMON_ERRORS,
@@ -299,7 +300,6 @@ class ProfileSeed(Resource):
     @profile_ns.expect(PROFILE_SEED_INPUT, validate=True)
     @profile_ns.response(200, "Seed complete", PROFILE_SEED_RESPONSE)
     @profile_ns.marshal_with(PROFILE_SEED_RESPONSE)
-    @jwt_required()
     def post(self):
         """Bulk-upload a batch of profiles. Existing profiles with matching content are skipped."""
         payload = profile_ns.payload

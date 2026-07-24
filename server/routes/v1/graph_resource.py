@@ -26,6 +26,7 @@ server_logger = structlog.getLogger("server")
 
 
 class Graph(Resource):
+    @jwt_required()
     @graph_ns.doc(
         summary="Get graph",
         description="Retrieves all the graph data.",
@@ -34,7 +35,6 @@ class Graph(Resource):
     )
     @graph_ns.response(200, "Retrieved graph data successfully", LISTENER_GET_RESPONSE)
     # @graph_ns.marshal_with(LISTENER_GET_RESPONSE)
-    @jwt_required()
     def get(self):
         """
         Gets all the graph data: Nodes, relationships
@@ -54,6 +54,7 @@ class Graph(Resource):
 
 
 class GraphSearch(Resource):
+    @jwt_required()
     @graph_ns.doc(
         summary="Search for an implant",
         description="Search for an implant with fields that match the supplied term.",
@@ -63,7 +64,6 @@ class GraphSearch(Resource):
     @graph_ns.expect(GRAPH_SEARCH_POST_INPUT)
     @graph_ns.response(200, "A list of all found nodes", GRAPH_SEARCH_POST_RESPONSE)
     @graph_ns.marshal_with(GRAPH_SEARCH_POST_RESPONSE)
-    # @jwt_required()
     def post(self):
         """
         Search for an implant
@@ -86,6 +86,7 @@ class NodeParent(Resource):
 
     """
 
+    @jwt_required()
     @graph_ns.doc(
         summary="List nodes by type",
         description="Lists all instances of a specific node type.",
@@ -93,7 +94,6 @@ class NodeParent(Resource):
         security="Bearer Auth",
     )
     @graph_ns.marshal_with(NODE_GET_LIST_RESPONSE)
-    @jwt_required()
     def get(self, nodename):
         """
         Lists instances of this node type
@@ -183,6 +183,7 @@ class Node(Resource):
 
     """
 
+    @jwt_required()
     @graph_ns.doc(
         summary="Get node properties",
         description="Retrieves the properties of a specific node by its UUID.",
@@ -190,7 +191,6 @@ class Node(Resource):
         security="Bearer Auth",
     )
     @graph_ns.marshal_with(NODE_GET_SINGLE_RESPONSE)
-    @jwt_required()
     def get(self, nodename, uuid):
         """
         Gets properties of node
@@ -220,6 +220,7 @@ class Node(Resource):
             data=node_data,
         )
 
+    @jwt_required()
     @graph_ns.doc(
         summary="Update node data",
         description="Partially updates an existing node's data.",
@@ -227,7 +228,6 @@ class Node(Resource):
         security="Bearer Auth",
     )
     @graph_ns.expect(NODE_PATCH_INPUT)
-    @jwt_required()
     def patch(self, nodename, uuid):
         ip = request.remote_addr
         payload = request.json
@@ -283,6 +283,7 @@ class Node(Resource):
             data=node.to_dict(),
         )
 
+    @jwt_required()
     @graph_ns.doc(
         summary="Delete a node",
         description="Deletes a specific node from the graph by its UUID.",
@@ -290,7 +291,6 @@ class Node(Resource):
         security="Bearer Auth",
     )
     @graph_ns.marshal_with(NODE_DELETE_RESPONSE)
-    @jwt_required()
     def delete(self, nodename, uuid):
         """
         Deletes the node

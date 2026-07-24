@@ -1,7 +1,7 @@
 import structlog
 from flask_jwt_extended.exceptions import JWTExtendedException, NoAuthorizationError
 from jwt.exceptions import ExpiredSignatureError, InvalidSignatureError, PyJWTError
-from werkzeug.exceptions import BadRequest, MethodNotAllowed, NotFound
+from werkzeug.exceptions import BadRequest, HTTPException, MethodNotAllowed, NotFound
 
 from ..api_models.error import ERROR_MODEL
 from ..instance import api
@@ -70,6 +70,18 @@ def handle_bad_request_and_abort(e):
         "status": str(e.code),
         "message": getattr(e, "message", str(e)),
         "data": getattr(e, "data", {}),  # if abort is called, this will include it
+    }, e.code
+
+
+# Catch any HTTPException not handled above (e.g. abort(401), abort(403))
+@api.errorhandler(HTTPException)
+@api.marshal_with(ERROR_MODEL)
+def handle_http_exception(e):
+    server_logger.error("HTTP error", error=e, code=e.code)
+    return {
+        "status": str(e.code),
+        "message": getattr(e, "description", str(e)),
+        "data": getattr(e, "data", {}),
     }, e.code
 
 
