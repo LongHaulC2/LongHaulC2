@@ -25,7 +25,8 @@ async def test_client_login_page(user: User, caplog):
         print("Testing Login")
         await user.open('/login')
         # make sure user sees this
-        await user.should_see("LONGHAULC2")
+        await user.should_see("LONGHAUL C2")
+        await user.should_see("SERVER_ADDRESS")
         await user.should_see("USERNAME")
         await user.should_see("PASSWORD")
         await user.should_see("LOGIN")
@@ -124,15 +125,15 @@ async def test_status_page(user: User, caplog):
 async def test_comms_page(user: User, caplog):
     with caplog.at_level(logging.CRITICAL):
         await user.open('/comms')
-        await user.should_see("SECURE COMMS")
-        await user.should_see("CHANNEL // GLOBAL_OP")
+        await user.should_see("CHAT")
+        await user.should_see("LOGGED IN AS")
 
 
 @pytest.mark.nicegui_main_file('client/main.py')
 async def test_user_settings_page(user: User, caplog):
     with caplog.at_level(logging.CRITICAL):
         await user.open('/settings')
-        await user.should_see("USER SETTINGS //")
+        await user.should_see("SETTINGS //")
         await user.should_see("Element Auto Refresh Rate")
 
 
