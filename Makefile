@@ -308,7 +308,13 @@ dev_install:
 	@echo "Creating virtualenv @ $(DEV_VENV_PATH)"
 	@echo "=================================================="
 	virtualenv $(DEV_VENV)
+
+	# If CI testing, don't use the lock. let the resolver find the package version it needs for that specific env. 
+ifdef CI
+	$(DEV_VENV)/bin/pip install -e ".[server,web,dev]"
+else
 	$(DEV_VENV)/bin/pip install -e ".[server,web,dev]" -c $(LOCK_FILE)
+endif
 	
 	@echo "=================================================="
 	@echo "Creating .env"

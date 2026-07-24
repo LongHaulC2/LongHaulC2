@@ -36,8 +36,7 @@ jobs:
 
     - name: Dev Install
       run: |
-        # Testing out deployment
-        make dev_install
+        make dev_install CI=1
         echo "Successfully installed dev of LongHaulC2"
 
     - name: Run tests
