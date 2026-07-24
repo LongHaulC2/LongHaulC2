@@ -61,7 +61,7 @@ class Listener(Resource):
 
         # in the event we don't have any data here for this specific listener, just 404
         if not data:
-            abort(404, message="Not Found", data={})
+            abort(404, "Not Found")
 
         return APIResponse(
             status="200",
@@ -120,13 +120,13 @@ class Listener(Resource):
         # extract the target state from the payload
         payload = api.payload or {}
         if "active" not in payload:
-            abort(400, message="Missing field in payload")
+            abort(400, "Missing field in payload")
             # return APIResponse(status=400, message="Missing 'active' field in payload"), 400
 
         # check to make sure this a bool first. If not, throw err.
         active_val = payload.get("active")
         if not isinstance(active_val, bool):
-            abort(400, message="Incorrect Type")
+            abort(400, "Incorrect Type")
 
         user_wants_active = active_val
 
@@ -136,7 +136,7 @@ class Listener(Resource):
 
         if listener is None:
             # api_logger.warning(f"Listener does not exist: {uuid}")
-            abort(404, message="Listener does not exist")
+            abort(404, "Listener does not exist")
             # 404 on no listener
 
         is_currently_active = listener.listener_active

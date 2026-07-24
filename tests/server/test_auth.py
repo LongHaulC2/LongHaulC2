@@ -50,7 +50,8 @@ def test_access_token_rejected_on_refresh_endpoint(api_client):
     url = str(api_client.base_url / "authentication" / "refresh")
     resp = raw_requests.post(url, headers={"Authorization": f"Bearer {access_token}"})
     # Flask-JWT rejects access tokens on refresh-only endpoints
-    assert resp.status_code == 422
+    # 401 is expected as it's sending the wrong token type (refresh, not jwt), which is access denied
+    assert resp.status_code == 401
 
 
 def test_register_requires_auth():
@@ -84,4 +85,5 @@ def test_expired_or_invalid_token():
         f"{base_url}/api/v1/health",
         headers={"Authorization": "Bearer this.is.not.a.real.jwt"},
     )
-    assert resp.status_code == 422
+    # Sending a bad token, so 401 is correct, as request is not authorized with bad token
+    assert resp.status_code == 401
