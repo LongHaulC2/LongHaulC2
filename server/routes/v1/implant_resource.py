@@ -88,15 +88,7 @@ class Implants(Resource):
         api_logger.info("Creating an implant", caller_ip=ip)
 
         new_implant_uuid = str(uuid7())
-        # load into datamodel.
-        implant_node = Neo4jImplantNodeService(
-            # listener uuidis passed in weird here, it's set as a global
-            # if this func is moved out, just have it be passed in via args
-            implant_uuid=new_implant_uuid,
-            listener_uuid="PLACEHOLDER_CHAINED",
-        )
-        # register, with no data
-        implant_node.create_or_get_node(new_implant_uuid)
+        Neo4jImplantNodeService.create_or_get_node(new_implant_uuid)
 
         data = {"uuid": new_implant_uuid}
 
