@@ -44,6 +44,7 @@ server_logger = structlog.getLogger("server")
 
 
 class Implants(Resource):
+    @jwt_required()
     @implants_ns.doc(
         summary="Get all implants",
         description="Retrieve all implants the server knows about.",
@@ -52,7 +53,6 @@ class Implants(Resource):
     )
     @implants_ns.response(200, "All implants were retrieved", IMPLANTS_GET_RESPONSE)
     @implants_ns.marshal_with(IMPLANTS_GET_RESPONSE)
-    @jwt_required()
     def get(self):
         """
         Gets all implants
@@ -69,6 +69,7 @@ class Implants(Resource):
 
         return APIResponse(status="200", message="Success", data=data)
 
+    @jwt_required()
     @implants_ns.doc(
         summary="Create a new implant entry.",
         description="Create a new implant entry. Returns an Implant ID, and registers a blank implant to the neo4j db",
@@ -77,7 +78,6 @@ class Implants(Resource):
     )
     @implants_ns.response(200, "Entry created", IMPLANTS_POST_RESPONSE)
     @implants_ns.marshal_with(IMPLANTS_POST_RESPONSE)
-    @jwt_required()
     def post(self):
         """
         Create a new, blank, implant entry
@@ -88,15 +88,7 @@ class Implants(Resource):
         api_logger.info("Creating an implant", caller_ip=ip)
 
         new_implant_uuid = str(uuid7())
-        # load into datamodel.
-        implant_node = Neo4jImplantNodeService(
-            # listener uuidis passed in weird here, it's set as a global
-            # if this func is moved out, just have it be passed in via args
-            implant_uuid=new_implant_uuid,
-            listener_uuid="PLACEHOLDER_CHAINED",
-        )
-        # register, with no data
-        implant_node.create_or_get_node(new_implant_uuid)
+        Neo4jImplantNodeService.create_or_get_node(new_implant_uuid)
 
         data = {"uuid": new_implant_uuid}
 
@@ -105,6 +97,7 @@ class Implants(Resource):
 
 
 class Implant(Resource):
+    @jwt_required()
     @implants_ns.doc(
         summary="Get implant",
         description="Retrieve a single implant by its unique ID.",
@@ -114,7 +107,6 @@ class Implant(Resource):
     )
     @implants_ns.response(200, "The implant was retrieved", IMPLANT_GET_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_GET_RESPONSE)
-    @jwt_required()
     def get(self, uuid):
         """
         Gets one implant based on user supplied ID
@@ -133,6 +125,7 @@ class Implant(Resource):
 
         return APIResponse(status="200", message="Success", data=data)
 
+    @jwt_required()
     @implants_ns.doc(
         summary="Update implant",
         description="Update a single implant by its unique ID.",
@@ -144,7 +137,6 @@ class Implant(Resource):
     @implants_ns.expect(IMPLANT_PUT_INPUT)
     @implants_ns.response(200, "Success", IMPLANT_PUT_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_PUT_RESPONSE)
-    @jwt_required()
     def put(self, uuid):
         """
         Update a single implant by its unique ID.
@@ -164,6 +156,7 @@ class Implant(Resource):
         api_logger.info("Updated implant successfully", implant_uuid=uuid, caller_ip=ip)
         return APIResponse(status="200", message="Success")
 
+    @jwt_required()
     @implants_ns.doc(
         summary="Delete implant",
         description="Delete a single implant by its unique ID.",
@@ -173,7 +166,6 @@ class Implant(Resource):
     )
     @implants_ns.response(200, "Success", IMPLANT_DELETE_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_DELETE_RESPONSE)
-    @jwt_required()
     def delete(self, uuid):
         """
         Deletes one implant based on user supplied ID
@@ -195,6 +187,7 @@ class Implant(Resource):
 
 
 class ImplantTask(Resource):
+    @jwt_required()
     @implants_ns.doc(
         summary="Add a task",
         description="Add a task to a single implant by its unique ID.",
@@ -206,7 +199,6 @@ class ImplantTask(Resource):
     @implants_ns.expect(IMPLANT_TASK_POST_INPUT, validate=False)
     @implants_ns.response(200, "The task was queued", IMPLANT_TASK_POST_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_TASK_POST_RESPONSE)
-    @jwt_required()
     def post(self, uuid):
         """
         Add a task to a single implant by its unique ID.
@@ -254,6 +246,7 @@ class ImplantTask(Resource):
 
 
 class ImplantTaskDetail(Resource):
+    @jwt_required()
     @implants_ns.doc(
         summary="Get task status",
         description="Retrieve details/status of a specific task by its UUID.",
@@ -262,7 +255,6 @@ class ImplantTaskDetail(Resource):
         security="Bearer Auth",
     )
     # @implants_ns.marshal_with(IMPLANT_TASK_GET_RESPONSE) # Assuming you have a response model
-    @jwt_required()
     def get(self, uuid, task_uuid):
         """
         Retrieve a specific task for an implant.
@@ -281,6 +273,7 @@ class ImplantTaskDetail(Resource):
 
 
 class ImplantTasks(Resource):
+    @jwt_required()
     @implants_ns.doc(
         summary="Peeks all currently queued tasks of implant",
         description="Peeks all currently queued tasks of implant",
@@ -290,7 +283,6 @@ class ImplantTasks(Resource):
     )
     @implants_ns.response(200, "A list of tasks for the current implant", IMPLANT_TASKS_GET_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_TASKS_GET_RESPONSE)
-    @jwt_required()
     def get(self, uuid):
         """
         Peek all currently queued tasks of implant.
@@ -313,6 +305,7 @@ class ImplantTasks(Resource):
 
         return APIResponse(status="200", message="Success", data=data)
 
+    @jwt_required()
     @implants_ns.doc(
         summary="Delete all the currently queued tasks of an implant",
         description="Delete all the tasks of an implant",
@@ -322,7 +315,6 @@ class ImplantTasks(Resource):
     )
     @implants_ns.response(200, "The tasks for the implant were cleared", IMPLANT_TASKS_DELETE_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_TASKS_DELETE_RESPONSE)
-    @jwt_required()
     def delete(self, uuid):
         """
         Delete all the currently queued tasks of an agent.
@@ -348,6 +340,7 @@ history_parser.add_argument(
 
 
 class ImplantHistory(Resource):
+    @jwt_required()
     @implants_ns.doc(
         summary="Gets task history of implant from the DB.",
         description="Gets task history.",
@@ -358,7 +351,6 @@ class ImplantHistory(Resource):
     @implants_ns.expect(history_parser)
     @implants_ns.response(200, "History retrieved", IMPLANT_HISTORY_GET_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_HISTORY_GET_RESPONSE)
-    @jwt_required()
     def get(self, uuid):
         """
         Gets ALL history of an implant from the DB.
@@ -388,6 +380,7 @@ class ImplantHistory(Resource):
 
 
 class ImplantSearch(Resource):
+    @jwt_required()
     @implants_ns.doc(
         summary="Search for an implant",
         description="Search for an implant with fields that match the supplied term.",
@@ -397,7 +390,6 @@ class ImplantSearch(Resource):
     @implants_ns.expect(IMPLANT_SEARCH_POST_INPUT)
     @implants_ns.response(200, "A list of all resulting implants", IMPLANT_SEARCH_POST_RESPONSE)
     @implants_ns.marshal_with(IMPLANT_SEARCH_POST_RESPONSE)
-    @jwt_required()
     def post(self):
         """
         Search for an implant
@@ -417,6 +409,7 @@ class ImplantSearch(Resource):
 
 
 class TaskSearch(Resource):
+    @jwt_required()
     @implants_ns.doc(
         summary="Search for a task",
         description="Search for a task with fields that match the supplied term.",
@@ -426,7 +419,6 @@ class TaskSearch(Resource):
     @implants_ns.expect(TASK_SEARCH_POST_INPUT)
     @implants_ns.response(200, "Search results", TASK_SEARCH_POST_RESPONSE)
     @implants_ns.marshal_with(TASK_SEARCH_POST_RESPONSE)
-    @jwt_required()
     def post(self):
         """
         Search for a task

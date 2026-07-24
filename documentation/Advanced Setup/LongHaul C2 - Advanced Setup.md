@@ -64,55 +64,92 @@ sudo systemctl status longhaulc2-web
 
 | Command | What it does |
 |---|---|
-| `sudo make deploy` | Full production install: apt deps, system user, directory structure, venv, systemd services, Docker containers, TLS certs. |
-| `sudo make undeploy` | Full removal: stops services, removes systemd units, Docker containers, install dirs, workspace, logs, and system user. |
-| `sudo make redeploy` | Runs `undeploy` then `deploy`. Use when upgrading. |
+| `sudo make deploy` | Full production install: apt deps, system user, directory structure, venv, systemd services, Docker Compose services, TLS certs. |
+| `sudo make undeploy` | Full removal: stops services, removes systemd units, Docker containers and volumes, install dirs, workspace, logs, and system user. |
+| `sudo make undeploy KEEP_DATA=1` | Same as above but **preserves Docker volumes and `/var/lib/longhaulc2`**. Use before an upgrade to retain database state. |
+| `sudo make redeploy` | Runs `undeploy KEEP_DATA=1` then `deploy`. The standard upgrade path — tears down and reinstalls code/services while preserving all database and workspace data. |
 
 ---
 
-## Customizing Credentials
+## Credentials
 
-Pass variables directly to any `make` command to override defaults.
+### Production (`make deploy`)
 
-> **Security:** Never use the default credentials in production or on an internet-facing machine.
+`make deploy` **automatically generates random 32-character passwords** for every service: MySQL, Redis, Neo4j, the JWT signing key, and the initial operator account. No manual credential setup is needed.
+
+At the end of a successful deploy, the operator username and password are printed to the screen:
+
+```
+==================================================
+  Deployment complete.
+==================================================
+
+  Initial operator credentials:
+    Username: longhaul
+    Password: <randomly generated>
+
+  Save these credentials — they will not be shown again.
+  All service passwords are stored in .env
+==================================================
+```
+
+All generated passwords are stored in `.env`. Back this file up — it is the only record of the service credentials.
+
+On a `make redeploy` (or `make undeploy KEEP_DATA=1` followed by `make deploy`), the existing `.env` is preserved so credentials stay in sync with the database volumes.
+
+### Development (`make dev_install`)
+
+Development installs use the hardcoded defaults below for convenience. These are not suitable for production.
+
+### Overriding Defaults
+
+Pass variables directly to `make dev_install` (or `make create_env`) to override individual defaults:
 
 ```bash
-sudo make deploy \
+make dev_install \
   MYSQL_ROOT_PASSWORD=MySuperSecretPassword \
   REDIS_PASSWORD=AnotherSecret \
-  NEO4J_PASSWORD=YetAnotherSecret \
-  JWT_SECRET_KEY=MyJWTSecret \
-  INIT_API_USER=operator \
-  INIT_API_PASS=MyOperatorPass
+  NEO4J_PASSWORD=YetAnotherSecret
 ```
 
 ### All Configurable Variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `MYSQL_ROOT_PASSWORD` | `P@ssw0rd1!` | MySQL root user password |
-| `MYSQL_ROOT_USER` | `root` | MySQL root username |
-| `REDIS_PASSWORD` | `P@ssw0rd1!` | Redis password |
-| `REDIS_USER` | `default` | Redis username |
-| `NEO4J_USER` | `neo4j` | Neo4j username |
-| `NEO4J_PASSWORD` | `P@ssw0rd1!` | Neo4j password |
-| `JWT_SECRET_KEY` | `P@ssw0rd1!` | Secret key for signing JWT tokens |
-| `INIT_API_USER` | `longhaul` | Username for the initial operator account |
-| `INIT_API_PASS` | `P@ssw0rd1!` | Password for the initial operator account |
-| `MYSQL_HOST` | `localhost` | MySQL host |
-| `MYSQL_PORT` | `3306` | MySQL port |
-| `REDIS_HOST` | `localhost` | Redis host |
-| `REDIS_PORT` | `6379` | Redis port |
+| Variable | Dev Default | Production | Description |
+|---|---|---|---|
+| `MYSQL_ROOT_PASSWORD` | `P@ssw0rd1!` | Auto-generated | MySQL root user password |
+| `MYSQL_ROOT_USER` | `root` | `root` | MySQL root username |
+| `REDIS_PASSWORD` | `P@ssw0rd1!` | Auto-generated | Redis password |
+| `REDIS_USER` | `default` | `default` | Redis username |
+| `NEO4J_USER` | `neo4j` | `neo4j` | Neo4j username |
+| `NEO4J_PASSWORD` | `P@ssw0rd1!` | Auto-generated | Neo4j password |
+| `JWT_SECRET_KEY` | `P@ssw0rd1!` | Auto-generated | Secret key for signing JWT tokens |
+| `INIT_API_USER` | `longhaul` | `longhaul` | Username for the initial operator account |
+| `INIT_API_PASS` | `P@ssw0rd1!` | Auto-generated | Password for the initial operator account |
+| `MYSQL_HOST` | `localhost` | `localhost` | MySQL host |
+| `MYSQL_PORT` | `3306` | `3306` | MySQL port |
+| `REDIS_HOST` | `localhost` | `localhost` | Redis host |
+| `REDIS_PORT` | `6379` | `6379` | Redis port |
 
 ---
 
-## Docker Utilities
+## Docker Compose
+
+Database services (MySQL, Redis, Neo4j) are managed via `docker-compose.yml` in the project root. The compose file reads credentials and container names directly from `.env`.
+
+### Key properties
+
+- **Auto-restart:** All services use `restart: unless-stopped` — containers come back automatically after a system reboot (as long as the Docker daemon is enabled).
+- **Localhost-only networking:** Every port is bound to `127.0.0.1`. No database port is exposed on `0.0.0.0`.
+- **Named volumes:** Data is persisted in Docker named volumes (`mysql_data`, `redis_data`, `neo4j_data`), which survive container recreation. Use `KEEP_DATA=1` on undeploy to preserve them across upgrades.
+
+### Docker Makefile Commands
 
 | Command | What it does |
 |---|---|
-| `make pull_docker_images` | Pulls `mysql:latest`, `redis/redis-stack:latest`, and `neo4j:latest`. |
-| `make start_docker_images` | Starts `C2_mysql`, `C2_redis-stack`, and `C2_neo4j-stack` containers. |
-| `make create_docker_images` | Builds the cross-compilation Docker images from `setup/docker_images/` (e.g., `win_x64`). Adds your user to the `docker` group. |
+| `make start_docker_images` | Starts all database services via `docker compose up -d`. Pulls images automatically if not present locally. |
+| `make stop_docker_images` | Stops all database services via `docker compose down`. Containers are removed but named volumes are kept. |
+| `make pull_docker_images` | Pulls latest images for all services via `docker compose pull`. |
+| `make create_docker_images` | Builds the cross-compilation Docker images from `setup/docker_images/` (e.g., `win_x64`). This is separate from the database services. |
 
 ---
 
@@ -120,23 +157,25 @@ sudo make deploy \
 
 ### Service Ports
 
+All database ports are bound to `127.0.0.1` only (not externally accessible).
+
 | Service | Port(s) | Notes |
 |---|---|---|
 | **LongHaulC2 API (Server)** | `0.0.0.0:45045` | Flask REST API |
 | **LongHaulC2 UI (Client)** | `0.0.0.0:8083` | NiceGUI web interface |
-| **MySQL** | `0.0.0.0:3306`, `127.0.0.1:33060` | C2 database — bind to localhost in prod |
+| **MySQL** | `127.0.0.1:3306`, `127.0.0.1:33060` | C2 database |
 | **Redis** | `127.0.0.1:6379` | Task queue |
-| **Redis Insight (Web GUI)** | `0.0.0.0:8001` | Redis management UI — exposed globally by default, lock this down in prod |
-| **Neo4j (Web UI / Browser)** | `0.0.0.0:7474` | Graph database web UI |
-| **Neo4j (Bolt)** | `0.0.0.0:7687` | Neo4j driver connection |
+| **Redis Insight (Web GUI)** | `127.0.0.1:8001` | Redis management UI |
+| **Neo4j (Web UI / Browser)** | `127.0.0.1:7474` | Graph database web UI |
+| **Neo4j (Bolt)** | `127.0.0.1:7687` | Neo4j driver connection |
 
 ### Docker Containers
 
-| Container | Image | Purpose |
-|---|---|---|
-| `C2_mysql` | `mysql:latest` | Long-term storage (tasks, payloads, users, files) |
-| `C2_redis-stack` | `redis/redis-stack:latest` | Task queue and response inbox per implant |
-| `C2_neo4j-stack` | `neo4j:latest` | Graph state (implant topology, host/network relationships) |
+| Container | Image | Volume | Purpose |
+|---|---|---|---|
+| `C2_mysql` | `mysql:latest` | `mysql_data` | Long-term storage (tasks, payloads, users, files) |
+| `C2_redis-stack` | `redis/redis-stack:latest` | `redis_data` | Task queue and response inbox per implant |
+| `C2_neo4j-stack` | `neo4j:latest` | `neo4j_data` | Graph state (implant topology, host/network relationships) |
 
 ### Filesystem Layout (Production)
 

@@ -25,6 +25,7 @@ server_logger = structlog.getLogger("server")
 # GET /filestore - all files in list
 # POST /filestore - add new file
 class File(Resource):
+    @jwt_required()
     @file_store_ns.doc(
         responses=COMMON_ERRORS,
         security="Bearer Auth",
@@ -32,7 +33,6 @@ class File(Resource):
     @file_store_ns.expect(FILE_POST_INPUT, validate=True)  # flip to True to enforce
     @file_store_ns.response(200, "File uploaded", FILE_POST_RESPONSE)
     @file_store_ns.marshal_with(FILE_POST_RESPONSE)
-    @jwt_required()
     def post(self):
         """
         Upload a new file to the filestore
@@ -65,6 +65,7 @@ class File(Resource):
         # Return immediately
         return APIResponse(status="200", message="File uploaded successfully", data=response)
 
+    @jwt_required()
     @file_store_ns.doc(
         summary="Get all files",
         description="Get a list of all files in the Database",
@@ -73,7 +74,6 @@ class File(Resource):
     )
     @file_store_ns.response(200, "List of files", FILE_GET_RESPONSE)
     @file_store_ns.marshal_with(FILE_GET_RESPONSE)
-    @jwt_required()
     def get(self):  # get one implant
         """
         Get a list of all files in the Database
@@ -95,6 +95,7 @@ class File(Resource):
 # DELETE /filestore/uuid: Delete singular binary
 # note: Bins shuold be stored in the DB, as a binary/blob field
 class FileActions(Resource):
+    @jwt_required()
     @file_store_ns.doc(
         summary="Download a file",
         description="Downloads a single file",
@@ -107,7 +108,6 @@ class FileActions(Resource):
         "Binary File Stream",
         headers={"Content-Disposition": "attachment; filename=file.bin"},
     )
-    @jwt_required()
     @file_store_ns.response(404, "Payload Not Found")
     def get(self, file_uuid):
         """
@@ -142,6 +142,7 @@ class FileActions(Resource):
                 download_name=file.file_name or f"{file.file_hash}.bin",
             )
 
+    @jwt_required()
     @file_store_ns.doc(
         summary="Delete a file",
         description="Deletes a single file",
@@ -151,7 +152,6 @@ class FileActions(Resource):
     @file_store_ns.response(200, "Deletion Successful", FILEACTIONS_DELETE_RESPONSE)
     @file_store_ns.response(404, "File Not Found")
     @file_store_ns.marshal_with(FILEACTIONS_DELETE_RESPONSE)
-    @jwt_required()
     def delete(self, file_uuid):
         """
         Delete a specific file artifact, based on the provided uuid

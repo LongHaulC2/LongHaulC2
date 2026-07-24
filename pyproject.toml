@@ -56,6 +56,7 @@ dev = [
     "ruff",
     "schemathesis",
     "pytest",
+    "pytest-asyncio",
 ]
 
 

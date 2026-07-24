@@ -101,6 +101,27 @@ def test_search_task_history(api_client):
     assert resp["status"] == "200"
 
 
+def test_get_single_task_detail(api_client, implant_uuid):
+    """GET /implants/{uuid}/task/{task_uuid} returns 200 with task data."""
+    task_payload = {
+        "implant_uuid": implant_uuid,
+        "task": {"task_name": "ls", "args": {}},
+    }
+    queue_resp = api_client.post_implant_task(implant_uuid, task_payload)
+    task_uuid = queue_resp["data"]["task_uuid"]
+
+    resp = api_client.get_implant_task(implant_uuid, task_uuid)
+    assert resp["status"] == "200"
+    assert resp["data"]["task_uuid"] == task_uuid
+
+
+def test_get_nonexistent_implant(api_client):
+    """GET /implants/{uuid} for a UUID that doesn't exist returns 200 with empty data."""
+    resp = api_client.get_implant("00000000-0000-0000-0000-000000000000")
+    assert resp["status"] == "200"
+    assert not resp["data"]
+
+
 def test_implants_unauthed():
     """GET /implants/ without a token returns 401."""
     base_url = os.getenv("SERVER_URL", "http://localhost:45045")

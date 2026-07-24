@@ -31,16 +31,25 @@ class CustomBase:
         """
         Turns each field into a dict.
 
-        By default, this safely skips deferred columns (like LONGBLOBs, see model below)
-        that haven't been loaded into memory yet, preventing accidental RAM exhaustion.
+        Skips columns marked as `deferred` (e.g. LONGBLOBs) to avoid pulling large
+        data into memory by accident. Pass include_deferred=True to force-include them.
+
+        WARNING — why we check `c.deferred` and not just `state.unloaded`:
+        SQLAlchemy expires ALL attributes after session.commit(). That means
+        state.unloaded includes every column right after a commit, not just the
+        deferred ones. The old code used `state.unloaded` alone, which caused
+        to_dict() to return {} after any commit — breaking every POST response
+        that called to_dict() on a freshly committed row. Accessing an expired
+        (non-deferred) attribute via getattr() triggers a cheap lazy reload,
+        which is fine and expected.
         """
         state = inspect(self)
-        unloaded = state.unloaded
+
+        deferred_keys = {c.key for c in state.mapper.column_attrs if c.deferred}
 
         result = {}
         for c in state.mapper.column_attrs:
-            # If the column is unloaded (deferred) and we didn't explicitly ask for it, skip it.
-            if not include_deferred and c.key in unloaded:
+            if not include_deferred and c.key in deferred_keys and c.key in state.unloaded:
                 continue
 
             result[c.key] = getattr(self, c.key)
