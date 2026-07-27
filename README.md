@@ -29,4 +29,5 @@ If you find a bug, or have a feature request, please open an issue, and use the 
 <img width="1912" height="1063" alt="image" src="https://github.com/user-attachments/assets/e7c1fc7a-5881-4618-8116-658d7f025a99" />
 
 ## Profiles
-<img width="1914" height="1066" alt="image" src="https://github.com/user-attachments/assets/ac0f13d8-8d3c-479c-9aca-9febe658bf65" />
+<img width="1906" height="945" alt="image" src="https://github.com/user-attachments/assets/450107f9-6fa1-494b-9e9a-a7b0e8a7dedb" />
+
