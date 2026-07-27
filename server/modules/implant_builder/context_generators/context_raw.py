@@ -41,6 +41,20 @@ def _cpp_safe_transforms(transforms: list) -> list:
     return out
 
 
+def _escape_body_for_cpp(s: str) -> str:
+    """Escape a TOML body template for use inside a C++ "..." string literal.
+
+    tomllib converts TOML escape sequences (\\r\\n) into real bytes. Those real
+    bytes can't appear inside a regular C++ string literal (unterminated string
+    error). R"()" raw literals aren't safe either — C++ translation phase 1
+    normalizes \\r\\n to \\n in source files *before* the raw literal is parsed,
+    so the implant would send \\n while the server expects \\r\\n, causing
+    unroutable packets. Escaping back to C++ escape sequences is the only
+    approach that preserves the exact bytes on the wire.
+    """
+    return s.replace("\\", "\\\\").replace('"', '\\"').replace("\r", "\\r").replace("\n", "\\n").replace("\t", "\\t")
+
+
 def sanitize_cpp_name(name: str) -> str:
     clean_name = re.sub(r"[^a-zA-Z0-9_]", "_", str(name))
     if clean_name and clean_name[0].isdigit():
@@ -78,9 +92,9 @@ def generate_toml_raw_context(
         "callback_port": port,
         "raw_profile_namespace": sanitize_cpp_name(f"raw_{host}_{port}_{profile_name}"),
         "raw_proto": get_block.get("proto", "tcp").lower(),
-        # Body templates
-        "get_body": get_block.get("body", "<METADATA>"),
-        "post_body": post_block.get("body", "<OUTPUT>"),
+        # Body templates — escaped so \r\n stays as C++ escape sequences, not raw bytes
+        "get_body": _escape_body_for_cpp(get_block.get("body", "<METADATA>")),
+        "post_body": _escape_body_for_cpp(post_block.get("body", "<OUTPUT>")),
         "get_server_body": get_block.get("server", {}).get("body", "<OUTPUT>"),
         "post_server_body": post_block.get("server", {}).get("body", ""),
         # Transform lists — vals are re-encoded as C++ octal escapes to prevent hex-bleed
