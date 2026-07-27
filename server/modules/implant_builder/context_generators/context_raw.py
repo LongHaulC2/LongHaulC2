@@ -95,8 +95,8 @@ def generate_toml_raw_context(
         # Body templates — escaped so \r\n stays as C++ escape sequences, not raw bytes
         "get_body": _escape_body_for_cpp(get_block.get("body", "<METADATA>")),
         "post_body": _escape_body_for_cpp(post_block.get("body", "<OUTPUT>")),
-        "get_server_body": get_block.get("server", {}).get("body", "<OUTPUT>"),
-        "post_server_body": post_block.get("server", {}).get("body", ""),
+        "get_server_body": _escape_body_for_cpp(get_block.get("server", {}).get("body", "<OUTPUT>")),
+        "post_server_body": _escape_body_for_cpp(post_block.get("server", {}).get("body", "")),
         # Transform lists — vals are re-encoded as C++ octal escapes to prevent hex-bleed
         "get_metadata_transforms": _cpp_safe_transforms(
             get_block.get("client", {}).get("metadata", {}).get("transforms", [])
