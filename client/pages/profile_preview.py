@@ -500,7 +500,7 @@ async def _profile_editor_view():
     # ── Load dialog ───────────────────────────────────────────────────
     def show_load_dialog():
         with ui.dialog().props("maximized=false") as dialog, ui.card().classes(
-            "tech-dialog w-[600px] p-0 rounded overflow-hidden"
+            "tech-dialog w-[600px] max-h-[80vh] p-0 rounded overflow-hidden flex flex-col"
         ):
             with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
                 with ui.row().classes("gap-2 items-center"):
@@ -508,12 +508,12 @@ async def _profile_editor_view():
                     ui.label("LOAD PROFILE").classes("tech-label-sub")
                 ui.button(icon="close", on_click=dialog.close).props("dense flat size=sm color=grey")
 
-            with ui.column().classes("p-5 gap-4 w-full"):
+            with ui.column().classes("p-5 gap-4 w-full flex-grow overflow-auto"):
                 ui.label("Upload a .toml file:").classes("tech-label-sub text-neutral-400")
 
                 async def _on_upload(e: events.UploadEventArguments):
                     try:
-                        content = e.content.read().decode("utf-8")
+                        content = (await e.file.read()).decode("utf-8")
                     except Exception as ex:
                         notify(f"File read error: {ex}", type="negative")
                         return
@@ -540,11 +540,11 @@ async def _profile_editor_view():
                 ui.label("Or paste TOML directly:").classes("tech-label-sub text-neutral-400")
                 paste_area = (
                     ui.textarea(placeholder="Paste TOML here...")
-                    .props('outlined dark color=emerald input-class="font-mono text-[11px]" autogrow rows=6')
+                    .props('outlined dark color=emerald input-class="font-mono text-[11px]" rows=6')
                     .classes("w-full tech-input")
                 )
 
-            with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"):
+            with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3 shrink-0"):
                 ui.button("CANCEL", on_click=dialog.close).props("flat dense color=grey no-caps")
 
                 def _load_pasted():
