@@ -60,13 +60,12 @@ body = ""             # ACK sent back (empty = no response)
 
 ### Tokens
 
-The same three tokens work in raw profiles:
+The same two tokens work in raw profiles:
 
 | Token | Used in | Replaced with |
 |---|---|---|
 | `<METADATA>` | `[raw.get]` body | Encoded beacon metadata |
 | `<OUTPUT>` | `[raw.post]` body and server response bodies | Encoded exfil data / encoded tasks |
-| `<CLIENT_ID>` | `[raw.post]` body (optional) | Implant UUID |
 
 No other substitution happens. `<ANYTHING_ELSE>` goes on the wire literally, including the angle brackets.
 
@@ -137,7 +136,7 @@ The `GET / HTTP/1.1\r\nHost: example.com\r\n\r\n` framing stays **plaintext**. O
 - The payload within the framing is the sensitive data that needs protection
 - Mixing framing and payload in the same encryption would break protocol mimicry
 
-The same applies to `<OUTPUT>` and `<CLIENT_ID>` tokens.
+The same applies to the `<OUTPUT>` token.
 
 ---
 
@@ -434,40 +433,5 @@ body = "GET /api HTTP/1.1\r\nHost: example.com\r\n\r\n<METADATA>"
 ```
 
 Note: `\r` and `\n` ARE valid in TOML basic strings. For binary null bytes or other non-ASCII bytes, use a literal string with `\x00`.
-
----
-
-## Profile Preview Tool
-
-The **Profile Preview** page (`/profile-preview`) visualizes what a profile produces before attaching it to a live listener.
-
-### Loading a Profile
-
-- **From server:** Select a profile from the dropdown. The list is populated from the server's profile library.
-- **Manual paste:** Type or paste TOML directly into the textarea.
-
-### Uploading a Profile
-
-Click the **upload** button (next to refresh) to upload a `.toml` file from your machine to the server. The uploaded profile appears in the dropdown immediately and is available to all operators.
-
-You can also upload profiles from the **Listeners** page when creating a new listener.
-
-### Rendering
-
-Click **RENDER**. The right panel shows a tab per protocol section present in the profile (`RAW`, `SMB`) plus a **VALIDATION** tab.
-
-For each section, the preview shows:
-- The body template and proto (tcp/udp)
-- The token location (`body`, etc.)
-- A step-by-step transform chain with intermediate output after each step, using the sample payload `PREVIEW_PAYLOAD`
-
-Use the preview to confirm the transform chain produces what you expect before deploying.
-
-### Saving
-
-| Button | Behavior |
-|---|---|
-| Save | Uploads the current contents to the server, overwriting the profile with the same name. Opens Save As if no profile is selected. |
-| Save As | Enter a filename and save as a new profile on the server. Auto-appends `.toml` if omitted. |
 
 ---

