@@ -68,8 +68,8 @@ class Auth(Resource):
 
 
 class Refresh(Resource):
-    @auth_ns.doc(security="Bearer Auth")
     @jwt_required(refresh=True)  # only takes refresh tokens
+    @auth_ns.doc(security="Bearer Auth")
     def post(self):
         """Exchange a valid refresh token for a new access token"""
         current_user = get_jwt_identity()
@@ -81,6 +81,7 @@ class Refresh(Resource):
 
 
 class Register(Resource):
+    @jwt_required()
     @auth_ns.doc(
         responses=COMMON_ERRORS,
         security="Bearer Auth",
@@ -88,7 +89,6 @@ class Register(Resource):
     @auth_ns.expect(AUTH_POST_INPUT, validate=False)  # flip to True to enforce
     @auth_ns.response(200, "User registered successfully", AUTH_REGISTER_RESPONSE)
     @auth_ns.marshal_with(AUTH_REGISTER_RESPONSE)
-    @jwt_required()
     def post(self):
         """
         Register a new user.

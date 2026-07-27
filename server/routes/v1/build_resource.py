@@ -29,6 +29,7 @@ server_logger = structlog.getLogger("server")
 
 # come back to this for models later lol
 class Build(Resource):
+    @jwt_required()
     @build_ns.doc(
         responses=COMMON_ERRORS,
         security="Bearer Auth",
@@ -36,7 +37,6 @@ class Build(Resource):
     @build_ns.expect(BUILD_POST_INPUT, validate=False)  # flip to True to enforce
     @build_ns.response(200, "Build initiated", BUILD_POST_RESPONSE)
     @build_ns.marshal_with(BUILD_POST_RESPONSE)
-    @jwt_required()
     def post(self):
         """
         Submit a task to build a new C2 implant payload.
@@ -89,6 +89,7 @@ class Build(Resource):
         # Return immediately
         return APIResponse(status="200", message="Build process initiated successfully", data=response)
 
+    @jwt_required()
     @build_ns.doc(
         summary="Get all builds",
         description="Get a list of all payloads in the Database",
@@ -97,7 +98,6 @@ class Build(Resource):
     )
     @build_ns.response(200, "List of builds", BUILD_GET_RESPONSE)
     @build_ns.marshal_with(BUILD_GET_RESPONSE)
-    @jwt_required()
     def get(self):  # get one implant
         """
         Get a list of all payloads in the Database
@@ -116,6 +116,7 @@ class Build(Resource):
 
 
 class BuildJobs(Resource):
+    @jwt_required()
     @build_ns.doc(
         summary="Get build job status",
         description="Get the status of a specific build job.",
@@ -125,7 +126,6 @@ class BuildJobs(Resource):
     )
     @build_ns.response(200, "Build job status", BUILDJOBS_GET_RESPONSE)
     @build_ns.marshal_with(BUILDJOBS_GET_RESPONSE)
-    @jwt_required()
     def get(self, build_uuid):  # get one implant
         """
         Get the status of a build job
@@ -168,6 +168,7 @@ class BuildJobs(Resource):
 # DELETE /build/hash: Delete singular binary
 # note: Bins shuold be stored in the DB, as a binary/blob field
 class BinaryActions(Resource):
+    @jwt_required()
     @build_ns.doc(
         summary="[Not Implemented] Download an implant",
         description="Downloads a single implant",
@@ -186,7 +187,6 @@ class BinaryActions(Resource):
         "Binary File Stream",
         headers={"Content-Disposition": "attachment; filename=payload.bin"},
     )
-    @jwt_required()
     @build_ns.response(404, "Payload Not Found")
     def get(self, hash):
         """
@@ -221,6 +221,7 @@ class BinaryActions(Resource):
                 download_name=payload.payload_name or f"{hash}.bin",
             )
 
+    @jwt_required()
     @build_ns.doc(
         summary="Delete an implant",
         description="Deletes a single implant",
@@ -238,7 +239,6 @@ class BinaryActions(Resource):
     @build_ns.response(404, "Payload Not Found")
     # and then what to actually filter the output by
     @build_ns.marshal_with(BINARYACTIONS_DELETE_RESPONSE)
-    @jwt_required()
     def delete(self, hash):
         """
         Delete a specific payload artifact, based on the provided hash
@@ -258,6 +258,7 @@ class BinaryActions(Resource):
 
 
 class SourceActions(Resource):
+    @jwt_required()
     @build_ns.doc(
         summary="Download Implant Source Code",
         description="Retrieves the source code archive (ZIP) for a specific implant build.",
@@ -274,7 +275,6 @@ class SourceActions(Resource):
         headers={"Content-Disposition": "attachment; filename=..._source.zip"},
     )
     @build_ns.response(404, "Source Code Not Found")
-    @jwt_required()
     def get(self, hash):
         """
         Download the source code zip for a specific payload.
@@ -311,6 +311,7 @@ class SourceActions(Resource):
 
 
 class BuildPackage(Resource):
+    @jwt_required()
     @build_ns.doc(
         summary="Download build package",
         description="Download all binary artifacts for a build as a single zip archive.",
@@ -321,7 +322,6 @@ class BuildPackage(Resource):
     @build_ns.produces(["application/zip"])
     @build_ns.response(200, "Build Package (ZIP)")
     @build_ns.response(404, "Build Not Found")
-    @jwt_required()
     def get(self, build_uuid):
         """Download all binary artifacts for a build as a zip package."""
         check_type(build_uuid, str, "build_uuid")

