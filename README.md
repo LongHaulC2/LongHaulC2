@@ -2,7 +2,7 @@
 
 ---
 
-Quiet and Flexible. 
+## Quiet and Flexible
 
 Get started here: [docs.longhaulc2.com](https://docs.longhaulc2.com)
 
