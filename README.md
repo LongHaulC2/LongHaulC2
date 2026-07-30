@@ -1,4 +1,6 @@
-# LongHaul C2
+<img width="2000" height="400" alt="LongHaulC2" src="https://github.com/user-attachments/assets/174ea327-8bbb-406c-a8b6-aec0e903a22f" />
+
+---
 
 Most frameworks are built to get you in. LongHaul is built to keep you there.
 
