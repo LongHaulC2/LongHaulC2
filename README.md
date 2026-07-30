@@ -2,12 +2,31 @@
 
 ---
 
-Most frameworks are built to get you in. LongHaul is built to keep you there.
+Quiet and Flexible. 
 
-Minimal by design. Extensible at runtime. The implant ships clean, no "traditional" offensive capability, no hardcoded protocols. BOFs load what you need mid-operation. Network profiles define your traffic shape in minutes. What your implant does, and what it looks like on the wire, are all operator decisions.
+## Key Features
+
+### **The implant isn't "traditional" malware:** 
+---
+...by default. The implant ships with basically zero offensive capability. If you need a capability, BOF it. Add, swap or store a capability mid-operation without recompiling or redeploying the implant.
+
+#### [Command Reference](./02%20Implants/1.%20Commands.md)
+#### [Memory Store](./02%20Implants/Systems/MemStore.md)
+
+### **Mimicry:**
+---
+Custom Traffic Creation. Implement new protocols in minutes. Define a network profile, load it into a listener, and your C2 traffic looks like whatever you need — HTTP, NTP, DNS, FTP, or something entirely custom.
+
+#### [Mimicry](./06%20Network%20Profiles/Overview.md)
 
 
-Built for red teams that need to adapt fast and stay resident long.
+### **Small Footprint:** 
+---
+Less implant code means less surface area. The built-in feature set is intentionally lean: BOF execution, filesystem access, file transfer, in-memory store, strategy switching, SMB chaining. That's the whole list. Additionally, thanks to mimicry, no networking libraries (save for sockets) are needed. 
+
+Additionally, the implant is built with some modularity in mind. Is a default command (like `ls`) getting you caught? Cool, tell that detection to ~~fuck off~~ "pound sand", and implement your own version. 
+
+#### [Command Modules](./02%20Implants/Modules/Overview%20&%20Modifications)
 
 Get started here: [docs.longhaulc2.com](https://docs.longhaulc2.com)
 
