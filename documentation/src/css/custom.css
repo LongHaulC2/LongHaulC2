@@ -257,3 +257,85 @@
   color: var(--lhc2-accent) !important;
   text-decoration: underline;
 }
+
+/* ── Divider ────────────────────────────────────────────── */
+
+.landing-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin: 3rem 0;
+}
+
+/* ── Image showcase (CSS-only tabs) ─────────────────────── */
+
+.showcase {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.showcase > input[type="radio"] {
+  display: none;
+}
+
+.showcase-tabs {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.showcase-tabs label {
+  padding: 0.6rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #a1a1aa;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.showcase-tabs label:hover {
+  color: #e4e4e7;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.showcase-panels {
+  position: relative;
+}
+
+.showcase-panel {
+  display: none;
+}
+
+.showcase-note {
+  text-align: center;
+  color: #a1a1aa;
+  font-size: 0.9rem;
+  margin: 0 0 1rem;
+}
+
+.showcase-panel img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Tab selection logic */
+#tab-ops:checked ~ .showcase-tabs label[for="tab-ops"],
+#tab-map:checked ~ .showcase-tabs label[for="tab-map"],
+#tab-profiles:checked ~ .showcase-tabs label[for="tab-profiles"],
+#tab-audit:checked ~ .showcase-tabs label[for="tab-audit"] {
+  color: var(--ifm-color-primary-light);
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+#tab-ops:checked ~ .showcase-panels .showcase-panel:nth-child(1),
+#tab-map:checked ~ .showcase-panels .showcase-panel:nth-child(2),
+#tab-profiles:checked ~ .showcase-panels .showcase-panel:nth-child(3),
+#tab-audit:checked ~ .showcase-panels .showcase-panel:nth-child(4) {
+  display: block;
+}
