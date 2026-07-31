@@ -70,6 +70,16 @@ check_root:
 		exit 1; \
 	fi
 
+.PHONY: install_gum
+install_gum:
+	@echo "=================================================="
+	@echo "Installing gum (Charm.sh)"
+	@echo "=================================================="
+	sudo mkdir -p /etc/apt/keyrings
+	curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+	echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
+	sudo apt update && sudo apt install gum -y
+
 .PHONY: clean_for_release
 clean_for_release:
 	# removing items that are great for dev but bloat the release
@@ -93,7 +103,7 @@ clean_for_release:
 # ======================================
 
 .PHONY: deploy
-deploy: check_root
+deploy: check_root install_gum
 	@echo "=================================================="
 	@echo "Starting LongHaulC2 Enterprise Deployment..."
 	@echo "=================================================="
@@ -293,7 +303,7 @@ redeploy:
 # ======================================
 
 .PHONY: dev_install
-dev_install:
+dev_install: install_gum
 	@echo "=================================================="
 	@echo "Starting LongHaulC2 Development Install..."
 	@echo "=================================================="

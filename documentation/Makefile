@@ -45,6 +45,35 @@ build: $(NODE_BIN)/.installed
 serve: build
 	$(DOCUSAURUS) serve
 
+
+REPO_DIR = longhaulc2.github.io
+TIMESTAMP = $(shell date +"%Y-%m-%d %H:%M:%S")
+
+deploy_to_gh_site: 
+	@echo "Deploying docs..."
+	
+# 1. Clone the repo
+	gum spin --show-error --spinner dot --title "Cloning repository..." -- git clone https://github.com/longhaulc2/longhaulc2.github.io $(REPO_DIR)
+	
+# 2. Build the docs
+# We added || (...) to catch the failure, print a red error, and exit
+	gum spin --show-error --spinner dot --title "Building docs..." -- make build || \
+		(gum style --foreground 196 --bold "Build Failed!"; exit 1)
+	
+# 3. Swap the old docs for the new build
+	gum spin --show-error --spinner dot --title "Staging files..." -- bash -c "rm -rf ./$(REPO_DIR)/docs && cp -r ./build ./$(REPO_DIR)/docs" || \
+		(gum style --foreground 196 --bold "Staging Failed!"; exit 1)
+	
+# 4. Commit and Push
+	gum spin --show-error --spinner dot --title "Pushing to remote..." -- bash -c "cd $(REPO_DIR) && git add . && git commit -m 'docs push $(TIMESTAMP)' && git push" || \
+		(gum style --foreground 196 --bold "Git Push Failed!"; exit 1)
+	
+# 5. Cleanup
+	gum spin --show-error --spinner dot --title "Cleaning up..." -- rm -rf ./$(REPO_DIR)
+	
+# Print a nice styled success message
+	gum style --foreground 212 --bold "Docs successfully pushed and deployed!"
+
 # ======================================
 # Maintenance
 # ======================================
@@ -77,4 +106,7 @@ help:
 	@echo "  make build    # Build static site to ./build/"
 	@echo "  make serve    # Build + serve at http://localhost:3000"
 	@echo "  make clean    # Remove build artifacts"
+	@echo ""
+	@echo "Dev Options:"
+	@echo "  make deploy_to_gh_site    # Pull docs repo, build current docs, and push to docs repo"
 	@echo ""
