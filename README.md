@@ -8,7 +8,7 @@
 ---
 
 ### Key Capabilities 
-* **BOF-First Design:** Zero native offensive code; extend capabilities dynamically in memory for minimal detection surface
+* **BOF-First Design:** Zero "traditional" offensive code; extend capabilities dynamically in memory for minimal detection surface
 * **Protocol Mimicry:** Define *every* byte that goes over the wire via Mimicry Profiles
 * **Split C2 & Protocol Switching**: Split Tasking & Exfil over different Mimicry Profiles. Bake in, and swap between multiple profiles at will.
 

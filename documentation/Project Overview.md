@@ -1,46 +1,51 @@
 ---
 slug: /
+title: LongHaulC2
+hide_table_of_contents: true
+hide_title: true
+sidebar_class_name: landing-no-sidebar
 ---
 
-# LongHaul C2 - Overview
+<div className="landing">
 
-Most frameworks are built to get you in. LongHaul is built to keep you there.
+<div className="landing-hero">
+  <img width="2000" height="200" alt="LongHaulC2" src="https://github.com/user-attachments/assets/174ea327-8bbb-406c-a8b6-aec0e903a22f" />
+  <p className="landing-tagline">Quiet and flexible</p>
+  <br></br>
+  <!--<p className="landing-sub">Most frameworks are built to get you in. LongHaul is built to keep you there.</p>-->
+  <div className="landing-cta">
+    <a className="landing-btn-primary" href="/LongHaul%20C2%20-%20Quickstart%20Guide">Get Started</a>
+    <a className="landing-btn-secondary" href="https://github.com/LongHaulC2/LongHaulC2">GitHub</a>
+  </div>
+</div>
 
-Minimal by design. Extensible at runtime. The implant ships clean, no "traditional" offensive capability, no hardcoded protocols. BOFs load what you need mid-operation. Network profiles define your traffic shape in minutes. What your implant does, and what it looks like on the wire, are all operator decisions.
+<div className="landing-cards">
 
----
+<div className="landing-card">
+    <h3>BOF-First Design</h3>
+  <p>Zero "traditional" offensive code. Extend capabilities dynamically in memory for minimal detection surface.</p>
+  <div className="landing-card-links">
+    <a href="/02%20Implants/Commands">Command Reference</a>
+    <a href="/02%20Implants/Systems/MemStore">Memory Store</a>
+  </div>
+</div>
 
-## Key Features
+<div className="landing-card">
+    <h3>Protocol Mimicry</h3>
+  <p>Define <em>every</em> byte that goes over the wire. Your C2 traffic looks like whatever you need.</p>
+  <div className="landing-card-links">
+    <a href="./06%20Network%20Profiles/Overview">Mimicry Profiles</a>
+  </div>
+</div>
 
-### **The implant isn't "traditional" malware:** 
----
-...by default. The implant ships with basically zero offensive capability. If you need a capability, BOF it. Add, swap or store a capability mid-operation without recompiling or redeploying the implant.
+<div className="landing-card">
+    <h3>Split C2 & Protocol Switching</h3>
+  <p>Split tasking and exfil over different profiles. Bake in and swap between multiple profiles at will.</p>
+  <div className="landing-card-links">
+    <a href="02%20Implants/Commands#3-c2-strategy">Profile Switching</a>
+  </div>
+</div>
 
-#### [Command Reference](./02%20Implants/1.%20Commands.md)
-#### [Memory Store](./02%20Implants/Systems/MemStore.md)
+</div>
 
-### **Mimicry:**
----
-Custom Traffic Creation. Implement new protocols in minutes. Define a network profile, load it into a listener, and your C2 traffic looks like whatever you need — HTTP, NTP, DNS, FTP, or something entirely custom.
-
-#### [Mimicry](./06%20Network%20Profiles/Overview.md)
-
-
-### **Small Footprint:** 
----
-Less implant code means less surface area. The built-in feature set is intentionally lean: BOF execution, filesystem access, file transfer, in-memory store, strategy switching, SMB chaining. That's the whole list. Additionally, thanks to mimicry, no networking libraries (save for sockets) are needed. 
-
-Additionally, the implant is built with some modularity in mind. Is a default command (like `ls`) getting you caught? Cool, tell that detection to ~~fuck off~~ "pound sand", and implement your own version. 
-
-#### [Command Modules](./02%20Implants/Modules/Overview%20&%20Modifications)
-
-
-### **Built to Last:**
----
-Rotate traffic profiles at runtime without spawning new implants. Chain over SMB to reach isolated segments. The implant is designed to stay resident for as long as you need.
-
-- **API-First:** Nearly everything in the UI is an API call. Scripted rotations, automated tasking, third-party integrations — all first-class.
-
----
-
-If you're ready to rock and roll, head to the QuickStart guide for installation instructions. 
+</div>

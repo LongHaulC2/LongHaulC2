@@ -27,6 +27,7 @@ These are the colors currently used in the project:
 | `#34d399` | <span style={{color:'#34d399'}}>Emerald-400</span> | Active select option text, active toggle text, switch thumb (on) |
 | `rgba(16,185,129,0.7)` | <span style={{color:'rgba(16,185,129,0.7)'}}>Emerald-500/70%</span> | Expansion header text |
 | `rgba(52,211,153,0.2)` | <span style={{color:'#34d399'}}>Emerald-400/20%</span> | Dialog border, select menu border |
+| `#a16ae8` | <span style={{color:'#a16ae8'}}>Lavender</span> | Logo accent, doc inline code text, secondary badges |
 | `rgba(239,68,68,0.3)` | <span style={{color:'#ef4444'}}>Red-500/30%</span> | Destructive button border, confirm dialog border |
 | `rgba(239,68,68,0.1)` | <span style={{color:'#ef4444'}}>Red-500/10%</span> | Destructive button background |
 | `#f87171` | <span style={{color:'#f87171'}}>Red-400</span> | Destructive button text |

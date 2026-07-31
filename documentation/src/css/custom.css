@@ -1,10 +1,11 @@
 /**
  * LongHaulC2 doc theme.
- * Docusaurus ships with a default dark palette; these overrides tighten it up.
+ * Colors derived from the project design language (Documentation/Development/UI/Design Language.md).
+ * Primary: emerald-500 (#10b981)  —  Accent: lavender (#a16ae8)
  */
 
 :root {
-  --ifm-color-primary: #10b981;         /* emerald-500 — matches the UI */
+  --ifm-color-primary: #10b981;
   --ifm-color-primary-dark: #059669;
   --ifm-color-primary-darker: #047857;
   --ifm-color-primary-darkest: #065f46;
@@ -13,25 +14,246 @@
   --ifm-color-primary-lightest: #a7f3d0;
   --ifm-code-font-size: 90%;
   --docusaurus-highlighted-code-line-bg: rgba(16, 185, 129, 0.1);
+
+  --lhc2-accent: #a16ae8;
+  --lhc2-accent-dark: #8b52d4;
+  --lhc2-accent-light: #b888ee;
+  --lhc2-accent-subtle: rgba(161, 106, 232, 0.12);
 }
 
-/* Force dark mode globally — this is an ops tool, not a blog */
 [data-theme="dark"] {
-  --ifm-background-color: #0f0f0f;
-  --ifm-background-surface-color: #1a1a1a;
-  --ifm-navbar-background-color: #111111;
-  --ifm-footer-background-color: #0a0a0a;
-  --ifm-toc-border-color: #2a2a2a;
-  --ifm-color-emphasis-300: #333333;
+  --ifm-background-color: #09090b;
+  --ifm-background-surface-color: #18181b;
+  --ifm-navbar-background-color: #0f0f0f;
+  --ifm-footer-background-color: #09090b;
+  --ifm-toc-border-color: rgba(255, 255, 255, 0.1);
+  --ifm-color-emphasis-300: #3f3f46;
+  --ifm-font-color-base: #e4e4e7;
+  --ifm-heading-color: #ffffff;
 }
 
-/* Slightly tighter code blocks */
 .theme-code-block {
   font-size: 0.875rem;
 }
 
-/* Sidebar active item highlight */
 .menu__link--active {
   color: var(--ifm-color-primary) !important;
   font-weight: 600;
+}
+
+/* Lavender accent on inline code */
+:not(pre) > code {
+  color: var(--lhc2-accent-light);
+  background: var(--lhc2-accent-subtle);
+  border: 1px solid rgba(161, 106, 232, 0.2);
+}
+
+/* Lavender accent on doc badges / version labels */
+.badge--secondary {
+  background-color: var(--lhc2-accent-subtle);
+  border-color: var(--lhc2-accent);
+  color: var(--lhc2-accent-light);
+}
+
+/* Table styling aligned with design language */
+[data-theme="dark"] table {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] table thead {
+  background: #0f0f0f;
+}
+
+[data-theme="dark"] table thead th {
+  color: #a1a1aa;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] table tbody tr:hover {
+  background: rgba(16, 185, 129, 0.05);
+}
+
+/* Navbar bottom border */
+[data-theme="dark"] .navbar {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Footer */
+[data-theme="dark"] .footer--dark {
+  background-color: #09090b;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Scrollbar styling */
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #09090b;
+}
+
+/* ── Landing page ───────────────────────────────────────── */
+
+/* Hide left sidebar on the landing page */
+.landing-no-sidebar {
+  display: none;
+}
+
+:has(.landing) .theme-doc-sidebar-container,
+:has(.landing) aside {
+  display: none !important;
+}
+
+:has(.landing) main .col,
+:has(.landing) .docMainContainer_node_modules article {
+  max-width: 100% !important;
+  flex: 1;
+}
+
+:has(.landing) .docMainContainer {
+  max-width: 100%;
+}
+
+:has(.landing) [class*="docItemCol"] {
+  max-width: 100% !important;
+}
+
+.landing {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.landing-hero {
+  text-align: center;
+  padding: 0.5rem 0 2rem;
+}
+
+.landing-hero img {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 1.5rem;
+}
+
+.landing-tagline {
+  font-size: 1.5rem;
+  font-style: italic;
+  color: #a1a1aa;
+  margin: 0 0 0.75rem;
+}
+
+.landing-sub {
+  font-size: 1.1rem;
+  color: #e4e4e7;
+  max-width: 600px;
+  margin: 0 auto 2rem;
+  line-height: 1.6;
+}
+
+.landing-cta {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.landing-btn-primary {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399 !important;
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none !important;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.landing-btn-primary:hover {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: rgba(16, 185, 129, 0.6);
+  color: #34d399 !important;
+}
+
+.landing-btn-secondary {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #a1a1aa !important;
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none !important;
+  transition: background 0.2s, color 0.2s;
+}
+
+.landing-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e4e4e7 !important;
+}
+
+.landing-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-top: 3rem;
+}
+
+@media (max-width: 768px) {
+  .landing-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-card {
+  background: rgba(23, 23, 23, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s;
+}
+
+.landing-card:hover {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+
+.landing-card h3 {
+  font-size: 1.05rem;
+  color: #ffffff;
+  margin: 0 0 0.5rem;
+}
+
+.landing-card p {
+  font-size: 0.9rem;
+  color: #a1a1aa;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.landing-card-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.landing-card-links a {
+  font-size: 0.825rem;
+  color: var(--lhc2-accent-light) !important;
+  text-decoration: none;
+}
+
+.landing-card-links a:hover {
+  color: var(--lhc2-accent) !important;
+  text-decoration: underline;
 }
