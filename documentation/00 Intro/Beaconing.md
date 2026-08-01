@@ -2,9 +2,19 @@
 
 The implant communicates with the server in a loop. Understanding this loop is prerequisite reading for network profiles, listener configuration, and strategy switching.
 
+If you've worked with any other C2 platforms, this concept should be fairly familiar. In a nutshell, there are two "[channels](#why-two-channels)": 
+ - "GET": Used for transferring metadata, and task retrieval
+ - "POST": Used for sending task results back to the server. 
+
+Check out [What Each Stage Carries](#what-each-stage-carries) for a more in depth breakdown.
+
 ---
 
 ## The Loop
+
+
+The implant wakes, sends a GET beacon, receives tasks (or nothing), executes any work, POSTs the results, and goes back to sleep. This is the entire communication model.
+
 
 ```mermaid
 sequenceDiagram
@@ -22,13 +32,13 @@ sequenceDiagram
     end
 ```
 
-The implant wakes, sends a GET beacon, receives tasks (or nothing), executes any work, POSTs the results, and goes back to sleep. This is the entire communication model.
-
 ---
 
 ## Why Two Channels?
 
-GET and POST are kept separate to minimize traffic noise. The GET beacon is intentionally lightweight — just metadata, no task data. Full data transfer only happens on POST, and only when the implant actually has results to return. An implant with no pending work produces only small, regular GET packets.
+GET and POST are kept separate to minimize traffic noise. The GET beacon is intentionally lightweight, containing just metadata, no task data. Full data transfer only happens on POST, and only when the implant actually has results to return. An implant with no pending work produces only small, regular(ish)* GET packets.
+
+> \* Packets are "regular"/potentially the same if not transformed using Mimicry Profiles. Encryption (Symcrypt) uses AES-256-GCM, which produces a unique output despite the same inputs.
 
 ---
 
@@ -49,7 +59,7 @@ See [Mimicry](../06%20Network%20Profiles/Overview.md) for further details on thi
 
 ## Sleep
 
-The implant sleeps a configurable number of seconds between GET beacons. Update it at runtime with `sleep <seconds>` in the implant terminal. There is no separate sleep for POST — exfil happens immediately after task execution, before the next sleep cycle begins.
+The implant sleeps a configurable number of seconds between GET beacons. Update it at runtime with `sleep <seconds>` in the implant terminal. There is no separate sleep for POST, exfil happens immediately after task execution, before the next sleep cycle begins.
 
 ---
 
