@@ -14,7 +14,7 @@ This doc will go into the technical specifics of profiles, and limitations aroun
 
 This is what makes raw profiles powerful and what makes mistakes operationally dangerous. There is no implicit framing, no length prefix, no magic. The listener takes your body template, replaces the token with the transformed payload, and writes the resulting bytes to the socket.
 
-If your profile for NTP contains a valid 48-byte NTP header structure, the packet looks like NTP to network tooling (i.e., Wireshark). If it contains garbage, the packet contains garbage, and likely won't be recognized. 
+If your profile for NTP contains a valid NTP packet structure, the packet will look like NTP to network tooling (i.e., Wireshark). If it contains garbage, the packet will contain garbage, and likely won't be recognized. 
 
 > The Profile Editor tool is meant to minimize mistakes and confusion, so be sure to use it.
 
