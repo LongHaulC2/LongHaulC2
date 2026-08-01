@@ -10,7 +10,7 @@ This doc will go into the technical specifics of profiles, and limitations aroun
 
 ## The Fundamental Rule
 
-> **Whatever you put in the profile is what gets sent. The only substitutions are the three recognized tokens. Everything else is literal.**
+> **Whatever you put in the profile is what gets sent. The only substitutions are the two recognized tokens. Everything else is literal.**
 
 This is what makes raw profiles powerful and what makes mistakes operationally dangerous. There is no implicit framing, no length prefix, no magic. The listener takes your body template, replaces the token with the transformed payload, and writes the resulting bytes to the socket.
 
