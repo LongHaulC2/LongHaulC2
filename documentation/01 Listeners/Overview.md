@@ -16,18 +16,16 @@ On server startup, previously running listeners get respawned. This allows liste
 
 | Type | Status | Transport |
 |---|---|---|
-| `raw` | **Implemented** | Plain TCP or UDP. The profile's `[raw.*]` body templates define the **complete wire format** — the listener adds nothing beyond what the TOML specifies. HTTP/1.1 mimicry, NTP, DNS, FTP, any binary protocol — all defined by the profile. `raw_http_profile.toml` ships as a ready-to-use HTTP/1.1 example. |
+| `raw` | **Implemented** | Direct TCP or UDP. All traffic shaping is done by [Mimicry Profiles](/06%20Network%20Profiles/Overview). |
 | `pivot_smb` | Placeholder | No process is started. Used as an internal marker for implants that connect via SMB chains rather than direct egress. |
 
-> **This is different than most C2 suites. The raw listener is the only C2 channel.** Protocols/Traffic are defined by Network Profiles, see [Mimicry](../06%20Network%20Profiles/Overview.md) for more details.
+> **This is different than most C2 suites. The raw listener is the only C2 channel.** Protocols/Traffic Shaping are defined by Network Profiles, again, see [Mimicry Profiles](../06%20Network%20Profiles/Overview.md) for more details.
 
 ---
 
 ## Creating a Listener
 
 Listeners are created through the UI (**Listeners** page) or via the [API](../04%20API%20Reference/Overview#listeners--apiv1listeners)
-
-...link to creating a listener video here...
 
 ### Field Reference
 
@@ -125,7 +123,7 @@ The implant can switch between these at runtime with `strat set get` / `strat se
 
 ## Raw Listener
 
-The raw listener is the only "real" listener type in LongHaul. It sends and receives arbitrary bytes over TCP or UDP. The network profile's `[raw.*]` section defines the **complete wire format** — the listener adds no framing beyond what the profile specifies. Not a byte more, not a byte less.
+The raw listener is the only "real" listener type in LongHaul. It sends and receives arbitrary bytes over TCP or UDP. The network profile's `[raw.*]` section defines the **complete wire format**, the listener adds no framing beyond what the profile specifies.
 
 What protocol your traffic looks like is entirely your decision. Profiles are stored on the server and managed through the UI or API. On a fresh install, use "Seed Defaults" on the Profile Preview page to load the reference profiles:
 
@@ -139,7 +137,7 @@ What protocol your traffic looks like is entirely your decision. Profiles are st
 | `raw_encrypted_http_profile.toml` | Encrypted HTTP/1.1 (AES-256-GCM + base64url) |
 | `raw_debug_profile.toml` | Bare msgpack (no transforms, intended for debugging) |
 
-You can upload your own profiles from the Listeners page or the Profile Preview page. See [Mimicry](../06%20Network%20Profiles/Overview.md) for full documentation.
+You can Create, Edit, up Upload profiles in the Profile Editor page. See [Mimicry](../06%20Network%20Profiles/Overview.md) for more information.
 
 ---
 

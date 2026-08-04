@@ -38,14 +38,25 @@ sudo systemctl status longhaulc2-server
 sudo systemctl status longhaulc2-web
 ```
 
-**Default credentials:** `longhaul` / `P@ssw0rd1!`
+**Credentials**: 
 
-> Change the defaults in production: 
-```bash
-sudo make deploy INIT_API_USER=operator INIT_API_PASS=<strong_pass> \
-MYSQL_ROOT_PASSWORD=<strong_pass> REDIS_PASSWORD=<strong_pass> \
-NEO4J_PASSWORD=<strong_pass> JWT_SECRET_KEY=<strong_secret>
+Credentials are randomly generated for all services. The default credentials for the `longhaul` user will be printed on screen as the deploy script completes. 
+
+Ex:
 ```
+==================================================
+  Deployment complete.
+==================================================
+
+  Initial operator credentials:
+    Username: longhaul
+    Password: SOMEPASSWORDTHATIS32CHARSLONG
+
+  Save these credentials — they will not be shown again.
+  All service passwords are stored in .env
+==================================================
+```
+
 
 **Access the UI:** `https://<server>:8083`
 
@@ -71,6 +82,9 @@ PYTHONPATH=. python -m server.main
 PYTHONPATH=. python -m client.main
 ```
 
+**Default credentials for DEV:** `longhaul` / `P@ssw0rd1!`
+
+
 ---
 
 ## What Got Installed?
@@ -85,3 +99,4 @@ See `install_reference` (created by `make deploy`) for a full list of everything
 - [Listeners](01%20Listeners/Overview.md) — create your first listener
 - [Commands](02%20Implants/1.%20Commands.md) — full implant command reference
 - [Scripting / API](03%20Scripting/Overview.md) — automate operations via the REST API
+
