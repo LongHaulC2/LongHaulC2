@@ -11,6 +11,7 @@ import client.log  # noqa: F401
 import client.modules.health_check  # noqa: F401
 import client.pages.admin_users  # noqa: F401
 import client.pages.audit  # noqa: F401
+import client.pages.builder  # noqa: F401
 import client.pages.comms  # noqa: F401
 import client.pages.docs  # noqa: F401
 import client.pages.error  # noqa: F401

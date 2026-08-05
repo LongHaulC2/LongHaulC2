@@ -1,0 +1,12 @@
+[template]
+name        = "win_x64"
+display_name = "Windows x64 (Standard)"
+description = "Default Windows x64 implant with MinGW cross-compilation"
+platform    = "windows"
+arch        = "x64"
+docker_image = "win_x64"
+version     = "1.2.0"
+
+[build]
+entrypoints = ["exe", "dll"]
+default_modules = ["ls", "cd", "files", "metadata", "bof"]

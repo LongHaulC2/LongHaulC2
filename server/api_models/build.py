@@ -107,6 +107,18 @@ BUILD_POST_INPUT = api.model(
             "Decoupled from the listener bind address to support CDNs, redirectors, etc.",
             example="60.1.1.1",
         ),
+        "template_name": fields.String(
+            required=False,
+            description="Implant template to build with (defaults to win_x64)",
+            example="win_x64",
+            default="win_x64",
+        ),
+        "modules": fields.List(
+            fields.String,
+            required=False,
+            description="Module names to include. Defaults to template's default_modules if omitted.",
+            example=["ls", "cd", "files", "metadata", "bof"],
+        ),
         "options": fields.Nested(
             api.model(
                 "BUILD_OPTIONS",

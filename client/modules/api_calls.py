@@ -613,21 +613,9 @@ async def build_implant(
     initial_post_profile_listener_uuid: str,
     callback_host: str,
     options: dict,
+    template_name: str = "win_x64",
+    modules: list[str] | None = None,
 ) -> dict | None:
-    """
-    Submit a task to build a new implant payload tailored to a specific listener.
-
-    Args:
-        implant_name (str): The name to give the built implant.
-        listener_uuids (list): List of listener UUIDs to compile into the implant.
-        initial_get_profile_listener_uuid (str): The listener UUID to use for the initial GET profile.
-        initial_post_profile_listener_uuid (str): The listener UUID to use for the initial POST profile.
-        callback_host (str): IP or hostname for the implant to call back to.
-        options (dict): Build options (debug, clear_cache, etc.).
-
-    Returns:
-        dict: Details of the build job, including a 'build_uuid' to track status.
-    """
     check_type(implant_name, str, "implant_name")
     check_type(listener_uuids, list, "listener_uuids")
     check_type(initial_get_profile_listener_uuid, str, "initial_get_profile_listener_uuid")
@@ -639,10 +627,12 @@ async def build_implant(
         "initial_get_profile_listener_uuid": initial_get_profile_listener_uuid,
         "initial_post_profile_listener_uuid": initial_post_profile_listener_uuid,
         "callback_host": callback_host,
+        "template_name": template_name,
         "options": options,
     }
+    if modules is not None:
+        build_request_data["modules"] = modules
 
-    # core logic placeholder
     return await safe_api_request(
         method="POST",
         endpoint="/api/v1/build/",
@@ -1003,6 +993,73 @@ async def seed_profiles(profiles: list[dict]) -> dict | None:
         endpoint="/api/v1/profiles/seed",
         json={"profiles": profiles},
     )
+
+
+# ---------------------------------------------------------------------------
+# Templates
+# ---------------------------------------------------------------------------
+
+
+async def get_all_templates() -> dict | None:
+    return await safe_api_request(method="GET", endpoint="/api/v1/templates/")
+
+
+async def get_template_by_name(template_name: str) -> dict | None:
+    return await safe_api_request(method="GET", endpoint=f"/api/v1/templates/{template_name}")
+
+
+# ---------------------------------------------------------------------------
+# Modules
+# ---------------------------------------------------------------------------
+
+
+async def get_all_modules() -> dict | None:
+    return await safe_api_request(method="GET", endpoint="/api/v1/modules/")
+
+
+async def get_module_by_name(module_name: str) -> dict | None:
+    return await safe_api_request(method="GET", endpoint=f"/api/v1/modules/{module_name}")
+
+
+async def upload_module(module_name: str, module_contents: str) -> dict | None:
+    return await safe_api_request(
+        method="POST",
+        endpoint="/api/v1/modules/",
+        json={"module_name": module_name, "module_contents": module_contents},
+    )
+
+
+async def delete_module(module_name: str) -> dict | None:
+    return await safe_api_request(method="DELETE", endpoint=f"/api/v1/modules/{module_name}")
+
+
+async def seed_modules() -> dict | None:
+    return await safe_api_request(method="POST", endpoint="/api/v1/modules/seed")
+
+
+# ---------------------------------------------------------------------------
+# Build Configs
+# ---------------------------------------------------------------------------
+
+
+async def get_all_build_configs() -> dict | None:
+    return await safe_api_request(method="GET", endpoint="/api/v1/build-configs/")
+
+
+async def get_build_config_by_name(config_name: str) -> dict | None:
+    return await safe_api_request(method="GET", endpoint=f"/api/v1/build-configs/{config_name}")
+
+
+async def save_build_config(config_name: str, config_contents: str) -> dict | None:
+    return await safe_api_request(
+        method="POST",
+        endpoint="/api/v1/build-configs/",
+        json={"config_name": config_name, "config_contents": config_contents},
+    )
+
+
+async def delete_build_config(config_name: str) -> dict | None:
+    return await safe_api_request(method="DELETE", endpoint=f"/api/v1/build-configs/{config_name}")
 
 
 # ---------------------------------------------------------------------------

@@ -70,6 +70,7 @@ def parse_args():
 from .api_extensions.error_definitions import *  # noqa: F403, E402
 from .routes.v1.audit_resource import *  # noqa: F403, E402
 from .routes.v1.auth_resource import *  # noqa: F403, E402
+from .routes.v1.build_config_resource import *  # noqa: F403, E402
 from .routes.v1.build_resource import *  # noqa: F403, E402
 from .routes.v1.chat_resource import *  # noqa: F403, E402
 from .routes.v1.filestore_resource import *  # noqa: F403, E402
@@ -77,7 +78,9 @@ from .routes.v1.graph_resource import *  # noqa: F403, E402
 from .routes.v1.health_resource import *  # noqa: F403, E402
 from .routes.v1.implant_resource import *  # noqa: F403, E402
 from .routes.v1.listener_resource import *  # noqa: F403, E402
+from .routes.v1.module_resource import *  # noqa: F403, E402
 from .routes.v1.profile_resource import *  # noqa: F403, E402
+from .routes.v1.template_resource import *  # noqa: F403, E402
 from .routes.v1.user_resource import *  # noqa: F403, E402
 
 logger = structlog.getLogger("server")

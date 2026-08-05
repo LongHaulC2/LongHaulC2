@@ -1,0 +1,237 @@
+[# CMakeLists.txt.j2 — rendered at build time with module context #]
+cmake_minimum_required (VERSION 3.16)
+
+project ("Implant_v01")
+
+# ==========================================
+# QUICK DEBUG OPTIONS
+# ==========================================
+option(ENABLE_IMPLANT_LOGS "Enable internal debug logging" OFF)
+
+if(ENABLE_IMPLANT_LOGS)
+    add_definitions(-DIMPLANT_DEBUG_LOGS)
+    message(STATUS "Internal Logging: ENABLED")
+else()
+    message(STATUS "Internal Logging: DISABLED")
+endif()
+
+# ==========================================
+# 1. Output Directory
+# ==========================================
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "/output")
+
+# ==========================================
+# 2. Source Files
+# ==========================================
+
+# Core sources (always included)
+set(SOURCES
+    "core/settings.h"
+    "protocols/json/json.h"
+    "data/msgpack/msgpack.cpp"
+    "data/msgpack/msgpack.h"
+    "data/transforms/transforms.cpp"
+    "data/transforms/transforms.h"
+    "protocols/base64/base64.cpp"
+    "protocols/base64/base64.h"
+    "comms/comms.h"
+    "core/c2.h"
+    "core/c2.cpp"
+    "core/commandtree.cpp"
+    "core/commandtree.h"
+    "data/structs.h"
+    "systems/memstore.h"
+    "comms/transport.h"
+    "defense/winapi.h"
+    "protocols/smb/smb.h"
+    "protocols/smb/smb.cpp"
+    "_debug/debug.cpp"
+)
+
+[# Module sources — conditionally included based on build selection #]
+[% for module in enabled_modules %]
+[% for src in module.sources.files %]
+list(APPEND SOURCES "modules/[[module.module.name]]/[[src]]")
+[% endfor %]
+[% if module.sources.get("headers") %]
+[% for hdr in module.sources.headers %]
+list(APPEND SOURCES "[[hdr]]")
+[% endfor %]
+[% endif %]
+[% endfor %]
+
+add_library(ImplantCore STATIC
+    ${SOURCES}
+    "systems/childhandler.h" "systems/childhandler.cpp" "data/uuid7.h" "comms/queues.h"
+)
+
+target_include_directories(ImplantCore PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/comms
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/data
+    ${CMAKE_CURRENT_SOURCE_DIR}/defense
+    ${CMAKE_CURRENT_SOURCE_DIR}/entrypoints
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs
+    ${CMAKE_CURRENT_SOURCE_DIR}/modules
+    ${CMAKE_CURRENT_SOURCE_DIR}/protocols
+    ${CMAKE_CURRENT_SOURCE_DIR}/systems
+)
+
+target_precompile_headers(ImplantCore PRIVATE
+    <string>
+    <vector>
+    <map>
+    <windows.h>
+    <mutex>
+    "protocols/json/json.h"
+    "data/msgpack/msgpack.h"
+)
+
+# create our EXE:
+add_executable(Implant_v01_exe
+    entrypoints/exe_main.cpp
+    "systems/childhandler.h" "systems/childhandler.cpp" "data/uuid7.h" "comms/queues.h"
+)
+target_link_libraries(Implant_v01_exe PRIVATE ImplantCore)
+
+# create our DLL:
+add_library(Implant_v01_dll SHARED
+    entrypoints/dll_main.cpp
+    "systems/childhandler.h" "systems/childhandler.cpp" "data/uuid7.h" "comms/queues.h"
+)
+target_link_libraries(Implant_v01_dll PRIVATE ImplantCore)
+
+# ==========================================
+# External Libraries
+# ==========================================
+[% for module in enabled_modules %]
+[% if module.sources.get("libs") %]
+[% for lib in module.sources.libs %]
+[# Extract library name from path for CMake target #]
+[% set lib_basename = lib.split("/")[-1].replace(".lib", "").replace(".a", "") %]
+add_library([[lib_basename]] STATIC IMPORTED)
+set_target_properties([[lib_basename]] PROPERTIES
+    IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/[[lib]]"
+    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/libs"
+    UNITY_BUILD ON
+)
+[% endfor %]
+[% endif %]
+[% endfor %]
+
+# ==========================================
+# 3. Target Platform Logic (Windows)
+# ==========================================
+add_compile_definitions(WIN32_LEAN_AND_MEAN)
+
+if(WIN32)
+    [# Collect module link libraries #]
+    [% set module_link_libs = [] %]
+    [% for module in enabled_modules %]
+    [% if module.dependencies.get("link_libs") %]
+    [% for lib in module.dependencies.link_libs %]
+    [% if module_link_libs.append(lib) %][% endif %]
+    [% endfor %]
+    [% endif %]
+    [% endfor %]
+
+    target_link_libraries(Implant_v01_exe PRIVATE
+        [% for lib in module_link_libs %]
+        [[lib]]
+        [% endfor %]
+        iphlpapi
+        ws2_32
+        crypt32
+        bcrypt
+        ntdll
+    )
+
+    target_link_libraries(Implant_v01_dll PRIVATE
+        [% for lib in module_link_libs %]
+        [[lib]]
+        [% endfor %]
+        iphlpapi
+        ws2_32
+        crypt32
+        bcrypt
+        ntdll
+    )
+
+    if(MSVC)
+        if (POLICY CMP0141)
+            cmake_policy(SET CMP0141 NEW)
+            set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
+                "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,
+                $<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,
+                $<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
+        endif()
+
+        foreach(flag_var
+            CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
+            CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE)
+            string(REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+        endforeach()
+
+        add_compile_options(
+            $<$<CONFIG:Release>:/O2>
+            $<$<CONFIG:Release>:/Ob2>
+            $<$<CONFIG:Release>:/GL>
+            $<$<CONFIG:Release>:/DNDEBUG>
+        )
+
+        add_link_options(
+            $<$<CONFIG:Release>:/LTCG>
+            $<$<CONFIG:Release>:/OPT:REF>
+            $<$<CONFIG:Release>:/OPT:ICF>
+            $<$<CONFIG:Release>:/INCREMENTAL:NO>
+        )
+
+    endif()
+
+    elseif(MINGW)
+        target_link_options(Implant_v01_exe PRIVATE
+            -static
+            -static-libgcc
+            -static-libstdc++
+            -fuse-ld=lld
+        )
+
+        target_link_options(Implant_v01_dll PRIVATE
+            -static
+            -static-libgcc
+            -static-libstdc++
+            -fuse-ld=lld
+        )
+
+        set(CMAKE_CXX_FLAGS_RELEASE "-Os")
+        set(CMAKE_C_FLAGS_RELEASE "-Os")
+
+        add_compile_options(-ffunction-sections -fdata-sections)
+        add_link_options(-Wl,--gc-sections)
+
+    endif()
+
+# ==========================================
+# Post-Build Steps
+# ==========================================
+if(CMAKE_STRIP)
+    add_custom_command(TARGET Implant_v01_exe POST_BUILD
+        COMMAND ${CMAKE_STRIP} $<TARGET_FILE:Implant_v01_exe>
+        COMMENT "Stripping executable..."
+    )
+
+    add_custom_command(TARGET Implant_v01_dll POST_BUILD
+        COMMAND ${CMAKE_STRIP} $<TARGET_FILE:Implant_v01_dll>
+        COMMENT "Stripping DLL..."
+    )
+endif()
+
+# ==========================================
+# 4. Standard Config
+# ==========================================
+if (CMAKE_VERSION VERSION_GREATER 3.12)
+    set_property(TARGET ImplantCore PROPERTY CXX_STANDARD 23)
+    set_property(TARGET Implant_v01_exe PROPERTY CXX_STANDARD 23)
+    set_property(TARGET Implant_v01_dll PROPERTY CXX_STANDARD 23)
+endif()

@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import tempfile
@@ -10,47 +11,27 @@ import structlog
 from docker.models.containers import Container
 
 from ...db.mysql_connector import get_mysql_session
-from ...db.mysql_functions import MySQLImplantPayloadService
+from ...db.mysql_functions import MySQLArtifactService, MySQLImplantPayloadService
 from ...db.neo4j_functions import Neo4jListenerNodeService
-from .render import render_implant, sanitize_cpp_name
+from ..template_manager.manager import TemplateManager
+from .render import materialize_modules, render_implant, sanitize_cpp_name
 from .types import ListenerProfile
 
-# IMPLANT_BASE = Path(__file__).parent / "implant_base"
 server_logger = structlog.getLogger("server")
 docker_logger = structlog.getLogger("docker_logger")
 
 
-workspace_dir = os.getenv("WORKSPACE_DIR", "/var/lib/longhaulc2")
-# temp hardcode the win_x64_implant_base
-IMPLANT_BASE = Path(workspace_dir) / "implant_templates" / "win_implant_base"
-
-
 def build_implant(
     implant_name: str,
-    # this is the API data that is sent in. We use data from here to get the rest of the listener data.
     listener_uuids: list,
     build_uuid: str,
     init_get_profile_listener_uuid: str,
     init_post_profile_listener_uuid: str,
     callback_host: str | None = None,
     options: dict | None = None,
+    template_name: str = "win_x64",
+    modules: list[str] | None = None,
 ) -> dict:
-    """Builds an implant  based on the provided parameters
-
-    Args:
-        implant_name (str): _description_
-        listener_uuids (list): _description_
-        build_uuid (str): _description_
-        init_get_profile_listener_uuid (str): _description_
-        init_post_profile_listener_uuid (str): _description_
-
-    Raises:
-        ValueError: _description_
-        RuntimeError: _description_
-
-    Returns:
-        dict[str, str]: A dictionary containing the build results
-    """
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(build_uuid=build_uuid, implant_name=implant_name)
     server_logger.info("Starting implant build process")
@@ -59,14 +40,27 @@ def build_implant(
     if options is None:
         options = {}
 
-    # Note, not including build status, that is set in the DB
-    # initializing build_time to 0, so it always exists
     build_stats = {"build_time": 0.0}
 
-    # Get full listener data from DB
-    full_listeners_data: dict[str, ListenerProfile] = {}
+    template_info = TemplateManager.get_by_name(template_name)
+    if not template_info:
+        server_logger.error("Template not found", template_name=template_name)
+        return build_stats
+    template_dir = TemplateManager.get_template_dir(template_name)
 
-    # start build timer:
+    if modules is None:
+        modules = template_info.get("build", {}).get("default_modules", [])
+
+    docker_image = template_info.get("docker_image", template_name)
+
+    modules = _ensure_required_modules(modules)
+
+    module_bundles = _fetch_module_bundles(modules)
+    if module_bundles is None:
+        server_logger.error("Failed to fetch modules from DB")
+        return build_stats
+
+    full_listeners_data: dict[str, ListenerProfile] = {}
     start_time = time.perf_counter()
 
     with get_mysql_session() as session:
@@ -122,17 +116,17 @@ def build_implant(
         build_dir = Path(tmp_dir_str).resolve()
 
         try:
-            # Generate Source
             _generate_source_code(
                 build_dir=build_dir,
+                template_dir=template_dir,
                 listeners=full_listeners_data,
                 init_get_uuid=init_get_profile_listener_uuid,
                 init_post_uuid=init_post_profile_listener_uuid,
                 callback_host=callback_host,
+                module_bundles=module_bundles,
             )
 
-            # Compile
-            if _run_docker_build(build_dir, options=options):
+            if _run_docker_build(build_dir, docker_image=docker_image, options=options):
                 _store_artifacts(build_dir, implant_name, build_uuid, listener_uuids)
 
             else:
@@ -153,6 +147,42 @@ def build_implant(
     return build_stats
 
 
+def _ensure_required_modules(modules: list[str]) -> list[str]:
+    from ...db.mysql_models import ArtifactStore
+
+    with get_mysql_session() as session:
+        all_artifacts = session.query(ArtifactStore).filter_by(artifact_type="module").all()
+        for artifact in all_artifacts:
+            try:
+                bundle = json.loads(artifact.artifact_contents)
+                mod_info = bundle.get("module", {})
+                name = mod_info.get("name", "")
+                if not mod_info.get("removable", True) and name not in modules:
+                    server_logger.info("Auto-including required module", module_name=name)
+                    modules.append(name)
+            except json.JSONDecodeError:
+                continue
+    return modules
+
+
+def _fetch_module_bundles(module_names: list[str]) -> list[dict] | None:
+    bundles = []
+    with get_mysql_session() as session:
+        service = MySQLArtifactService(session)
+        for name in module_names:
+            artifact = service.get_artifact_by_name("module", name)
+            if not artifact:
+                server_logger.error("Module not found in DB", module_name=name)
+                return None
+            try:
+                bundle = json.loads(artifact.artifact_contents)
+                bundles.append(bundle)
+            except json.JSONDecodeError:
+                server_logger.error("Invalid JSON in module", module_name=name)
+                return None
+    return bundles
+
+
 def _prepare_listener_data(
     raw_listeners: dict[str, dict],
 ) -> dict[str, ListenerProfile]:
@@ -166,46 +196,46 @@ def _prepare_listener_data(
 
 def _generate_source_code(
     build_dir: Path,
+    template_dir: Path,
     listeners: dict[str, ListenerProfile],
     init_get_uuid: str,
     init_post_uuid: str,
     callback_host: str | None = None,
+    module_bundles: list[dict] | None = None,
 ):
-    """Copies base structure and renders templates."""
-    server_logger.debug("Generating source code", build_dir=build_dir)
+    server_logger.debug("Generating source code", build_dir=build_dir, template=template_dir.name)
 
-    # Copy base
-    if not IMPLANT_BASE.exists():
-        raise FileNotFoundError(f"Implant base not found at {IMPLANT_BASE}")
-    shutil.copytree(IMPLANT_BASE, build_dir, dirs_exist_ok=True, copy_function=shutil.copy2)
+    if not template_dir.exists():
+        raise FileNotFoundError(f"Template not found at {template_dir}")
+    shutil.copytree(template_dir, build_dir, dirs_exist_ok=True, copy_function=shutil.copy2)
 
-    # Render Jinja
+    if module_bundles:
+        materialize_modules(build_dir, module_bundles)
+
     render_implant(
         output_dir=build_dir,
+        template_dir=template_dir,
         listeners_data_dict=listeners,
         initial_get_profile_listener_uuid=init_get_uuid,
         initial_post_profile_listener_uuid=init_post_uuid,
         callback_host=callback_host,
+        enabled_modules=module_bundles,
     )
 
 
-def _run_docker_build(build_dir: Path, options: dict) -> bool:
+def _run_docker_build(build_dir: Path, docker_image: str = "win_x64", options: dict | None = None) -> bool:
     """Runs the compilation container."""
+    if options is None:
+        options = {}
     client = docker.from_env()
 
     docker_logger.info("Build Dir:", build_dir=build_dir)
 
-    # base dir that we do all our compiling in
-    # ex, /dev/shm/...
-    # All the indiivdual builds go into base_dir / tmpXXXXX
     base_dir = Path(build_dir).parent
     persistent_build_dir = Path(base_dir) / "build"
 
-    # clear everything from previous builds, which
-    # gurantees everything gets re-compiled with new code
     if options.get("clear_cache", False):
         docker_logger.info("Clearing previous build artifacts & cache")
-        # ignore errors for if the dir doesn't exist
         shutil.rmtree(str(persistent_build_dir), ignore_errors=True)
 
     persistent_build_dir.mkdir(parents=True, exist_ok=True)
@@ -214,13 +244,10 @@ def _run_docker_build(build_dir: Path, options: dict) -> bool:
     cmake_debug_flag = "-DENABLE_IMPLANT_LOGS=ON" if debug_requested else "-DENABLE_IMPLANT_LOGS=OFF"
     cmd = (
         f"bash -c 'cmake -G Ninja -S /source -B /build -DCMAKE_BUILD_TYPE=Release {cmake_debug_flag} && "
-        # ! set source and build to 777, so this script can delete them. Otherwise we get a perms denied,
-        # ! as the docker container runs as root in the container, and breaks if you change to a different user.
-        # ! I don't like it, but it works for now.
         "ninja -C /build && chmod -R 777 /source /output /build'"
     )
 
-    docker_logger.info("Spinning up builder container (win_x64)")
+    docker_logger.info("Spinning up builder container", image=docker_image)
 
     volumes = {
         str(build_dir): {"bind": "/source", "mode": "rw"},
@@ -230,7 +257,7 @@ def _run_docker_build(build_dir: Path, options: dict) -> bool:
 
     try:
         container: Container = client.containers.run(
-            "win_x64",
+            docker_image,
             command=cmd,
             volumes=volumes,
             detach=True,

