@@ -94,7 +94,7 @@ def setup_menu(title: str):
                 with ui.expansion("LISTENERS", icon="cell_tower").classes("w-full tech-expansion-nav"):
                     nav_btn("LISTENERS", "sensors", "/listeners")
                     nav_btn("PROFILE BUILDER", "tune", "/profile-preview")
-                    nav_btn("PROFILES <placeholder>", "description", "/profile-preview")
+                    nav_btn("PROFILES", "description", "/profiles")
 
                 ui.separator().classes("bg-white/5 mt-4 mb-2")
                 ui.label("RESOURCES").classes("tech-label-sub")
