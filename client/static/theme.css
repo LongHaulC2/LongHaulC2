@@ -481,6 +481,70 @@ body::before {
     color: #e4e4e7 !important; /* Zinc-200 */
 }
 
+/* --- TECH ui.expansion (nav variant) --- matches nav_btn styling in the drawer */
+.tech-expansion-nav {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    min-width: 0;
+}
+
+/* Strip Quasar's internal card/section padding that causes overflow */
+.tech-expansion-nav .q-expansion-item__content {
+    border-top: none;
+}
+
+.tech-expansion-nav .q-expansion-item__content .q-card {
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.tech-expansion-nav .q-expansion-item__content .q-card__section {
+    padding: 0 !important;
+}
+
+/* Header row — match nav_btn: font-mono text-xs tracking-wide px-4 py-3 border-l-2 */
+.tech-expansion-nav > .q-expansion-item__container > .q-item {
+    min-height: unset !important;
+    padding: 0.75rem 1rem !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.025em !important;
+    color: #a1a1aa;
+    text-transform: uppercase;
+    font-weight: 400;
+    border-left: 2px solid transparent;
+    border-radius: 0.25rem;
+    transition: all 300ms ease;
+}
+
+.tech-expansion-nav > .q-expansion-item__container > .q-item:hover {
+    color: #34d399;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-left-color: #10b981;
+}
+
+.tech-expansion-nav.q-expansion-item--expanded > .q-expansion-item__container > .q-item {
+    color: #34d399;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-left-color: #10b981;
+    font-weight: 700;
+}
+
+/* Expand/collapse arrow */
+.tech-expansion-nav .q-item__section--side .q-icon {
+    color: grey !important;
+    font-size: 18px !important;
+    transition: color 0.2s ease;
+}
+
+.tech-expansion-nav > .q-expansion-item__container > .q-item:hover .q-item__section--side .q-icon,
+.tech-expansion-nav.q-expansion-item--expanded > .q-expansion-item__container > .q-item .q-item__section--side .q-icon {
+    color: #34d399 !important;
+}
+
 /* --- TECH ui.tooltip --- */
 .tech-tooltip {
     background-color: rgba(23, 23, 23, 0.95) !important; /* Very dark zinc, nearly opaque */

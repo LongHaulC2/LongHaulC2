@@ -84,9 +84,17 @@ def setup_menu(title: str):
                 ui.label("OPERATIONS").classes("tech-label-sub")
                 nav_btn("OPERATIONS", "terminal", "/operations")
                 nav_btn("ENGAGEMENT_MAP", "device_hub", "/graph")
-                nav_btn("PAYLOADS", "layers", "/payloads")
-                nav_btn("BUILDER", "construction", "/builder")
-                nav_btn("LISTENERS", "headphones", "/listeners")
+                # text not aligned left
+                with ui.expansion("IMPLANTS", icon="memory").classes("w-full tech-expansion-nav"):
+                    nav_btn("IMPLANT STORE", "inventory_2", "/payloads")
+                    nav_btn("IMPLANT BUILDER", "build", "/builder")
+                    nav_btn("MODULE BUILDER <placeholder>", "extension", "/builder")
+                    nav_btn("MODULES <placeholder>", "view_module", "/builder")
+
+                with ui.expansion("LISTENERS", icon="cell_tower").classes("w-full tech-expansion-nav"):
+                    nav_btn("LISTENERS", "sensors", "/listeners")
+                    nav_btn("PROFILE BUILDER", "tune", "/profile-preview")
+                    nav_btn("PROFILES <placeholder>", "description", "/profile-preview")
 
                 ui.separator().classes("bg-white/5 mt-4 mb-2")
                 ui.label("RESOURCES").classes("tech-label-sub")
@@ -102,7 +110,6 @@ def setup_menu(title: str):
                 ).props("flat no-caps align=left color=grey").classes(ext_classes)
 
                 nav_btn("FILESTORE", "folder", "/filestore")
-                nav_btn("PROFILES", "tune", "/profile-preview")
 
                 ui.separator().classes("bg-white/5 mt-4 mb-2")
                 ui.label("COMMS").classes("tech-label-sub")
