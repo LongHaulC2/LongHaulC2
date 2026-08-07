@@ -20,6 +20,8 @@ import client.pages.graph  # noqa: F401
 import client.pages.listeners  # noqa: F401
 import client.pages.login  # noqa: F401
 import client.pages.logout  # noqa: F401
+import client.pages.module_builder  # noqa: F401
+import client.pages.modules  # noqa: F401
 import client.pages.node.file  # noqa: F401
 import client.pages.node.host  # noqa: F401
 import client.pages.node.implant  # noqa: F401

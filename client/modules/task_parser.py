@@ -26,7 +26,9 @@ from client.modules.task_definitions import (
     StratGet,
     StratList,
     StratPost,
+    TaskDetail,
     UnlinkSmb,
+    create_and_verify_task,
     execution_cmds,
     fs_cmds,
     link_cmds,
@@ -394,6 +396,29 @@ def get_all_command_names(parser, current_path="") -> list[str]:
             commands.append(clean_usage)
 
     return commands
+
+
+def build_raw_task(user_input: str, implant_uuid: str) -> dict:
+    """Build a task dict from raw input, bypassing the CLI parser.
+
+    Format: ``task_name key=value key2=value2``
+    Tokens without ``=`` are collected into a positional ``_args`` list.
+    """
+    tokens = shlex.split(user_input)
+    task_name = tokens[0]
+    args: dict = {}
+    positional: list[str] = []
+    for tok in tokens[1:]:
+        if "=" in tok:
+            k, v = tok.split("=", 1)
+            args[k] = v
+        else:
+            positional.append(tok)
+    if positional:
+        args["_args"] = positional
+
+    task_detail = TaskDetail(task_name=task_name, args=args)
+    return create_and_verify_task(implant_uuid=implant_uuid, task=task_detail)
 
 
 def get_all_command_classes():

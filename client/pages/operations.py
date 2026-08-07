@@ -12,7 +12,7 @@ from client.modules.api_calls import (
     queue_task,
     search_server,
 )
-from client.modules.task_parser import ResultType, build_cli_parser, get_all_command_names, task_tree
+from client.modules.task_parser import ResultType, build_cli_parser, build_raw_task, get_all_command_names, task_tree
 from client.pages.components.dashboard_widgets import confirm_action
 from client.pages.dialogues import upload_to_implant_dialog
 from client.pages.footer import build_footer
@@ -443,6 +443,26 @@ async def terminal(implant_uuid: str):
                 .on("keydown.down", lambda: navigate_history("down"))
             )
 
+            terminal_settings = {"raw_passthrough": False}
+
+            with ui.button(icon="build").classes("tech-btn-secondary").props("dense flat size=sm square"):
+                formatted_tooltip("Terminal Settings")
+                with ui.menu().classes("bg-[#1a1a1a] border border-white/10"):
+                    raw_item = ui.menu_item(auto_close=False).classes("px-3 py-1")
+                    with raw_item:  # noqa - nicegui
+                        with ui.row().classes("items-center gap-2 w-full"):
+                            raw_toggle = (
+                                ui.checkbox("RAW PASSTHROUGH")
+                                .classes("text-[10px] font-mono text-neutral-500")
+                                .props("dense dark color=orange size=xs")
+                            )
+                            raw_toggle.on_value_change(lambda e: terminal_settings.update({"raw_passthrough": e.value}))
+                    with raw_item:
+                        ui.tooltip(
+                            "Allow unrecognized commands to pass through to the implant. "
+                            "Known commands still use the parser."
+                        ).classes("bg-black text-xs font-mono")
+
             ui.button("SEND", on_click=lambda: handle_command()).classes("tech-btn-action px-3").props(
                 "dense flat size=sm"
             )
@@ -478,11 +498,16 @@ async def terminal(implant_uuid: str):
 
         result_type, result_data = await task_tree(user_input=user_input, implant_uuid=implant_uuid)
 
-        if result_type == ResultType.TASK:
+        if result_type == ResultType.ERROR and terminal_settings["raw_passthrough"]:
+            try:
+                raw_task = build_raw_task(user_input, implant_uuid)
+                await queue_task(implant_uuid=implant_uuid, task=raw_task)
+            except Exception as e:
+                await push_error_to_terminal(str(e))
+        elif result_type == ResultType.TASK:
             await queue_task(implant_uuid=implant_uuid, task=result_data)
         elif result_type == ResultType.TEXT:
             await push_text_to_terminal(result_data)
-
         elif result_type == ResultType.LIST:
             for line in result_data:
                 ui_log.push(line)

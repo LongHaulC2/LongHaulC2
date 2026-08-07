@@ -309,9 +309,9 @@ endif
 dev_uninstall:
 	@$(GUM_BORDER_DANGER) "Uninstalling Development Environment..."
 
-	@$(GUM_BORDER) "Stopping & removing docker containers"
-	-@gum spin --show-error --spinner dot --spinner.foreground "#10b981" --title "Stopping docker containers..." -- \
-		docker compose down
+	@$(GUM_BORDER) "Stopping & removing docker containers & volumes"
+	-@gum spin --show-error --spinner dot --spinner.foreground "#10b981" --title "Stopping docker containers & resetting volumes..." -- \
+		docker compose down -v
 
 	@$(GUM_BORDER) "Removing virtualenv and configurations"
 	@rm -rf $(DEV_VENV_PATH)

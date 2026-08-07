@@ -165,6 +165,44 @@ def _ensure_required_modules(modules: list[str]) -> list[str]:
     return modules
 
 
+def _normalize_module_bundle(bundle: dict) -> dict:
+    """Ensure source filenames and #include directives match module name.
+
+    The build system generates ``#include "modules/<name>/<name>.h"`` and
+    ``list(APPEND SOURCES "modules/<name>/<src>")`` from the module name, so
+    the files dict keys and sources.files list MUST use ``<name>.cpp`` /
+    ``<name>.h``.  Additionally, ``#include`` directives inside the source
+    files that reference old header names are rewritten to point at the
+    correct ``<name>.h``.
+    """
+    mod_name = bundle.get("module", {}).get("name", "")
+    if not mod_name:
+        return bundle
+
+    old_files = bundle.get("files", {})
+    new_files = {}
+    old_h_names = []
+    for filename, contents in old_files.items():
+        ext = filename.rsplit(".", 1)[-1] if "." in filename else ""
+        if ext == "h" and filename != f"{mod_name}.h":
+            old_h_names.append(filename)
+        if ext in ("cpp", "h"):
+            new_files[f"{mod_name}.{ext}"] = contents
+        else:
+            new_files[filename] = contents
+
+    correct_h = f"{mod_name}.h"
+    for old_h in old_h_names:
+        for fname in list(new_files):
+            if fname.endswith(".cpp"):
+                new_files[fname] = new_files[fname].replace(f'#include "{old_h}"', f'#include "{correct_h}"')
+
+    bundle["files"] = new_files
+    bundle.setdefault("sources", {})["files"] = [f"{mod_name}.cpp", f"{mod_name}.h"]
+
+    return bundle
+
+
 def _fetch_module_bundles(module_names: list[str]) -> list[dict] | None:
     bundles = []
     with get_mysql_session() as session:
@@ -176,6 +214,7 @@ def _fetch_module_bundles(module_names: list[str]) -> list[dict] | None:
                 return None
             try:
                 bundle = json.loads(artifact.artifact_contents)
+                bundle = _normalize_module_bundle(bundle)
                 bundles.append(bundle)
             except json.JSONDecodeError:
                 server_logger.error("Invalid JSON in module", module_name=name)

@@ -358,6 +358,11 @@ The audit helper (`server/db/audit.py`) exposes `log_audit(actor, action, target
 **Audit UI page:**
 - `/audit` (`client/pages/audit.py`) — filterable, paginated table of operator activity. Page controls at the bottom with configurable page size (25/50/100). Two export buttons: "CSV" exports the current page, "ALL" downloads the entire log via the `/export` endpoint.
 
+**Module UI pages:**
+- `/modules` (`client/pages/modules.py`) — module store/library page. Table listing all modules with name, hash, last updated. Upload JSON bundle, download, delete, seed defaults. Same pattern as the profile store.
+- `/module-builder` (`client/pages/module_builder.py`) — module builder with splitter layout. Left panel: three CodeMirror tabs (CONFIG .toml, SOURCE .cpp, HEADER .h) with blank templates. Right panel: JSON bundle preview. Supports save/load/new. The CONFIG tab uses a TOML representation of the module metadata (name, display_name, description, category, removable, sources, commands, dependencies). On save, the TOML is parsed and combined with the .cpp/.h content into the JSON bundle format used by the API.
+- Custom modules appear automatically in the Implant Builder (`/builder`) — it fetches all modules via `get_all_modules()` and displays them in the module selection list.
+
 **Database models added:**
 - `AuditLog` (id, timestamp, actor, action, target_type, target_uuid, detail) — operator activity log
 - `UserLogin.totp_secret` (nullable String) — stores TOTP secret for 2FA

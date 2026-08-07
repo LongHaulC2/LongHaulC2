@@ -90,8 +90,8 @@ def setup_menu(title: str):
                 with ui.expansion("IMPLANTS", icon="memory").classes("w-full tech-expansion-nav"):
                     nav_btn("IMPLANT STORE", "inventory_2", "/payloads", compact=True)
                     nav_btn("IMPLANT BUILDER", "build", "/builder", compact=True)
-                    nav_btn("MODULE BUILDER <placeholder>", "extension", "/builder", compact=True)
-                    nav_btn("MODULES <placeholder>", "view_module", "/builder", compact=True)
+                    nav_btn("MODULE BUILDER", "extension", "/module-builder", compact=True)
+                    nav_btn("MODULES", "view_module", "/modules", compact=True)
 
                 with ui.expansion("LISTENERS", icon="cell_tower").classes("w-full tech-expansion-nav"):
                     nav_btn("LISTENERS", "sensors", "/listeners", compact=True)
