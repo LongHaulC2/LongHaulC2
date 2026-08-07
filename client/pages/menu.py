@@ -61,11 +61,12 @@ def setup_menu(title: str):
                     ui.label("C2 FRAMEWORK").classes("tech-label-sub !text-emerald-500")
 
             # NAVIGATION (scrollable)
-            def nav_btn(label, icon, target):
+            def nav_btn(label, icon, target, compact=False):
                 is_active = label.lower() in title.lower()
 
+                padding = "px-4 py-1.5" if compact else "px-4 py-3"
                 base_classes = (
-                    "w-full rounded transition-all duration-300 font-mono text-xs tracking-wide px-4 py-3 border-l-2"  # noqa: E501
+                    f"w-full rounded transition-all duration-300 font-mono text-xs tracking-wide {padding} border-l-2"  # noqa: E501
                 )
 
                 if is_active:
@@ -75,7 +76,8 @@ def setup_menu(title: str):
                     style_classes = f"{base_classes} text-neutral-400 hover:text-emerald-400 hover:bg-white/5 border-transparent hover:border-emerald-500"  # noqa: E501
                     icon_color = None
 
-                ui.button(label, icon=icon, on_click=lambda: smooth_navigate(target)).props(
+                btn_icon = None if compact else icon
+                ui.button(label, icon=btn_icon, on_click=lambda: smooth_navigate(target)).props(
                     f"flat no-caps align=left color={icon_color or 'grey'}"
                 ).classes(style_classes)
 
@@ -86,15 +88,15 @@ def setup_menu(title: str):
                 nav_btn("ENGAGEMENT_MAP", "device_hub", "/graph")
                 # text not aligned left
                 with ui.expansion("IMPLANTS", icon="memory").classes("w-full tech-expansion-nav"):
-                    nav_btn("IMPLANT STORE", "inventory_2", "/payloads")
-                    nav_btn("IMPLANT BUILDER", "build", "/builder")
-                    nav_btn("MODULE BUILDER <placeholder>", "extension", "/builder")
-                    nav_btn("MODULES <placeholder>", "view_module", "/builder")
+                    nav_btn("IMPLANT STORE", "inventory_2", "/payloads", compact=True)
+                    nav_btn("IMPLANT BUILDER", "build", "/builder", compact=True)
+                    nav_btn("MODULE BUILDER <placeholder>", "extension", "/builder", compact=True)
+                    nav_btn("MODULES <placeholder>", "view_module", "/builder", compact=True)
 
                 with ui.expansion("LISTENERS", icon="cell_tower").classes("w-full tech-expansion-nav"):
-                    nav_btn("LISTENERS", "sensors", "/listeners")
-                    nav_btn("PROFILE BUILDER", "tune", "/profile-preview")
-                    nav_btn("PROFILES", "description", "/profiles")
+                    nav_btn("LISTENERS", "sensors", "/listeners", compact=True)
+                    nav_btn("PROFILE BUILDER", "tune", "/profile-preview", compact=True)
+                    nav_btn("PROFILES", "description", "/profiles", compact=True)
 
                 ui.separator().classes("bg-white/5 mt-4 mb-2")
                 ui.label("RESOURCES").classes("tech-label-sub")
