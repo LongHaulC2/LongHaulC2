@@ -32,7 +32,6 @@ class _BuilderState:
         self.selected_template: str = "win_x64"
         self.selected_modules: list[str] = []
         self.default_modules: list[str] = []
-        self.required_modules: set[str] = set()
 
         self.implant_name: str = ""
         self.callback_host: str = ""
@@ -74,15 +73,6 @@ async def _builder_view():
     modules_resp = await get_all_modules()
     if modules_resp and modules_resp.get("data"):
         state.all_modules = modules_resp["data"]
-        for mod in state.all_modules:
-            detail = await get_module_by_name(mod["artifact_name"])
-            if detail and detail.get("data", {}).get("artifact_contents"):
-                try:
-                    bundle = json.loads(detail["data"]["artifact_contents"])
-                    if not bundle.get("module", {}).get("removable", True):
-                        state.required_modules.add(mod["artifact_name"])
-                except json.JSONDecodeError:
-                    pass
 
     listeners_resp = await get_all_listener_data()
     if listeners_resp and listeners_resp.get("data"):
@@ -406,22 +396,15 @@ def _render_module_rows(state: _BuilderState):
                 else:
                     _set_code_viewer(state, f"MODULE: {name}", "// Module not found in DB")
 
-            is_required = mod_name in state.required_modules
-
             with ui.button(icon="visibility", on_click=view_source).props("flat dense size=xs color=grey"):
                 formatted_tooltip("View Source")
 
-            if is_required:
-                with ui.icon("lock", size="xs", color="grey-7").classes("ml-1"):
-                    formatted_tooltip("Required — cannot be removed")
-            else:
+            def remove_mod(name=mod_name, r=row):
+                if name in state.selected_modules:
+                    state.selected_modules.remove(name)
+                r.delete()
 
-                def remove_mod(name=mod_name, r=row):
-                    if name in state.selected_modules:
-                        state.selected_modules.remove(name)
-                    r.delete()
-
-                ui.button(icon="close", on_click=remove_mod).props("flat dense size=xs color=red")
+            ui.button(icon="close", on_click=remove_mod).props("flat dense size=xs color=red")
 
 
 def _refresh_module_card(state: _BuilderState):

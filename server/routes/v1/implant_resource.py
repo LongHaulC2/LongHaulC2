@@ -12,16 +12,19 @@ from ...api_models.error import COMMON_ERRORS
 from ...api_models.implants import (
     IMPLANT_DELETE_RESPONSE,
     IMPLANT_GET_RESPONSE,
+    IMPLANT_GET_RESPONSE_RAW,
     IMPLANT_HISTORY_GET_RESPONSE,
     IMPLANT_PUT_INPUT,
     IMPLANT_PUT_RESPONSE,
     IMPLANT_SEARCH_POST_INPUT,
     IMPLANT_SEARCH_POST_RESPONSE,
+    IMPLANT_SEARCH_POST_RESPONSE_RAW,
     IMPLANT_TASK_POST_INPUT,
     IMPLANT_TASK_POST_RESPONSE,
     IMPLANT_TASKS_DELETE_RESPONSE,
     IMPLANT_TASKS_GET_RESPONSE,
     IMPLANTS_GET_RESPONSE,
+    IMPLANTS_GET_RESPONSE_RAW,
     IMPLANTS_POST_RESPONSE,
     TASK_SEARCH_POST_INPUT,
     TASK_SEARCH_POST_RESPONSE,
@@ -52,18 +55,13 @@ class Implants(Resource):
         security="Bearer Auth",
     )
     @implants_ns.response(200, "All implants were retrieved", IMPLANTS_GET_RESPONSE)
-    @implants_ns.marshal_with(IMPLANTS_GET_RESPONSE)
+    @implants_ns.marshal_with(IMPLANTS_GET_RESPONSE_RAW)
     def get(self):
         """
         Gets all implants
         """
         ip = request.remote_addr
         api_logger.debug("Getting all implants", caller_ip=ip)
-
-        # with get_mysql_session() as session:
-        #     implant_service = ImplantService(session)
-        #     implants = implant_service.get_all()
-        #     data = [i.to_dict() for i in implants]
 
         data = Neo4jImplantNodeService.get_all()
 
@@ -106,7 +104,7 @@ class Implant(Resource):
         security="Bearer Auth",
     )
     @implants_ns.response(200, "The implant was retrieved", IMPLANT_GET_RESPONSE)
-    @implants_ns.marshal_with(IMPLANT_GET_RESPONSE)
+    @implants_ns.marshal_with(IMPLANT_GET_RESPONSE_RAW)
     def get(self, uuid):
         """
         Gets one implant based on user supplied ID
@@ -115,11 +113,6 @@ class Implant(Resource):
         api_logger.info("Getting implant data", implant_uuid=uuid, caller_ip=ip)
 
         check_type(uuid, str, "uuid")
-
-        # with get_mysql_session() as session:
-        #     implant_service = ImplantService(session)
-        #     implants = implant_service.get_by_id(uuid)
-        #     data = implants.to_dict()
 
         data = Neo4jImplantNodeService.get_by_uuid(implant_uuid=uuid)
 
@@ -389,7 +382,7 @@ class ImplantSearch(Resource):
     )
     @implants_ns.expect(IMPLANT_SEARCH_POST_INPUT)
     @implants_ns.response(200, "A list of all resulting implants", IMPLANT_SEARCH_POST_RESPONSE)
-    @implants_ns.marshal_with(IMPLANT_SEARCH_POST_RESPONSE)
+    @implants_ns.marshal_with(IMPLANT_SEARCH_POST_RESPONSE_RAW)
     def post(self):
         """
         Search for an implant
@@ -398,11 +391,6 @@ class ImplantSearch(Resource):
         implant_data = Search(**api.payload)
         api_logger.info("Searching implants", search_term=implant_data.search_term, caller_ip=ip)
 
-        # with get_mysql_session() as session:
-        #     implant_service = MySQLSearchService(session)
-        #     search_results = implant_service.search_implants(
-        #         search_term=implant_data.search_term
-        #     )
         search_results = Neo4jImplantNodeService.search_implants(search_term=implant_data.search_term)
 
         return APIResponse(status="200", message="Success", data=search_results)

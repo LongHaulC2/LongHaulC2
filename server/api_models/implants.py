@@ -78,6 +78,17 @@ IMPLANTS_GET_MODEL = api.model(
 )
 IMPLANTS_GET_RESPONSE = wrap_response_list(api, IMPLANTS_GET_MODEL)
 
+# Raw variant — passes all SemiStructuredNode properties (including operator-defined
+# custom metadata fields) without marshal filtering.
+IMPLANTS_GET_RESPONSE_RAW = api.model(
+    "IMPLANTS_GET_RAW",
+    {
+        "data": fields.Raw(default=[]),
+        "message": fields.String(example="Success"),
+        "status": fields.String(example="200"),
+    },
+)
+
 
 # POST / (Create)
 IMPLANTS_POST_MODEL = api.model(
@@ -128,6 +139,15 @@ IMPLANT_GET_MODEL = api.model(
     },
 )
 IMPLANT_GET_RESPONSE = wrap_response_single(api, IMPLANT_GET_MODEL)
+
+IMPLANT_GET_RESPONSE_RAW = api.model(
+    "IMPLANT_GET_RAW",
+    {
+        "data": fields.Raw(default={}),
+        "message": fields.String(example="Success"),
+        "status": fields.String(example="200"),
+    },
+)
 
 
 # PUT /<uuid>
@@ -268,6 +288,15 @@ IMPLANT_SEARCH_POST_MODEL = api.model(
 )
 
 IMPLANT_SEARCH_POST_RESPONSE = wrap_response_list(api, IMPLANT_SEARCH_POST_MODEL)
+
+IMPLANT_SEARCH_POST_RESPONSE_RAW = api.model(
+    "IMPLANT_SEARCH_RAW",
+    {
+        "data": fields.Raw(default=[]),
+        "message": fields.String(example="Success"),
+        "status": fields.String(example="200"),
+    },
+)
 
 
 ######################################################################

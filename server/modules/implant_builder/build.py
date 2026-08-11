@@ -53,8 +53,6 @@ def build_implant(
 
     docker_image = template_info.get("docker_image", template_name)
 
-    modules = _ensure_required_modules(modules)
-
     module_bundles = _fetch_module_bundles(modules)
     if module_bundles is None:
         server_logger.error("Failed to fetch modules from DB")
@@ -147,24 +145,6 @@ def build_implant(
     return build_stats
 
 
-def _ensure_required_modules(modules: list[str]) -> list[str]:
-    from ...db.mysql_models import ArtifactStore
-
-    with get_mysql_session() as session:
-        all_artifacts = session.query(ArtifactStore).filter_by(artifact_type="module").all()
-        for artifact in all_artifacts:
-            try:
-                bundle = json.loads(artifact.artifact_contents)
-                mod_info = bundle.get("module", {})
-                name = mod_info.get("name", "")
-                if not mod_info.get("removable", True) and name not in modules:
-                    server_logger.info("Auto-including required module", module_name=name)
-                    modules.append(name)
-            except json.JSONDecodeError:
-                continue
-    return modules
-
-
 def _normalize_module_bundle(bundle: dict) -> dict:
     """Ensure source filenames and #include directives match module name.
 
@@ -196,6 +176,27 @@ def _normalize_module_bundle(bundle: dict) -> dict:
         for fname in list(new_files):
             if fname.endswith(".cpp"):
                 new_files[fname] = new_files[fname].replace(f'#include "{old_h}"', f'#include "{correct_h}"')
+
+    # Safety net: if the .cpp self-includes a .h whose base name is a
+    # prefix of the module name (e.g. "metadata.h" in metadata_duplicate),
+    # rewrite it.  Only touches bare includes (no path separator).
+    for fname in list(new_files):
+        if not fname.endswith(".cpp"):
+            continue
+        content = new_files[fname]
+        if f'#include "{correct_h}"' in content:
+            continue
+        for line in content.splitlines():
+            stripped = line.strip()
+            if not stripped.startswith('#include "') or "/" in stripped:
+                continue
+            hdr = stripped.split('"')[1]
+            if not hdr.endswith(".h") or hdr == correct_h:
+                continue
+            base = hdr[:-2]
+            if mod_name.startswith(base) and base != mod_name:
+                new_files[fname] = content.replace(f'#include "{hdr}"', f'#include "{correct_h}"')
+                break
 
     bundle["files"] = new_files
     bundle.setdefault("sources", {})["files"] = [f"{mod_name}.cpp", f"{mod_name}.h"]

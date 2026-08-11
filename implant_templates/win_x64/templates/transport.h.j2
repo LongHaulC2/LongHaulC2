@@ -8,7 +8,11 @@
 #include "protocols/json/json.h"
 #include "core/settings.h"
 #include "protocols/smb/smb.h"
-#include "modules/metadata/metadata.h"
+// Provided by whichever metadata module is selected at build time
+//TLDR - makes drop in "populate_metadata" modules easier to link without 
+//a ton of extra formatting. 
+nlohmann::json populate_metadata();
+
 #include "comms/queues.h"
 #include "comms/comms.h"
 #include "_debug/debug.h"

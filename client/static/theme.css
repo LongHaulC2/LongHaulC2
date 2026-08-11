@@ -466,7 +466,22 @@ body::before {
 
 /* The expanded content area wrapper */
 .tech-expansion .q-expansion-item__content {
-    border-top: 1px solid rgba(255, 255, 255, 0.05); /* Crisp dividing line */
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tech-expansion .q-expansion-item__content .q-card {
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.tech-expansion .q-expansion-item__content .q-card__section {
+    padding: 0 !important;
+    gap: 0 !important;
+}
+
+.tech-expansion .q-expansion-item__content .q-card__section > * {
+    margin: 0 !important;
+    gap: 0 !important;
 }
 
 /* The expand/collapse arrow */
@@ -503,6 +518,12 @@ body::before {
 
 .tech-expansion-nav .q-expansion-item__content .q-card__section {
     padding: 0 !important;
+    gap: 0 !important;
+}
+
+.tech-expansion-nav .q-expansion-item__content .q-card__section > * {
+    margin: 0 !important;
+    gap: 0 !important;
 }
 
 /* Header row — match nav_btn: font-mono text-xs tracking-wide px-4 py-3 border-l-2 */

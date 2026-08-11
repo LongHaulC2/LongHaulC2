@@ -5,11 +5,13 @@ import structlog
 from nicegui import ui
 
 from client.modules.api_calls import (
+    delete_module,
     get_all_modules,
     get_module_by_name,
     seed_modules,
     upload_module,
 )
+from client.pages.components.dashboard_widgets import confirm_action
 from client.pages.footer import build_footer
 from client.pages.formatted_tooltip import formatted_tooltip
 from client.pages.menu import setup_menu
@@ -176,13 +178,96 @@ def _extract_files_from_bundle(bundle: dict) -> tuple[str, str]:
 
 class _ModuleBuilderState:
     def __init__(self):
-        self.toml_editor = None
-        self.cpp_editor = None
-        self.h_editor = None
-        self.preview_viewer = None
-        self.preview_title = None
-        self.current_module_name: str | None = None
-        self.module_select = None
+        # module_name -> {toml, cpp, h, original_toml, original_cpp, original_h}
+        self.modules: dict[str, dict] = {}
+
+        # tab key "module::filetype" -> {tab_object, panel_object, editor}
+        self.open_tabs: dict[str, dict] = {}
+
+        self.tabs = None
+        self.panels = None
+        self.module_names: list[str] = []
+        self.active_tab_key: str | None = None
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  HELPERS
+# ════════════════════════════════════════════════════════════════════════════
+
+
+def _tab_key(module_name: str, file_type: str) -> str:
+    return f"{module_name}::{file_type}"
+
+
+def _file_display(module_name: str, file_type: str) -> str:
+    if file_type == "toml":
+        return f"{module_name} - config.toml"
+    if file_type == "cpp":
+        return f"{module_name} - {module_name}.cpp"
+    return f"{module_name} - {module_name}.h"
+
+
+def _tree_file(label: str, is_active: bool, on_click):
+    bg = " bg-white/5 text-zinc-200" if is_active else ""
+    ui.label(label).classes(
+        "w-full text-[11px] font-mono text-zinc-500 pl-8 py-2 cursor-pointer "
+        "hover:bg-white/5 hover:text-zinc-300 transition-colors" + bg
+    ).on("click", on_click)
+
+
+def _is_dirty(state: _ModuleBuilderState, module_name: str) -> bool:
+    mod = state.modules.get(module_name)
+    if not mod:
+        return False
+    for ft in ("toml", "cpp", "h"):
+        key = _tab_key(module_name, ft)
+        tab_data = state.open_tabs.get(key)
+        current = tab_data["editor"].value if tab_data and tab_data["editor"] else mod[ft]
+        if current != mod[f"original_{ft}"]:
+            return True
+    return False
+
+
+def _get_active_module(state: _ModuleBuilderState) -> str | None:
+    if not state.active_tab_key:
+        return None
+    return state.active_tab_key.split("::")[0]
+
+
+async def _fetch_module_names() -> list[str]:
+    try:
+        resp = await get_all_modules()
+        if resp and resp.get("data"):
+            return sorted([m["artifact_name"] for m in resp["data"]], key=str.lower)
+    except Exception:
+        pass
+    return []
+
+
+async def _load_module(state: _ModuleBuilderState, module_name: str):
+    if module_name in state.modules:
+        return True
+    resp = await get_module_by_name(module_name)
+    if not (resp and resp.get("data", {}).get("artifact_contents")):
+        notify(f"Failed to load {module_name}", type="negative")
+        return False
+    try:
+        bundle = json.loads(resp["data"]["artifact_contents"])
+    except json.JSONDecodeError:
+        notify("Invalid module JSON", type="negative")
+        return False
+
+    toml_str = _bundle_to_toml(bundle)
+    cpp_content, h_content = _extract_files_from_bundle(bundle)
+    state.modules[module_name] = {
+        "toml": toml_str,
+        "cpp": cpp_content,
+        "h": h_content,
+        "original_toml": toml_str,
+        "original_cpp": cpp_content,
+        "original_h": h_content,
+    }
+    return True
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -203,60 +288,122 @@ async def module_builder_page():
 
 async def _module_builder_view():
     state = _ModuleBuilderState()
+    state.module_names = await _fetch_module_names()
 
-    module_names = await _fetch_module_names()
+    # ── Tab management ────────────────────────────────────────────────
+
+    async def open_file(module_name: str, file_type: str):
+        key = _tab_key(module_name, file_type)
+
+        if key in state.open_tabs:
+            state.panels.set_value(key)
+            state.active_tab_key = key
+            return
+
+        if not await _load_module(state, module_name):
+            return
+
+        content = state.modules[module_name][file_type]
+        language = "TOML" if file_type == "toml" else "C++"
+        tab_label = _file_display(module_name, file_type)
+
+        with state.tabs, ui.tab(name=key, label="").classes(  # noqa: SIM117
+            "h-full px-3 min-h-0 border-r border-white/5"
+        ) as tab:
+            with ui.row().classes("items-center gap-2"):
+                ui.label(tab_label).classes("tech-label-sub")
+                ui.button(
+                    icon="close",
+                    on_click=lambda k=key: close_tab(k),
+                ).props("flat dense square size=sm").classes("text-neutral-600 hover:text-red-400")
+
+        with state.panels, ui.tab_panel(name=key).classes("p-0 w-full h-full") as panel:
+            editor = ui.codemirror(
+                content,
+                language=language,
+                theme="androidstudio",
+            ).classes("w-full h-full min-h-[400px]")
+
+            editor.on_value_change(lambda e, mn=module_name, ft=file_type: _on_editor_change(state, mn, ft, e.value))
+
+        state.open_tabs[key] = {"tab_object": tab, "panel_object": panel, "editor": editor}
+        state.panels.set_value(key)
+        state.active_tab_key = key
+
+    def close_tab(key: str):
+        tab_data = state.open_tabs.pop(key, None)
+        if not tab_data:
+            return
+        state.tabs.remove(tab_data["tab_object"])
+        state.panels.remove(tab_data["panel_object"])
+
+        if not state.open_tabs:
+            state.panels.set_value(None)
+            state.active_tab_key = None
+        elif state.active_tab_key == key:
+            last_key = list(state.open_tabs.keys())[-1]
+            state.panels.set_value(last_key)
+            state.active_tab_key = last_key
+
+    def close_all_module_tabs(module_name: str):
+        for ft in ("toml", "cpp", "h"):
+            close_tab(_tab_key(module_name, ft))
 
     # ── Action handlers ───────────────────────────────────────────────
 
-    def do_preview():
-        toml_str = state.toml_editor.value if state.toml_editor else ""
-        cpp_str = state.cpp_editor.value if state.cpp_editor else ""
-        h_str = state.h_editor.value if state.h_editor else ""
-
-        try:
-            bundle = _toml_to_bundle(toml_str, cpp_str, h_str)
-        except Exception as ex:
-            _set_preview(state, "ERROR", f"TOML parse error:\n{ex}")
-            notify(f"TOML parse error: {ex}", type="negative")
-            return
-
-        pretty = json.dumps(bundle, indent=2)
-        _set_preview(state, "MODULE_BUNDLE", pretty)
-        notify("Bundle preview generated", type="positive", color="emerald-9")
-
     async def do_save():
-        toml_str = state.toml_editor.value if state.toml_editor else ""
-        cpp_str = state.cpp_editor.value if state.cpp_editor else ""
-        h_str = state.h_editor.value if state.h_editor else ""
+        active_mod = _get_active_module(state)
+        if not active_mod:
+            notify("No module open to save", type="warning", color="orange-9")
+            return
+
+        mod = state.modules.get(active_mod)
+        if not mod:
+            return
+
+        _sync_editors_to_state(state, active_mod)
 
         try:
-            bundle = _toml_to_bundle(toml_str, cpp_str, h_str)
+            bundle = _toml_to_bundle(mod["toml"], mod["cpp"], mod["h"])
         except Exception as ex:
             notify(f"TOML parse error: {ex}", type="negative")
             return
 
-        module_name = bundle.get("module", {}).get("name", "").strip()
-        if not module_name:
+        actual_name = bundle.get("module", {}).get("name", "").strip()
+        if not actual_name:
             notify("Module name is empty — set [module] name in config", type="warning", color="orange-9")
             return
 
-        resp = await upload_module(module_name, json.dumps(bundle))
-        if resp:
-            state.current_module_name = module_name
-            await refresh_modules()
-            state.module_select.set_value(module_name)
-            _set_preview(state, "MODULE_BUNDLE", json.dumps(bundle, indent=2))
-            notify(f"Saved '{module_name}'", type="positive", color="emerald-9")
-        else:
+        resp = await upload_module(actual_name, json.dumps(bundle))
+        if not resp:
             notify("Save failed", type="negative")
+            return
+
+        if active_mod != actual_name:
+            await _migrate_module(state, active_mod, actual_name, open_file)
+        else:
+            mod["original_toml"] = mod["toml"]
+            mod["original_cpp"] = mod["cpp"]
+            mod["original_h"] = mod["h"]
+
+        state.module_names = await _fetch_module_names()
+        render_tree.refresh()
+        notify(f"Saved '{actual_name}'", type="positive", color="emerald-9")
 
     async def do_save_as():
-        toml_str = state.toml_editor.value if state.toml_editor else ""
-        cpp_str = state.cpp_editor.value if state.cpp_editor else ""
-        h_str = state.h_editor.value if state.h_editor else ""
+        active_mod = _get_active_module(state)
+        if not active_mod:
+            notify("No module open to save", type="warning", color="orange-9")
+            return
+
+        mod = state.modules.get(active_mod)
+        if not mod:
+            return
+
+        _sync_editors_to_state(state, active_mod)
 
         try:
-            bundle = _toml_to_bundle(toml_str, cpp_str, h_str)
+            bundle = _toml_to_bundle(mod["toml"], mod["cpp"], mod["h"])
         except Exception as ex:
             notify(f"TOML parse error: {ex}", type="negative")
             return
@@ -265,7 +412,7 @@ async def _module_builder_view():
 
         with ui.dialog() as d, ui.card().classes("tech-dialog w-96 p-0 rounded overflow-hidden"):
             with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
-                ui.label("SAVE_AS").classes("tech-label-sub")
+                ui.label("SAVE AS").classes("tech-label-sub")
                 ui.button(icon="close", on_click=d.close).props("dense flat size=sm color=grey")
 
             with ui.column().classes("p-4 gap-4 w-full"):
@@ -288,10 +435,22 @@ async def _module_builder_view():
                     if not resp:
                         notify("Save failed", type="negative")
                         return
-                    state.current_module_name = save_name
                     d.close()
-                    await refresh_modules()
-                    state.module_select.set_value(save_name)
+
+                    cpp_content, h_content = _extract_files_from_bundle(bundle)
+                    toml_str = _bundle_to_toml(bundle)
+                    state.modules[save_name] = {
+                        "toml": toml_str,
+                        "cpp": cpp_content,
+                        "h": h_content,
+                        "original_toml": toml_str,
+                        "original_cpp": cpp_content,
+                        "original_h": h_content,
+                    }
+
+                    state.module_names = await _fetch_module_names()
+                    render_tree.refresh()
+                    await open_file(save_name, "toml")
                     notify(f"Saved '{save_name}'", type="positive", color="emerald-9")
 
                 ui.button("SAVE", on_click=finalize).props("unelevated dense color=emerald no-caps")
@@ -299,51 +458,130 @@ async def _module_builder_view():
         d.open()
 
     def do_new():
-        if state.toml_editor:
-            state.toml_editor.value = _BLANK_TOML
-        if state.cpp_editor:
-            state.cpp_editor.value = _BLANK_CPP
-        if state.h_editor:
-            state.h_editor.value = _BLANK_H
-        state.current_module_name = None
-        if state.module_select:
-            state.module_select.set_value(None)
-        _set_preview(state, "INSPECTOR", "// New module — edit the config, source, and header tabs.")
-        notify("New module started", type="info")
+        with ui.dialog() as d, ui.card().classes("tech-dialog w-96 p-0 rounded overflow-hidden"):
+            with ui.row().classes("w-full bg-neutral-900/50 p-4 border-b border-white/5 items-center justify-between"):
+                ui.label("NEW MODULE").classes("tech-label-sub")
+                ui.button(icon="close", on_click=d.close).props("dense flat size=sm color=grey")
 
-    async def on_module_select(e):
-        if not e.value:
+            with ui.column().classes("p-4 gap-4 w-full"):
+                name_input = (
+                    ui.input("MODULE NAME", placeholder="e.g. my_module")
+                    .props("outlined dense dark color=emerald autofocus")
+                    .classes("w-full tech-input")
+                )
+
+            with ui.row().classes("w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"):
+                ui.button("CANCEL", on_click=d.close).props("flat dense color=grey no-caps")
+
+                async def create():
+                    mod_name = (name_input.value or "").strip()
+                    if not mod_name:
+                        notify("Enter a module name", type="warning", color="orange-9")
+                        return
+
+                    toml = _BLANK_TOML.replace("my_module", mod_name).replace(
+                        "My Module", mod_name.replace("_", " ").title()
+                    )
+                    cpp = _BLANK_CPP.replace("my_module", mod_name)
+                    h = _BLANK_H.replace("my_module", mod_name)
+
+                    try:
+                        bundle = _toml_to_bundle(toml, cpp, h)
+                    except Exception as ex:
+                        notify(f"Template error: {ex}", type="negative")
+                        return
+
+                    resp = await upload_module(mod_name, json.dumps(bundle))
+                    if not resp:
+                        notify("Create failed", type="negative")
+                        return
+
+                    d.close()
+                    state.modules[mod_name] = {
+                        "toml": toml,
+                        "cpp": cpp,
+                        "h": h,
+                        "original_toml": toml,
+                        "original_cpp": cpp,
+                        "original_h": h,
+                    }
+                    state.module_names = await _fetch_module_names()
+                    render_tree.refresh()
+                    await open_file(mod_name, "toml")
+                    notify(f"Created '{mod_name}'", type="positive", color="emerald-9")
+
+                ui.button("CREATE", on_click=create).props("unelevated dense color=emerald no-caps")
+
+        d.open()
+
+    async def do_delete(module_name: str):
+        close_all_module_tabs(module_name)
+
+        resp = await delete_module(module_name)
+        if not resp:
+            notify("Delete failed", type="negative")
             return
-        resp = await get_module_by_name(e.value)
-        if resp and resp.get("data", {}).get("artifact_contents"):
-            try:
-                bundle = json.loads(resp["data"]["artifact_contents"])
-            except json.JSONDecodeError:
-                notify("Invalid module JSON", type="negative")
+
+        state.modules.pop(module_name, None)
+        state.module_names = await _fetch_module_names()
+        render_tree.refresh()
+        notify(f"Deleted '{module_name}'", type="positive", color="emerald-9")
+
+    def do_delete_active():
+        active_mod = _get_active_module(state)
+        if not active_mod:
+            notify("No module open to delete", type="warning", color="orange-9")
+            return
+        confirm_action(
+            title="DELETE MODULE",
+            message=f"Delete '{active_mod}'?",
+            on_confirm=lambda: do_delete(active_mod),
+            confirm_label="DELETE",
+            icon="delete",
+        )
+
+    async def do_duplicate():
+        active_mod = _get_active_module(state)
+        if not active_mod:
+            notify("No module open to duplicate", type="warning", color="orange-9")
+            return
+
+        mod = state.modules.get(active_mod)
+        if not mod:
+            if not await _load_module(state, active_mod):
                 return
+            mod = state.modules[active_mod]
 
-            toml_str = _bundle_to_toml(bundle)
-            cpp_content, h_content = _extract_files_from_bundle(bundle)
+        _sync_editors_to_state(state, active_mod)
+        dup_name = f"{active_mod}_duplicate"
 
-            if state.toml_editor:
-                state.toml_editor.value = toml_str
-            if state.cpp_editor:
-                state.cpp_editor.value = cpp_content
-            if state.h_editor:
-                state.h_editor.value = h_content
+        toml = mod["toml"].replace(active_mod, dup_name)
+        cpp = mod["cpp"].replace(active_mod, dup_name)
+        h = mod["h"].replace(active_mod, dup_name)
 
-            state.current_module_name = e.value
-            _set_preview(state, f"MODULE: {e.value}", json.dumps(bundle, indent=2))
-            notify(f"Loaded {e.value}", type="positive", color="emerald-9")
-        else:
-            notify(f"Failed to load {e.value}", type="negative")
+        try:
+            bundle = _toml_to_bundle(toml, cpp, h)
+        except Exception as ex:
+            notify(f"TOML parse error: {ex}", type="negative")
+            return
 
-    async def refresh_modules():
-        nonlocal module_names
-        module_names = await _fetch_module_names()
-        if state.module_select:
-            state.module_select.options = module_names
-            state.module_select.update()
+        resp = await upload_module(dup_name, json.dumps(bundle))
+        if not resp:
+            notify("Duplicate failed", type="negative")
+            return
+
+        state.modules[dup_name] = {
+            "toml": toml,
+            "cpp": cpp,
+            "h": h,
+            "original_toml": toml,
+            "original_cpp": cpp,
+            "original_h": h,
+        }
+        state.module_names = await _fetch_module_names()
+        render_tree.refresh()
+        await open_file(dup_name, "toml")
+        notify(f"Duplicated as '{dup_name}'", type="positive", color="emerald-9")
 
     async def do_seed():
         resp = await seed_modules()
@@ -354,157 +592,191 @@ async def _module_builder_view():
                 type="positive",
                 color="emerald-9",
             )
-            await refresh_modules()
+            state.module_names = await _fetch_module_names()
+            render_tree.refresh()
         else:
             notify("Seed failed", type="negative")
+
+    async def do_refresh():
+        state.module_names = await _fetch_module_names()
+        render_tree.refresh()
+
+    def on_tab_change(e):
+        state.active_tab_key = e.value or None
+
+    # ── Tree rendering ────────────────────────────────────────────────
+
+    @ui.refreshable
+    def render_tree():
+        if not state.module_names:
+            with ui.column().classes("tech-empty-state w-full py-12"):
+                ui.icon("extension", size="xl", color="emerald-500")
+                ui.label("No modules — seed defaults or create new").classes("tech-label-sub text-neutral-500")
+            return
+
+        for mod_name in state.module_names:
+            dirty = _is_dirty(state, mod_name)
+
+            with ui.expansion(icon="folder").classes("w-full tech-expansion") as exp:
+                with exp.add_slot("header"), ui.row().classes("items-center gap-2 w-full"):
+                    ui.label(mod_name).style("font-weight: 500")
+                    if dirty:
+                        ui.element("div").classes("w-2 h-2 rounded-full bg-emerald-400").style("flex-shrink: 0")
+
+                _tree_file(
+                    "config.toml",
+                    state.active_tab_key == _tab_key(mod_name, "toml"),
+                    lambda _e, mn=mod_name: open_file(mn, "toml"),
+                )
+                _tree_file(
+                    f"{mod_name}.cpp",
+                    state.active_tab_key == _tab_key(mod_name, "cpp"),
+                    lambda _e, mn=mod_name: open_file(mn, "cpp"),
+                )
+                _tree_file(
+                    f"{mod_name}.h",
+                    state.active_tab_key == _tab_key(mod_name, "h"),
+                    lambda _e, mn=mod_name: open_file(mn, "h"),
+                )
 
     # ══════════════════════════════════════════════════════════════════
     #  MAIN LAYOUT
     # ══════════════════════════════════════════════════════════════════
 
     with ui.element().classes("w-full h-full gap-0"):  # noqa: SIM117
-        with ui.splitter(value=42, limits=(25, 65)).classes("w-full h-full").props(
+        with ui.splitter(value=25, limits=(15, 40)).classes("w-full h-full").props(
             "separator-class=bg-white/10 separator-style=width:1px"
         ) as splitter:
+            # ── LEFT PANE: File Tree ──────────────────────────────────
             with splitter.before:  # noqa: SIM117
                 with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
-                    # Header bar
                     with ui.row().classes(  # noqa: SIM117
                         "w-full items-center justify-between tech-header-bar px-4 shrink-0"
                     ):
                         with ui.row().classes("items-center gap-3"):
                             ui.icon("extension", color="emerald-500").classes("text-xl")
-                            ui.label("MODULE_BUILDER //").classes("tech-label-header-section")
+                            ui.label("MODULES //").classes("tech-label-header-section")
 
-                    # Module selector row
-                    with ui.row().classes("w-full items-center gap-2 px-3 pt-3 pb-1 shrink-0"):
-                        state.module_select = (
-                            ui.select(
-                                options=module_names,
-                                label="Load Existing Module",
-                                value=None,
-                                on_change=on_module_select,
-                            )
-                            .props("outlined dense dark color=emerald options-dense clearable")
-                            .classes("flex-grow tech-select")
-                        )
+                    with ui.row().classes("w-full items-center gap-1 px-3 py-2 border-b border-white/5 shrink-0"):
                         with (
-                            ui.button(icon="refresh", on_click=refresh_modules)
-                            .props("flat dense size=xs")
+                            ui.button(icon="note_add", on_click=do_new)
+                            .props("flat dense size=sm")
+                            .classes("tech-btn-action")
+                        ):
+                            formatted_tooltip("New Module")
+                        with (
+                            ui.button(icon="refresh", on_click=do_refresh)
+                            .props("flat dense size=sm")
                             .classes("tech-btn-secondary")
                         ):
-                            formatted_tooltip("Refresh List")
+                            formatted_tooltip("Refresh")
 
-                    # Seed banner
-                    if not module_names:
-                        with ui.row().classes(
-                            "w-full items-center gap-2 px-3 py-2 bg-amber-500/10 border-b border-amber-500/20"
-                        ):
-                            ui.icon("info", size="xs", color="amber-400")
-                            ui.label("No modules on server.").classes("tech-label-sub text-amber-400 text-xs")
-                            ui.button("SEED DEFAULTS", on_click=do_seed).props("flat dense size=xs color=amber no-caps")
-
-                    # Editor tabs
-                    with ui.scroll_area().classes("w-full flex-grow"), ui.column().classes(  # noqa: SIM117
-                        "w-full h-full gap-0"
-                    ):
-                        with ui.tabs().classes("w-full shrink-0").props(
-                            "dense active-color=emerald indicator-color=emerald text-color=grey-5"
-                        ) as editor_tabs:
-                            config_tab = ui.tab("CONFIG (.toml)")
-                            source_tab = ui.tab("SOURCE (.cpp)")
-                            header_tab = ui.tab("HEADER (.h)")
-
-                        with ui.tab_panels(editor_tabs, value=config_tab).classes("w-full flex-grow overflow-auto"):
-                            with ui.tab_panel(config_tab).classes("p-0"):
-                                state.toml_editor = ui.codemirror(
-                                    _BLANK_TOML,
-                                    language="TOML",
-                                    theme="androidstudio",
-                                ).classes("w-full h-full min-h-[400px]")
-
-                            with ui.tab_panel(source_tab).classes("p-0"):
-                                state.cpp_editor = ui.codemirror(
-                                    _BLANK_CPP,
-                                    language="C++",
-                                    theme="androidstudio",
-                                ).classes("w-full h-full min-h-[400px]")
-
-                            with ui.tab_panel(header_tab).classes("p-0"):
-                                state.h_editor = ui.codemirror(
-                                    _BLANK_H,
-                                    language="C++",
-                                    theme="androidstudio",
-                                ).classes("w-full h-full min-h-[400px]")
-
-                    # Bottom action bar
-                    with ui.row().classes(
-                        "w-full items-center justify-between px-3 py-2 border-t "
-                        "border-white/5 bg-black/20 shrink-0 gap-2"
-                    ):
-                        with ui.row().classes("items-center gap-1"):
+                        if not state.module_names:
+                            ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
                             with (
-                                ui.button(icon="note_add", on_click=do_new)
+                                ui.button(icon="cloud_download", on_click=do_seed)
                                 .props("flat dense size=sm")
-                                .classes("tech-btn-secondary")
+                                .classes("tech-btn-action-2")
                             ):
-                                formatted_tooltip("New Module")
+                                formatted_tooltip("Seed Default Modules")
+
+                    with ui.scroll_area().classes("w-full flex-grow"), ui.column().classes(  # noqa: SIM117
+                        "w-full gap-0 p-1"
+                    ):
+                        render_tree()
+
+            # ── RIGHT PANE: Tabbed Editor ─────────────────────────────
+            with splitter.after:  # noqa: SIM117
+                with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
+                    with ui.row().classes(
+                        "w-full items-center justify-between bg-black/20 "
+                        "border-b border-white/5 px-2 h-10 gap-2 shrink-0"
+                    ):
+                        with ui.row().classes("items-center gap-2"):
+                            ui.icon("code", size="xs", color="emerald-500")
+                            ui.label("EDITOR //").classes("tech-label-sub")
+
+                        state.tabs = ui.tabs().props(
+                            "dense indicator-color=emerald text-color=grey-5 "
+                            "active-color=emerald-400 narrow-indicator align=left"
+                        )
+                        state.tabs.classes("bg-transparent h-full flex-grow")
+                        state.tabs.on_value_change(on_tab_change)
+
+                        ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
+
+                        with ui.row().classes("items-center gap-1"):
                             with (
                                 ui.button(icon="save", on_click=do_save)
                                 .props("flat dense size=sm")
-                                .classes("tech-btn-secondary")
+                                .classes("tech-btn-action")
                             ):
-                                formatted_tooltip("Save")
+                                formatted_tooltip("Save Module")
                             with (
                                 ui.button(icon="save_as", on_click=do_save_as)
                                 .props("flat dense size=sm")
                                 .classes("tech-btn-secondary")
                             ):
                                 formatted_tooltip("Save As")
+                            with (
+                                ui.button(icon="content_copy", on_click=do_duplicate)
+                                .props("flat dense size=sm")
+                                .classes("tech-btn-secondary")
+                            ):
+                                formatted_tooltip("Duplicate Module")
+                            with (
+                                ui.button(icon="delete", on_click=do_delete_active)
+                                .props("flat dense size=sm")
+                                .classes("tech-btn-destructive")
+                            ):
+                                formatted_tooltip("Delete Module")
 
-                        ui.button(
-                            "PREVIEW",
-                            icon="preview",
-                            on_click=do_preview,
-                        ).props("unelevated dense no-caps size=sm").classes(
-                            "bg-emerald-600 text-white font-bold tracking-wide text-xs px-4"
-                        )
-
-            with splitter.after:  # noqa: SIM117
-                with ui.column().classes("w-full h-full gap-0 tech-glass-panel"):
-                    with ui.row().classes("w-full items-center gap-3 tech-header-bar px-4 shrink-0"):
-                        ui.icon("code", color="emerald-500").classes("text-xl")
-                        state.preview_title = ui.label("INSPECTOR //").classes("tech-label-header-section")
-
-                    state.preview_viewer = (
-                        ui.codemirror(
-                            "// Edit the config, source, and header tabs, then click PREVIEW\n"
-                            "// to see the generated JSON module bundle here.",
-                            language="JSON",
-                            theme="androidstudio",
-                        )
-                        .classes("w-full h-full min-h-[400px]")
-                        .props("readonly")
+                    state.panels = (
+                        ui.tab_panels(state.tabs)
+                        .classes("w-full h-full bg-neutral-900/40")
+                        .props("dense transition-duration=0")
                     )
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  HELPERS
+#  INTERNAL HELPERS
 # ════════════════════════════════════════════════════════════════════════════
 
 
-def _set_preview(state: _ModuleBuilderState, title: str, content: str):
-    if state.preview_title:
-        state.preview_title.set_text(f"{title} //")
-    if state.preview_viewer:
-        state.preview_viewer.value = content
+def _on_editor_change(state: _ModuleBuilderState, module_name: str, file_type: str, value: str):
+    mod = state.modules.get(module_name)
+    if mod:
+        mod[file_type] = value
 
 
-async def _fetch_module_names() -> list[str]:
-    try:
-        resp = await get_all_modules()
-        if resp and resp.get("data"):
-            return sorted([m["artifact_name"] for m in resp["data"]], key=str.lower)
-    except Exception:
-        pass
-    return []
+def _sync_editors_to_state(state: _ModuleBuilderState, module_name: str):
+    for ft in ("toml", "cpp", "h"):
+        key = _tab_key(module_name, ft)
+        tab_data = state.open_tabs.get(key)
+        if tab_data and tab_data["editor"]:
+            state.modules[module_name][ft] = tab_data["editor"].value
+
+
+async def _migrate_module(state: _ModuleBuilderState, old_name: str, new_name: str, open_file_fn):
+    open_types = [ft for ft in ("toml", "cpp", "h") if _tab_key(old_name, ft) in state.open_tabs]
+
+    for ft in ("toml", "cpp", "h"):
+        key = _tab_key(old_name, ft)
+        tab_data = state.open_tabs.pop(key, None)
+        if tab_data:
+            state.tabs.remove(tab_data["tab_object"])
+            state.panels.remove(tab_data["panel_object"])
+
+    if not state.open_tabs:
+        state.panels.set_value(None)
+        state.active_tab_key = None
+
+    mod = state.modules.pop(old_name, None)
+    if mod:
+        mod["original_toml"] = mod["toml"]
+        mod["original_cpp"] = mod["cpp"]
+        mod["original_h"] = mod["h"]
+        state.modules[new_name] = mod
+
+    for ft in open_types:
+        await open_file_fn(new_name, ft)

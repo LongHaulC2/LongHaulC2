@@ -27,6 +27,30 @@ from ..utils.checks import check_type
 server_log = structlog.getLogger("server")
 server_log.info("Loading /operations page")
 
+_PREFERRED_COL_ORDER = [
+    "implant_uuid",
+    "system_hostname",
+    "user",
+    "external_ip",
+    "internal_ip",
+    "process",
+    "pid",
+    "arch",
+    "last_checkin",
+    "sleep_value",
+    "next_checkin",
+    "get_strategy",
+    "post_strategy",
+    "notes",
+]
+
+
+def _order_columns(keys: set) -> list:
+    ordered = [k for k in _PREFERRED_COL_ORDER if k in keys]
+    extra = sorted(k for k in keys if k not in _PREFERRED_COL_ORDER)
+    return ordered + extra
+
+
 # -------------------------------
 # GLOBAL STATE
 # -------------------------------
@@ -90,8 +114,19 @@ async def implant_view(syntax_drawer):
         TLDR: Easier to pass it in through this function, as drawer throws a fit
         if not declared outside of an element with nicegui
     """
-    previous_ids = set()
-    table_initialized = False
+    col_state = {
+        "all_keys": [],
+        "visible": set(),
+    }
+    slots_added = False
+
+    def _rebuild_table_columns():
+        table.columns = [
+            {"name": k, "label": k.replace("_", " ").title(), "field": k, "sortable": True, "align": "left"}
+            for k in col_state["all_keys"]
+            if k in col_state["visible"]
+        ]
+        table.update()
 
     # Glass Panel Container
     with ui.column().classes("w-full h-full gap-0 tech-glass-panel rounded-none border-0 border-r border-white/5"):
@@ -99,7 +134,6 @@ async def implant_view(syntax_drawer):
         with ui.row().classes("w-full items-center justify-between tech-header-bar"):
             # Title
             with ui.row().classes("items-center gap-2"):
-                # Moved search bar here, it fits better
                 search_input = (
                     ui.input(placeholder="Lucene query...")
                     .props("dense dark border color=emerald input-class=text-emerald-400 hide-bottom-space")
@@ -119,7 +153,6 @@ async def implant_view(syntax_drawer):
 
             # Toolbar
             with ui.row().classes("items-center gap-1"):
-                # Payloads
                 with (
                     ui.button(on_click=lambda: start_payload_dialogue())
                     .classes("tech-btn-action px-2")
@@ -170,6 +203,37 @@ async def implant_view(syntax_drawer):
                 ):
                     formatted_tooltip("Force Refresh")
 
+                # Column visibility picker
+                with ui.button(icon="view_column").classes("tech-btn-secondary").props("dense flat size=sm square"):
+                    formatted_tooltip("Column Visibility")
+                    with ui.menu().classes("bg-[#1a1a1a] border border-white/10").props("auto-close=false"):  # noqa - nicegui
+                        with ui.column().classes("p-3 gap-0 min-w-[220px]"):
+                            ui.label("VISIBLE COLUMNS").classes("tech-label-sub mb-2")
+
+                            @ui.refreshable
+                            def render_col_picker():
+                                for key in col_state["all_keys"]:
+                                    is_visible = key in col_state["visible"]
+                                    label = key.replace("_", " ").title()
+
+                                    def make_toggle(k=key):
+                                        def toggle(e):
+                                            if e.value:
+                                                col_state["visible"].add(k)
+                                            else:
+                                                col_state["visible"].discard(k)
+                                            _rebuild_table_columns()
+
+                                        return toggle
+
+                                    (
+                                        ui.checkbox(label, value=is_visible, on_change=make_toggle())
+                                        .props("dense dark color=emerald size=xs")
+                                        .classes("text-[11px] font-mono text-neutral-400")
+                                    )
+
+                            render_col_picker()
+
                 ui.separator().classes("bg-white/10 h-4 w-[1px] mx-1")
 
                 with (
@@ -178,6 +242,7 @@ async def implant_view(syntax_drawer):
                     .props("dense flat size=sm square")
                 ):
                     formatted_tooltip("Delete Selected Implants")
+
         # Table Container
         with ui.column().classes(" w-full flex-grow relative overflow-hidden bg-transparent"):
             table = (
@@ -191,12 +256,10 @@ async def implant_view(syntax_drawer):
                 .classes("w-full h-full tech-table-base tech-table-head tech-table-body tech-table-row-hover")
                 .props("dense flat virtual-scroll square")
             )
-            # pops terminal on double click
             table.on(
                 "row-dblclick", lambda e: ui.timer(0.1, lambda: terminal_add_tab(e.args[1]["implant_uuid"]), once=True)
             )
 
-            # and select on single click
             def toggle_selection(e):
                 row_data = e.args[1]
                 row_id = row_data.get("implant_uuid")
@@ -211,15 +274,13 @@ async def implant_view(syntax_drawer):
 
     # --- LOGIC ---
     async def refresh():
-        nonlocal previous_ids, table_initialized
+        nonlocal slots_added
 
         query = search_input.value.strip() if search_input.value else ""
         if query:
             try:
                 resp = await search_server(query=query, search_for="implant")
-                # if resp.status_code == 200:
                 data = orjson.loads(resp.content).get("data", [])
-
             except Exception as err:
                 server_log.error(f"Search error: {err}")
                 data = []
@@ -228,9 +289,8 @@ async def implant_view(syntax_drawer):
             data = raw_data.get("data") if raw_data else []
 
         if not data:
-            if table_initialized:
-                table.rows = []
-                table.update()
+            table.rows = []
+            table.update()
             return
 
         now = int(time.time())
@@ -243,21 +303,21 @@ async def implant_view(syntax_drawer):
             else:
                 row["next_checkin"] = "--"
 
-        if not table_initialized:
-            keys = tuple(data[0].keys())
-            cols = [
-                {
-                    "name": key,
-                    "label": key.replace("_", " ").title(),
-                    "field": key,
-                    "sortable": True,
-                    "align": "left",
-                }
-                for key in keys
-            ]
-            table.columns = cols
+        # Collect ALL keys from ALL rows (grow-only during session)
+        current_keys = set()
+        for row in data:
+            current_keys.update(row.keys())
 
-            # HTML Notes Slot
+        known = set(col_state["all_keys"])
+        if not current_keys.issubset(known):
+            new_keys = current_keys - known
+            known.update(current_keys)
+            col_state["all_keys"] = _order_columns(known)
+            col_state["visible"].update(new_keys)
+            render_col_picker.refresh()
+            _rebuild_table_columns()
+
+        if not slots_added:
             table.add_slot(
                 "body-cell-notes",
                 r"""
@@ -268,8 +328,6 @@ async def implant_view(syntax_drawer):
 </q-td>
             """,
             )
-
-            # Custom Tech Header
             table.add_slot(
                 "header",
                 r"""
@@ -283,8 +341,7 @@ async def implant_view(syntax_drawer):
 </q-tr>
 """,
             )
-
-            table_initialized = True
+            slots_added = True
 
         table.rows = data
         table.update()

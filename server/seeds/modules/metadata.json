@@ -4,7 +4,7 @@
     "display_name": "System Metadata",
     "description": "Collect host metadata including user, hostname, process info, and NIC details",
     "category": "recon",
-    "removable": false
+    "removable": true
   },
   "sources": {
     "files": [
