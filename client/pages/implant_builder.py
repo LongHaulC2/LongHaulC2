@@ -348,7 +348,7 @@ def _implant_tab(state: _BuilderState):
 
         state.module_card = (
             ui.card()
-            .classes("w-full min-h-[60px]")
+            .classes("w-full min-h-[60px] shadow-none")
             .style("border: 1px dashed #444; background: transparent; padding: 4px;")
         )
         _render_module_rows(state)

@@ -930,7 +930,7 @@ def _transform_chain_editor(chain: str, sub_chain: str, state):
     with ui.column().classes("w-full gap-2"):
         card = (
             ui.card()
-            .classes("w-full min-h-[60px]")
+            .classes("w-full min-h-[60px] shadow-none")
             .style("border: 1px dashed #444; background: transparent; padding: 8px;")
         )
 

@@ -164,7 +164,7 @@ async def render_dashboard(listener_data: dict, listener_uuid: str):
                     result = await preview_profile(profile_toml)
                     if result and result.get("data"):
                         with wire_container:
-                            from client.pages.profile_preview import _render_output
+                            from client.pages.profile_builder import _render_output
 
                             _render_output(result["data"])
                     else:
