@@ -275,7 +275,7 @@ async def _load_module(state: _ModuleBuilderState, module_name: str):
 # ════════════════════════════════════════════════════════════════════════════
 
 
-@ui.page("/module-builder")
+@ui.page("/builder/module")
 async def module_builder_page():
     ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(

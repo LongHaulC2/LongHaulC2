@@ -47,7 +47,7 @@ class _BuilderState:
         self.module_card = None
 
 
-@ui.page("/builder")
+@ui.page("/builder/implant")
 async def builder_page():
     ui.context.client.content.classes("h-full p-0 gap-0")
     ui.context.client.page_container.default_slot.children[0].props(

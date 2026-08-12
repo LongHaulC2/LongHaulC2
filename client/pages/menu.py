@@ -81,22 +81,60 @@ def setup_menu(title: str):
                     f"flat no-caps align=left color={icon_color or 'grey'}"
                 ).classes(style_classes)
 
+            def nav_dropdown(label, icon, children):
+                any_active = any(c[0].lower() in title.lower() for c in children)
+
+                base_classes = (
+                    "w-full rounded transition-all duration-300 font-mono text-xs tracking-wide px-4 py-3 border-l-2"
+                )
+                if any_active:
+                    style_classes = f"{base_classes} text-emerald-400 bg-white/5 border-emerald-500 font-bold"
+                    icon_color = "emerald"
+                else:
+                    style_classes = f"{base_classes} text-neutral-400 hover:text-emerald-400 hover:bg-white/5 border-transparent hover:border-emerald-500"  # noqa: E501
+                    icon_color = None
+
+                with ui.button(label, icon=icon).props(  # noqa: SIM117
+                    f"flat no-caps align=left color={icon_color or 'grey'}"
+                ).classes(style_classes):
+                    with ui.menu().classes("tech-dropdown-menu"):
+                        for child_label, child_icon, child_target in children:
+                            is_active = child_label.lower() in title.lower()
+                            item_class = "tech-dropdown-item-active" if is_active else "tech-dropdown-item"
+                            with ui.menu_item(
+                                on_click=lambda t=child_target: smooth_navigate(t),
+                            ).props("dense").classes(item_class):
+                                with ui.item_section().props("side"):
+                                    icon_cls = "text-emerald-400" if is_active else "text-neutral-500"
+                                    ui.icon(child_icon, size="18px").classes(icon_cls)
+                                ui.item_section(child_label)
+
             with ui.scroll_area().classes("flex-grow w-full"), ui.column().classes("w-full px-6 gap-1"):
                 ui.separator().classes("bg-white/5 mt-2 mb-2")
                 ui.label("OPERATIONS").classes("tech-label-sub")
                 nav_btn("OPERATIONS", "terminal", "/operations")
                 nav_btn("ENGAGEMENT_MAP", "device_hub", "/graph")
-                # text not aligned left
-                with ui.expansion("IMPLANTS", icon="memory").classes("w-full tech-expansion-nav"):
-                    nav_btn("IMPLANT STORE", "inventory_2", "/payloads", compact=True)
-                    nav_btn("IMPLANT BUILDER", "build", "/builder", compact=True)
-                    nav_btn("MODULE BUILDER", "extension", "/module-builder", compact=True)
-                    nav_btn("MODULES", "view_module", "/modules", compact=True)
 
-                with ui.expansion("LISTENERS", icon="cell_tower").classes("w-full tech-expansion-nav"):
-                    nav_btn("LISTENERS", "sensors", "/listeners", compact=True)
-                    nav_btn("PROFILE BUILDER", "tune", "/profile-preview", compact=True)
-                    nav_btn("PROFILES", "description", "/profiles", compact=True)
+                nav_dropdown(
+                    "IMPLANTS",
+                    "memory",
+                    [
+                        ("IMPLANT BUILDER", "build", "/builder/implant"),
+                        ("IMPLANT STORE", "view_module", "/payloads"),
+                        ("MODULE BUILDER", "build", "/builder/module"),
+                        ("MODULE STORE", "view_module", "/modules"),
+                    ],
+                )
+
+                nav_dropdown(
+                    "LISTENERS",
+                    "cell_tower",
+                    [
+                        ("LISTENERS", "sensors", "/listeners"),
+                        ("PROFILE BUILDER", "tune", "/profile-preview"),
+                        ("PROFILES", "description", "/profiles"),
+                    ],
+                )
 
                 ui.separator().classes("bg-white/5 mt-4 mb-2")
                 ui.label("RESOURCES").classes("tech-label-sub")
