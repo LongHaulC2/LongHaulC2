@@ -28,8 +28,10 @@ class _BuilderState:
         self.templates: list[dict] = []
         self.all_modules: list[dict] = []
         self.listeners: list[dict] = []
+        self.configs: list[dict] = []
 
         self.selected_template: str = "win_x64"
+        self.selected_config: str | None = None
         self.selected_modules: list[str] = []
         self.default_modules: list[str] = []
 
@@ -45,6 +47,7 @@ class _BuilderState:
         self.code_viewer = None
         self.code_title_label = None
         self.module_card = None
+        self.config_select = None
 
 
 @ui.page("/builder/implant")
@@ -78,6 +81,10 @@ async def _builder_view():
     if listeners_resp and listeners_resp.get("data"):
         state.listeners = listeners_resp["data"]
 
+    configs_resp = await get_all_build_configs()
+    if configs_resp and configs_resp.get("data"):
+        state.configs = configs_resp["data"]
+
     @ui.refreshable
     def editor_panel():
         with ui.column().classes("w-full h-full gap-0"):
@@ -85,19 +92,19 @@ async def _builder_view():
                 "dense active-color=emerald indicator-color=emerald text-color=grey-5"
             ) as main_tabs:
                 implant_tab = ui.tab("IMPLANT")
-                loader_tab = ui.tab("LOADER")
+                # loader_tab = ui.tab("LOADER")
                 profiles_tab = ui.tab("PROFILES")
-                misc_tab = ui.tab("MISC")
+                options_tab = ui.tab("options")
 
             with ui.tab_panels(main_tabs, value=implant_tab).classes("w-full flex-grow overflow-auto"):
                 with ui.tab_panel(implant_tab):
                     _implant_tab(state)
-                with ui.tab_panel(loader_tab):
-                    _loader_tab()
+                # with ui.tab_panel(loader_tab):
+                #     _loader_tab()
                 with ui.tab_panel(profiles_tab):
                     _profiles_tab(state)
-                with ui.tab_panel(misc_tab):
-                    _misc_tab(state)
+                with ui.tab_panel(options_tab):
+                    _options_tab(state)
 
     with ui.element().classes("w-full h-full gap-0"):  # noqa: SIM117
         with ui.splitter(value=42, limits=(25, 65)).classes("w-full h-full").props(
@@ -112,6 +119,43 @@ async def _builder_view():
                             ui.icon("construction", color="emerald-500").classes("text-xl")
                             ui.label("IMPLANT_BUILDER //").classes("tech-label-header-section")
 
+                    # Config selector row (same pattern as profile builder)
+                    with ui.row().classes("w-full items-center gap-2 px-3 pt-3 pb-1 shrink-0"):
+                        config_options = {cfg["artifact_name"]: cfg["artifact_name"] for cfg in state.configs}
+
+                        async def on_config_change(e):
+                            name = e.value
+                            if not name:
+                                state.selected_config = None
+                                return
+                            detail = await get_build_config_by_name(name)
+                            if detail and detail.get("data", {}).get("artifact_contents"):
+                                _apply_config(state, detail["data"]["artifact_contents"])
+                                state.selected_config = name
+                                editor_panel.refresh()
+                                notify(f"Loaded '{name}'", type="positive", color="emerald-9")
+
+                        state.config_select = (
+                            ui.select(
+                                options=config_options,
+                                value=state.selected_config,
+                                label="Load Build Config",
+                                on_change=on_config_change,
+                            )
+                            .props("outlined dense dark color=emerald options-dense clearable")
+                            .classes("flex-grow tech-select")
+                        )
+
+                        async def refresh_configs():
+                            await _reload_configs(state)
+
+                        with (
+                            ui.button(icon="refresh", on_click=refresh_configs)
+                            .props("flat dense size=xs")
+                            .classes("tech-btn-secondary")
+                        ):
+                            formatted_tooltip("Refresh Configs")
+
                     with ui.scroll_area().classes("w-full flex-grow"):
                         editor_panel()
 
@@ -122,10 +166,12 @@ async def _builder_view():
                         with ui.row().classes("items-center gap-1"):
 
                             async def do_save_config_quick():
+                                name = state.selected_config or state.implant_name or "untitled"
                                 config_data = _build_config_json(state)
-                                name = state.implant_name or "untitled"
                                 resp = await save_build_config(name, config_data)
                                 if resp:
+                                    state.selected_config = name
+                                    await _reload_configs(state)
                                     notify(f"Config '{name}' saved", type="positive", color="emerald-9")
                                 else:
                                     notify("Save failed", type="negative")
@@ -135,52 +181,66 @@ async def _builder_view():
                                 .props("flat dense size=sm")
                                 .classes("tech-btn-secondary")
                             ):
-                                formatted_tooltip("Quick Save Config")
+                                formatted_tooltip("Save Config")
 
-                            async def do_load_config_dialog():
-                                resp = await get_all_build_configs()
-                                if not resp or not resp.get("data"):
-                                    notify("No saved configs found", type="info")
-                                    return
-                                configs = resp["data"]
+                            async def do_save_as_dialog():
+                                default_name = state.selected_config or state.implant_name or ""
                                 with ui.dialog() as dlg, ui.card().classes(
-                                    "tech-dialog w-[500px] p-0 rounded overflow-hidden"
+                                    "tech-dialog w-96 p-0 rounded overflow-hidden"
                                 ):
                                     with ui.row().classes(
                                         "w-full bg-neutral-900/50 p-4 border-b border-white/5 "
                                         "items-center justify-between"
                                     ):
-                                        ui.label("LOAD CONFIG").classes("tech-label-sub")
+                                        ui.label("SAVE CONFIG AS").classes("tech-label-sub")
                                         ui.button(icon="close", on_click=dlg.close).props(
                                             "dense flat size=sm color=grey"
                                         )
-                                    with ui.column().classes("p-4 gap-2 w-full"):
-                                        for cfg in configs:
+                                    with ui.column().classes("p-4 gap-4 w-full"):
+                                        name_input = (
+                                            ui.input("CONFIG NAME", value=default_name)
+                                            .props("outlined dense dark color=emerald")
+                                            .classes("w-full tech-input")
+                                        )
+                                    with ui.row().classes(
+                                        "w-full bg-black/20 p-4 border-t border-white/5 justify-end gap-3"
+                                    ):
+                                        ui.button("CANCEL", on_click=dlg.close).props("flat dense color=grey no-caps")
 
-                                            async def load_one(cfg_name=cfg["artifact_name"]):
-                                                detail = await get_build_config_by_name(cfg_name)
-                                                if detail and detail.get("data", {}).get("artifact_contents"):
-                                                    _apply_config(state, detail["data"]["artifact_contents"])
-                                                    dlg.close()
-                                                    editor_panel.refresh()
-                                                    notify(f"Loaded '{cfg_name}'", type="positive", color="emerald-9")
+                                        async def finalize_save():
+                                            save_name = (name_input.value or "").strip()
+                                            if not save_name:
+                                                notify("Enter a config name", type="warning", color="orange-9")
+                                                return
+                                            config_data = _build_config_json(state)
+                                            resp = await save_build_config(save_name, config_data)
+                                            if not resp:
+                                                notify("Save failed", type="negative")
+                                                return
+                                            dlg.close()
+                                            state.selected_config = save_name
+                                            await _reload_configs(state)
+                                            notify(
+                                                f"Config '{save_name}' saved",
+                                                type="positive",
+                                                color="emerald-9",
+                                            )
 
-                                            ui.button(
-                                                cfg["artifact_name"],
-                                                on_click=load_one,
-                                            ).props("flat dense no-caps color=emerald").classes("w-full text-left")
+                                        ui.button("SAVE", on_click=finalize_save).props(
+                                            "unelevated dense color=emerald no-caps"
+                                        )
                                 dlg.open()
 
                             with (
-                                ui.button(icon="folder_open", on_click=do_load_config_dialog)
+                                ui.button(icon="save_as", on_click=do_save_as_dialog)
                                 .props("flat dense size=sm")
                                 .classes("tech-btn-secondary")
                             ):
-                                formatted_tooltip("Load Config")
+                                formatted_tooltip("Save Config As")
 
                         async def do_build():
                             if not state.implant_name:
-                                notify("Set an implant name (Misc tab)", type="warning", color="orange-9")
+                                notify("Set an implant name (options tab)", type="warning", color="orange-9")
                                 return
                             if not state.selected_listeners:
                                 notify("Add at least one listener (Profiles tab)", type="warning", color="orange-9")
@@ -234,7 +294,7 @@ async def _builder_view():
 
                         ui.button(
                             "BUILD",
-                            icon="rocket_launch",
+                            icon="build",
                             on_click=do_build,
                         ).props("unelevated dense no-caps size=sm").classes(
                             "bg-emerald-600 text-white font-bold tracking-wide text-xs px-4"
@@ -430,6 +490,17 @@ def _profiles_tab(state: _BuilderState):
         }
 
         with ui.row().classes("w-full items-center justify-between"):
+            ui.label("Callback Host").classes("text-sm font-bold text-gray-200")
+            ui.label("IP or hostname the implant calls back to").classes("text-xs text-gray-500")
+
+            ui.input(
+                label="Callback Host",
+                value=state.callback_host,
+                placeholder="ex: 10.0.0.5 or my.redirector.example.com",
+                on_change=lambda e: setattr(state, "callback_host", e.value or ""),
+            ).props("outlined dense dark color=emerald").classes("w-full tech-input")
+            ui.separator().classes("bg-white/5")
+
             ui.label("Profiles").classes("text-sm font-bold text-gray-200")
 
             if listener_options:
@@ -479,7 +550,7 @@ def _profiles_tab(state: _BuilderState):
 
         state._listener_card = (
             ui.card()
-            .classes("w-full min-h-[40px]")
+            .classes("w-full min-h-[40px] no-shadow")
             .style("border: 1px dashed #444; background: transparent; padding: 4px;")
         )
         _render_listener_rows(state, listener_options)
@@ -509,18 +580,6 @@ def _profiles_tab(state: _BuilderState):
         ).props("outlined dense dark color=emerald options-dense clearable").classes("w-full tech-select")
 
         ui.separator().classes("bg-white/5")
-
-        ui.label("Callback Host").classes("text-sm font-bold text-gray-200")
-        ui.label("IP or hostname the implant calls back to. Supports CDNs, redirectors, NAT.").classes(
-            "text-xs text-gray-500"
-        )
-
-        ui.input(
-            label="Callback Host",
-            value=state.callback_host,
-            placeholder="e.g. 10.0.0.5 or cdn.example.com",
-            on_change=lambda e: setattr(state, "callback_host", e.value or ""),
-        ).props("outlined dense dark color=emerald").classes("w-full tech-input")
 
 
 def _render_listener_rows(state: _BuilderState, listener_options: dict):
@@ -553,7 +612,7 @@ def _refresh_listener_card(state: _BuilderState):
         _render_listener_rows(state, listener_options)
 
 
-def _misc_tab(state: _BuilderState):
+def _options_tab(state: _BuilderState):
     with ui.column().classes("w-full gap-4 p-3"):
         ui.label("Executable Name").classes("text-sm font-bold text-gray-200")
         ui.input(
@@ -572,7 +631,9 @@ def _misc_tab(state: _BuilderState):
             value=state.debug_enabled,
             on_change=lambda e: setattr(state, "debug_enabled", e.value),
         ).classes("tech-switch")
-        ui.label("Enables IMPLANT_DEBUG_LOGS. Do not use in production.").classes("text-[11px] text-gray-500 -mt-2")
+        ui.label("Enables IMPLANT_DEBUG_LOGS, which print to STDOUT. Do not use in production.").classes(
+            "text-[11px] text-gray-500 -mt-2"
+        )
 
         ui.switch(
             "Clear Build Cache",
@@ -582,34 +643,6 @@ def _misc_tab(state: _BuilderState):
         ui.label("Forces full recompilation.").classes("text-[11px] text-gray-500 -mt-2")
 
         ui.separator().classes("bg-white/5")
-
-        ui.label("Save / Load Config").classes("text-sm font-bold text-gray-200")
-
-        with ui.row().classes("gap-2 w-full"):
-            config_name_input = (
-                ui.input(
-                    label="Config Name",
-                    placeholder="e.g. default_win64",
-                )
-                .props("outlined dense dark color=emerald")
-                .classes("flex-grow tech-input")
-            )
-
-            async def do_save_config():
-                name = (config_name_input.value or "").strip()
-                if not name:
-                    notify("Enter a config name", type="warning", color="orange-9")
-                    return
-                config_data = _build_config_json(state)
-                resp = await save_build_config(name, config_data)
-                if resp:
-                    notify(f"Config '{name}' saved", type="positive", color="emerald-9")
-                else:
-                    notify("Save failed", type="negative")
-
-            ui.button("SAVE", icon="save", on_click=do_save_config).props(
-                "unelevated dense color=emerald no-caps size=sm"
-            )
 
         def show_summary():
             summary = _build_config_json(state)
@@ -635,6 +668,15 @@ def _set_code_viewer(state: _BuilderState, title: str, content: str):
         state.code_title_label.set_text(f"{title} //")
     if state.code_viewer:
         state.code_viewer.value = content
+
+
+async def _reload_configs(state: _BuilderState):
+    resp = await get_all_build_configs()
+    state.configs = resp["data"] if resp and resp.get("data") else []
+    if state.config_select:
+        state.config_select.options = {cfg["artifact_name"]: cfg["artifact_name"] for cfg in state.configs}
+        state.config_select.set_value(state.selected_config)
+        state.config_select.update()
 
 
 def _build_config_json(state: _BuilderState) -> str:
